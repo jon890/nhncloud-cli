@@ -5,6 +5,10 @@
 NHN Cloud 서비스를 AWS CLI 처럼 호출하는 통합 CLI.
 TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 
+## 지원 명령 (1개)
+
+- `logncrash search` — Log & Crash 로그 검색 (시간 범위는 90일 이내·31일 이하로 제한, 초과 시 입력 오류).
+
 ## API 스펙 확인 절차
 
 NHN Cloud 공식 docs 를 단일 소스로 삼는다 (<https://docs.nhncloud.com>).

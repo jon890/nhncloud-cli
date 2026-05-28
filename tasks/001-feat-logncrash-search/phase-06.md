@@ -33,7 +33,7 @@ nhncloud-cli 의 `nhncloud logncrash search` 구현 완료 (Phase 1~5). 이 phas
 ## 성공 기준
 
 ```bash
-# cwd: /Users/nhn/personal/nhncloud-cli
+# cwd: <레포 루트>
 pnpm tsc --noEmit 2>&1 | grep -E "^src/" | wc -l   # 기대: 0
 pnpm run build && echo BUILD_OK
 node dist/index.js logncrash search --help 2>&1 | grep -c "\-\-query"   # 기대: >=1

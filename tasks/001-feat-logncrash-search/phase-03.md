@@ -41,7 +41,7 @@ src/config/ 에 타입 + 자격증명 로더 작성.
 ## 성공 기준
 
 ```bash
-# cwd: /Users/nhn/personal/nhncloud-cli
+# cwd: <레포 루트>
 pnpm tsc --noEmit 2>&1 | grep -E "^src/" | wc -l   # 기대: 0
 ls src/config/types.ts src/config/credentials.ts
 grep -c "NHNCLOUD_PROFILE" src/config/credentials.ts        # 기대: >=1 (env 폴백)

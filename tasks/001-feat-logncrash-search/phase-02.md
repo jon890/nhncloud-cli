@@ -44,7 +44,7 @@ src/api/ 에 공통 3개 파일 작성.
 ## 성공 기준
 
 ```bash
-# cwd: /Users/nhn/personal/nhncloud-cli
+# cwd: <레포 루트>
 pnpm tsc --noEmit 2>&1 | grep -E "^src/" | wc -l   # 기대: 0
 ls src/api/endpoints.ts src/api/envelope.ts src/api/httpError.ts
 grep -c "api-lncs-search.nhncloudservice.com" src/api/endpoints.ts   # 기대: 1

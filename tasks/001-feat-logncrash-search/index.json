@@ -2,9 +2,9 @@
   "name": "001-feat-logncrash-search",
   "description": "nhncloud logncrash search 명령 구현 — profile 자격증명, NHN 봉투 정규화, 테이블/json/quiet 출력 (docs/flow.md, docs/code-architecture.md 기반)",
   "created_at": "2026-05-28T00:00:00Z",
-  "updated_at": "2026-05-28T00:00:00Z",
-  "status": "pending",
-  "current_phase": 0,
+  "updated_at": "2026-05-28T06:30:00Z",
+  "status": "completed",
+  "current_phase": 7,
   "total_phases": 7,
   "error_message": null,
   "blocked_reason": null,
@@ -13,7 +13,7 @@
       "number": 1,
       "title": "기반 유틸 + 에러 체계",
       "file": "phase-01.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     },
@@ -21,7 +21,7 @@
       "number": 2,
       "title": "API 공통 계층 (endpoints/envelope/httpError)",
       "file": "phase-02.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     },
@@ -29,7 +29,7 @@
       "number": 3,
       "title": "config/credentials 계층 (profile 해석)",
       "file": "phase-03.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     },
@@ -37,7 +37,7 @@
       "number": 4,
       "title": "logncrash 서비스 client",
       "file": "phase-04.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     },
@@ -45,7 +45,7 @@
       "number": 5,
       "title": "command + formatter + entrypoint",
       "file": "phase-05.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     },
@@ -53,15 +53,15 @@
       "number": 6,
       "title": "빌드 검증 + smoke test + SKILL.md",
       "file": "phase-06.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     },
     {
       "number": 7,
-      "title": "commit + push + index.json 완료 마킹",
+      "title": "index.json 완료 마킹",
       "file": "phase-07.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "haiku"
     }
