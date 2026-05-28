@@ -24,10 +24,11 @@ deploy target 로딩 + UAK 자격증명 로딩 + 엔드포인트 정리.
 - [ ] `src/config/types.ts` 확장
   - `interface DeployTarget { appKey: string; artifactId: string; serverGroupId: string; scenarioIds: string }`
   - `Config` 에 `deploy?: { targets?: Record<string, DeployTarget> }`
-  - deploy `ServiceCredential` 은 `uakId`/`uakSecret` 사용 (이미 optional 필드로 존재)
+  - `ServiceCredential` 에 `uakId?: string`, `uakSecret?: string` 두 optional 필드를 **신규 추가**한다 (현재 타입은 `{ appkey: string; secret?; token? }` 뿐 — uakId/uakSecret 부재).
+  - `appkey` 는 현재 필수(`appkey: string`)인데 deploy 자격증명 블록(data-schema.md)은 `{ uakId, uakSecret }` 만 가지고 appkey 가 없다. `appkey?: string` 으로 **optional 로 완화**한다 (logncrash 블록은 여전히 appkey 를 채우므로 런타임 동작 불변).
 - [ ] `src/config/credentials.ts` 확장
-  - `getDeployTarget(name: string): Promise<DeployTarget>` — config.json 의 `deploy.targets[name]`. 없으면 `NhnCloudCliError(EXIT_PARAM_ERROR, 사용 가능 target 목록 안내)`
-  - deploy UAK 로딩은 기존 `getServiceCredential("deploy", profile)` 재사용 (`uakId`/`uakSecret` 검증)
+  - `getDeployTarget(name: string): Promise<DeployTarget>` — config.json 의 `deploy.targets[name]`. 없으면 `NhnCloudCliError(사용 가능 target 목록 안내 메시지, EXIT_PARAM_ERROR)` (인자 순서: message, exitCode)
+  - deploy UAK 로딩은 기존 `getServiceCredential("deploy", profile)` 재사용 — 시그니처는 **2인자 `(service, profileName)`**. 반환된 cred 의 `uakId`/`uakSecret` 가 비었으면 설정 안내 에러.
 - [ ] `src/api/endpoints.ts` 정리
   - `deploy` → `https://api-deploy.nhncloudservice.com` (api-tcd 아님)
   - oauth 는 `src/api/oauth.ts` 가 직접 상수 보유 (endpoints 맵에는 deploy API 만)
@@ -35,7 +36,7 @@ deploy target 로딩 + UAK 자격증명 로딩 + 엔드포인트 정리.
 ## 성공 기준
 
 ```bash
-# cwd: /Users/nhn/personal/nhncloud-cli
+# cwd: <레포 루트 (worktree)>
 pnpm tsc --noEmit 2>&1 | grep -E "^src/" | wc -l   # 기대: 0
 grep -c "api-deploy.nhncloudservice.com" src/api/endpoints.ts   # 기대: 1
 grep -c "getDeployTarget" src/config/credentials.ts             # 기대: >=1

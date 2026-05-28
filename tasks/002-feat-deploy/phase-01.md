@@ -43,7 +43,7 @@ UAK → access_token 교환 + 만료 전 재사용 캐시.
 ## 성공 기준
 
 ```bash
-# cwd: /Users/nhn/personal/nhncloud-cli
+# cwd: <레포 루트 (worktree)>
 test -f src/utils/errors.ts || echo "PHASE_BLOCKED: task 001 인프라 없음"
 pnpm tsc --noEmit 2>&1 | grep -E "^src/" | wc -l   # 기대: 0
 ls src/api/oauth.ts src/cache/token-store.ts

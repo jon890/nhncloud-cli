@@ -1,50 +1,40 @@
-# Phase 6: commit + push + index.json 완료 마킹
+# Phase 6: index.json 완료 마킹
 
 ## 컨텍스트
 
-`nhncloud deploy` 명령군 구현 + 검증 + SKILL.md 완료 (Phase 1~5). 이 phase 는 변경을 commit·push 하고 task 상태를 완료로 마킹한다. 기계적 작업 (haiku).
+`nhncloud deploy` 명령군 구현 + 검증 + SKILL.md 완료 (Phase 1~5). 이 phase 는 task 상태를 완료로 마킹하는 기계적 작업만 수행한다 (haiku).
+
+**commit/push 는 이 phase 의 책임이 아니다.** build-with-teams 파이프라인에서 phase 별 atomic commit + 최종 push + PR 생성은 team-lead 가 수행한다 (common-pitfalls 1-17). executor 는 이 phase 에서 `git commit` / `git push` / `git add` 를 호출하지 않는다.
 
 먼저 아래 문서를 읽어라:
 
-- `CLAUDE.md` — Git & PR 컨벤션 (`type(scope): 설명`)
-- `.claude/skills/planning/task-create.md` "마지막 2 phase 표준" + 커밋 규칙
+- `.claude/skills/planning/task-create.md` "마지막 2 phase 표준"
 
 ## 목표
 
-src/ 구현 + skills + task 파일 commit·push, index.json 완료 마킹.
+index.json 의 task status + 모든 phase status 를 `completed` 로, `current_phase` 를 6 으로 마킹.
 
 ## 작업 목록
 
-- [ ] 브랜치 확인 — `git branch --show-current` (common-pitfalls 2-10)
-- [ ] index.json 완료 마킹
-  - 모든 phase status + task status → `completed`
+- [ ] `tasks/002-feat-deploy/index.json` 완료 마킹
+  - task 최상위 `status` → `completed`
+  - `phases[].status` 6개 모두 → `completed`
   - `current_phase` → 6 (= total_phases)
-- [ ] 변경 파일 선별 add (`git add -A` 금지)
-  - `git status --porcelain` 확인
-  - src/api/oauth.ts, src/cache/, src/services/deploy/, src/commands/deploy/, src/config 변경, src/index.ts
-  - `skills/nhncloud-cli/SKILL.md`, `tasks/002-feat-deploy/`
-  - task 무관 변경은 제외 + 로그
-- [ ] commit + push
-  - 메시지: `feat(deploy): add deploy command group (run + reads)`
-  - `git push`
+- [ ] **commit/push 금지** — 마킹만 하고 team-lead 에게 phase 6 완료 보고
 
 ## 성공 기준
 
 ```bash
-# cwd: /Users/nhn/personal/nhncloud-cli
+# cwd: <레포 루트 (worktree)>
 grep -c '"status": "completed"' tasks/002-feat-deploy/index.json   # 기대: 7 (1 task + 6 phase)
 grep -cE '"current_phase": 6' tasks/002-feat-deploy/index.json     # 기대: 1
-git log -1 --format="%s" | grep -c "feat(deploy)"   # 기대: 1
-git status --porcelain | wc -l                       # 기대: 0
 ```
 
 ## 주의사항
 
-- commit 직전 `git branch --show-current` 확인.
-- `git add -A` 금지 — 명시 파일 + task 의존 파일만.
-- 메시지 `type(scope): 설명` 형식 엄수.
+- `git commit` / `git push` / `git add` 호출 금지 — team-lead 가 phase 별 atomic commit + 최종 push·PR 을 담당한다.
+- index.json 의 JSON 형식이 깨지지 않도록 마킹 (trailing comma 등 주의).
 
 ## Blocked 조건
 
-- push 실패: `PHASE_BLOCKED: push 실패 — 원격 확인 필요`
-- 예상 외 브랜치: `PHASE_BLOCKED: 예상 외 브랜치 — 확인 필요`
+- index.json 파싱 불가: `PHASE_BLOCKED: index.json 형식 오류 — 확인 필요`
