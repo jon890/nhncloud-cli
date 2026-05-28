@@ -305,6 +305,7 @@ grep -nE "selectOne|mandatory|MandatoryGroups|SelectOneGroups" src/resolvers/tag
 **Self-check**: build-with-teams 로 실행하려는 task 의 마지막 phase 가 `git commit`/`git push`/`gh pr` 를 담고 있는가? 담겨 있으면 마킹만 남기고 commit/push 책임을 team-lead 로 이관했는가?
 
 **Why**: PR #1 (plan001) — plan-and-build 표준으로 작성된 task 를 build-with-teams 로 실행. critic 이 phase-07 의 commit/push 책임 충돌 + 7개 phase cwd 하드코딩을 REVISE 로 잡음. plan-and-build 표준 task 를 build-with-teams 로 재실행할 때마다 재발 가능.
+  PR #2 (plan002) 재발 확인 — phase-06 이 동일하게 commit/push 를 담고 6개 phase cwd 가 main 절대경로였음. critic 이 다시 CRITICAL 로 잡음. 두 번 연속 재발했으므로 근원(`planning` / `task-create`)에서 마지막 phase 를 "마킹만 + cwd 플레이스홀더" 로 생성하도록 고치는 것이 정석. 그 전까지는 critic 단계 보정에 의존.
 
 ## 1-18. 신규 명령 task 가 영향 표 필수 사용자 가이드 docs 를 "범위 외" 로 스킵
 

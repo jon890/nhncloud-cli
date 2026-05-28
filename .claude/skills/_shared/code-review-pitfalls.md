@@ -309,6 +309,35 @@ grep -rnE "\.body as |return [a-zA-Z.]+ as [A-Z]" src/api/   # optional 필드 a
 
 **Why**: PR #1 (plan001) — `unwrap` 의 `res.body as T` 가 optional body 의 undefined 를 묵시 반환. envelope 는 모든 service client 가 공유하므로 한 번의 누수가 전 서비스에 전파.
 
+## 5-4. `unknown[]` 배열 요소를 `Object.entries` 전에 타입 가드 없이 `as Record` 캐스트
+
+**증상**: 동적 API 응답 body 를 `Record<string, unknown>` 으로 받아 `Array.isArray` 분기 후 각 요소를 `item as Record<string, unknown>` 캐스트해 `Object.entries(item)` 호출.
+배열 요소의 실제 타입은 `unknown` 이라, API 가 primitive (숫자·문자열) 배열을 반환하면 `Object.entries(<primitive>)` 가 빈 객체를 주거나 의도 외 동작 → 표 출력 깨짐/런타임 오류.
+`as` 캐스트가 tsc 를 통과시켜 정적 검사로 못 잡음.
+
+**Good**: 요소가 object 가 아닐 때를 먼저 가드.
+
+```ts
+// BAD — item 이 primitive 면 Object.entries 오동작
+rows: list.map((item) => Object.entries(item as Record<string, unknown>)...)
+
+// GOOD — primitive 가드 후 narrow
+rows: list.flatMap((item) => {
+  if (typeof item !== "object" || item === null) return [[String(item), ""]];
+  return Object.entries(item as Record<string, unknown>).map(([k, v]) => [`${k}: ${String(v ?? "")}`, ""]);
+}),
+```
+
+**검출**:
+```bash
+grep -rnE "as Record<string, unknown>\)" src/commands/   # 배열 요소 캐스트 의심
+# 그 위치 위에 typeof !== "object" 가드가 있는지 확인
+```
+
+**Self-check**: 동적 API 응답 배열을 순회하며 `Object.entries(item)` 하는 곳에 primitive 가드가 있는가?
+
+**Why**: plan002 (PR #2) code-reviewer FIX_NEEDED — `deploy artifacts` 가 응답 배열 요소를 가드 없이 `Object.entries` 처리. Deploy API 가 primitive 배열을 주면 런타임 TypeError.
+
 # 6. API/HTTP 패턴
 
 ## 6-1. redirect manual + status code 분기 누락
@@ -360,6 +389,35 @@ grep -B2 -A5 "return;" src/commands/**/file/*.ts src/commands/**/page-file/*.ts 
 **Self-check**: 조기 반환 블록에 `globalOpts.json` 이 있으면 `globalOpts.quiet` 도 반드시 동반 확인.
 
 **Why**: plan040 code-reviewer FIX_NEEDED — download-all 빈 파일 시 `--quiet` 에도 plain text 출력. 양 명령군 동일 사고.
+
+# 8. 캐시 안전성
+
+## 8-1. 캐시 파일 비원자 쓰기 (`writeFile` 직접 호출)
+
+**증상**: `~/.nhncloud/cache/` 등 캐시 파일을 `writeFile(path, data)` 로 직접 기록.
+프로세스가 쓰기 도중 종료되면 부분 기록 파일이 남는다.
+read 시 catch 로 `null` 반환해 graceful 하더라도, 매 만료 전 재사용 캐시가 무효화되어 불필요한 재교환 발생 — 그리고 동시 실행 시 race.
+
+**Good**: temp 파일에 쓰고 `rename` 으로 원자적 교체.
+
+```ts
+import { rename } from "node:fs/promises";
+import { randomBytes } from "node:crypto";
+
+const tmp = filePath + "." + randomBytes(4).toString("hex") + ".tmp";
+await writeFile(tmp, JSON.stringify(data, null, 2), { encoding: "utf-8", mode: 0o600 });
+await rename(tmp, filePath);   // 원자적 교체
+```
+
+**검출**:
+```bash
+grep -rnE "writeFile\(" src/cache/   # 캐시 쓰기에 temp+rename 없이 직접 writeFile 의심
+# 같은 함수에 rename 호출이 동반되는지 확인
+```
+
+**Self-check**: `src/cache/` 의 모든 쓰기가 temp 파일 + `rename` 패턴인가? 비밀 파일이면 `mode: 0o600` 도 동반.
+
+**Why**: plan002 (PR #2) code-reviewer FIX_NEEDED — deploy 토큰 캐시(`token-store.ts`)가 `writeFile` 직접 호출. build-with-teams 검사 항목 #10 이 명시하는데도 executor 가 첫 구현에서 누락 → 구체 grep 으로 사전 차단.
 
 ---
 
