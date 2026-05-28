@@ -1,12 +1,12 @@
 ---
 name: nhncloud-cli
-description: NHN Cloud 서비스 CLI. Log & Crash 로그 검색 및 Deploy 배포 실행 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
+description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색(logncrash search), Deploy 배포 실행 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
 ---
 
 # nhncloud-cli
 
 NHN Cloud PaaS 서비스를 AWS CLI 방식으로 호출하는 TypeScript CLI.
-현재 `logncrash search` (Log & Crash 로그 검색) 를 지원한다.
+`configure`, `logncrash search`, `deploy` 명령을 지원한다.
 
 ## 설치
 
@@ -14,15 +14,47 @@ NHN Cloud PaaS 서비스를 AWS CLI 방식으로 호출하는 TypeScript CLI.
 npm install -g @bifos/nhncloud-cli
 ```
 
-## 초기 설정
+## 초기 설정 — `nhncloud configure`
 
-`~/.nhncloud/credentials.json` 파일을 직접 작성한다 (mode 0600 권장).
+**첫 설정은 `nhncloud configure` 로 한다.**
+대화형 마법사가 profile → UAK → logncrash 순으로 안내하고 저장 전 연결을 테스트한다.
+
+```bash
+# 기본 profile 대화형 설정
+nhncloud configure
+
+# 특정 profile 대화형 설정
+nhncloud configure --profile staging
+
+# CI/자동화 — flag 로 비대화형 설정
+nhncloud configure \
+  --uak-id <id> --uak-secret <secret> \
+  --logncrash-appkey <key> --logncrash-secret <secret> \
+  [--no-verify]
+```
+
+### configure 옵션
+
+| 옵션 | 설명 |
+|------|------|
+| `--profile <name>` | 대상 profile (기본 `default`) |
+| `--uak-id <id>` | 개인 UAK ID |
+| `--uak-secret <secret>` | 개인 UAK Secret |
+| `--logncrash-appkey <key>` | logncrash appkey |
+| `--logncrash-secret <secret>` | logncrash secret |
+| `--no-verify` | 연결 테스트 생략 |
+
+저장 파일 구조 (`~/.nhncloud/credentials.json`, mode 0600):
 
 ```json
 {
   "version": 1,
   "profiles": {
     "default": {
+      "userAccessKey": {
+        "id": "<uak-id>",
+        "secret": "<uak-secret>"
+      },
       "logncrash": {
         "appkey": "<appkey>",
         "secret": "<secretkey>"
@@ -32,7 +64,8 @@ npm install -g @bifos/nhncloud-cli
 }
 ```
 
-appkey 와 secret 은 NHN Cloud 콘솔 → Log & Crash Search → 프로젝트 설정에서 확인한다.
+UAK 는 NHN Cloud 콘솔 → 계정 → User Access Key 에서 발급한다.
+logncrash appkey 와 secret 은 콘솔 → Log & Crash Search → 프로젝트 설정에서 확인한다.
 
 선택적으로 `~/.nhncloud/config.json` 으로 기본 profile 을 지정할 수 있다.
 
@@ -59,6 +92,8 @@ appkey 와 secret 은 NHN Cloud 콘솔 → Log & Crash Search → 프로젝트 �
 
 | 의도 | 커맨드 |
 |------|--------|
+| 최초 자격증명 설정 | `nhncloud configure` |
+| CI/자동화 자격증명 설정 | `nhncloud configure --uak-id <id> --uak-secret <secret> --no-verify` |
 | 최근 1시간 로그 검색 | `nhncloud logncrash search --query '*' --from 1h --to now` |
 | 특정 logType 필터 검색 | `nhncloud logncrash search --query 'logType:"ERROR"' --from 1h --to now` |
 | 시간 범위 지정 검색 | `nhncloud logncrash search --query '*' --from 2024-01-01T00:00:00+09:00 --to 2024-01-01T12:00:00+09:00` |
@@ -122,17 +157,17 @@ UAK(User Access Key) 를 OAuth `client_credentials` 로 교환한 Bearer 토큰�
 
 ### deploy 설정
 
-**`~/.nhncloud/credentials.json`** 에 deploy 블록 추가 (UAK 비밀만 저장):
+**`~/.nhncloud/credentials.json`** 에 profile 공통 `userAccessKey` 블록을 추가한다.
+`nhncloud configure` 로 설정하는 것을 권장한다.
 
 ```json
 {
   "version": 1,
   "profiles": {
     "default": {
-      "logncrash": { "appkey": "<appkey>", "secret": "<secretkey>" },
-      "deploy": {
-        "uakId": "<user-access-key-id>",
-        "uakSecret": "<user-access-key-secret>"
+      "userAccessKey": {
+        "id": "<user-access-key-id>",
+        "secret": "<user-access-key-secret>"
       }
     }
   }
