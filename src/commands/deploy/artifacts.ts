@@ -53,9 +53,13 @@ export const artifactsCommand = new Command("artifacts")
     const list = Array.isArray(result) ? result : [result];
     output(opts, {
       headers: ["key", "value"],
-      rows: list.map((item) =>
-        Object.entries(item as Record<string, unknown>).map(([k, v]) => `${k}: ${String(v ?? "")}`),
-      ).flat().map((line) => [line, ""]),
+      rows: list.flatMap((item) => {
+        if (typeof item !== "object" || item === null) return [[String(item), ""]];
+        return Object.entries(item as Record<string, unknown>).map(([k, v]) => [
+          `${k}: ${String(v ?? "")}`,
+          "",
+        ]);
+      }),
       raw: result,
       ids: [],
     });

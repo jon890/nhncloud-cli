@@ -1,6 +1,7 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
+import { randomBytes } from "node:crypto";
 
 const CACHE_DIR = join(homedir(), ".nhncloud", "cache");
 
@@ -60,8 +61,8 @@ export async function writeToken(
     expiresAt: expiresAt.toISOString(),
   };
 
-  await writeFile(filePath, JSON.stringify(data, null, 2), {
-    encoding: "utf-8",
-    mode: 0o600,
-  });
+  // 비원자 쓰기 방지: temp 파일에 먼저 쓴 뒤 rename 으로 원자적 교체
+  const tmp = filePath + "." + randomBytes(4).toString("hex") + ".tmp";
+  await writeFile(tmp, JSON.stringify(data, null, 2), { encoding: "utf-8", mode: 0o600 });
+  await rename(tmp, filePath);
 }
