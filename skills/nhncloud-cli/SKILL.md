@@ -1,6 +1,6 @@
 ---
 name: nhncloud-cli
-description: NHN Cloud 서비스 CLI. Log & Crash 로그 검색 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
+description: NHN Cloud 서비스 CLI. Log & Crash 로그 검색 및 Deploy 배포 실행 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
 ---
 
 # nhncloud-cli
@@ -112,3 +112,106 @@ nhncloud logncrash search \
 | 인증 실패 (401/403) | 2 (AUTH_ERROR) |
 | API 오류 / 봉투 isSuccessful:false | 1 (API_ERROR) |
 | 시간 범위 초과·필수 옵션 누락 | 3 (PARAM_ERROR) |
+
+---
+
+## deploy — NHN Cloud Deploy 배포 실행
+
+`deploy` 명령군은 NHN Cloud Deploy v2.1 API 를 호출한다.
+UAK(User Access Key) 를 OAuth `client_credentials` 로 교환한 Bearer 토큰으로 인증하며, 토큰은 만료 전까지 캐시한다.
+
+### deploy 설정
+
+**`~/.nhncloud/credentials.json`** 에 deploy 블록 추가 (UAK 비밀만 저장):
+
+```json
+{
+  "version": 1,
+  "profiles": {
+    "default": {
+      "logncrash": { "appkey": "<appkey>", "secret": "<secretkey>" },
+      "deploy": {
+        "uakId": "<user-access-key-id>",
+        "uakSecret": "<user-access-key-secret>"
+      }
+    }
+  }
+}
+```
+
+**`~/.nhncloud/config.json`** 에 deploy target 추가 (배포 좌표 — 비밀 아님):
+
+```json
+{
+  "version": 1,
+  "defaultProfile": "default",
+  "deploy": {
+    "targets": {
+      "my-service": {
+        "appKey": "<appKey>",
+        "artifactId": "<artifactId>",
+        "serverGroupId": "<serverGroupId>",
+        "scenarioIds": "<id1,id2>"
+      }
+    }
+  }
+}
+```
+
+UAK 는 NHN Cloud 콘솔 → 계정 → User Access Key 에서 발급한다.
+배포 좌표(appKey·artifactId·serverGroupId·scenarioIds)는 Deploy 콘솔에서 확인한다.
+
+### 의도 → 커맨드 매핑
+
+| 의도 | 커맨드 |
+|------|--------|
+| 배포 실행 (동기 완료 대기) | `nhncloud deploy run my-service` |
+| 배포 실행 (즉시 반환) | `nhncloud deploy run my-service --async` |
+| 특정 호스트만 배포 | `nhncloud deploy run my-service --target-hosts <host1,host2>` |
+| 아티팩트 목록 조회 | `nhncloud deploy artifacts my-service` |
+| 서버그룹 목록 조회 | `nhncloud deploy server-groups my-service` |
+| 배포 이력 조회 | `nhncloud deploy histories my-service` |
+| 다른 profile 사용 | `nhncloud deploy run my-service --profile staging` |
+
+### deploy run 옵션
+
+| 옵션 | 필수 | 설명 |
+|------|:---:|------|
+| `<target>` | 예 | config.json 의 deploy target 이름 |
+| `--app-key <k>` | 아니오 | target 의 appKey override |
+| `--artifact-id <id>` | 아니오 | target 의 artifactId override |
+| `--server-group-id <id>` | 아니오 | target 의 serverGroupId override |
+| `--scenario-ids <csv>` | 아니오 | target 의 scenarioIds override |
+| `--target-hosts <csv>` | 아니오 | 대상 호스트 (생략 시 서버그룹 전체) |
+| `--concurrent <n>` | 아니오 | 병렬 배포 수 (기본 1) |
+| `--next-when-fail` | 아니오 | 시나리오 실패 시에도 진행 |
+| `--note <s>` | 아니오 | 배포 메모 |
+| `--async` | 아니오 | 즉시 반환 (기본은 완료 대기) |
+| `--profile <name>` | 아니오 | 사용할 profile 이름 |
+
+**동기 모드 (`--async` 미지정, 기본값)**: 서버가 배포 완료까지 응답을 보류한다.
+긴 배포는 수 분이 걸릴 수 있으나 CLI 자체 폴링 없이 응답을 기다린다.
+
+**비동기 모드 (`--async`)**: 즉시 `deploying` 상태를 반환한다.
+완료 확인은 `deploy histories` 로 한다.
+
+### 체이닝 예시
+
+```bash
+# artifactId 확인 후 배포 실행
+nhncloud deploy artifacts my-service --json | jq -r '.[0].artifactId'
+
+# 특정 아티팩트로 override 하여 배포
+nhncloud deploy run my-service --artifact-id <artifactId>
+
+# 배포 이력에서 최근 상태만 확인
+nhncloud deploy histories my-service --json | jq '.[0] | {deployKey, deployStatus}'
+```
+
+### deploy 에러 코드
+
+| 상황 | exit code |
+|------|-----------|
+| UAK 누락 / config target 없음 | 4 (CONFIG_ERROR) 또는 3 (PARAM_ERROR) |
+| OAuth 인증 실패 (401/403) | 2 (AUTH_ERROR) |
+| Deploy API 오류 / 봉투 실패 | 1 (API_ERROR) |

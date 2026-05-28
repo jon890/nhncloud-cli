@@ -24,7 +24,7 @@ deploy 명령 4종 작성 + index.ts 에 deploy 그룹 등록.
 ## 작업 목록
 
 - [ ] 공통 헬퍼 (commands/deploy/ 내부) — target 좌표 로드 + flag override + access_token 획득
-  - `resolveProfileName` → `getDeployTarget(name)` + flag override → `getServiceCredential("deploy")` → `getAccessToken` → `DeployClient`
+  - `resolveProfileName(opts.profile)` → `getDeployTarget(name)` + flag override → `getServiceCredential("deploy", profileName)` (2인자) → `getAccessToken(profileName, uakId, uakSecret)` → `new DeployClient(accessToken)`
 - [ ] `src/commands/deploy/run.ts`
   - `deploy run <target>` + 옵션 `--app-key`/`--artifact-id`/`--server-group-id`/`--scenario-ids`/`--target-hosts`/`--concurrent`/`--next-when-fail`/`--note`/`--async`/`--profile`
   - spinner 는 좌표·토큰 획득 후, client.run 은 try/catch + `stopSpinner(false)`
@@ -36,7 +36,7 @@ deploy 명령 4종 작성 + index.ts 에 deploy 그룹 등록.
 ## 성공 기준
 
 ```bash
-# cwd: /Users/nhn/personal/nhncloud-cli
+# cwd: <레포 루트 (worktree)>
 pnpm tsc --noEmit 2>&1 | grep -E "^src/" | wc -l   # 기대: 0
 pnpm run build
 node dist/index.js deploy run --help 2>&1 | grep -c "\-\-async"        # 기대: >=1

@@ -31,6 +31,62 @@ profile 해석 우선순위: `--profile` 옵션 > `NHNCLOUD_PROFILE` 환경변�
 
 ## 사용 예
 
+### 배포 (Deploy)
+
+`~/.nhncloud/credentials.json` 에 deploy UAK 블록을 추가한다.
+
+```json
+{
+  "version": 1,
+  "profiles": {
+    "default": {
+      "deploy": {
+        "uakId": "<user-access-key-id>",
+        "uakSecret": "<user-access-key-secret>"
+      }
+    }
+  }
+}
+```
+
+`~/.nhncloud/config.json` 에 deploy target (배포 좌표)을 추가한다.
+
+```json
+{
+  "version": 1,
+  "deploy": {
+    "targets": {
+      "my-service": {
+        "appKey": "<appKey>",
+        "artifactId": "<artifactId>",
+        "serverGroupId": "<serverGroupId>",
+        "scenarioIds": "<id1,id2>"
+      }
+    }
+  }
+}
+```
+
+```bash
+# 배포 실행 (동기 완료 대기)
+nhncloud deploy run my-service
+
+# 즉시 반환 (비동기)
+nhncloud deploy run my-service --async
+
+# 특정 호스트만 배포
+nhncloud deploy run my-service --target-hosts host1,host2
+
+# 아티팩트 목록 조회
+nhncloud deploy artifacts my-service
+
+# 서버그룹 목록 조회
+nhncloud deploy server-groups my-service
+
+# 배포 이력 조회
+nhncloud deploy histories my-service
+```
+
 ### 로그 검색
 
 ```bash

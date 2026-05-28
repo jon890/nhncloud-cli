@@ -48,7 +48,7 @@ DeployClient — run + artifacts + serverGroups + histories.
 ## 성공 기준
 
 ```bash
-# cwd: /Users/nhn/personal/nhncloud-cli
+# cwd: <레포 루트 (worktree)>
 pnpm tsc --noEmit 2>&1 | grep -E "^src/" | wc -l   # 기대: 0
 ls src/services/deploy/types.ts src/services/deploy/client.ts
 grep -c "X-NHN-AUTHORIZATION" src/services/deploy/client.ts   # 기대: >=1

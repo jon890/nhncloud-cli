@@ -27,15 +27,19 @@
   - 의도→커맨드 매핑 (배포 실행 / 아티팩트·서버그룹·이력 조회)
   - 체이닝 예시 (`deploy artifacts --json | jq` 로 artifactId 찾기 → run)
   - 동기/`--async`, target override flag 설명
+- [ ] `README.md` 에 deploy 사용예 추가 (planning 영향표 "신규 CLI 명령" 행 — 사용자 가이드 docs)
+  - 기존 logncrash 사용예와 같은 형식으로 deploy 명령 4종 짧은 예시 추가 (외과적 변경 — 기존 섹션 보존)
+  - **`CLAUDE.md` 의 "지원 명령 (1개)" 카운트는 건드리지 않는다** — 결정 docs 이므로 team-lead 가 phase 루프 밖 별도 commit 으로 보완 (갱신 시점 분리 규약)
 
 ## 성공 기준
 
 ```bash
-# cwd: /Users/nhn/personal/nhncloud-cli
+# cwd: <레포 루트 (worktree)>
 pnpm tsc --noEmit 2>&1 | grep -E "^src/" | wc -l   # 기대: 0
 pnpm run build && echo BUILD_OK
 node dist/index.js deploy run --help 2>&1 | grep -c "\-\-async"   # 기대: >=1
 grep -c "deploy run" skills/nhncloud-cli/SKILL.md                 # 기대: >=1
+grep -c "deploy" README.md                                        # 기대: >=1
 # PII 게이트 (public repo)
 grep -rnE "[0-9]{15,}" skills/ 2>/dev/null | grep -vE "<appkey>|<artifactId>|<serverGroupId>|<id" | wc -l   # 기대: 0
 ```
