@@ -5,9 +5,13 @@
 NHN Cloud 서비스를 AWS CLI 처럼 호출하는 통합 CLI.
 TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 
-## 지원 명령 (1개)
+## 지원 명령 (5개)
 
 - `logncrash search` — Log & Crash 로그 검색 (시간 범위는 90일 이내·31일 이하로 제한, 초과 시 입력 오류).
+- `deploy run` — 배포 실행 (named target + flag override, 동기/`--async`).
+- `deploy artifacts` — 아티팩트 목록 조회.
+- `deploy server-groups` — 서버그룹 목록 조회.
+- `deploy histories` — 배포 이력 조회.
 
 ## API 스펙 확인 절차
 
