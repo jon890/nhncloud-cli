@@ -36,6 +36,8 @@ formatter + command + entrypoint 작성. 전역 옵션 동작.
   - Commander `search` — 옵션 `--query <q>` `--from <t>` `--to <t>` `--page <n>` `--size <n>` `--profile <name>`
   - `--query`/`--from`/`--to` 필수 (없으면 `EXIT_PARAM_ERROR` 친절 메시지)
   - `resolveTime` 으로 from/to 정규화 (spinner 시작 *전* — param 검증 단계)
+  - 정규화 직후 `assertSearchRange(from, to)` 호출 — 90일/31일/역전 사전 검증 (flow.md 제약, spinner 시작 전)
+  - `--page`/`--size` 파싱 시 `--size` 가 100 초과면 `NhnCloudCliError(EXIT_PARAM_ERROR)`, 음수 page/size 도 거름 (flow.md "최대 100")
   - `resolveProfileName` → `getServiceCredential("logncrash", profile)` → `LogncrashClient`
   - spinner 시작 후 client.search 는 try/catch + `stopSpinner(false)` re-throw (leak 방지)
   - 테이블: 고정 컬럼 `logTime`/`logType`/본문 요약. `--json`: raw data + 페이지 메타. `--quiet`: 행별 최소 출력
@@ -48,13 +50,15 @@ formatter + command + entrypoint 작성. 전역 옵션 동작.
 ## 성공 기준
 
 ```bash
-# cwd: /Users/nhn/personal/nhncloud-cli
+# cwd: <레포 루트>
 pnpm tsc --noEmit 2>&1 | grep -E "^src/" | wc -l   # 기대: 0
 pnpm run build
 node dist/index.js logncrash search --help 2>&1 | grep -c "\-\-query"   # 기대: >=1
 node dist/index.js --help 2>&1 | grep -c "logncrash"                    # 기대: >=1
 # spinner leak / 순서 자가 점검
 grep -A 15 "startSpinner" src/commands/logncrash/search.ts | grep -cE "try\s*\{"  # 기대: >=1
+# 시간 범위 사전 검증 호출 (spinner 시작 전)
+grep -c "assertSearchRange" src/commands/logncrash/search.ts   # 기대: >=1
 # early return 출력 분기 — json 있으면 quiet 도 (7-2)
 grep -nE "\.get\([^)]+\)!|as unknown as " src/   # 기대: 0건
 ```

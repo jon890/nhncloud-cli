@@ -44,7 +44,7 @@ src/services/logncrash/ 에 타입 + client 작성.
 ## 성공 기준
 
 ```bash
-# cwd: /Users/nhn/personal/nhncloud-cli
+# cwd: <레포 루트>
 pnpm tsc --noEmit 2>&1 | grep -E "^src/" | wc -l   # 기대: 0
 ls src/services/logncrash/types.ts src/services/logncrash/client.ts
 grep -c "X-LNCS-SECRET" src/services/logncrash/client.ts   # 기대: 1

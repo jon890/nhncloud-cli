@@ -59,7 +59,7 @@
     },
     {
       "number": 7,
-      "title": "commit + push + index.json 완료 마킹",
+      "title": "index.json 완료 마킹",
       "file": "phase-07.md",
       "status": "pending",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
