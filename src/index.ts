@@ -3,6 +3,10 @@ import chalk from "chalk";
 import { setQuiet } from "./utils/spinner.js";
 import { NhnCloudCliError } from "./utils/errors.js";
 import { searchCommand } from "./commands/logncrash/search.js";
+import { runCommand } from "./commands/deploy/run.js";
+import { artifactsCommand } from "./commands/deploy/artifacts.js";
+import { serverGroupsCommand } from "./commands/deploy/server-groups.js";
+import { historiesCommand } from "./commands/deploy/histories.js";
 
 const program = new Command();
 
@@ -30,6 +34,15 @@ const logncrashCommand = new Command("logncrash").description("Log & Crash 관�
 logncrashCommand.addCommand(searchCommand);
 
 program.addCommand(logncrashCommand);
+
+// deploy 커맨드 그룹
+const deployCommand = new Command("deploy").description("NHN Cloud Deploy 관련 명령");
+deployCommand.addCommand(runCommand);
+deployCommand.addCommand(artifactsCommand);
+deployCommand.addCommand(serverGroupsCommand);
+deployCommand.addCommand(historiesCommand);
+
+program.addCommand(deployCommand);
 
 program.parseAsync().catch((err: unknown) => {
   const message = err instanceof Error ? err.message : String(err);
