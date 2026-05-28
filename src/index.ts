@@ -2,6 +2,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { setQuiet } from "./utils/spinner.js";
 import { NhnCloudCliError } from "./utils/errors.js";
+import { configureCommand } from "./commands/configure.js";
 import { searchCommand } from "./commands/logncrash/search.js";
 import { runCommand } from "./commands/deploy/run.js";
 import { artifactsCommand } from "./commands/deploy/artifacts.js";
@@ -28,6 +29,9 @@ program.hook("preAction", () => {
     setQuiet(true);
   }
 });
+
+// configure 명령
+program.addCommand(configureCommand);
 
 // logncrash 커맨드 그룹
 const logncrashCommand = new Command("logncrash").description("Log & Crash 관련 명령");

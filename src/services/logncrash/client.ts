@@ -15,7 +15,7 @@ export class LogncrashClient {
 
   async search(params: LogSearchParams): Promise<LogSearchResult> {
     const endpoint = endpointFor("logncrash");
-    const url = `${endpoint}/api/v2/search/${this.appkey}`;
+    const url = `${endpoint}/api/v2/search/${encodeURIComponent(this.appkey)}`;
 
     try {
       const res = await ky

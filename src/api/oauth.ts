@@ -21,22 +21,22 @@ function isTokenResponse(val: unknown): val is TokenResponse {
 /**
  * Deploy API 용 access_token 을 반환한다.
  *
- * - 캐시 토큰이 유효하면 재사용한다.
- * - 만료됐거나 없으면 OAuth client_credentials 로 새 토큰을 발급한다.
- *   - POST oauth.api.nhncloudservice.com/oauth2/token/create
- *   - Authorization: Basic base64(uakId:uakSecret)
- *   - Content-Type: application/x-www-form-urlencoded
- *   - body: grant_type=client_credentials
+ * - forceRefresh=false(기본): 캐시 토큰이 유효하면 재사용한다.
+ * - forceRefresh=true: 캐시를 건너뛰고 OAuth 직접 호출. 토큰을 캐시에 저장하지 않는다.
+ *   configure verify 등 캐시를 우회해야 하는 경우에 사용.
  */
 export async function getAccessToken(
   profile: string,
   uakId: string,
   uakSecret: string,
+  forceRefresh = false,
 ): Promise<string> {
-  // 캐시 확인
-  const cached = await readToken(profile);
-  if (cached !== null) {
-    return cached.accessToken;
+  // 캐시 확인 (forceRefresh 시 건너뜀)
+  if (!forceRefresh) {
+    const cached = await readToken(profile);
+    if (cached !== null) {
+      return cached.accessToken;
+    }
   }
 
   // OAuth 교환
@@ -62,8 +62,11 @@ export async function getAccessToken(
     throw toNhnCloudCliError(new Error("OAuth 응답 형식이 올바르지 않습니다."));
   }
 
-  const expiresAt = new Date(Date.now() + raw.expires_in * 1000);
-  await writeToken(profile, raw.access_token, expiresAt);
+  // forceRefresh 시 캐시에 저장하지 않음 (임시 검증 용도)
+  if (!forceRefresh) {
+    const expiresAt = new Date(Date.now() + raw.expires_in * 1000);
+    await writeToken(profile, raw.access_token, expiresAt);
+  }
 
   return raw.access_token;
 }

@@ -29,10 +29,19 @@ src/ 구현 + 의존성 + 문서 + task 파일 commit·push, index.json 완료 �
 
 ## 성공 기준
 
+**build-with-teams 모드 (현 실행 경로) — executor 가 충족할 게이트는 index.json 마킹뿐**:
+
 ```bash
-# cwd: <레포 루트>
+# cwd: <worktree 루트> (예: .claude/worktrees/plan003)
 grep -c '"status": "completed"' tasks/003-feat-configure/index.json   # 기대: 7 (1 task + 6 phase)
 grep -cE '"current_phase": 6' tasks/003-feat-configure/index.json     # 기대: 1
+```
+
+commit/push/PR 은 team-lead 책임이므로 아래 git 게이트는 **executor 가 검증하지 않는다** (team-lead 가 phase-06 commit + 일괄 push 후 책임).
+
+**plan-and-build 모드 (run-phases.py) 일 때만 — 이 phase 가 직접 commit·push**:
+
+```bash
 git log -1 --format="%s" | grep -c "feat(configure)"   # 기대: 1
 git status --porcelain | wc -l   # 기대: 0
 ```

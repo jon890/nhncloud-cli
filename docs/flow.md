@@ -94,7 +94,7 @@ nhncloud logncrash search [options]
 
 ### 인증 흐름
 
-1. profile 의 deploy 블록에서 UAK(id+secret) 로드
+1. profile 공통 `userAccessKey` 블록에서 UAK(id+secret) 로드 ([[adr-004]])
 2. 캐시된 access_token 이 만료 전이면 재사용, 아니면 OAuth 교환 후 캐시
 3. `X-NHN-AUTHORIZATION: Bearer <token>` 로 Deploy API 호출
 

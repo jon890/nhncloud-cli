@@ -1,9 +1,9 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../utils/exit-codes.js";
-import type { Credentials, Config, ServiceCredential, DeployTarget } from "./types.js";
+import type { Credentials, Config, ServiceCredential, UserAccessKey, DeployTarget } from "./types.js";
 
 const CREDENTIALS_PATH = join(homedir(), ".nhncloud", "credentials.json");
 const CONFIG_PATH = join(homedir(), ".nhncloud", "config.json");
@@ -20,6 +20,17 @@ function isConfig(value: unknown): value is Config {
   return obj["version"] === 1;
 }
 
+function isUserAccessKey(value: unknown): value is UserAccessKey {
+  if (typeof value !== "object" || value === null) return false;
+  const obj = value as Record<string, unknown>;
+  return (
+    typeof obj["id"] === "string" &&
+    obj["id"].length > 0 &&
+    typeof obj["secret"] === "string" &&
+    obj["secret"].length > 0
+  );
+}
+
 async function loadCredentials(): Promise<Credentials> {
   let raw: string;
   try {
@@ -27,12 +38,13 @@ async function loadCredentials(): Promise<Credentials> {
   } catch {
     throw new NhnCloudCliError(
       `자격증명 파일을 찾을 수 없습니다: ${CREDENTIALS_PATH}\n` +
-        "다음 형식으로 파일을 생성하세요:\n" +
+        "nhncloud configure 를 실행해 자격증명을 설정하거나, 다음 형식으로 파일을 생성하세요:\n" +
         JSON.stringify(
           {
             version: 1,
             profiles: {
               default: {
+                userAccessKey: { id: "<uak-id>", secret: "<uak-secret>" },
                 logncrash: { appkey: "<appkey>", secret: "<secretkey>" },
               },
             },
@@ -106,13 +118,49 @@ export async function resolveProfileName(cliProfile?: string): Promise<string> {
 }
 
 /**
+ * 지정 profile 의 공통 UAK (userAccessKey) 를 반환한다.
+ * 없으면 nhncloud configure 안내와 함께 EXIT_CONFIG_ERROR 를 던진다.
+ */
+export async function getUserAccessKey(profileName: string): Promise<UserAccessKey> {
+  const credentials = await loadCredentials();
+
+  const profile = credentials.profiles[profileName];
+  if (!profile) {
+    throw new NhnCloudCliError(
+      `profile "${profileName}" 을 찾을 수 없습니다.\n` +
+        `${CREDENTIALS_PATH} 에서 profiles.${profileName} 블록을 추가하거나 nhncloud configure 를 실행하세요.`,
+      EXIT_CONFIG_ERROR,
+    );
+  }
+
+  const uak = profile["userAccessKey"];
+  if (!isUserAccessKey(uak)) {
+    throw new NhnCloudCliError(
+      `profile "${profileName}" 에 userAccessKey 가 없거나 불완전합니다.\n` +
+        `nhncloud configure 를 실행해 UAK id/secret 을 설정하세요.`,
+      EXIT_CONFIG_ERROR,
+    );
+  }
+
+  return uak;
+}
+
+/**
  * 지정 profile 의 서비스 자격증명 블록을 반환한다.
  * 해당 블록이 없으면 설정 안내 메시지와 함께 EXIT_CONFIG_ERROR 를 던진다.
+ * userAccessKey 블록은 이 함수로 읽지 않는다 (getUserAccessKey 사용).
  */
 export async function getServiceCredential(
   service: string,
   profileName: string,
 ): Promise<ServiceCredential> {
+  if (service === "userAccessKey") {
+    throw new NhnCloudCliError(
+      "userAccessKey 는 서비스 자격증명이 아닙니다 — getUserAccessKey 를 사용하세요.",
+      EXIT_PARAM_ERROR,
+    );
+  }
+
   const credentials = await loadCredentials();
 
   const profile = credentials.profiles[profileName];
@@ -124,7 +172,7 @@ export async function getServiceCredential(
     );
   }
 
-  const cred = profile[service];
+  const cred = profile[service] as ServiceCredential | undefined;
   if (!cred) {
     throw new NhnCloudCliError(
       `profile "${profileName}" 에 "${service}" 자격증명이 없습니다.\n` +
@@ -135,6 +183,69 @@ export async function getServiceCredential(
   }
 
   return cred;
+}
+
+/**
+ * 파일이 없으면 빈 구조를 반환하는 credentials 로더 (쓰기 경로 전용).
+ */
+async function loadCredentialsOrEmpty(): Promise<Credentials> {
+  try {
+    const raw = await readFile(CREDENTIALS_PATH, "utf-8");
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      throw new NhnCloudCliError(
+        `자격증명 파일 파싱 오류: ${CREDENTIALS_PATH} — 올바른 JSON 형식인지 확인하세요.`,
+        EXIT_CONFIG_ERROR,
+      );
+    }
+    if (isCredentials(parsed)) return parsed;
+    return { version: 1, profiles: {} };
+  } catch (err) {
+    if (err instanceof NhnCloudCliError) throw err;
+    return { version: 1, profiles: {} };
+  }
+}
+
+/**
+ * credentials.json 을 mode 0600 으로 저장한다. 디렉터리가 없으면 자동 생성.
+ */
+async function saveCredentials(creds: Credentials): Promise<void> {
+  await mkdir(dirname(CREDENTIALS_PATH), { recursive: true, mode: 0o700 });
+  await writeFile(CREDENTIALS_PATH, JSON.stringify(creds, null, 2), {
+    encoding: "utf-8",
+    mode: 0o600,
+  });
+}
+
+/**
+ * 지정 profile 의 공통 UAK 를 머지 저장한다.
+ * 같은 profile 의 다른 서비스 블록과 다른 profile 은 보존된다.
+ */
+export async function setUserAccessKey(
+  profileName: string,
+  uak: UserAccessKey,
+): Promise<void> {
+  const creds = await loadCredentialsOrEmpty();
+  const profile = creds.profiles[profileName] ?? {};
+  creds.profiles[profileName] = { ...profile, userAccessKey: uak };
+  await saveCredentials(creds);
+}
+
+/**
+ * 지정 profile 의 서비스 자격증명 블록을 머지 저장한다.
+ * 같은 profile 의 다른 서비스 블록과 다른 profile 은 보존된다.
+ */
+export async function setServiceCredential(
+  profileName: string,
+  service: string,
+  cred: ServiceCredential,
+): Promise<void> {
+  const creds = await loadCredentialsOrEmpty();
+  const profile = creds.profiles[profileName] ?? {};
+  creds.profiles[profileName] = { ...profile, [service]: cred };
+  await saveCredentials(creds);
 }
 
 /**

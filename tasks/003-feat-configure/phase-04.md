@@ -52,7 +52,7 @@ grep -nE "\.get\([^)]+\)!|as unknown as " src/commands/configure.ts   # 기대: 
 ## 주의사항
 
 - 비밀 입력은 `password` (마스킹). 에코·로그에 secret 노출 금지.
-- 대화형/비대화형 분기 — flag 유무로 명확히. 두 경로의 검증·저장 로직은 공통 helper 로 (중복 금지, code-review-pitfalls CLI11).
+- 대화형/비대화형 분기 — flag 유무로 명확히. 두 경로의 검증·저장 로직은 공통 helper 로 (중복 금지, common-pitfalls 1-15 검증 정책 일관성).
 - 데이터·진행 메시지는 stderr, 최종 결과만 필요 시 stdout.
 
 ## Blocked 조건

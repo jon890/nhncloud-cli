@@ -11,21 +11,24 @@ npm install -g @bifos/nhncloud-cli
 
 ## 초기 설정
 
-`~/.nhncloud/credentials.json` 을 직접 작성한다 (권한 0600 권장).
+`nhncloud configure` 를 실행하면 대화형 마법사가 자격증명을 안내한다.
 
-```json
-{
-  "version": 1,
-  "profiles": {
-    "default": {
-      "logncrash": { "appkey": "<appkey>", "secret": "<secretkey>" }
-    }
-  }
-}
+```bash
+nhncloud configure
 ```
 
-appkey 와 secret 은 NHN Cloud 콘솔의 Log & Crash Search 프로젝트 설정에서 확인한다.
-기본 profile 은 선택적으로 `~/.nhncloud/config.json` 의 `defaultProfile` 로 지정할 수 있다.
+- profile → UAK(id/secret) → logncrash appkey/secret 순으로 입력한다.
+- 저장 전 연결 테스트를 자동으로 수행한다 (`--no-verify` 로 생략 가능).
+- CI/자동화는 flag 로 비대화형 설정이 가능하다.
+
+```bash
+nhncloud configure \
+  --uak-id <id> --uak-secret <secret> \
+  --logncrash-appkey <key> --logncrash-secret <secret> \
+  --no-verify
+```
+
+저장 경로: `~/.nhncloud/credentials.json` (mode 0600), `~/.nhncloud/config.json`.
 
 profile 해석 우선순위: `--profile` 옵션 > `NHNCLOUD_PROFILE` 환경변수 > `config.defaultProfile` > `"default"`.
 
@@ -33,22 +36,7 @@ profile 해석 우선순위: `--profile` 옵션 > `NHNCLOUD_PROFILE` 환경변�
 
 ### 배포 (Deploy)
 
-`~/.nhncloud/credentials.json` 에 deploy UAK 블록을 추가한다.
-
-```json
-{
-  "version": 1,
-  "profiles": {
-    "default": {
-      "deploy": {
-        "uakId": "<user-access-key-id>",
-        "uakSecret": "<user-access-key-secret>"
-      }
-    }
-  }
-}
-```
-
+`nhncloud configure --uak-id <id> --uak-secret <secret>` 으로 UAK 를 설정한 뒤,
 `~/.nhncloud/config.json` 에 deploy target (배포 좌표)을 추가한다.
 
 ```json
