@@ -24,9 +24,9 @@ nhncloud-cli 에 `nhncloud configure` 마법사를 추가하는 task 다. logncr
 
 - [ ] `src/config/types.ts`
   - `interface UserAccessKey { id: string; secret: string }`
-  - profile 구조를 `userAccessKey?: UserAccessKey` + 서비스 블록으로 표현
-    - 예: `interface ProfileCredentials { userAccessKey?: UserAccessKey; [service: string]: UserAccessKey | ServiceCredential | undefined }`
-    - 또는 `services: Record<string, ServiceCredential>` 분리 — 구현이 깔끔한 쪽 선택 후 일관 적용
+  - profile 구조를 `userAccessKey?: UserAccessKey` + 서비스 블록 **flat sibling** 으로 표현
+    - **단정 (data-schema.md 가 단일 소스)**: on-disk JSON 은 `profiles.<name>.{ userAccessKey, logncrash, ... }` flat 구조다. nested `services:` 래퍼 도입 금지 — 이미 commit 된 `docs/data-schema.md` 및 기존 `getServiceCredential` 읽기 경로와 불일치하게 된다.
+    - 타입 예: `interface ProfileCredentials { userAccessKey?: UserAccessKey; [service: string]: UserAccessKey | ServiceCredential | undefined }`
   - `ServiceCredential` 에서 `uakId`/`uakSecret`/`token` 제거 (UAK 는 분리됨, logncrash 는 appkey/secret 만)
 - [ ] `src/config/credentials.ts`
   - `getUserAccessKey(profileName): Promise<UserAccessKey>` — 없으면 `NhnCloudCliError(EXIT_CONFIG_ERROR, configure 안내)`
@@ -53,6 +53,7 @@ grep -c "uakId" src/config/types.ts   # 기대: 0
 
 - **deploy 동작 유지가 핵심** — 리팩토링 후에도 deploy 가 UAK 로 OAuth 교환하는 흐름은 동일.
 - 기존 사용자 `credentials.json` (구 `deploy.{uakId,uakSecret}` 형태) 은 새 구조와 다르다. 본 phase 는 코드 형태만 바꾸고, 마이그레이션은 configure(phase 4) 가 새 형태로 쓰는 것으로 해소 — 구 형태 fallback 읽기는 추가하지 않는다 (back-compat shim 금지).
+  - **영향 (의도된 결정)**: 구 `deploy.{uakId,uakSecret}` 로 설정한 기존 사용자는 리팩토링 후 deploy 가 즉시 깨진다. `getUserAccessKey` 가 configure 안내를 throw 하므로 재configure 로 복구한다. v0.1.0 pre-release 라 수용. 기존 테스트 fixture 가 구 형태를 쓰면 새 형태로 갱신 필요.
 - JSON.parse 결과 타입 가드 유지 (common-pitfalls CLI5).
 
 ## Blocked 조건
