@@ -419,6 +419,44 @@ grep -rnE "writeFile\(" src/cache/   # 캐시 쓰기에 temp+rename 없이 직�
 
 **Why**: plan002 (PR #2) code-reviewer FIX_NEEDED — deploy 토큰 캐시(`token-store.ts`)가 `writeFile` 직접 호출. build-with-teams 검사 항목 #10 이 명시하는데도 executor 가 첫 구현에서 누락 → 구체 grep 으로 사전 차단.
 
+# 9. 상수·주석 위생 (AI slop)
+
+## 9-1. exit code 등 의미 상수를 리터럴 + 주석으로 사용
+
+**증상**: `exit-codes.ts` 에 `EXIT_PARAM_ERROR = 3` 상수가 이미 있는데 한 파일만 `throw new NhnCloudCliError("...", 3 /* EXIT_PARAM_ERROR */)` 처럼 리터럴 + 주석.
+나머지 파일은 상수 import 사용 — 신규 파일만 예외 상태로 일관성 깨짐.
+
+**Good**: 정의된 상수를 import 해서 쓴다. 주석으로 상수명을 다는 것은 "상수가 있다는 걸 알면서 안 쓴" 신호.
+
+**검출**:
+```bash
+# NhnCloudCliError / process.exit 의 2번째 인자가 숫자 리터럴인 곳
+grep -rnE "NhnCloudCliError\([^,]+,\s*[0-9]+|process\.exit\([0-9]+\)" src/
+# exit-codes.ts 상수 목록과 대조
+grep -nE "EXIT_[A-Z_]+ =" src/utils/exit-codes.ts
+```
+
+**Self-check**: 새 파일의 exit code 인자가 숫자 리터럴인가? 같은 값의 `EXIT_*` 상수가 exit-codes.ts 에 있으면 import 로 교체.
+
+**Why**: PR #3 (plan003) code-reviewer MEDIUM — configure.ts 가 `3 // EXIT_PARAM_ERROR` 리터럴. 다른 파일은 모두 상수 import. 신규 명령·helper 파일마다 재발 가능.
+
+## 9-2. 함수 시그니처 수정 시 구 JSDoc 블록 미삭제
+
+**증상**: 기존 함수에 파라미터를 추가하며 새 JSDoc 블록을 함수 위에 작성했는데 구 JSDoc 블록을 지우지 않아 **JSDoc 두 개가 연속**으로 남음.
+TypeScript 는 마지막 블록만 귀속시켜 런타임 영향은 없으나 구 블록이 AI slop 으로 잔존 + 구 설명이 현행과 모순.
+
+**Good**: 시그니처 수정 시 기존 JSDoc 을 **수정**한다 (새 블록을 위에 덧붙이지 않는다). 덧붙였으면 구 블록 삭제.
+
+**검출**:
+```bash
+# 연속된 JSDoc 종료-시작 (*/ 다음 줄이 /**) 탐지
+grep -nA1 "^\s*\*/$" src/**/*.ts | grep -B1 "^\S*-\s*/\*\*"
+```
+
+**Self-check**: 함수 시그니처를 바꾼 파일에서 함수 직전에 JSDoc 블록이 2개 연속인 곳이 없는가?
+
+**Why**: PR #3 (plan003) code-reviewer LOW — `getAccessToken` 에 forceRefresh 추가하며 새 JSDoc 을 위에 붙이고 구 블록을 안 지움. 시그니처 변경 리팩토링마다 재발 가능.
+
 ---
 
 ## 회고 절차 (build-with-teams 9단계)
