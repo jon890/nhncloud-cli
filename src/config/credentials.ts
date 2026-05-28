@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../utils/exit-codes.js";
-import type { Credentials, Config, ServiceCredential, DeployTarget } from "./types.js";
+import type { Credentials, Config, ServiceCredential, UserAccessKey, DeployTarget } from "./types.js";
 
 const CREDENTIALS_PATH = join(homedir(), ".nhncloud", "credentials.json");
 const CONFIG_PATH = join(homedir(), ".nhncloud", "config.json");
@@ -27,12 +27,13 @@ async function loadCredentials(): Promise<Credentials> {
   } catch {
     throw new NhnCloudCliError(
       `자격증명 파일을 찾을 수 없습니다: ${CREDENTIALS_PATH}\n` +
-        "다음 형식으로 파일을 생성하세요:\n" +
+        "nhncloud configure 를 실행해 자격증명을 설정하거나, 다음 형식으로 파일을 생성하세요:\n" +
         JSON.stringify(
           {
             version: 1,
             profiles: {
               default: {
+                userAccessKey: { id: "<uak-id>", secret: "<uak-secret>" },
                 logncrash: { appkey: "<appkey>", secret: "<secretkey>" },
               },
             },
@@ -106,8 +107,37 @@ export async function resolveProfileName(cliProfile?: string): Promise<string> {
 }
 
 /**
+ * 지정 profile 의 공통 UAK (userAccessKey) 를 반환한다.
+ * 없으면 nhncloud configure 안내와 함께 EXIT_CONFIG_ERROR 를 던진다.
+ */
+export async function getUserAccessKey(profileName: string): Promise<UserAccessKey> {
+  const credentials = await loadCredentials();
+
+  const profile = credentials.profiles[profileName];
+  if (!profile) {
+    throw new NhnCloudCliError(
+      `profile "${profileName}" 을 찾을 수 없습니다.\n` +
+        `${CREDENTIALS_PATH} 에서 profiles.${profileName} 블록을 추가하거나 nhncloud configure 를 실행하세요.`,
+      EXIT_CONFIG_ERROR,
+    );
+  }
+
+  const uak = profile["userAccessKey"] as UserAccessKey | undefined;
+  if (!uak || !uak.id || !uak.secret) {
+    throw new NhnCloudCliError(
+      `profile "${profileName}" 에 userAccessKey 가 없거나 불완전합니다.\n` +
+        `nhncloud configure 를 실행해 UAK id/secret 을 설정하세요.`,
+      EXIT_CONFIG_ERROR,
+    );
+  }
+
+  return uak;
+}
+
+/**
  * 지정 profile 의 서비스 자격증명 블록을 반환한다.
  * 해당 블록이 없으면 설정 안내 메시지와 함께 EXIT_CONFIG_ERROR 를 던진다.
+ * userAccessKey 블록은 이 함수로 읽지 않는다 (getUserAccessKey 사용).
  */
 export async function getServiceCredential(
   service: string,
@@ -124,7 +154,7 @@ export async function getServiceCredential(
     );
   }
 
-  const cred = profile[service];
+  const cred = profile[service] as ServiceCredential | undefined;
   if (!cred) {
     throw new NhnCloudCliError(
       `profile "${profileName}" 에 "${service}" 자격증명이 없습니다.\n` +

@@ -1,14 +1,21 @@
+export interface UserAccessKey {
+  id: string;
+  secret: string;
+}
+
 export interface ServiceCredential {
   appkey?: string;
   secret?: string;
-  token?: string;
-  uakId?: string;
-  uakSecret?: string;
+}
+
+export interface ProfileCredentials {
+  userAccessKey?: UserAccessKey;
+  [service: string]: UserAccessKey | ServiceCredential | undefined;
 }
 
 export interface Credentials {
   version: 1;
-  profiles: Record<string, Record<string, ServiceCredential>>;
+  profiles: Record<string, ProfileCredentials>;
 }
 
 export interface DeployTarget {
