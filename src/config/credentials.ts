@@ -2,8 +2,8 @@ import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { NhnCloudCliError } from "../utils/errors.js";
-import { EXIT_CONFIG_ERROR } from "../utils/exit-codes.js";
-import type { Credentials, Config, ServiceCredential } from "./types.js";
+import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../utils/exit-codes.js";
+import type { Credentials, Config, ServiceCredential, DeployTarget } from "./types.js";
 
 const CREDENTIALS_PATH = join(homedir(), ".nhncloud", "credentials.json");
 const CONFIG_PATH = join(homedir(), ".nhncloud", "config.json");
@@ -135,4 +135,29 @@ export async function getServiceCredential(
   }
 
   return cred;
+}
+
+/**
+ * config.json 의 deploy.targets[name] 좌표 묶음을 반환한다.
+ * 해당 target 이 없으면 사용 가능한 target 목록을 안내하며 EXIT_PARAM_ERROR 를 던진다.
+ */
+export async function getDeployTarget(name: string): Promise<DeployTarget> {
+  const config = await loadConfig();
+
+  const targets = config?.deploy?.targets;
+
+  const target = targets?.[name];
+  if (!target) {
+    const available = targets ? Object.keys(targets) : [];
+    const hint =
+      available.length > 0
+        ? `사용 가능한 target: ${available.join(", ")}`
+        : `config.json 에 deploy.targets 블록이 없습니다. ${CONFIG_PATH} 를 확인하세요.`;
+    throw new NhnCloudCliError(
+      `deploy target "${name}" 을 찾을 수 없습니다. ${hint}`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+
+  return target;
 }

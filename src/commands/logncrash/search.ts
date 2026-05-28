@@ -72,6 +72,12 @@ export const searchCommand = new Command("search")
     // ── 4. 자격증명 로드 (spinner 시작 전) ──
     const profileName = await resolveProfileName(opts.profile);
     const cred = await getServiceCredential("logncrash", profileName);
+    if (!cred.appkey) {
+      throw new NhnCloudCliError(
+        `profile "${profileName}" 의 logncrash 자격증명에 appkey 가 없습니다.\ncredentials.json 에 "appkey": "<appkey>" 를 추가하세요.`,
+        EXIT_CONFIG_ERROR,
+      );
+    }
     if (!cred.secret) {
       throw new NhnCloudCliError(
         `profile "${profileName}" 의 logncrash 자격증명에 secret 이 없습니다.\ncredentials.json 에 "secret": "<secretkey>" 를 추가하세요.`,

@@ -6,7 +6,7 @@ import { EXIT_API_ERROR } from "../utils/exit-codes.js";
  */
 const ENDPOINTS: Record<string, string> = {
   logncrash: "https://api-lncs-search.nhncloudservice.com",
-  deploy: "https://api-tcd.nhncloudservice.com",
+  deploy: "https://api-deploy.nhncloudservice.com",
 };
 
 /**

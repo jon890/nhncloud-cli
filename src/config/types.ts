@@ -1,7 +1,9 @@
 export interface ServiceCredential {
-  appkey: string;
+  appkey?: string;
   secret?: string;
   token?: string;
+  uakId?: string;
+  uakSecret?: string;
 }
 
 export interface Credentials {
@@ -9,7 +11,17 @@ export interface Credentials {
   profiles: Record<string, Record<string, ServiceCredential>>;
 }
 
+export interface DeployTarget {
+  appKey: string;
+  artifactId: string;
+  serverGroupId: string;
+  scenarioIds: string;
+}
+
 export interface Config {
   version: 1;
   defaultProfile?: string;
+  deploy?: {
+    targets?: Record<string, DeployTarget>;
+  };
 }
