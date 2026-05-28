@@ -1,6 +1,6 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../utils/exit-codes.js";
 import type { Credentials, Config, ServiceCredential, UserAccessKey, DeployTarget } from "./types.js";
@@ -165,6 +165,69 @@ export async function getServiceCredential(
   }
 
   return cred;
+}
+
+/**
+ * 파일이 없으면 빈 구조를 반환하는 credentials 로더 (쓰기 경로 전용).
+ */
+async function loadCredentialsOrEmpty(): Promise<Credentials> {
+  try {
+    const raw = await readFile(CREDENTIALS_PATH, "utf-8");
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      throw new NhnCloudCliError(
+        `자격증명 파일 파싱 오류: ${CREDENTIALS_PATH} — 올바른 JSON 형식인지 확인하세요.`,
+        EXIT_CONFIG_ERROR,
+      );
+    }
+    if (isCredentials(parsed)) return parsed;
+    return { version: 1, profiles: {} };
+  } catch (err) {
+    if (err instanceof NhnCloudCliError) throw err;
+    return { version: 1, profiles: {} };
+  }
+}
+
+/**
+ * credentials.json 을 mode 0600 으로 저장한다. 디렉터리가 없으면 자동 생성.
+ */
+async function saveCredentials(creds: Credentials): Promise<void> {
+  await mkdir(dirname(CREDENTIALS_PATH), { recursive: true });
+  await writeFile(CREDENTIALS_PATH, JSON.stringify(creds, null, 2), {
+    encoding: "utf-8",
+    mode: 0o600,
+  });
+}
+
+/**
+ * 지정 profile 의 공통 UAK 를 머지 저장한다.
+ * 같은 profile 의 다른 서비스 블록과 다른 profile 은 보존된다.
+ */
+export async function setUserAccessKey(
+  profileName: string,
+  uak: UserAccessKey,
+): Promise<void> {
+  const creds = await loadCredentialsOrEmpty();
+  const profile = creds.profiles[profileName] ?? {};
+  creds.profiles[profileName] = { ...profile, userAccessKey: uak };
+  await saveCredentials(creds);
+}
+
+/**
+ * 지정 profile 의 서비스 자격증명 블록을 머지 저장한다.
+ * 같은 profile 의 다른 서비스 블록과 다른 profile 은 보존된다.
+ */
+export async function setServiceCredential(
+  profileName: string,
+  service: string,
+  cred: ServiceCredential,
+): Promise<void> {
+  const creds = await loadCredentialsOrEmpty();
+  const profile = creds.profiles[profileName] ?? {};
+  creds.profiles[profileName] = { ...profile, [service]: cred };
+  await saveCredentials(creds);
 }
 
 /**
