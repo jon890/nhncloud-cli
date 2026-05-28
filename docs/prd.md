@@ -24,14 +24,17 @@ AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트�
 
 ### 포함
 
-- `nhncloud logncrash search` — Log & Crash 로그 검색 (PoC 첫 명령)
+- `nhncloud logncrash search` — Log & Crash 로그 검색
+- `nhncloud deploy` — 배포 실행 + 조회 (자주 쓰는 핵심 명령군)
+  - `run <target>` — 배포 실행 (OAuth 토큰 교환, 동기/`--async`)
+  - `artifacts` / `server-groups <target>` / `histories <target>` — 조회
 - profile 기반 자격증명 (`~/.nhncloud/credentials.json` + `~/.nhncloud/config.json`)
 - 출력 3모드 — 테이블 / `--json` / `--quiet`
 - `--profile` 로 profile 전환
 
 ### 제외 (v1)
 
-- Deploy 명령군 (설계는 반영, 구현은 후속)
+- Deploy 바이너리 업/다운로드 (binary-groups/binaries) — 후속
 - 공공기관용(gov) 엔드포인트
 - IaaS(OpenStack) 서비스군
 

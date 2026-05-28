@@ -21,10 +21,16 @@ src/
     endpoints.ts            # 서비스별 엔드포인트 맵 (adr-005)
     envelope.ts             # NHN 공통 봉투 unwrap + 에러 매핑 (adr-006)
     httpError.ts            # ky HTTPError → NhnCloudCliError (status별 exit code)
+    oauth.ts                # UAK → access_token 교환 + 캐시 (adr-007)
+  cache/
+    token-store.ts          # ~/.nhncloud/cache/ access_token 읽기·쓰기 (mode 0600)
   services/
     logncrash/
       client.ts             # LogncrashClient — search()
-      types.ts              # 검색 요청/응답 타입
+      types.ts
+    deploy/
+      client.ts             # DeployClient — run / artifacts / serverGroups / histories
+      types.ts
   utils/
     errors.ts               # NhnCloudCliError(message, exitCode)
     exit-codes.ts           # EXIT_* 상수
@@ -35,6 +41,11 @@ src/
   commands/
     logncrash/
       search.ts             # nhncloud logncrash search
+    deploy/
+      run.ts                # nhncloud deploy run <target>
+      artifacts.ts          # nhncloud deploy artifacts
+      server-groups.ts      # nhncloud deploy server-groups <target>
+      histories.ts          # nhncloud deploy histories <target>
 ```
 
 ## 레이어 의존 방향
@@ -53,7 +64,10 @@ dooray-cli 는 단일 `config + client` 로 충분했지만, NHN Cloud 는 서�
 - `config/credentials.ts` — profile 해석 후 서비스 자격증명 블록 반환 ([[adr-004]])
 - `api/endpoints.ts` — 서비스명 → 엔드포인트 (gov 분기는 후속, [[adr-005]])
 - `api/envelope.ts` — `{ header, body }` 봉투 검사, `resultCode` 타입 혼재 흡수 ([[adr-006]])
-- 각 `services/<svc>/client.ts` — 위 셋을 조합해 서비스 고유 헤더(`X-LNCS-SECRET` 등) 부착
+- `api/oauth.ts` + `cache/token-store.ts` — deploy 전용. UAK → access_token 교환 후 단기 캐시 ([[adr-007]])
+- 각 `services/<svc>/client.ts` — 위 조각을 조합해 서비스 고유 헤더 부착
+  - logncrash: `X-LNCS-SECRET`
+  - deploy: `X-NHN-AUTHORIZATION: Bearer <token>` + config target 좌표 ([[adr-008]])
 
 ## 커맨드 실행 흐름 (예: `nhncloud logncrash search`)
 

@@ -64,17 +64,22 @@ src/
 | profile/자격증명 파일 구조 | ADR-003, ADR-004 |
 | 새 서비스 엔드포인트 추가 | ADR-005 |
 | 응답 봉투 처리 (`isSuccessful`/`resultCode`) | ADR-006 |
+| Deploy OAuth 토큰 교환·캐시 | ADR-007 |
+| deploy target 좌표 / config 구조 | ADR-008 |
 
 신규 ADR 추가 시 본 표에 행 추가.
 
 ## NHN Cloud 인증 모델 (서비스별 상이 — 핵심)
 
-| 서비스 | appkey 위치 | 인증 헤더 |
-|--------|------------|----------|
-| Log & Crash 검색 | URL path | `X-LNCS-SECRET: <secret>` |
-| Deploy v2.1 | URL path | `X-NHN-AUTHORIZATION: Bearer <token>` |
+| 서비스 | 비밀 | 인증 헤더 |
+|--------|------|----------|
+| Log & Crash 검색 | appkey + secret | `X-LNCS-SECRET: <secret>` |
+| Deploy v2.1 | UAK(id+secret) | `X-NHN-AUTHORIZATION: Bearer <token>` |
 
-`resultCode` 타입이 서비스마다 다름 — Log & Crash 숫자, Deploy 문자열. 봉투 helper 는 둘 다 수용.
+- Deploy 토큰은 정적이 아니라 OAuth `client_credentials` 로 교환한 단기 토큰 (ADR-007).
+  - OAuth: `oauth.api.nhncloudservice.com/oauth2/token/create`
+  - Deploy API: `api-deploy.nhncloudservice.com` (공식 docs 의 `api-tcd` 와 다른 현행 도메인 — 함정)
+- `resultCode` 타입이 서비스마다 다름 — Log & Crash 숫자, Deploy 문자열. 봉투 helper 는 둘 다 수용.
 
 ## 한국어 표현 정책 / 마크다운 가독성
 

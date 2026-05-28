@@ -8,6 +8,8 @@
 - [ADR-004](#adr-004): profile 안 서비스별 자격증명 블록
 - [ADR-005](#adr-005): 엔드포인트 하드코딩 맵 (gov 제외)
 - [ADR-006](#adr-006): NHN 공통 응답 봉투 정규화
+- [ADR-007](#adr-007): Deploy OAuth client_credentials 토큰 교환 + 단기 캐시
+- [ADR-008](#adr-008): deploy 좌표 named target (config) + UAK/좌표 분리
 
 ---
 
@@ -48,7 +50,7 @@
 - **결정**: profile 아래 서비스 키(`logncrash`/`deploy`)별로 appkey·secret·token 을 분리 저장.
 - **맥락**: NHN Cloud 는 서비스마다 인증이 다르다.
   - Log & Crash 검색 — appkey + secret (`X-LNCS-SECRET`)
-  - Deploy — appkey + Bearer token (`X-NHN-AUTHORIZATION`)
+  - Deploy — UAK(id+secret) 로 OAuth 토큰 교환 후 `X-NHN-AUTHORIZATION: Bearer` ([[adr-007]])
   - AWS 의 단일 access-key 모델과 다르다.
 - **대안 기각**: 전역 단일 키(NHN 현실과 불일치), 평탄 키(`logncrash_appkey` 등 — 서비스 늘면 충돌).
 
@@ -73,3 +75,32 @@
 - **트레이드오프**: `resultCode` 타입이 서비스마다 다르다.
   - Log & Crash 는 숫자, Deploy 는 문자열 (`"SUCCESS"`).
   - helper 는 `string | number` 를 모두 받아 `isSuccessful` 을 우선 판정한다.
+
+---
+
+<a id="adr-007"></a>
+
+## ADR-007: Deploy OAuth client_credentials 토큰 교환 + 단기 캐시
+
+- **결정**: UAK(id+secret) 를 Basic 인증으로 OAuth 에 보내 `access_token` 을 받아 캐시한다.
+  - OAuth: `POST oauth.api.nhncloudservice.com/oauth2/token/create`, `grant_type=client_credentials`
+  - `~/.nhncloud/cache/` 에 만료시각과 함께 저장, 만료 전 재사용
+- **맥락**: Deploy 인증은 정적 토큰이 아니라 단기 Bearer 토큰이다.
+  - 실사용 스크립트 `nhn-deploy-trigger.sh` 로 확인 (공식 docs 는 "별도 발급" 으로만 표기)
+  - 호출마다 발급하면 OAuth 왕복이 매번 붙는다
+- **대안 기각**: 정적 토큰 저장(만료로 곧 무효), 호출마다 발급(불필요한 OAuth 왕복).
+- **적용 범위**: 엔드포인트 함정 — Deploy 는 `api-deploy.nhncloudservice.com` (공식 docs 의 `api-tcd` 와 다른 현행 도메인). OAuth 는 `oauth.api.nhncloudservice.com`.
+
+---
+
+<a id="adr-008"></a>
+
+## ADR-008: deploy 좌표 named target (config) + UAK/좌표 분리
+
+- **결정**: 배포 좌표를 `config.json` 에 이름 붙인 target 으로 저장하고 `nhncloud deploy run <target>` 으로 참조한다.
+  - 좌표: appKey·artifactId·serverGroupId·scenarioIds
+  - 개별 flag 로 override 가능
+  - UAK(id+secret) 비밀은 `credentials.json` 의 profile 별 deploy 블록에 둔다
+- **맥락**: 한 배포에 좌표 4개가 필요해 매번 flag 로 받으면 장황하다.
+  - 좌표는 비밀이 아니므로 config, UAK 만 비밀이라 credentials (비밀/비밀아님 분리, [[adr-003]])
+- **대안 기각**: 전부 flag(장황·반복), 좌표를 credentials 에 혼재(비밀 아닌 값이 비밀 파일에).

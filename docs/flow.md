@@ -64,3 +64,53 @@ nhncloud logncrash search [options]
 | `X-LNCS-SECRET` 인증 실패 (401/403) | `EXIT_AUTH_ERROR` |
 | 봉투 `isSuccessful: false` / 기타 4xx·5xx | `EXIT_API_ERROR` |
 | 시간 범위 초과 등 입력 오류 | `EXIT_PARAM_ERROR` |
+
+## deploy 흐름
+
+배포 좌표는 `config.json` 의 named target 으로 참조하고, OAuth 토큰은 캐시한다 ([[adr-007]], [[adr-008]]).
+
+### 인증 흐름
+
+1. profile 의 deploy 블록에서 UAK(id+secret) 로드
+2. 캐시된 access_token 이 만료 전이면 재사용, 아니면 OAuth 교환 후 캐시
+3. `X-NHN-AUTHORIZATION: Bearer <token>` 로 Deploy API 호출
+
+### 명령 시그니처
+
+```
+nhncloud deploy run <target> [options]      # 배포 실행
+nhncloud deploy artifacts [options]          # 아티팩트 목록
+nhncloud deploy server-groups <target> [options]   # 서버그룹 목록
+nhncloud deploy histories <target> [options]       # 배포 이력
+```
+
+`<target>` 은 config.json 의 deploy target 이름. target 이 좌표(appKey·artifactId·serverGroupId·scenarioIds)를 공급하며, 아래 flag 로 개별 override.
+
+| 옵션 | 적용 | 설명 |
+|------|------|------|
+| `--app-key <k>` | 전체 | target 의 appKey override |
+| `--artifact-id <id>` | 전체 | target 의 artifactId override |
+| `--server-group-id <id>` | run, server-groups | target override |
+| `--scenario-ids <csv>` | run | target override |
+| `--target-hosts <csv>` | run | 대상 호스트. 생략 시 서버그룹 전체 |
+| `--concurrent <n>` | run | 병렬 배포 수 (기본 1) |
+| `--next-when-fail` | run | 시나리오 실패 시에도 진행 |
+| `--note <s>` | run | 배포 메모 (기본 timestamp) |
+| `--async` | run | 즉시 반환 (기본은 완료 대기) |
+| `--profile <name>` | 전체 | profile 선택 |
+
+전역 옵션: `--json` / `--quiet` / `--no-color`.
+
+### run 동기/비동기
+
+- 기본 `async=false` — 서버가 배포 완료까지 응답 보류 (CLI 자체 폴링 없음).
+- `--async` — `async=true` 로 즉시 반환 (status `deploying`).
+- 동기 모드는 배포가 길면 ky timeout 을 늘려야 한다 (구현 시 고려).
+
+### deploy 에러 경로
+
+| 상황 | exit code |
+|------|-----------|
+| UAK 누락 / OAuth 발급 실패 | `EXIT_CONFIG_ERROR` 또는 `EXIT_AUTH_ERROR` |
+| target 미존재 (config 에 없음) | `EXIT_PARAM_ERROR` |
+| Deploy API 4xx·5xx / 봉투 실패 | `EXIT_API_ERROR` |
