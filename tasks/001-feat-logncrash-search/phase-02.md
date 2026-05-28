@@ -29,7 +29,7 @@ src/api/ 에 공통 3개 파일 작성.
 - [ ] `src/api/endpoints.ts`
   - 서비스명 → 엔드포인트 맵 (일반/real 만, gov 제외 — ADR-005)
   - `logncrash` 검색: `https://api-lncs-search.nhncloudservice.com`
-  - (예약) `deploy`: `https://api-tcd.nhncloudservice.com`
+  - (예약) `deploy`: `https://api-deploy.nhncloudservice.com` (현행 도메인 — docs 의 api-tcd 아님)
   - `export function endpointFor(service: string): string` — 미등록 서비스는 `NhnCloudCliError`
 - [ ] `src/api/envelope.ts`
   - NHN 공통 봉투 타입: `interface NhnEnvelope<T> { header: { isSuccessful: boolean; resultCode: number | string; resultMessage: string }; body?: T }`
