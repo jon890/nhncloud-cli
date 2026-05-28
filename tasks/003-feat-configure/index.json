@@ -1,0 +1,61 @@
+{
+  "name": "003-feat-configure",
+  "description": "nhncloud configure 명령 — 대화형+flag 자격증명 마법사, profile 공통 userAccessKey 모델 리팩토링, 연결 테스트 (docs/flow.md, ADR-009/004 기반). 구현된 logncrash/deploy 코드에 의존",
+  "created_at": "2026-05-28T00:00:00Z",
+  "updated_at": "2026-05-28T00:00:00Z",
+  "status": "pending",
+  "current_phase": 0,
+  "total_phases": 6,
+  "error_message": null,
+  "blocked_reason": null,
+  "phases": [
+    {
+      "number": 1,
+      "title": "UAK 모델 리팩토링 (types + deploy 자격증명 로딩)",
+      "file": "phase-01.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    },
+    {
+      "number": 2,
+      "title": "credentials/config 머지 쓰기 helper",
+      "file": "phase-02.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    },
+    {
+      "number": 3,
+      "title": "연결 테스트 helper (UAK OAuth + logncrash)",
+      "file": "phase-03.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    },
+    {
+      "number": 4,
+      "title": "configure 명령 (대화형 + flag)",
+      "file": "phase-04.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    },
+    {
+      "number": 5,
+      "title": "빌드 검증 + smoke test + SKILL/README 갱신",
+      "file": "phase-05.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    },
+    {
+      "number": 6,
+      "title": "commit + push + index.json 완료 마킹",
+      "file": "phase-06.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "haiku"
+    }
+  ]
+}
