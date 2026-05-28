@@ -1,0 +1,41 @@
+# PRD — nhncloud-cli
+
+## 한 줄 정의
+
+NHN Cloud 서비스를 AWS CLI 처럼 터미널·AI 에이전트가 쉽게 호출하는 통합 CLI.
+
+## 문제
+
+NHN Cloud 는 서비스별 REST API 와 일부 SDK 만 제공한다.
+AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트·헤더를 직접 다뤄야 한다.
+
+## 타겟
+
+- NHN Cloud 를 일상적으로 쓰는 개발자 (Deploy, Log & Crash 등)
+- 자동화 스크립트·AI 에이전트 (구조화된 `--json` 출력 소비)
+
+## 핵심 가치
+
+- 서비스마다 다른 인증·엔드포인트를 하나의 profile 추상화 뒤로 숨긴다.
+- 데이터는 stdout, 진행·에러는 stderr 로 분리해 파이프라인에 친화적이다.
+- AI 에이전트가 자연어를 명령으로 변환하도록 `skills/nhncloud-cli/SKILL.md` 를 제공한다.
+
+## MVP 범위 (v1)
+
+### 포함
+
+- `nhncloud logncrash search` — Log & Crash 로그 검색 (PoC 첫 명령)
+- profile 기반 자격증명 (`~/.nhncloud/credentials.json` + `~/.nhncloud/config.json`)
+- 출력 3모드 — 테이블 / `--json` / `--quiet`
+- `--profile` 로 profile 전환
+
+### 제외 (v1)
+
+- Deploy 명령군 (설계는 반영, 구현은 후속)
+- 공공기관용(gov) 엔드포인트
+- IaaS(OpenStack) 서비스군
+
+## 성공 지표
+
+- `nhncloud logncrash search --query ... --from ... --to ... --json` 이 실제 로그를 반환한다.
+- profile 미설정 시 친절한 설정 안내로 종료한다 (exit code 명확).
