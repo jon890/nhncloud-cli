@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import chalk from "chalk";
+import { ExitPromptError } from "@inquirer/core";
 import {
   resolveProfileName,
   setUserAccessKey,
@@ -134,17 +135,22 @@ async function runInteractive(opts: ConfigureOptions): Promise<void> {
 async function runNonInteractive(opts: ConfigureOptions): Promise<void> {
   const profileName = await resolveProfileName(opts.profile);
 
+  // secret 은 환경변수로도 받는다 — cmdline 인수는 `ps aux` 로 평문 노출되므로 권장.
+  const uakSecret = opts.uakSecret ?? process.env["NHNCLOUD_UAK_SECRET"];
+  const logncrashSecret = opts.logncrashSecret ?? process.env["NHNCLOUD_LOGNCRASH_SECRET"];
+
   const uak: UserAccessKey | undefined =
-    opts.uakId && opts.uakSecret ? { id: opts.uakId, secret: opts.uakSecret } : undefined;
+    opts.uakId && uakSecret ? { id: opts.uakId, secret: uakSecret } : undefined;
 
   const logncrash: ServiceCredential | undefined =
-    opts.logncrashAppkey && opts.logncrashSecret
-      ? { appkey: opts.logncrashAppkey, secret: opts.logncrashSecret }
+    opts.logncrashAppkey && logncrashSecret
+      ? { appkey: opts.logncrashAppkey, secret: logncrashSecret }
       : undefined;
 
   if (!uak && !logncrash) {
     throw new NhnCloudCliError(
-      "비대화형 모드: --uak-id/--uak-secret 또는 --logncrash-appkey/--logncrash-secret 가 필요합니다.",
+      "비대화형 모드: --uak-id + UAK secret 또는 --logncrash-appkey + logncrash secret 가 필요합니다.\n" +
+        "secret 은 노출 방지를 위해 환경변수 권장: NHNCLOUD_UAK_SECRET / NHNCLOUD_LOGNCRASH_SECRET.",
       EXIT_PARAM_ERROR,
     );
   }
@@ -160,9 +166,9 @@ export const configureCommand = new Command("configure")
   .description("자격증명 설정 마법사 (대화형 + flag)")
   .option("--profile <name>", "대상 profile 이름 (기본: default)")
   .option("--uak-id <id>", "개인 UAK ID (비대화형)")
-  .option("--uak-secret <secret>", "개인 UAK Secret (비대화형)")
+  .option("--uak-secret <secret>", "개인 UAK Secret (비대화형, 노출 방지로 env NHNCLOUD_UAK_SECRET 권장)")
   .option("--logncrash-appkey <key>", "logncrash appkey (비대화형)")
-  .option("--logncrash-secret <secret>", "logncrash secret (비대화형)")
+  .option("--logncrash-secret <secret>", "logncrash secret (비대화형, env NHNCLOUD_LOGNCRASH_SECRET 권장)")
   .option("--no-verify", "연결 테스트 생략")
   .action(async (opts: ConfigureOptions) => {
     const hasFlag = opts.uakId || opts.uakSecret || opts.logncrashAppkey || opts.logncrashSecret;
@@ -175,10 +181,7 @@ export const configureCommand = new Command("configure")
       }
     } catch (err) {
       // ExitPromptError: Ctrl-C 취소 처리
-      if (
-        err instanceof Error &&
-        (err.constructor.name === "ExitPromptError" || err.message.includes("User force closed"))
-      ) {
+      if (err instanceof ExitPromptError) {
         process.stderr.write(chalk.yellow("\n취소되었습니다.\n"));
         return;
       }

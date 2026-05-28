@@ -20,6 +20,17 @@ function isConfig(value: unknown): value is Config {
   return obj["version"] === 1;
 }
 
+function isUserAccessKey(value: unknown): value is UserAccessKey {
+  if (typeof value !== "object" || value === null) return false;
+  const obj = value as Record<string, unknown>;
+  return (
+    typeof obj["id"] === "string" &&
+    obj["id"].length > 0 &&
+    typeof obj["secret"] === "string" &&
+    obj["secret"].length > 0
+  );
+}
+
 async function loadCredentials(): Promise<Credentials> {
   let raw: string;
   try {
@@ -122,8 +133,8 @@ export async function getUserAccessKey(profileName: string): Promise<UserAccessK
     );
   }
 
-  const uak = profile["userAccessKey"] as UserAccessKey | undefined;
-  if (!uak || !uak.id || !uak.secret) {
+  const uak = profile["userAccessKey"];
+  if (!isUserAccessKey(uak)) {
     throw new NhnCloudCliError(
       `profile "${profileName}" 에 userAccessKey 가 없거나 불완전합니다.\n` +
         `nhncloud configure 를 실행해 UAK id/secret 을 설정하세요.`,
@@ -143,6 +154,13 @@ export async function getServiceCredential(
   service: string,
   profileName: string,
 ): Promise<ServiceCredential> {
+  if (service === "userAccessKey") {
+    throw new NhnCloudCliError(
+      "userAccessKey 는 서비스 자격증명이 아닙니다 — getUserAccessKey 를 사용하세요.",
+      EXIT_PARAM_ERROR,
+    );
+  }
+
   const credentials = await loadCredentials();
 
   const profile = credentials.profiles[profileName];
@@ -194,7 +212,7 @@ async function loadCredentialsOrEmpty(): Promise<Credentials> {
  * credentials.json 을 mode 0600 으로 저장한다. 디렉터리가 없으면 자동 생성.
  */
 async function saveCredentials(creds: Credentials): Promise<void> {
-  await mkdir(dirname(CREDENTIALS_PATH), { recursive: true });
+  await mkdir(dirname(CREDENTIALS_PATH), { recursive: true, mode: 0o700 });
   await writeFile(CREDENTIALS_PATH, JSON.stringify(creds, null, 2), {
     encoding: "utf-8",
     mode: 0o600,
