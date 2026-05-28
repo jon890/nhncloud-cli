@@ -291,6 +291,33 @@ grep -nE "selectOne|mandatory|MandatoryGroups|SelectOneGroups" src/resolvers/tag
   critic 평가가 비동기로 도착하는 점이 근본 원인.
   executor 가 "대기" 명시받지 않으면 자체 진행 본능적 경향.
 
+## 1-17. plan-and-build 표준 task 를 build-with-teams 로 실행 시 마지막 phase commit/push 책임 충돌
+
+**증상**: `/planning` + `task-create` 로 작성된 task 의 마지막 phase 가 "commit + push + index.json 마킹" 을 한 묶음으로 담음 (plan-and-build 표준).
+  이 task 를 build-with-teams 로 실행하면 executor 가 그 지시대로 `git commit`/`git push`/`gh pr` 까지 수행 → team-lead 의 phase 별 atomic commit + 최종 PR 책임과 충돌.
+  특히 마지막 phase 모델이 haiku 면 지시를 문자 그대로 실행할 확률이 높아 더 위험.
+  부수적으로 phase 들의 `# cwd:` 가 main repo 절대경로로 하드코딩돼 있으면 worktree 가 아닌 main 에서 실행돼 오염 (1-4 와 연관).
+
+**Good**: build-with-teams 로 plan-and-build 표준 task 를 실행하기 전 critic 평가 단계에서 다음을 보정:
+- 마지막 phase 를 "index.json 완료 마킹만" 으로 축소. commit/push/PR 문구 제거 + "team-lead 가 마킹과 함께 최종 commit·push·PR 수행" 명시. 성공 기준에서 `git log`/`git status --porcelain` 검사 제거, index.json 마킹 grep 만 유지.
+- 모든 phase 의 `# cwd:` 를 `<레포 루트>` 플레이스홀더로 교체하고, executor 에게 worktree 절대경로를 스폰 프롬프트로 전달.
+
+**Self-check**: build-with-teams 로 실행하려는 task 의 마지막 phase 가 `git commit`/`git push`/`gh pr` 를 담고 있는가? 담겨 있으면 마킹만 남기고 commit/push 책임을 team-lead 로 이관했는가?
+
+**Why**: PR #1 (plan001) — plan-and-build 표준으로 작성된 task 를 build-with-teams 로 실행. critic 이 phase-07 의 commit/push 책임 충돌 + 7개 phase cwd 하드코딩을 REVISE 로 잡음. plan-and-build 표준 task 를 build-with-teams 로 재실행할 때마다 재발 가능.
+
+## 1-18. 신규 명령 task 가 영향 표 필수 사용자 가이드 docs 를 "범위 외" 로 스킵
+
+**증상**: 신규 CLI 명령 task 의 마지막 (사용자 가이드) phase 가 `skills/nhncloud-cli/SKILL.md` 만 작성하고 `README.md` 사용 예 섹션을 "PoC 범위 외" 로 명시 스킵.
+  planning SKILL 8단계 A항 "변경 유형별 docs 영향 표" 의 "신규 CLI 명령" 행은 README.md 사용 예 + CLAUDE.md "N개 명령 카운트" 를 **필수** (조건부 아님) 로 표시 → docs-verifier UPDATE_NEEDED.
+
+**Good**: 신규 명령 task 의 phase 작성 시 영향 표 해당 행이 필수로 표시한 docs 를 모두 phase 작업 목록에 포함. "PoC 라서 생략" 판단으로 표의 필수 항목을 빼지 않는다 (표가 단일 소스).
+  CLAUDE.md 는 결정 doc 이라 phase 안에서 못 고치므로, team-lead 가 phase 루프 밖 별도 commit 으로 "N개 명령 카운트" 보완.
+
+**Self-check**: 신규 명령 phase 가 영향 표의 README/SKILL/CLAUDE 필수 항목을 모두 다루는가? "범위 외" 로 표의 필수 항목을 뺀 곳이 없는가?
+
+**Why**: PR #1 (plan001) — phase-06 이 "README.md 는 PoC 범위 외" 로 명시 스킵했으나 영향 표는 README 사용 예를 필수로 요구 → docs-verifier UPDATE_NEEDED. 신규 명령마다 재발 가능.
+
 ## 섹션 1 소진 체크리스트
 
 plan 제출 전 10개 패턴 모두 self-check:

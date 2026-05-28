@@ -187,6 +187,36 @@ grep -rnE "mockRejectedValue\(new NhnCloudCliError" src/ test/
 
 **Why**: PR #63 (plan029) — 7/7 테스트 PASS 였지만 mock 이 production 동작 mirror 안 함. mock 만 보면 분기 코드 검증된 것처럼 보이지만 실제 path 는 dead. code-reviewer 가 production path (`toNhnCloudCliError`) 와 mock 의 exitCode 대조로 잡음. 2-2 와 짝 — 같은 사고가 코드와 테스트 양쪽에서 동시 발생.
 
+## 2-4. optional 자격증명 필드 빈문자열 fallback (`?? ""`) → 인증 실패를 설정 오류로 진단 못함
+
+**증상**: `ServiceCredential.secret?` 처럼 optional 인 자격증명 필드를 client 에 넘길 때 `cred.secret ?? ""` 로 빈문자열 fallback.
+secret 미설정 시 빈 인증 헤더 (`X-LNCS-SECRET: `) 로 API 호출 → 401 → 사용자는 "API 호출 실패 (401)" 만 보고 *설정이 빠진 것* 인지 *키가 틀린 것* 인지 모름.
+
+**Good**: client 생성 전에 필수 인증 필드 존재를 검증하고 없으면 `EXIT_CONFIG_ERROR` + 설정 안내 메시지.
+
+```ts
+// BAD — 빈문자열 fallback → 401 로만 드러남
+const client = new LogncrashClient(cred.appkey, cred.secret ?? "");
+
+// GOOD — 없으면 EXIT_CONFIG_ERROR 로 즉시 진단
+if (!cred.secret) {
+  throw new NhnCloudCliError(
+    `profile "${profileName}" 의 logncrash 자격증명에 secret 이 없습니다.`,
+    EXIT_CONFIG_ERROR,
+  );
+}
+const client = new LogncrashClient(cred.appkey, cred.secret);
+```
+
+**검출**:
+```bash
+grep -rnE "\?\?\s*\"\"" src/commands/ src/services/   # 자격증명/필수값 빈문자열 fallback 의심
+```
+
+**Self-check**: client 에 넘기는 자격증명 필드가 type 상 optional 인데 `?? ""` 로 채우고 있는가? 그러면 미설정 시 인증 실패(AUTH)로만 드러나고 설정 오류(CONFIG)로 진단 못함 — 호출 전 존재 검증으로 교체.
+
+**Why**: PR #1 (plan001) — `cred.secret ?? ""` 가 secret 미설정 시 빈 헤더로 401 유발. code-reviewer 가 잡음. 서비스별 자격증명 필드가 optional 인 한 (Deploy token 등) 새 service client 마다 재발 가능.
+
 # 3. 매직 넘버·문자열 (예약)
 
 # 4. CLI 도메인 규칙 회귀
@@ -244,6 +274,40 @@ grep -nE "as unknown as " src/
 **Why**: PR #64 (plan031) — 두 타입 관계를 이중 단언으로 우회.
 
 **Self-check**: `as unknown as T` 가 등장하면 타입 구조적 관계를 types.ts 에 명시했는가?
+
+## 5-3. optional 필드를 `as T` 로 캐스트해 undefined 묵시 반환
+
+**증상**: 봉투/응답 타입의 `body?: T` 처럼 optional 필드를 `return res.body as T` 로 반환.
+성공 응답인데 body 가 없는 edge case 가 오면 `undefined` 를 `T` 로 조용히 반환 → 호출부에서 `.totalItems` 등 접근 시 런타임 TypeError.
+`as T` 가 컴파일 타임 검사를 무력화해 tsc 도 못 잡음.
+
+**Good**: 캐스트 대신 undefined guard 후 narrow 된 값을 반환.
+
+```ts
+// BAD — body 가 undefined 여도 T 로 통과
+export function unwrap<T>(res: NhnEnvelope<T>): T {
+  if (!res.header.isSuccessful) throw ...;
+  return res.body as T;
+}
+
+// GOOD — undefined 를 명시적으로 거름
+export function unwrap<T>(res: NhnEnvelope<T>): T {
+  if (!res.header.isSuccessful) throw ...;
+  if (res.body === undefined) {
+    throw new NhnCloudCliError("API 응답에 body 가 없습니다.", EXIT_API_ERROR);
+  }
+  return res.body;
+}
+```
+
+**검출**:
+```bash
+grep -rnE "\.body as |return [a-zA-Z.]+ as [A-Z]" src/api/   # optional 필드 as 캐스트 반환 의심
+```
+
+**Self-check**: optional (`?:`) 필드를 `as T` 로 반환하는 곳이 있는가? 그러면 undefined 가 T 로 누수 — guard 로 교체.
+
+**Why**: PR #1 (plan001) — `unwrap` 의 `res.body as T` 가 optional body 의 undefined 를 묵시 반환. envelope 는 모든 service client 가 공유하므로 한 번의 누수가 전 서비스에 전파.
 
 # 6. API/HTTP 패턴
 
