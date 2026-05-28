@@ -7,7 +7,7 @@ import {
 } from "../config/credentials.js";
 import { verifyUserAccessKey, verifyLogncrash } from "./configure-verify.js";
 import { NhnCloudCliError } from "../utils/errors.js";
-import { EXIT_AUTH_ERROR } from "../utils/exit-codes.js";
+import { EXIT_AUTH_ERROR, EXIT_PARAM_ERROR } from "../utils/exit-codes.js";
 import type { UserAccessKey, ServiceCredential } from "../config/types.js";
 
 interface ConfigureOptions {
@@ -145,7 +145,7 @@ async function runNonInteractive(opts: ConfigureOptions): Promise<void> {
   if (!uak && !logncrash) {
     throw new NhnCloudCliError(
       "비대화형 모드: --uak-id/--uak-secret 또는 --logncrash-appkey/--logncrash-secret 가 필요합니다.",
-      3, // EXIT_PARAM_ERROR
+      EXIT_PARAM_ERROR,
     );
   }
 
