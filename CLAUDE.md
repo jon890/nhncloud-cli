@@ -80,6 +80,7 @@ src/
 
 전역 `~/.claude/CLAUDE.md` 정책을 따른다.
 외래어 음차 합성 회피, semantic line break, 인라인 나열 금지.
+프로젝트별 외래어 매핑 표·문장 종결 규칙·자가 점검은 `korean-style.md` 가 단일 소스.
 
 ## planning / 구현 워크플로우
 
