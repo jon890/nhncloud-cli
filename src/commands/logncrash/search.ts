@@ -2,7 +2,7 @@ import { Command } from "commander";
 import { resolveTime, assertSearchRange } from "../../utils/time.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
-import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
+import { EXIT_PARAM_ERROR, EXIT_CONFIG_ERROR } from "../../utils/exit-codes.js";
 import { resolveProfileName, getServiceCredential } from "../../config/credentials.js";
 import { LogncrashClient } from "../../services/logncrash/client.js";
 import { output, truncate, type OutputOptions } from "../../formatters/table.js";
@@ -57,8 +57,8 @@ export const searchCommand = new Command("search")
     if (isNaN(page) || page < 0) {
       throw new NhnCloudCliError("--page 는 0 이상의 정수여야 합니다.", EXIT_PARAM_ERROR);
     }
-    if (isNaN(size) || size < 0) {
-      throw new NhnCloudCliError("--size 는 0 이상의 정수여야 합니다.", EXIT_PARAM_ERROR);
+    if (isNaN(size) || size < 1) {
+      throw new NhnCloudCliError("--size 는 1 이상의 정수여야 합니다.", EXIT_PARAM_ERROR);
     }
     if (size > 100) {
       throw new NhnCloudCliError("--size 는 최대 100 이하여야 합니다.", EXIT_PARAM_ERROR);
@@ -72,7 +72,13 @@ export const searchCommand = new Command("search")
     // ── 4. 자격증명 로드 (spinner 시작 전) ──
     const profileName = await resolveProfileName(opts.profile);
     const cred = await getServiceCredential("logncrash", profileName);
-    const client = new LogncrashClient(cred.appkey, cred.secret ?? "");
+    if (!cred.secret) {
+      throw new NhnCloudCliError(
+        `profile "${profileName}" 의 logncrash 자격증명에 secret 이 없습니다.\ncredentials.json 에 "secret": "<secretkey>" 를 추가하세요.`,
+        EXIT_CONFIG_ERROR,
+      );
+    }
+    const client = new LogncrashClient(cred.appkey, cred.secret);
 
     // ── 5. API 호출 (spinner 내부, try/catch + leak 방지) ──
     startSpinner("로그 검색 중...");

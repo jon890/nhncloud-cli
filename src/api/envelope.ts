@@ -26,5 +26,8 @@ export function unwrap<T>(res: NhnEnvelope<T>): T {
       EXIT_API_ERROR,
     );
   }
-  return res.body as T;
+  if (res.body === undefined) {
+    throw new NhnCloudCliError("API 응답에 body 가 없습니다.", EXIT_API_ERROR);
+  }
+  return res.body;
 }

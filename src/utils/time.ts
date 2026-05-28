@@ -68,11 +68,14 @@ export function resolveTime(input: string): string {
   );
 }
 
+const MAX_RANGE_DAYS = 31;
+const MAX_LOOKBACK_DAYS = 90;
+
 /**
  * 검색 범위 사전 검증.
  * - from > to: 에러
- * - 범위 > 31일: 에러
- * - from 이 90일 이전: 에러
+ * - 범위 > MAX_RANGE_DAYS(31일): 에러
+ * - from 이 MAX_LOOKBACK_DAYS(90일) 이전: 에러
  */
 export function assertSearchRange(fromIso: string, toIso: string): void {
   const from = new Date(fromIso);
@@ -84,12 +87,12 @@ export function assertSearchRange(fromIso: string, toIso: string): void {
 
   const rangeMs = to.getTime() - from.getTime();
   const msPerDay = 24 * 60 * 60 * 1000;
-  if (rangeMs > 31 * msPerDay) {
-    throw new NhnCloudCliError("검색 범위는 31일 이하여야 합니다.", EXIT_PARAM_ERROR);
+  if (rangeMs > MAX_RANGE_DAYS * msPerDay) {
+    throw new NhnCloudCliError(`검색 범위는 ${MAX_RANGE_DAYS}일 이하여야 합니다.`, EXIT_PARAM_ERROR);
   }
 
-  const ninetyDaysAgo = new Date(Date.now() - 90 * msPerDay);
-  if (from < ninetyDaysAgo) {
-    throw new NhnCloudCliError("검색 시작은 최근 90일 이내여야 합니다.", EXIT_PARAM_ERROR);
+  const lookbackStart = new Date(Date.now() - MAX_LOOKBACK_DAYS * msPerDay);
+  if (from < lookbackStart) {
+    throw new NhnCloudCliError(`검색 시작은 최근 ${MAX_LOOKBACK_DAYS}일 이내여야 합니다.`, EXIT_PARAM_ERROR);
   }
 }
