@@ -32,6 +32,11 @@ deploy target 로딩 + UAK 자격증명 로딩 + 엔드포인트 정리.
 - [ ] `src/api/endpoints.ts` 정리
   - `deploy` → `https://api-deploy.nhncloudservice.com` (api-tcd 아님)
   - oauth 는 `src/api/oauth.ts` 가 직접 상수 보유 (endpoints 맵에는 deploy API 만)
+- [ ] `src/commands/logncrash/search.ts` cascade 가드 (appkey optional 완화의 부수효과 해소)
+  - appkey 를 optional 로 바꾸면 `cred.appkey` 타입이 `string | undefined` → `new LogncrashClient(cred.appkey, cred.secret)` (search.ts:81) 에서 TS2345 발생.
+  - L81 직전에 `cred.secret` 가드와 대칭으로 appkey 가드 추가:
+    `if (!cred.appkey) throw new NhnCloudCliError("profile의 logncrash 자격증명에 appkey 가 없습니다 ...", EXIT_CONFIG_ERROR);`
+  - 이 가드 후 `cred.appkey` 가 `string` 으로 narrowing 되어 생성자 호출이 통과.
 
 ## 성공 기준
 
@@ -43,7 +48,11 @@ grep -c "getDeployTarget" src/config/credentials.ts             # 기대: >=1
 grep -c "DeployTarget" src/config/types.ts                      # 기대: >=1
 # api-tcd 잔존 없어야 함
 grep -c "api-tcd" src/api/endpoints.ts   # 기대: 0
+# appkey optional cascade 가드 (search.ts tsc 깨짐 방지)
+grep -c "if (!cred.appkey)" src/commands/logncrash/search.ts   # 기대: >=1
 ```
+
+**변경 파일**: `src/config/types.ts`, `src/config/credentials.ts`, `src/api/endpoints.ts`, `src/commands/logncrash/search.ts` (cascade 가드).
 
 ## 주의사항
 
