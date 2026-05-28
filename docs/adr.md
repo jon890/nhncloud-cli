@@ -10,6 +10,7 @@
 - [ADR-006](#adr-006): NHN 공통 응답 봉투 정규화
 - [ADR-007](#adr-007): Deploy OAuth client_credentials 토큰 교환 + 단기 캐시
 - [ADR-008](#adr-008): deploy 좌표 named target (config) + UAK/좌표 분리
+- [ADR-009](#adr-009): configure 대화형 마법사 + 비대화형 flag + 연결 테스트
 
 ---
 
@@ -45,14 +46,16 @@
 
 <a id="adr-004"></a>
 
-## ADR-004: profile 안 서비스별 자격증명 블록
+## ADR-004: profile 공통 UAK + 서비스별 자격증명 블록
 
-- **결정**: profile 아래 서비스 키(`logncrash`/`deploy`)별로 appkey·secret·token 을 분리 저장.
+- **결정**: profile 아래에 공통 `userAccessKey`(개인 UAK) 1개 + 서비스별 블록(`logncrash` 등)을 둔다.
+  - `userAccessKey` — deploy 등 OAuth 서비스가 공유 (개인/계정 단위, [[adr-007]])
+  - 서비스 블록 — 서비스 고유 appkey·secret (logncrash 등)
 - **맥락**: NHN Cloud 는 서비스마다 인증이 다르다.
   - Log & Crash 검색 — appkey + secret (`X-LNCS-SECRET`)
-  - Deploy — UAK(id+secret) 로 OAuth 토큰 교환 후 `X-NHN-AUTHORIZATION: Bearer` ([[adr-007]])
-  - AWS 의 단일 access-key 모델과 다르다.
-- **대안 기각**: 전역 단일 키(NHN 현실과 불일치), 평탄 키(`logncrash_appkey` 등 — 서비스 늘면 충돌).
+  - Deploy — UAK 로 OAuth 토큰 교환 후 `X-NHN-AUTHORIZATION: Bearer`
+  - UAK 는 한 번 설정하면 여러 OAuth 서비스가 공유하므로 서비스 밑이 아니라 profile 공통으로 올린다.
+- **대안 기각**: UAK 를 서비스 블록(`deploy.uakId`) 에 중첩(OAuth 서비스 늘면 UAK 중복), 전역 단일 키(서비스별 appkey 현실과 불일치).
 
 ---
 
@@ -100,7 +103,22 @@
 - **결정**: 배포 좌표를 `config.json` 에 이름 붙인 target 으로 저장하고 `nhncloud deploy run <target>` 으로 참조한다.
   - 좌표: appKey·artifactId·serverGroupId·scenarioIds
   - 개별 flag 로 override 가능
-  - UAK(id+secret) 비밀은 `credentials.json` 의 profile 별 deploy 블록에 둔다
+  - UAK(id+secret) 비밀은 `credentials.json` 의 profile 공통 `userAccessKey` 에 둔다 ([[adr-004]])
 - **맥락**: 한 배포에 좌표 4개가 필요해 매번 flag 로 받으면 장황하다.
   - 좌표는 비밀이 아니므로 config, UAK 만 비밀이라 credentials (비밀/비밀아님 분리, [[adr-003]])
 - **대안 기각**: 전부 flag(장황·반복), 좌표를 credentials 에 혼재(비밀 아닌 값이 비밀 파일에).
+
+---
+
+<a id="adr-009"></a>
+
+## ADR-009: configure 대화형 마법사 + 비대화형 flag + 연결 테스트
+
+- **결정**: `nhncloud configure` 로 자격증명을 설정한다.
+  - 대화형 (`@inquirer/prompts`) — profile → UAK(id/secret) → 서비스별 appkey/secret 순 입력
+  - 비대화형 flag (`--uak-id` 등) — CI·자동화용. flag 가 하나라도 있으면 비대화형
+  - 저장 전 연결 테스트 — UAK 는 OAuth 토큰 발급, logncrash 는 최소 검색으로 검증 (`--no-verify` 로 생략)
+  - 기존 값과 머지 저장 (all-or-nothing), `credentials.json` 은 mode 0600
+- **맥락**: 지금은 사용자가 JSON 을 손으로 편집해야 한다. dooray setup (ADR-016/018) 의 검증된 마법사 패턴을 재사용한다.
+- **대안 기각**: 대화형만(자동화 불가), flag 만(첫 설정 UX 나쁨), 검증 없음(잘못된 키를 실제 명령에서야 발견).
+- **트레이드오프**: `@inquirer/prompts` 의존성 추가. 대화형 첫 설정 UX 이득이 더 크다.

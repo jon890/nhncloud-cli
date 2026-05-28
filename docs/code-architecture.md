@@ -15,8 +15,8 @@
 src/
   index.ts                  # CLI entrypoint (Commander 등록 + 전역 옵션)
   config/
-    credentials.ts          # ~/.nhncloud/credentials.json + config.json 로드, profile 해석
-    types.ts                # Credentials / Config / ServiceCredential 타입
+    credentials.ts          # ~/.nhncloud/ 로드 + 머지 쓰기, profile 해석
+    types.ts                # Credentials(profile.userAccessKey + 서비스 블록) / Config 타입
   api/
     endpoints.ts            # 서비스별 엔드포인트 맵 (adr-005)
     envelope.ts             # NHN 공통 봉투 unwrap + 에러 매핑 (adr-006)
@@ -39,6 +39,7 @@ src/
   formatters/
     table.ts                # 테이블 / json / quiet 출력
   commands/
+    configure.ts            # nhncloud configure (대화형 + flag, 연결 테스트, adr-009)
     logncrash/
       search.ts             # nhncloud logncrash search
     deploy/

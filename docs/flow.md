@@ -1,22 +1,45 @@
 # User Flow — nhncloud-cli
 
-## 최초 설정
+## 최초 설정 — `nhncloud configure`
 
-v1 은 설정 마법사 없이 자격증명 파일을 직접 작성한다 (후속 `nhncloud configure` 도입 검토).
+대화형 마법사로 자격증명을 설정한다 ([[adr-009]]).
 
-```jsonc
-// ~/.nhncloud/credentials.json (mode 0600)
-{
-  "version": 1,
-  "profiles": {
-    "default": {
-      "logncrash": { "appkey": "<appkey>", "secret": "<secretkey>" }
-    }
-  }
-}
+```bash
+nhncloud configure                    # 기본 profile 대화형
+nhncloud configure --profile playground
 ```
 
-appkey·secret 은 Log & Crash 콘솔의 프로젝트 설정에서 확인.
+### 대화형 흐름
+
+1. profile 이름 (기본 `default`)
+2. 개인 UAK — id, secret (password 입력)
+3. 서비스별 자격증명 — logncrash appkey, secret (건너뛰기 가능)
+4. 연결 테스트 (UAK → OAuth 발급, logncrash → 최소 검색)
+5. 기존 값과 머지 저장 (`credentials.json` 0600, all-or-nothing)
+
+### 비대화형 (flag — CI·자동화)
+
+flag 가 하나라도 있으면 비대화형으로 동작한다.
+
+```bash
+nhncloud configure --profile playground \
+  --uak-id <id> --uak-secret <secret> \
+  --logncrash-appkey <k> --logncrash-secret <s> \
+  [--no-verify]
+```
+
+| 옵션 | 설명 |
+|------|------|
+| `--profile <name>` | 대상 profile (기본 default) |
+| `--uak-id` / `--uak-secret` | 개인 UAK |
+| `--logncrash-appkey` / `--logncrash-secret` | logncrash 자격증명 |
+| `--no-verify` | 연결 테스트 생략 |
+
+### 연결 테스트
+
+- UAK — OAuth `token/create` 호출 성공 여부로 검증
+- logncrash — 짧은 범위(예: 1분) 검색 호출로 인증(401/403) 검증
+- 실패 시 저장 여부를 다시 확인 (또는 비대화형은 비-0 종료)
 
 ## logncrash search 흐름
 

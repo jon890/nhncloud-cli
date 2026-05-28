@@ -13,31 +13,32 @@
 
 ## credentials.json
 
-profile 아래에 **서비스별 자격증명 블록**을 둔다.
-NHN Cloud 는 서비스마다 appkey·secret·인증 헤더가 다르므로 단일 키로 묶을 수 없다 ([[adr-004]]).
+profile 아래에 **profile 공통 UAK + 서비스별 자격증명 블록**을 둔다 ([[adr-004]]).
+UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, appkey·secret 은 서비스마다 다르다.
 
 ```json
 {
   "version": 1,
   "profiles": {
     "default": {
+      "userAccessKey": {
+        "id": "<user-access-key-id>",
+        "secret": "<secret-access-key>"
+      },
       "logncrash": {
         "appkey": "<appkey>",
         "secret": "<secretkey>"
-      },
-      "deploy": {
-        "uakId": "<user-access-key-id>",
-        "uakSecret": "<user-access-key-secret>"
       }
     }
   }
 }
 ```
 
+- `userAccessKey` — profile 공통 개인 UAK. deploy 등 OAuth 서비스가 공유 ([[adr-007]])
+  - OAuth 로 교환한 `access_token` 을 `X-NHN-AUTHORIZATION: Bearer` 로 사용
+  - deploy 는 자체 자격증명 블록 없이 이 UAK + `config.json` target 좌표로 동작 ([[adr-008]])
 - `logncrash` — 검색은 appkey(path) + secret(`X-LNCS-SECRET` 헤더)
-- `deploy` — UAK(id+secret) 만 비밀로 저장
-  - OAuth 로 교환한 `access_token` 을 `X-NHN-AUTHORIZATION: Bearer` 로 사용 ([[adr-007]])
-  - appKey·배포 좌표는 비밀이 아니므로 `config.json` target 에 둔다 ([[adr-008]])
+- 예약 키 `userAccessKey` 외 키는 서비스명 = 서비스별 블록
 
 ## config.json
 

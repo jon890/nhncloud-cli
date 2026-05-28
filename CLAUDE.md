@@ -5,8 +5,9 @@
 NHN Cloud 서비스를 AWS CLI 처럼 호출하는 통합 CLI.
 TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 
-## 지원 명령 (5개)
+## 지원 명령 (6개)
 
+- `configure` — 자격증명 설정 마법사 (대화형 + flag, UAK + 서비스별 키, 연결 테스트).
 - `logncrash search` — Log & Crash 로그 검색 (시간 범위는 90일 이내·31일 이하로 제한, 초과 시 입력 오류).
 - `deploy run` — 배포 실행 (named target + flag override, 동기/`--async`).
 - `deploy artifacts` — 아티팩트 목록 조회.
@@ -70,6 +71,7 @@ src/
 | 응답 봉투 처리 (`isSuccessful`/`resultCode`) | ADR-006 |
 | Deploy OAuth 토큰 교환·캐시 | ADR-007 |
 | deploy target 좌표 / config 구조 | ADR-008 |
+| configure 마법사 / 자격증명 쓰기 | ADR-009, ADR-004 |
 
 신규 ADR 추가 시 본 표에 행 추가.
 
