@@ -5,7 +5,7 @@
 NHN Cloud 서비스를 AWS CLI 처럼 호출하는 통합 CLI.
 TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 
-## 지원 명령 (6개)
+## 지원 명령 (10개)
 
 - `configure` — 자격증명 설정 마법사 (대화형 + flag, UAK + 서비스별 키, 연결 테스트).
 - `logncrash search` — Log & Crash 로그 검색 (시간 범위는 90일 이내·31일 이하로 제한, 초과 시 입력 오류).
@@ -13,6 +13,10 @@ TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 - `deploy artifacts` — 아티팩트 목록 조회.
 - `deploy server-groups` — 서버그룹 목록 조회.
 - `deploy histories` — 배포 이력 조회.
+- `instance list` — Compute 인스턴스 목록 조회 (region 별).
+- `instance get` — 단일 인스턴스 상태 조회.
+- `instance create` — 인스턴스 발급 (기본 비동기, `--wait` 로 ACTIVE+IP 대기).
+- `instance delete` — 인스턴스 삭제 (기본 confirm, `--yes` 즉시).
 
 ## API 스펙 확인 절차
 
@@ -72,6 +76,7 @@ src/
 | Deploy OAuth 토큰 교환·캐시 | ADR-007 |
 | deploy target 좌표 / config 구조 | ADR-008 |
 | configure 마법사 / 자격증명 쓰기 | ADR-009, ADR-004 |
+| Instance (OpenStack) 인증·region endpoint | ADR-010, ADR-005 |
 
 신규 ADR 추가 시 본 표에 행 추가.
 
@@ -81,6 +86,7 @@ src/
 |--------|------|----------|
 | Log & Crash 검색 | appkey + secret | `X-LNCS-SECRET: <secret>` |
 | Deploy v2.1 | UAK(id+secret) | `X-NHN-AUTHORIZATION: Bearer <token>` |
+| Instance (OpenStack Nova v2) | tenantId + username + API 비밀번호 | `X-Auth-Token: <tokenId>` (Keystone v2 발급, ADR-010) |
 
 - Deploy 토큰은 정적이 아니라 OAuth `client_credentials` 로 교환한 단기 토큰 (ADR-007).
   - OAuth: `oauth.api.nhncloudservice.com/oauth2/token/create`

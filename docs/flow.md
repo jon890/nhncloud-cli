@@ -137,3 +137,64 @@ nhncloud deploy histories <target> [options]       # 배포 이력
 | UAK 누락 / OAuth 발급 실패 | `EXIT_CONFIG_ERROR` 또는 `EXIT_AUTH_ERROR` |
 | target 미존재 (config 에 없음) | `EXIT_PARAM_ERROR` |
 | Deploy API 4xx·5xx / 봉투 실패 | `EXIT_API_ERROR` |
+
+## instance 흐름
+
+OpenStack Nova v2 호환 Compute 명령군. Keystone 토큰을 발급해 region 별 compute endpoint 로 호출한다 ([[adr-010]]).
+
+### 인증 흐름
+
+1. profile 의 `iaas` 블록에서 tenantId · username · password · region 로드
+2. 캐시된 Keystone token 이 만료 전이면 재사용, 아니면 발급 후 캐시
+3. `X-Auth-Token: <tokenId>` 헤더로 region 별 compute API 호출
+
+`password` 는 NHN 콘솔 IAM 의 API 비밀번호 (로그인 비번 아님).
+
+### 명령 시그니처
+
+```
+nhncloud instance list [options]                # 인스턴스 목록
+nhncloud instance get <id> [options]            # 단일 인스턴스 상태 조회
+nhncloud instance create [options]              # 인스턴스 발급
+nhncloud instance delete <id> [options]         # 인스턴스 삭제
+```
+
+| 옵션 | 적용 | 설명 |
+|------|------|------|
+| `--region <r>` | 전체 | `iaas.region` override (kr1/kr2/kr3/jp1) |
+| `--profile <name>` | 전체 | profile 선택 |
+| `--name <n>` | create | 인스턴스 이름 (필수) |
+| `--flavor <id>` | create | flavor UUID (필수) |
+| `--image <id>` | create | image UUID (필수) |
+| `--network <id>` | create | network UUID (필수, 반복 가능) |
+| `--key-name <k>` | create | SSH 키페어 이름 |
+| `--security-group <sg>` | create | 보안 그룹 이름 (반복) |
+| `--ephemeral-disk-size <n>` | create | NHN 확장 — 추가 로컬 디스크 크기(GB) |
+| `--protect` | create | NHN 확장 — 삭제 보호 설정 |
+| `--wait` | create | ACTIVE + IP 할당까지 폴링 대기 |
+| `--timeout <s>` | create | `--wait` timeout (기본 300) |
+| `--yes` | delete | confirm 생략 (CI·자동화용) |
+
+전역 옵션: `--json` / `--quiet` / `--no-color`.
+
+### create 비동기 + `--wait`
+
+- 기본은 비동기 — create 호출이 성공하면 `BUILD` 상태로 즉시 반환한다.
+- `--wait` 지정 시 5초 간격으로 `GET /servers/{id}` 폴링해 `ACTIVE` 상태 + 첫 IP 할당까지 대기한다.
+- `--timeout` 초과 시 `EXIT_API_ERROR` 로 종료 (생성된 인스턴스는 남으므로 사용자가 delete 또는 재시도).
+- `--quiet` + `--wait` 조합은 ACTIVE 도달 후 IP 한 줄만 stdout — CI 에서 다음 step 으로 바로 파이프.
+
+### delete 안전 정책
+
+- 대화형 TTY: `y/N` confirm 후 삭제. 기본 답은 No.
+- `--yes` 또는 non-TTY: 즉시 삭제.
+- `--quiet --yes` 조합은 자동화 전용 (회수 step 등).
+
+### instance 에러 경로
+
+| 상황 | exit code |
+|------|-----------|
+| `iaas` 자격증명 누락 / Keystone 발급 실패 | `EXIT_CONFIG_ERROR` 또는 `EXIT_AUTH_ERROR` |
+| 잘못된 region | `EXIT_PARAM_ERROR` |
+| `--wait` timeout | `EXIT_API_ERROR` (메시지에 마지막 status 포함) |
+| Compute API 4xx · 5xx | `EXIT_API_ERROR` |

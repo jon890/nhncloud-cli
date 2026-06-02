@@ -28,6 +28,12 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, appkey·
       "logncrash": {
         "appkey": "<appkey>",
         "secret": "<secretkey>"
+      },
+      "iaas": {
+        "tenantId": "<tenant-id>",
+        "username": "<account-email>",
+        "password": "<api-password>",
+        "region": "kr1"
       }
     }
   }
@@ -38,6 +44,9 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, appkey·
   - OAuth 로 교환한 `access_token` 을 `X-NHN-AUTHORIZATION: Bearer` 로 사용
   - deploy 는 자체 자격증명 블록 없이 이 UAK + `config.json` target 좌표로 동작 ([[adr-008]])
 - `logncrash` — 검색은 appkey(path) + secret(`X-LNCS-SECRET` 헤더)
+- `iaas` — OpenStack Keystone 자격증명. instance 등 IaaS 서비스가 공유 ([[adr-010]])
+  - `password` 는 NHN 콘솔 IAM 에서 별도 발급하는 API 비밀번호 (로그인 비번 아님)
+  - `region` — `kr1` / `kr2` / `kr3` / `jp1` 중 하나. 명령의 `--region` 으로 override
 - 예약 키 `userAccessKey` 외 키는 서비스명 = 서비스별 블록
 
 ## config.json
@@ -63,13 +72,15 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, appkey·
 - `deploy.targets.<name>` — 배포 좌표 묶음. `nhncloud deploy run <name>` 으로 참조, flag override ([[adr-008]])
 - 비밀이 아닌 값만 (UAK 비밀은 credentials.json)
 
-## 토큰 캐시 (deploy)
+## 토큰 캐시
 
 ```
 ~/.nhncloud/cache/deploy-token-<profile>.json   # { accessToken, expiresAt } — mode 0600
+~/.nhncloud/cache/iaas-token-<profile>-<region>.json   # { tokenId, expiresAt, computeEndpoint } — mode 0600
 ```
 
-- OAuth 로 받은 `access_token` 을 만료시각과 함께 저장 ([[adr-007]])
+- deploy — OAuth `access_token` 을 만료시각과 함께 저장 ([[adr-007]])
+- iaas — Keystone token + serviceCatalog 에서 추출한 region 별 compute endpoint 캐시 ([[adr-010]])
 - 만료 전 재사용, 만료 시 재발급. logncrash 는 토큰 캐시 불필요
 
 ## profile 해석 순서
@@ -85,4 +96,5 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, appkey·
 
 - logncrash search — 캐시 없음 (매 호출 실시간 검색)
 - deploy — OAuth access_token 만 캐시 (위 "토큰 캐시")
+- instance — Keystone token + compute endpoint 캐시 (위 "토큰 캐시")
 - 목록성 데이터 캐시는 필요 시 후속 도입

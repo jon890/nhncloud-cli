@@ -11,6 +11,7 @@
 - [ADR-007](#adr-007): Deploy OAuth client_credentials 토큰 교환 + 단기 캐시
 - [ADR-008](#adr-008): deploy 좌표 named target (config) + UAK/좌표 분리
 - [ADR-009](#adr-009): configure 대화형 마법사 + 비대화형 flag + 연결 테스트
+- [ADR-010](#adr-010): IaaS Keystone 토큰 인증 + region 별 compute endpoint 캐시
 
 ---
 
@@ -61,11 +62,14 @@
 
 <a id="adr-005"></a>
 
-## ADR-005: 엔드포인트 하드코딩 맵 (gov 제외)
+## ADR-005: 엔드포인트 하드코딩 맵 (gov 제외) — IaaS 는 region 분기
 
-- **결정**: 서비스별 고정 도메인을 코드 맵으로 관리. v1 은 일반(real) 엔드포인트만.
-- **맥락**: NHN PaaS 는 서비스별 고정 도메인을 쓴다 (`api-lncs-search.nhncloudservice.com` 등). IaaS 의 serviceCatalog 동적 발견과 달라 정적 맵이 단순·명확.
-- **대안 기각**: profile 에 endpoint 직접 저장(설정 부담). gov 분기는 후속 — `region` 필드로 도메인 교체 예정.
+- **결정**: 서비스별 고정 도메인을 코드 맵으로 관리한다.
+  - PaaS 는 단일 도메인 (`api-lncs-search.nhncloudservice.com` 등)
+  - IaaS instance 는 `<region>-api-instance-infrastructure.nhncloudservice.com` 으로 region prefix 가변
+- **맥락**: NHN PaaS 는 서비스별 고정 도메인을 쓴다. IaaS instance 는 kr1/kr2/kr3/jp1 4개 region 이 각각 다른 host 다.
+  - 정적 맵 + region 분기로 충분 (Keystone serviceCatalog 도 같은 host 를 반환)
+- **대안 기각**: serviceCatalog 동적 파싱(token 발급마다 추출 + 파싱 복잡), profile 에 endpoint 직접 저장(설정 부담). gov 분기는 후속.
 
 ---
 
@@ -122,3 +126,24 @@
 - **맥락**: 지금은 사용자가 JSON 을 손으로 편집해야 한다. dooray setup (ADR-016/018) 의 검증된 마법사 패턴을 재사용한다.
 - **대안 기각**: 대화형만(자동화 불가), flag 만(첫 설정 UX 나쁨), 검증 없음(잘못된 키를 실제 명령에서야 발견).
 - **트레이드오프**: `@inquirer/prompts` 의존성 추가. 대화형 첫 설정 UX 이득이 더 크다.
+
+---
+
+<a id="adr-010"></a>
+
+## ADR-010: IaaS Keystone 토큰 인증 + region 별 compute endpoint 캐시
+
+- **결정**: NHN Cloud Instance(OpenStack Nova v2 호환) 인증은 Keystone v2 token 발급으로 처리하고, profile·region 단위로 캐시한다.
+  - 발급: `POST api-identity-infrastructure.nhncloudservice.com/v2.0/tokens`
+    - body: `{ auth: { tenantId, passwordCredentials: { username, password } } }`
+  - 호출: `X-Auth-Token: <tokenId>` 헤더
+  - 캐시: `~/.nhncloud/cache/iaas-token-<profile>-<region>.json` 에 `{ tokenId, expiresAt, computeEndpoint }`
+  - `iaas` 자격증명 블록은 instance 외에도 IaaS 서비스가 공유한다 ([[adr-004]])
+- **맥락**: instance API 는 logncrash·deploy 와 또 다른 세 번째 인증 모델이다 (Keystone).
+  - 호출마다 token 을 새로 받으면 매번 발급 왕복이 붙는다.
+  - region 별 compute endpoint 도 token 응답에 함께 들어 있어 같이 캐시한다.
+- **대안 기각**:
+  - 호출마다 발급 — 불필요한 왕복.
+  - 자격증명 파일에 token 직접 저장 — 만료 관리를 사용자에게 떠넘김.
+  - Keystone v3 — NHN 은 v2 로 발급한다. v3 도 가능하지만 표준화 이득 없음.
+- **트레이드오프**: password 는 NHN 콘솔 IAM 의 API 비밀번호 — 사용자가 로그인 비번과 혼동할 수 있어 configure 마법사·docs 에서 명시한다.
