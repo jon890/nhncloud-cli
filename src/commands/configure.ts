@@ -7,7 +7,7 @@ import {
   setServiceCredential,
   setIaasCredential,
 } from "../config/credentials.js";
-import { verifyUserAccessKey, verifyLogncrash } from "./configure-verify.js";
+import { verifyUserAccessKey, verifyLogncrash, verifyIaas } from "./configure-verify.js";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_AUTH_ERROR, EXIT_PARAM_ERROR } from "../utils/exit-codes.js";
 import type { UserAccessKey, ServiceCredential, IaasCredential } from "../config/types.js";
@@ -61,7 +61,17 @@ async function saveAndVerify(
       }
     }
 
-    // iaas verify 는 phase 2 (keystone) 에서 배선
+    if (iaas) {
+      const ok = await verifyIaas(iaas);
+      if (ok) {
+        process.stderr.write(chalk.green("  ✓ iaas 연결 성공\n"));
+      } else {
+        throw new NhnCloudCliError(
+          "iaas 인증 실패 — tenantId / username / API 비밀번호를 확인하세요.",
+          EXIT_AUTH_ERROR,
+        );
+      }
+    }
   }
 
   // 머지 저장
