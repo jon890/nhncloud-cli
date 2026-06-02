@@ -79,6 +79,21 @@ try {
 
 **Self-check (plan / code review)**: 기존 spinner 블록 내부에 새 호출을 추가하거나 spinner 외부 호출을 내부로 이동하는 diff 가 있으면, 그 호출의 throw 경로를 따로 grep 으로 확인 (`grep -nE "throw new (NhnCloudCliError|Error)" {호출 파일}`). 1건이라도 throw 가능하면 try/catch 보호 필요.
 
+**다단계 spinner 전환 시 직전 spinner stop 누락 (재발 패턴)**: 한 명령이 spinner 를 두 단계로 쓰는 경우 (예: create `--wait` 의 "생성 중..." → "ACTIVE 대기 중...") 두 번째 `startSpinner` 전에 첫 spinner 를 `stopSpinner(true)` 로 닫아야 한다. 안 닫으면 ora 인스턴스 2개가 동시에 stderr 에 프레임을 써서 출력이 깨진다.
+
+```ts
+startSpinner("인스턴스 생성 중...");
+try { server = await client.create(...); } catch (e) { stopSpinner(false); throw e; }
+stopSpinner(true);          // ← 두 번째 spinner 전에 첫 spinner 닫기 (누락 시 leak)
+if (opts.wait) {
+  startSpinner("ACTIVE 대기 중...");
+  try { ... } catch (e) { stopSpinner(false); throw e; }
+  stopSpinner(true);
+}
+```
+
+**Why**: PR #6 (plan004) 🟡 — create `--wait` 가 첫 spinner stop 없이 두 번째 spinner 시작 → 고아 spinner 2개. `--wait`·폴링 같은 다단계 진행 표시 명령마다 재발 가능.
+
 ## 1-3. resolver 를 body 수집·editor open 보다 뒤에 호출 (resolver-before-editor)
 
 **증상**: `resolveWikiPageInput` / `resolvePostInput` 같은 resolver 호출이 `readBodyInputOrNull` / `openInEditor` 보다 뒤에 있음.
@@ -238,6 +253,44 @@ grep -B 3 -A 10 "무시됩니다\|ignored" src/commands/
 
 **Self-check**: 경고 문구와 실제 코드 경로가 일치하는가?
 경고 옵션 이름이 `nonInteractive` 조건 안에만 있는지 grep 으로 확인했는가?
+
+## 4-2. 같은 enum/목록이 두 곳에 정의 → 동기화 누락
+
+**증상**: 동일한 허용값 집합 (region·flavor·status 등) 이 두 파일에 따로 정의되고 한쪽만 갱신됨.
+예: configure 대화형 region select choices = `kr1/kr2/jp1/us1` 인데 endpoints 의 host 맵 = `kr1/kr2/kr3/jp1`.
+사용자가 한쪽에만 있는 값 (us1) 을 고르면 다른 경로에서 `EXIT_PARAM_ERROR`, 한쪽에만 있는 값 (kr3) 은 선택 불가.
+
+**Good**: 허용값은 단일 소스 (예: endpoint host 맵) 에서 파생하거나, 두 목록이 정확히 같은지 grep 으로 대조.
+
+**검출**:
+```bash
+# 두 정의처의 토큰 집합을 각각 추출해 비교
+grep -oE "kr[0-9]|jp[0-9]|us[0-9]" src/commands/configure.ts | sort -u
+grep -oE "kr[0-9]|jp[0-9]|us[0-9]" src/api/endpoints.ts | sort -u   # 두 결과가 동일해야 함
+```
+
+**Why**: PR #6 (plan004) 🟠 — configure region choices 가 INSTANCE_HOST 맵과 불일치 (us1 잉여·kr3 누락). region·flavor 등 enum 을 추가하는 작업마다 재발 가능.
+
+**Self-check**: 새 허용값 집합을 추가/수정했는가? 같은 집합을 참조하는 다른 정의처가 있고, 두 곳이 정확히 일치하는가?
+
+## 4-3. `requiredOption` 뒤 action 내부 수동 존재 검증 (dead code)
+
+**증상**: Commander `requiredOption("--name")` 으로 이미 진입 전 강제되는데, action handler 안에 `if (!opts.name) throw ...` 수동 검증을 또 둠.
+절대 true 가 될 수 없는 dead code.
+
+**Good**: `requiredOption` 으로 보장되는 필드는 action 내부 재검증 제거 + 필요 시 `opts.name!` non-null assertion (이유 주석).
+`requiredOption` 으로 강제 안 되는 검증 (예: 반복 옵션의 `length === 0`) 만 수동으로 남긴다.
+
+**검출**:
+```bash
+# requiredOption 으로 선언된 옵션이 action 내부에서 if(!opts.X) 로 다시 검증되는지
+grep -nE "requiredOption\(\"--" src/commands/
+grep -nE "if \(!opts\.[a-zA-Z]+\)" src/commands/   # 위 requiredOption 목록과 겹치면 dead code
+```
+
+**Why**: PR #6 (plan004) 🟡 — create.ts 가 `--name/--flavor/--image` requiredOption 뒤에 동일 필드를 수동 검증. nonInteractive dead code (common-pitfalls 1-14) 의 옵션 검증 변형.
+
+**Self-check**: action 내부 `if(!opts.X)` 의 X 가 이미 `requiredOption` 인가? 그렇다면 제거했는가?
 
 # 5. 타입 안전성
 
