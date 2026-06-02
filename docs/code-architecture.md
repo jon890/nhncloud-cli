@@ -22,7 +22,7 @@ src/
     envelope.ts             # NHN 공통 봉투 unwrap + 에러 매핑 (adr-006)
     httpError.ts            # ky HTTPError → NhnCloudCliError (status별 exit code)
     oauth.ts                # UAK → access_token 교환 + 캐시 (adr-007)
-    keystone.ts             # IaaS tenantId·username·password → tokenId + serviceCatalog 캐시 (adr-010)
+    keystone.ts             # IaaS tenantId·username·password → tokenId + region별 compute endpoint 캐시 (adr-005, adr-010)
   cache/
     token-store.ts          # ~/.nhncloud/cache/ token + endpoint 읽기·쓰기 (mode 0600)
   services/

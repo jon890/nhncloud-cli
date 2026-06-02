@@ -80,7 +80,7 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, appkey·
 ```
 
 - deploy — OAuth `access_token` 을 만료시각과 함께 저장 ([[adr-007]])
-- iaas — Keystone token + serviceCatalog 에서 추출한 region 별 compute endpoint 캐시 ([[adr-010]])
+- iaas — Keystone token + region 별 정적 host 맵으로 구성한 compute endpoint 캐시 ([[adr-005]], [[adr-010]])
 - 만료 전 재사용, 만료 시 재발급. logncrash 는 토큰 캐시 불필요
 
 ## profile 해석 순서

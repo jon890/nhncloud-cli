@@ -141,7 +141,7 @@
   - `iaas` 자격증명 블록은 instance 외에도 IaaS 서비스가 공유한다 ([[adr-004]])
 - **맥락**: instance API 는 logncrash·deploy 와 또 다른 세 번째 인증 모델이다 (Keystone).
   - 호출마다 token 을 새로 받으면 매번 발급 왕복이 붙는다.
-  - region 별 compute endpoint 도 token 응답에 함께 들어 있어 같이 캐시한다.
+  - region 별 compute endpoint 는 정적 host 맵(ADR-005)으로 구성해 token 과 함께 캐시한다.
 - **대안 기각**:
   - 호출마다 발급 — 불필요한 왕복.
   - 자격증명 파일에 token 직접 저장 — 만료 관리를 사용자에게 떠넘김.
