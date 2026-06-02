@@ -11,7 +11,8 @@ export interface Server {
   status: string;
   addresses: Record<string, ServerAddress[]>;
   flavor: { id: string };
-  image: { id: string };
+  /** boot-from-volume 인스턴스는 image 가 빈 문자열("")로 온다 (객체 아님) */
+  image: { id: string } | string;
   key_name: string | null;
   created: string;
   updated: string;

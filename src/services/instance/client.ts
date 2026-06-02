@@ -84,7 +84,7 @@ export class InstanceClient {
    * 단일 인스턴스를 조회한다 (GET /servers/{id}).
    */
   async get(id: string): Promise<Server> {
-    const url = `${this.computeEndpoint}/servers/${id}`;
+    const url = `${this.computeEndpoint}/servers/${encodeURIComponent(id)}`;
     try {
       const raw = await ky
         .get(url, {
@@ -159,7 +159,7 @@ export class InstanceClient {
    * 인스턴스를 삭제한다 (DELETE /servers/{id}, 204 No Content).
    */
   async delete(id: string): Promise<void> {
-    const url = `${this.computeEndpoint}/servers/${id}`;
+    const url = `${this.computeEndpoint}/servers/${encodeURIComponent(id)}`;
     try {
       await ky.delete(url, {
         headers: this.authHeaders(),

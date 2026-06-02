@@ -50,7 +50,7 @@ export async function getIaasToken(
 
   // region → host 검증 (미등록 region 은 EXIT_PARAM_ERROR)
   const host = instanceHost(iaas.region);
-  const computeEndpoint = `https://${host}/v2/${iaas.tenantId}`;
+  const computeEndpoint = `https://${host}/v2/${encodeURIComponent(iaas.tenantId)}`;
 
   // Keystone v2 토큰 발급
   let raw: unknown;

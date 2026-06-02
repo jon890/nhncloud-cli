@@ -38,6 +38,10 @@ function getIps(server: Server): string {
     .join(", ");
 }
 
+function getImageId(server: Server): string {
+  return typeof server.image === "object" ? server.image.id : "";
+}
+
 export const createCommand = new Command("create")
   .description("인스턴스를 생성한다")
   .requiredOption("--name <name>", "인스턴스 이름")
@@ -91,17 +95,15 @@ export const createCommand = new Command("create")
 
     // ── 4. --wait: ACTIVE 폴링 ──
     if (opts.wait) {
-      const spinner = startSpinner(`ACTIVE 대기 중... (id: ${server.id})`);
+      startSpinner(`ACTIVE 대기 중... (id: ${server.id})`);
       try {
         server = await client.waitForActive(server.id, { timeoutMs });
       } catch (err) {
         stopSpinner(false);
         throw err;
       }
-      spinner.text = `ACTIVE 확인 (id: ${server.id})`;
+      stopSpinner(true, `ACTIVE 확인 (id: ${server.id})`);
     }
-
-    stopSpinner(true);
 
     // ── 5. 출력 ──
     if (opts.quiet && opts.wait) {
@@ -121,7 +123,7 @@ export const createCommand = new Command("create")
       ["status", server.status],
       ["IPs", getIps(server)],
       ["flavor", server.flavor.id],
-      ["image", server.image.id],
+      ["image", getImageId(server)],
     ];
 
     output(opts, {

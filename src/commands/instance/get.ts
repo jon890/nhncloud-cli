@@ -16,6 +16,10 @@ function getIps(server: Server): string {
     .join(", ");
 }
 
+function getImageId(server: Server): string {
+  return typeof server.image === "object" ? server.image.id : "";
+}
+
 export const getCommand = new Command("get")
   .description("단일 인스턴스 상태를 조회한다")
   .argument("<id>", "인스턴스 ID")
@@ -47,7 +51,7 @@ export const getCommand = new Command("get")
       ["status", server.status],
       ["IPs", getIps(server)],
       ["flavor", server.flavor.id],
-      ["image", server.image.id],
+      ["image", getImageId(server)],
       ["key_name", server.key_name ?? ""],
       ["created", server.created],
       ["updated", server.updated],
