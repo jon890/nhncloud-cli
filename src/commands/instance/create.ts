@@ -12,6 +12,7 @@ interface CreateGlobalOpts extends OutputOptions {
   flavor?: string;
   image?: string;
   network?: string[];
+  bootVolumeSize?: string;
   keyName?: string;
   securityGroup?: string[];
   ephemeralDiskSize?: string;
@@ -48,6 +49,7 @@ export const createCommand = new Command("create")
   .requiredOption("--flavor <id>", "flavor ID")
   .requiredOption("--image <id>", "이미지 ID")
   .requiredOption("--network <uuid>", "네트워크 UUID (여러 개: 반복 지정)", (v, prev: string[]) => [...prev, v], [] as string[])
+  .option("--boot-volume-size <gb>", "boot-from-volume root 볼륨 크기 (GB). GPU(g2) 등 boot-from-volume 필수 flavor 에 지정")
   .option("--key-name <name>", "키페어 이름")
   .option("--security-group <name>", "보안 그룹 이름 (여러 개: 반복 지정)", (v, prev: string[]) => [...prev, v], [] as string[])
   .option("--ephemeral-disk-size <gb>", "임시 디스크 크기 (GB, NHN 확장)")
@@ -81,6 +83,7 @@ export const createCommand = new Command("create")
         flavorRef: opts.flavor!,
         imageRef: opts.image!,
         networks,
+        bootVolumeSize: opts.bootVolumeSize !== undefined ? parseInt(opts.bootVolumeSize, 10) : undefined,
         keyName: opts.keyName,
         securityGroups: opts.securityGroup && opts.securityGroup.length > 0 ? opts.securityGroup : undefined,
         ephemeralDiskSize: opts.ephemeralDiskSize !== undefined ? parseInt(opts.ephemeralDiskSize, 10) : undefined,

@@ -33,6 +33,17 @@ function isServersResponse(val: unknown): val is { servers: Server[] } {
   return Array.isArray(obj["servers"]);
 }
 
+/**
+ * POST /servers 응답은 축약형 — `{ server: { id, links, security_groups, adminPass } }`
+ * 처럼 name/status/addresses 가 없다. id 만 검증한다 (전체 정보는 get 으로 재조회).
+ */
+function isCreateResponse(val: unknown): val is { server: { id: string } } {
+  if (typeof val !== "object" || val === null) return false;
+  const server = (val as Record<string, unknown>)["server"];
+  if (typeof server !== "object" || server === null) return false;
+  return typeof (server as Record<string, unknown>)["id"] === "string";
+}
+
 // ── IP 주소 추출 helper ───────────────────────────────────────────────────────
 
 function hasIpAddress(server: Server): boolean {
@@ -116,9 +127,26 @@ export class InstanceClient {
     const serverBody: Record<string, unknown> = {
       name: params.name,
       flavorRef: params.flavorRef,
-      imageRef: params.imageRef,
       networks: params.networks.map((uuid) => ({ uuid })),
     };
+
+    if (params.bootVolumeSize !== undefined) {
+      // boot-from-volume: image 를 root 볼륨에 풀어 부팅한다.
+      // NHN Cloud 의 GPU(g2) 등 일부 flavor 는 이 방식이 필수다 (로컬 디스크 부팅 미지원).
+      // imageRef 는 넣지 않는다 — block device 의 source(image)가 그 역할을 한다.
+      serverBody["block_device_mapping_v2"] = [
+        {
+          boot_index: 0,
+          uuid: params.imageRef,
+          source_type: "image",
+          destination_type: "volume",
+          volume_size: params.bootVolumeSize,
+          delete_on_termination: true,
+        },
+      ];
+    } else {
+      serverBody["imageRef"] = params.imageRef;
+    }
 
     if (params.keyName !== undefined) {
       serverBody["key_name"] = params.keyName;
@@ -133,8 +161,9 @@ export class InstanceClient {
       serverBody["NHN-EXT-ATTR:protect"] = params.protect;
     }
 
+    let raw: unknown;
     try {
-      const raw = await ky
+      raw = await ky
         .post(url, {
           headers: this.authHeaders(),
           json: { server: serverBody },
@@ -142,17 +171,18 @@ export class InstanceClient {
           timeout: DEFAULT_TIMEOUT_MS,
         })
         .json();
-
-      if (!isServerResponse(raw)) {
-        throw new NhnCloudCliError(
-          "instance create 응답 형식이 올바르지 않습니다 — server 객체가 없습니다.",
-          EXIT_API_ERROR,
-        );
-      }
-      return raw.server;
     } catch (err) {
       throw toNhnCloudCliError(err);
     }
+
+    // POST 응답은 축약형(server.id 만 보장) — 전체 Server 정보는 get 으로 재조회한다.
+    if (!isCreateResponse(raw)) {
+      throw new NhnCloudCliError(
+        "instance create 응답에 server.id 가 없습니다.",
+        EXIT_API_ERROR,
+      );
+    }
+    return this.get(raw.server.id);
   }
 
   /**
