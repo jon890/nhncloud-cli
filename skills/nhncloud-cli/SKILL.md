@@ -275,9 +275,12 @@ NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
   --no-verify
 ```
 
-> **주의**: `--iaas-password` 에 입력하는 값은 NHN Cloud 콘솔 IAM 의 **API 비밀번호**입니다.
+> **주의 (password)**: `--iaas-password` 에 입력하는 값은 NHN Cloud 콘솔 IAM 의 **API 비밀번호**입니다.
 > NHN Cloud 로그인 비밀번호와 다릅니다.
 > IAM 사용자 상세 페이지 → "API 비밀번호 설정"에서 별도로 발급합니다.
+>
+> **주의 (username)**: `--iaas-username` 은 NHN Cloud 계정 이메일 **또는 IAM 계정 ID(사번)** 입니다.
+> tenantId 와 비슷한 32자리 hex "API 사용자 ID"(UUID)가 아닙니다 — 잘못 넣으면 `Could not find user` 인증 실패가 납니다.
 
 저장 위치: `~/.nhncloud/credentials.json` 의 `profiles.<profile>.iaas` 블록.
 
@@ -305,7 +308,7 @@ NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
 | 특정 인스턴스 상태 조회 | `nhncloud instance get <id>` |
 | 인스턴스 생성 (즉시 반환) | `nhncloud instance create --name <name> --flavor <id> --image <id> --network <uuid>` |
 | 인스턴스 생성 + ACTIVE 대기 | `nhncloud instance create ... --wait` |
-| GPU 인스턴스 생성 | `nhncloud instance create --flavor <gpu-flavor-id> ...` |
+| GPU 인스턴스 생성 | `nhncloud instance create --flavor <gpu-flavor-id> --boot-volume-size <gb> ...` (GPU 는 boot-from-volume 필수) |
 | 인스턴스 삭제 (confirm 없이) | `nhncloud instance delete <id> --yes` |
 | 다른 region 사용 | `nhncloud instance list --region kr2` |
 | 다른 profile 사용 | `nhncloud instance list --profile staging` |
@@ -318,6 +321,7 @@ NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
 | `--flavor <id>` | 예 | flavor ID (CPU/메모리 사양. GPU 발급 시 GPU flavor ID 지정) |
 | `--image <id>` | 예 | 이미지 ID |
 | `--network <uuid>` | 예 | 네트워크 UUID (반복 지정으로 여러 개 가능) |
+| `--boot-volume-size <gb>` | 조건부 | boot-from-volume root 볼륨 크기(GB). **GPU(g2) 등 일부 flavor 는 필수** (없으면 `Missing Block Device Mapping` 발급 실패). 미지정 시 로컬 디스크 부팅 |
 | `--key-name <name>` | 아니오 | 키페어 이름 |
 | `--security-group <name>` | 아니오 | 보안 그룹 이름 (반복 지정) |
 | `--ephemeral-disk-size <gb>` | 아니오 | 임시 디스크 크기(GB, NHN 확장) |

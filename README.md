@@ -39,6 +39,9 @@ NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
 > **iaas password 안내**: `--iaas-password` 에 입력하는 값은 NHN Cloud 콘솔 IAM 의 **API 비밀번호**입니다.
 > 로그인 비밀번호와 다릅니다.
 > IAM 사용자 상세 페이지 → "API 비밀번호 설정"에서 별도로 발급하세요.
+>
+> **iaas username 안내**: `--iaas-username` 은 NHN Cloud 계정 이메일 또는 IAM 계정 ID(사번)입니다.
+> tenantId 와 비슷한 "API 사용자 ID"(UUID)가 아닙니다.
 
 저장 경로: `~/.nhncloud/credentials.json` (mode 0600), `~/.nhncloud/config.json`.
 
@@ -181,6 +184,15 @@ nhncloud instance create \
   --flavor <flavor-id> \
   --image <image-id> \
   --network <network-uuid> \
+  --wait
+
+# GPU(g2) 등 boot-from-volume 필수 flavor — --boot-volume-size 지정
+nhncloud instance create \
+  --name gpu-server \
+  --flavor <gpu-flavor-id> \
+  --image <image-id> \
+  --network <network-uuid> \
+  --boot-volume-size 30 \
   --wait
 
 # --quiet --wait: 첫 IP 한 줄만 stdout (CI 파이프용)
