@@ -250,3 +250,116 @@ nhncloud deploy histories my-service --json | jq '.[0] | {deployKey, deployStatu
 | UAK 누락 / config target 없음 | 4 (CONFIG_ERROR) 또는 3 (PARAM_ERROR) |
 | OAuth 인증 실패 (401/403) | 2 (AUTH_ERROR) |
 | Deploy API 오류 / 봉투 실패 | 1 (API_ERROR) |
+
+---
+
+## instance — Compute 인스턴스 발급·조회·삭제
+
+`instance` 명령군은 OpenStack Nova v2 호환 Compute API 를 호출한다.
+Keystone v2 토큰 인증을 사용하며 토큰은 만료 전까지 region 별로 캐시한다.
+
+### instance 설정
+
+`nhncloud configure` 대화형 마법사에서 "iaas 자격증명도 설정하시겠습니까?" 에 응답하거나,
+flag 로 직접 입력한다.
+
+```bash
+# 대화형 (권장)
+nhncloud configure
+
+# 비대화형 — API 비밀번호는 env 로 전달 (cmdline 노출 방지)
+NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
+  --iaas-tenant-id <tenant-id> \
+  --iaas-username <iam-username> \
+  --iaas-region kr1 \
+  --no-verify
+```
+
+> **주의**: `--iaas-password` 에 입력하는 값은 NHN Cloud 콘솔 IAM 의 **API 비밀번호**입니다.
+> NHN Cloud 로그인 비밀번호와 다릅니다.
+> IAM 사용자 상세 페이지 → "API 비밀번호 설정"에서 별도로 발급합니다.
+
+저장 위치: `~/.nhncloud/credentials.json` 의 `profiles.<profile>.iaas` 블록.
+
+```json
+{
+  "version": 1,
+  "profiles": {
+    "default": {
+      "iaas": {
+        "tenantId": "<tenant-id>",
+        "username": "<iam-username>",
+        "password": "<api-password>",
+        "region": "kr1"
+      }
+    }
+  }
+}
+```
+
+### 의도 → 커맨드 매핑
+
+| 의도 | 커맨드 |
+|------|--------|
+| 인스턴스 목록 조회 | `nhncloud instance list` |
+| 특정 인스턴스 상태 조회 | `nhncloud instance get <id>` |
+| 인스턴스 생성 (즉시 반환) | `nhncloud instance create --name <name> --flavor <id> --image <id> --network <uuid>` |
+| 인스턴스 생성 + ACTIVE 대기 | `nhncloud instance create ... --wait` |
+| GPU 인스턴스 생성 | `nhncloud instance create --flavor <gpu-flavor-id> ...` |
+| 인스턴스 삭제 (confirm 없이) | `nhncloud instance delete <id> --yes` |
+| 다른 region 사용 | `nhncloud instance list --region kr2` |
+| 다른 profile 사용 | `nhncloud instance list --profile staging` |
+
+### instance create 옵션
+
+| 옵션 | 필수 | 설명 |
+|------|:---:|------|
+| `--name <name>` | 예 | 인스턴스 이름 |
+| `--flavor <id>` | 예 | flavor ID (CPU/메모리 사양. GPU 발급 시 GPU flavor ID 지정) |
+| `--image <id>` | 예 | 이미지 ID |
+| `--network <uuid>` | 예 | 네트워크 UUID (반복 지정으로 여러 개 가능) |
+| `--key-name <name>` | 아니오 | 키페어 이름 |
+| `--security-group <name>` | 아니오 | 보안 그룹 이름 (반복 지정) |
+| `--ephemeral-disk-size <gb>` | 아니오 | 임시 디스크 크기(GB, NHN 확장) |
+| `--protect` | 아니오 | 삭제 방지 설정 (NHN 확장) |
+| `--wait` | 아니오 | ACTIVE 상태 + IP 할당까지 대기 |
+| `--timeout <sec>` | 아니오 | wait 타임아웃 (초, 기본 300) |
+| `--region <region>` | 아니오 | region override (kr1/kr2/kr3/jp1) |
+| `--profile <name>` | 아니오 | 사용할 profile 이름 |
+
+### 체이닝 예시
+
+```bash
+# 1. 인스턴스 생성 후 ACTIVE + IP 대기 → IP 추출 → SSH 접속
+IP=$(nhncloud instance create \
+  --name ci-runner \
+  --flavor <flavor-id> \
+  --image <image-id> \
+  --network <network-uuid> \
+  --wait --quiet)
+ssh ubuntu@"$IP" "echo ready"
+
+# 2. --wait --json 으로 전체 필드 취득 후 jq 로 IP 파싱
+nhncloud instance create \
+  --name ci-runner \
+  --flavor <flavor-id> \
+  --image <image-id> \
+  --network <network-uuid> \
+  --wait --json | jq -r '.addresses | to_entries[0].value[0].addr'
+
+# 3. 사용 후 삭제 (ephemeral CI 패턴)
+nhncloud instance delete "$INSTANCE_ID" --yes
+
+# 4. 목록에서 id 만 추출
+nhncloud instance list --quiet
+```
+
+### instance 에러 코드
+
+| 상황 | exit code |
+|------|-----------|
+| iaas 자격증명 누락·불완전 | 4 (CONFIG_ERROR) |
+| Keystone 인증 실패 (401/403) | 2 (AUTH_ERROR) |
+| 미등록 region / 필수 옵션 누락 | 3 (PARAM_ERROR) |
+| API 오류 / waitForActive 타임아웃 | 1 (API_ERROR) |
+| 비대화형 delete 에서 --yes 미지정 | 3 (PARAM_ERROR) |
