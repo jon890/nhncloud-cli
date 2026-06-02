@@ -57,6 +57,6 @@ export const getCommand = new Command("get")
       headers: ["field", "value"],
       rows,
       raw: server,
-      ids: [server.status],
+      ids: [server.id],
     });
   });

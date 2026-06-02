@@ -56,15 +56,6 @@ export const createCommand = new Command("create")
     const opts = cmd.optsWithGlobals<CreateGlobalOpts>();
 
     // ── 1. 파라미터 검증 ──
-    if (!opts.name) {
-      throw new NhnCloudCliError("--name 은 필수입니다.", EXIT_PARAM_ERROR);
-    }
-    if (!opts.flavor) {
-      throw new NhnCloudCliError("--flavor 는 필수입니다.", EXIT_PARAM_ERROR);
-    }
-    if (!opts.image) {
-      throw new NhnCloudCliError("--image 는 필수입니다.", EXIT_PARAM_ERROR);
-    }
     const networks = opts.network ?? [];
     if (networks.length === 0) {
       throw new NhnCloudCliError("--network 는 최소 1개 필요합니다.", EXIT_PARAM_ERROR);
@@ -80,10 +71,11 @@ export const createCommand = new Command("create")
 
     let server: Server;
     try {
+      // requiredOption 으로 Commander 가 보장 → non-null assertion 안전
       server = await client.create({
-        name: opts.name,
-        flavorRef: opts.flavor,
-        imageRef: opts.image,
+        name: opts.name!,
+        flavorRef: opts.flavor!,
+        imageRef: opts.image!,
         networks,
         keyName: opts.keyName,
         securityGroups: opts.securityGroup && opts.securityGroup.length > 0 ? opts.securityGroup : undefined,
@@ -94,6 +86,8 @@ export const createCommand = new Command("create")
       stopSpinner(false);
       throw err;
     }
+
+    stopSpinner(true);
 
     // ── 4. --wait: ACTIVE 폴링 ──
     if (opts.wait) {
