@@ -146,8 +146,8 @@ async function runInteractive(opts: ConfigureOptions): Promise<void> {
       choices: [
         { value: "kr1", name: "kr1 (한국 판교)" },
         { value: "kr2", name: "kr2 (한국 평촌)" },
+        { value: "kr3", name: "kr3 (한국 광주)" },
         { value: "jp1", name: "jp1 (일본 도쿄)" },
-        { value: "us1", name: "us1 (미국)" },
       ],
       default: "kr1",
     });
