@@ -21,8 +21,13 @@ TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 ## API 스펙 확인 절차
 
 NHN Cloud 공식 docs 를 단일 소스로 삼는다 (<https://docs.nhncloud.com>).
-신규 endpoint 사용·동작 검증 시 해당 서비스 API 가이드를 먼저 확인.
-docs 가 봇 차단으로 `WebFetch` 안 될 때는 `WebSearch` 또는 `cmux-browser` 로 우회.
+
+- **endpoint 뿐 아니라 request/response body 구조도 공식 레퍼런스 먼저 확인** — 추측 금지.
+  - 서비스별 public-api 가이드를 본다 (예: Compute Instance → `docs.nhncloud.com/ko/Compute/Instance/ko/public-api/`).
+  - 요청 페이로드 (예: `block_device_mapping_v2`), 응답 형태 (예: `POST /servers` 는 축약형 — `server.id` 만 보장) 모두 docs 의 예제 JSON 으로 대조한다.
+  - 코드의 타입 가드·payload 구성은 docs 예제와 1:1 이어야 한다.
+- docs 가 봇 차단으로 `WebFetch` 안 될 때는 `WebSearch` 또는 `cmux-browser` 로 우회.
+- docs 로도 확정 안 되는 부분 (필드 타입, boolean vs 0/1 등) 은 **실측 (실제 호출) 으로 검증** 후 확정한다. 추측한 채로 구현·머지하지 않는다.
 
 직관에 반하는 동작은 `docs/adr.md` 에 ADR 로 보존.
 
