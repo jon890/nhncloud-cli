@@ -25,8 +25,10 @@ instance 명령 4종 작성 + index.ts 에 instance 그룹 등록.
 
 ## 작업 목록
 
+> **작업 항목 6개 (helper + 4 명령 + index.ts) 는 의도적 유지.** 4 명령은 하나의 `instance` 진입점 그룹이고 helper·index.ts 는 그 그룹의 배선이라 응집성이 높다. 인위적으로 분할하면 한 진입점이 두 phase 로 쪼개져 오히려 검증·commit 단위가 흐트러진다 (5개 규칙의 예외 — 본문 명시로 갈음).
+
 - [ ] 공통 헬퍼 (commands/instance/helpers.ts) — `resolveInstanceClient(opts): Promise<InstanceClient>`
-  - `resolveProfileName` → `getIaasCredential` → `--region` flag override → `getIaasToken` → `InstanceClient(tokenId, computeBase)`
+  - `resolveProfileName` → `getIaasCredential` → `--region` flag override → `getIaasToken` → `InstanceClient(tokenId, computeEndpoint)`
 - [ ] `src/commands/instance/list.ts` — `instance list`. 옵션 `--region` `--profile`. 출력: 고정 컬럼 id/name/status/IPs/flavor. --json: raw 배열. --quiet: id 만 줄 단위
 - [ ] `src/commands/instance/get.ts` — `instance get <id>`. table: 주요 필드, --json: raw, --quiet: status 만
 - [ ] `src/commands/instance/create.ts` — 옵션 `--name`(필수) `--flavor`(필수) `--image`(필수) `--network`(필수, 반복) `--key-name` `--security-group`(반복) `--ephemeral-disk-size` `--protect` `--wait` `--timeout`(기본 300) `--region` `--profile`

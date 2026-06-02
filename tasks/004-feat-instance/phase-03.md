@@ -34,7 +34,7 @@ InstanceClient 4 메소드 + ACTIVE 폴링.
   - `interface Server { id: string; name: string; status: string; addresses: Record<string, Array<{addr: string; version: number}>>; flavor: {id: string}; image: {id: string}; ... }`
   - `interface CreateServerParams { name; flavorRef; imageRef; networks: string[]; keyName?; securityGroups?: string[]; ephemeralDiskSize?: number; protect?: boolean }`
 - [ ] `src/services/instance/client.ts`
-  - `class InstanceClient { constructor(tokenId: string, computeBase: string) }`
+  - `class InstanceClient { constructor(tokenId: string, computeEndpoint: string) }` (`getIaasToken` 반환 필드명과 일치)
   - `list(): Promise<Server[]>` — GET /servers/detail
   - `get(id): Promise<Server>` — GET /servers/{id}
   - `create(params): Promise<Server>` — POST /servers. body 의 NHN 확장 필드는 `params.ephemeralDiskSize` / `params.protect` 가 정의됐을 때만 포함
@@ -63,7 +63,7 @@ grep -nE "as unknown as " src/services/instance/   # 기대: 0건
 - 응답은 OpenStack 표준 (`{ servers: [...] }` / `{ server: {...} }`). `envelope.unwrap` 사용 금지.
 - create body 의 NHN 확장 필드 (`NHN-EXT-ATTR:ephemeral_disk_size`/`protect`) 는 미정의 시 payload 에서 제외 (포함 시 NHN 측 검증 실패 가능).
 - `waitForActive` 의 interval 기본 5000ms, timeout 은 호출자 인자.
-- 인증 실패(401/403) 시 token 만료 가능성 — 본 phase 는 단순 throw, token refresh 는 호출자(command)가 결정.
+- 인증 실패(401/403) 시 token 만료 가능성 — 본 phase 는 단순 throw. **MVP 결정: 자동 token refresh-retry 는 구현하지 않는다.** 캐시에 60초 만료 buffer 가 있어 만료 직전 토큰은 자동 재발급되고, 만료 후 401 이 떠도 사용자가 재실행하면 캐시 미스로 새 토큰을 받는다. phase-4 `resolveInstanceClient` 도 `getIaasToken` 1회만 호출 (재발급 루프 없음) — 이 punt 는 의도된 것이며 누구도 추가 배선하지 않는다.
 
 ## Blocked 조건
 
