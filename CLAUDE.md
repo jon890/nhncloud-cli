@@ -82,6 +82,7 @@ src/
 | deploy target 좌표 / config 구조 | ADR-008 |
 | configure 마법사 / 자격증명 쓰기 | ADR-009, ADR-004 |
 | Instance (OpenStack) 인증·region endpoint | ADR-010, ADR-005 |
+| Instance 발급 (boot-from-volume·POST 축약 응답) | ADR-011 |
 
 신규 ADR 추가 시 본 표에 행 추가.
 
