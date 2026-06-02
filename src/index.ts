@@ -8,6 +8,10 @@ import { runCommand } from "./commands/deploy/run.js";
 import { artifactsCommand } from "./commands/deploy/artifacts.js";
 import { serverGroupsCommand } from "./commands/deploy/server-groups.js";
 import { historiesCommand } from "./commands/deploy/histories.js";
+import { listCommand } from "./commands/instance/list.js";
+import { getCommand } from "./commands/instance/get.js";
+import { createCommand } from "./commands/instance/create.js";
+import { deleteCommand } from "./commands/instance/delete.js";
 
 const program = new Command();
 
@@ -47,6 +51,15 @@ deployCommand.addCommand(serverGroupsCommand);
 deployCommand.addCommand(historiesCommand);
 
 program.addCommand(deployCommand);
+
+// instance 커맨드 그룹
+const instanceCommand = new Command("instance").description("Compute 인스턴스 관련 명령");
+instanceCommand.addCommand(listCommand);
+instanceCommand.addCommand(getCommand);
+instanceCommand.addCommand(createCommand);
+instanceCommand.addCommand(deleteCommand);
+
+program.addCommand(instanceCommand);
 
 program.parseAsync().catch((err: unknown) => {
   const message = err instanceof Error ? err.message : String(err);

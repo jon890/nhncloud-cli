@@ -17,16 +17,28 @@ npm install -g @bifos/nhncloud-cli
 nhncloud configure
 ```
 
-- profile → UAK(id/secret) → logncrash appkey/secret 순으로 입력한다.
+- profile → UAK(id/secret) → logncrash appkey/secret → iaas 자격증명 순으로 입력한다.
 - 저장 전 연결 테스트를 자동으로 수행한다 (`--no-verify` 로 생략 가능).
 - CI/자동화는 flag 로 비대화형 설정이 가능하다.
 
 ```bash
+# UAK + logncrash 비대화형 설정
 nhncloud configure \
   --uak-id <id> --uak-secret <secret> \
   --logncrash-appkey <key> --logncrash-secret <secret> \
   --no-verify
+
+# iaas (Compute) 비대화형 설정 — API 비밀번호는 env 권장
+NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
+  --iaas-tenant-id <tenant-id> \
+  --iaas-username <iam-username> \
+  --iaas-region kr1 \
+  --no-verify
 ```
+
+> **iaas password 안내**: `--iaas-password` 에 입력하는 값은 NHN Cloud 콘솔 IAM 의 **API 비밀번호**입니다.
+> 로그인 비밀번호와 다릅니다.
+> IAM 사용자 상세 페이지 → "API 비밀번호 설정"에서 별도로 발급하세요.
 
 저장 경로: `~/.nhncloud/credentials.json` (mode 0600), `~/.nhncloud/config.json`.
 
@@ -129,11 +141,65 @@ nhncloud logncrash search --query '*' --from 1d --to now --json | jq '.totalItem
 | 3 | 입력 오류 (파라미터·시간 범위) |
 | 4 | 설정 오류 (자격증명 누락) |
 
+### 인스턴스 (Instance)
+
+`~/.nhncloud/credentials.json` 에 `iaas` 블록을 추가하거나 `nhncloud configure` 로 설정한다.
+
+```json
+{
+  "version": 1,
+  "profiles": {
+    "default": {
+      "iaas": {
+        "tenantId": "<tenant-id>",
+        "username": "<iam-username>",
+        "password": "<api-password>",
+        "region": "kr1"
+      }
+    }
+  }
+}
+```
+
+```bash
+# 인스턴스 목록 조회
+nhncloud instance list
+
+# 단일 인스턴스 상태 조회
+nhncloud instance get <instance-id>
+
+# 인스턴스 생성 (즉시 반환, BUILD 상태)
+nhncloud instance create \
+  --name my-server \
+  --flavor <flavor-id> \
+  --image <image-id> \
+  --network <network-uuid>
+
+# 인스턴스 생성 + ACTIVE 대기 (IP 할당까지 폴링)
+nhncloud instance create \
+  --name my-server \
+  --flavor <flavor-id> \
+  --image <image-id> \
+  --network <network-uuid> \
+  --wait
+
+# --quiet --wait: 첫 IP 한 줄만 stdout (CI 파이프용)
+IP=$(nhncloud instance create --name ci-runner \
+  --flavor <flavor-id> --image <image-id> --network <network-uuid> \
+  --wait --quiet)
+
+# 인스턴스 삭제 (confirm 생략)
+nhncloud instance delete <instance-id> --yes
+```
+
+지원 region: `kr1` / `kr2` / `kr3` / `jp1` (`--region` 으로 override 가능).
+
 ## 개발
 
 ```bash
 pnpm install
 pnpm run build        # tsup 단일 번들 (dist/index.js)
 pnpm tsc --noEmit     # 타입 체크
+node dist/index.js instance --help
 node dist/index.js logncrash search --help
 ```

@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../utils/exit-codes.js";
-import type { Credentials, Config, ServiceCredential, UserAccessKey, DeployTarget } from "./types.js";
+import type { Credentials, Config, ServiceCredential, UserAccessKey, IaasCredential, DeployTarget } from "./types.js";
 
 const CREDENTIALS_PATH = join(homedir(), ".nhncloud", "credentials.json");
 const CONFIG_PATH = join(homedir(), ".nhncloud", "config.json");
@@ -148,15 +148,15 @@ export async function getUserAccessKey(profileName: string): Promise<UserAccessK
 /**
  * 지정 profile 의 서비스 자격증명 블록을 반환한다.
  * 해당 블록이 없으면 설정 안내 메시지와 함께 EXIT_CONFIG_ERROR 를 던진다.
- * userAccessKey 블록은 이 함수로 읽지 않는다 (getUserAccessKey 사용).
+ * userAccessKey / iaas 블록은 이 함수로 읽지 않는다 (전용 함수 사용).
  */
 export async function getServiceCredential(
   service: string,
   profileName: string,
 ): Promise<ServiceCredential> {
-  if (service === "userAccessKey") {
+  if (service === "userAccessKey" || service === "iaas") {
     throw new NhnCloudCliError(
-      "userAccessKey 는 서비스 자격증명이 아닙니다 — getUserAccessKey 를 사용하세요.",
+      `"${service}" 는 서비스 자격증명이 아닙니다 — 전용 getter 를 사용하세요.`,
       EXIT_PARAM_ERROR,
     );
   }
@@ -245,6 +245,64 @@ export async function setServiceCredential(
   const creds = await loadCredentialsOrEmpty();
   const profile = creds.profiles[profileName] ?? {};
   creds.profiles[profileName] = { ...profile, [service]: cred };
+  await saveCredentials(creds);
+}
+
+function isIaasCredential(value: unknown): value is IaasCredential {
+  if (typeof value !== "object" || value === null) return false;
+  const obj = value as Record<string, unknown>;
+  return (
+    typeof obj["tenantId"] === "string" &&
+    obj["tenantId"].length > 0 &&
+    typeof obj["username"] === "string" &&
+    obj["username"].length > 0 &&
+    typeof obj["password"] === "string" &&
+    obj["password"].length > 0 &&
+    typeof obj["region"] === "string" &&
+    obj["region"].length > 0
+  );
+}
+
+/**
+ * 지정 profile 의 iaas 자격증명 블록을 반환한다.
+ * 없거나 필드 누락 시 nhncloud configure 안내와 함께 EXIT_CONFIG_ERROR 를 던진다.
+ */
+export async function getIaasCredential(profileName: string): Promise<IaasCredential> {
+  const credentials = await loadCredentials();
+
+  const profile = credentials.profiles[profileName];
+  if (!profile) {
+    throw new NhnCloudCliError(
+      `profile "${profileName}" 을 찾을 수 없습니다.\n` +
+        `${CREDENTIALS_PATH} 에서 profiles.${profileName} 블록을 추가하거나 nhncloud configure 를 실행하세요.`,
+      EXIT_CONFIG_ERROR,
+    );
+  }
+
+  const iaas = profile["iaas"];
+  if (!isIaasCredential(iaas)) {
+    throw new NhnCloudCliError(
+      `profile "${profileName}" 에 iaas 자격증명이 없거나 불완전합니다.\n` +
+        "nhncloud configure 를 실행해 tenantId / username / password / region 을 설정하세요.\n" +
+        "password 는 NHN Cloud 콘솔 IAM 의 API 비밀번호입니다 (로그인 비밀번호가 아닙니다).",
+      EXIT_CONFIG_ERROR,
+    );
+  }
+
+  return iaas;
+}
+
+/**
+ * 지정 profile 의 iaas 자격증명 블록을 머지 저장한다.
+ * 같은 profile 의 다른 서비스 블록과 다른 profile 은 보존된다.
+ */
+export async function setIaasCredential(
+  profileName: string,
+  iaas: IaasCredential,
+): Promise<void> {
+  const creds = await loadCredentialsOrEmpty();
+  const profile = creds.profiles[profileName] ?? {};
+  creds.profiles[profileName] = { ...profile, iaas };
   await saveCredentials(creds);
 }
 

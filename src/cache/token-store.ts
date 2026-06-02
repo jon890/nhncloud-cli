@@ -5,6 +5,78 @@ import { randomBytes } from "node:crypto";
 
 const CACHE_DIR = join(homedir(), ".nhncloud", "cache");
 
+// ── iaas token cache ──────────────────────────────────────────────────────────
+
+function iaasCachePath(profile: string, region: string): string {
+  return join(CACHE_DIR, `iaas-token-${profile}-${region}.json`);
+}
+
+interface IaasTokenCache {
+  tokenId: string;
+  expiresAt: string; // ISO 8601
+  computeEndpoint: string;
+}
+
+function isIaasTokenCache(val: unknown): val is IaasTokenCache {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  return (
+    typeof obj["tokenId"] === "string" &&
+    typeof obj["expiresAt"] === "string" &&
+    typeof obj["computeEndpoint"] === "string"
+  );
+}
+
+/**
+ * 저장된 iaas 토큰 캐시를 읽어 반환한다.
+ * 파일 없음 / 파싱 실패 / 만료(60초 여유) 시 null 반환.
+ */
+export async function readIaasToken(
+  profile: string,
+  region: string,
+): Promise<{ tokenId: string; expiresAt: string; computeEndpoint: string } | null> {
+  const filePath = iaasCachePath(profile, region);
+  try {
+    const raw = await readFile(filePath, "utf-8");
+    const parsed: unknown = JSON.parse(raw);
+    if (!isIaasTokenCache(parsed)) return null;
+
+    const expiresAt = new Date(parsed.expiresAt).getTime();
+    const BUFFER_MS = 60_000;
+    if (expiresAt - Date.now() < BUFFER_MS) return null;
+
+    return {
+      tokenId: parsed.tokenId,
+      expiresAt: parsed.expiresAt,
+      computeEndpoint: parsed.computeEndpoint,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * iaas 토큰을 캐시 파일에 저장한다 (temp + rename atomic, mode 0o600).
+ */
+export async function writeIaasToken(
+  profile: string,
+  region: string,
+  data: { tokenId: string; expiresAt: string; computeEndpoint: string },
+): Promise<void> {
+  const filePath = iaasCachePath(profile, region);
+  await mkdir(dirname(filePath), { recursive: true });
+
+  const cache: IaasTokenCache = {
+    tokenId: data.tokenId,
+    expiresAt: data.expiresAt,
+    computeEndpoint: data.computeEndpoint,
+  };
+
+  const tmp = filePath + "." + randomBytes(4).toString("hex") + ".tmp";
+  await writeFile(tmp, JSON.stringify(cache, null, 2), { encoding: "utf-8", mode: 0o600 });
+  await rename(tmp, filePath);
+}
+
 function tokenCachePath(profile: string): string {
   return join(CACHE_DIR, `deploy-token-${profile}.json`);
 }

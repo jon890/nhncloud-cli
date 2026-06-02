@@ -1,8 +1,9 @@
 import { getAccessToken } from "../api/oauth.js";
+import { getIaasToken } from "../api/keystone.js";
 import { LogncrashClient } from "../services/logncrash/client.js";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_AUTH_ERROR } from "../utils/exit-codes.js";
-import type { UserAccessKey, ServiceCredential } from "../config/types.js";
+import type { UserAccessKey, ServiceCredential, IaasCredential } from "../config/types.js";
 
 /**
  * UAK 로 OAuth 토큰 발급을 시도해 유효성을 검증한다.
@@ -18,6 +19,28 @@ export async function verifyUserAccessKey(uak: UserAccessKey): Promise<boolean> 
   try {
     // profile 키는 임시 값 — 캐시 우회(forceRefresh=true)이므로 캐시에 저장되지 않음
     await getAccessToken("__verify__", uak.id, uak.secret, true);
+    return true;
+  } catch (err) {
+    if (err instanceof NhnCloudCliError && err.exitCode === EXIT_AUTH_ERROR) {
+      return false;
+    }
+    throw err;
+  }
+}
+
+/**
+ * iaas 자격증명으로 Keystone 토큰 발급을 시도해 유효성을 검증한다.
+ *
+ * - 성공: true
+ * - 401/403 인증 실패: false
+ * - 그 외 에러: throw
+ *
+ * forceRefresh=true 로 캐시를 반드시 우회한다.
+ * "__verify__" profile 로 호출해도 junk 캐시 파일이 디스크에 남지 않는다.
+ */
+export async function verifyIaas(iaas: IaasCredential): Promise<boolean> {
+  try {
+    await getIaasToken("__verify__", iaas, true);
     return true;
   } catch (err) {
     if (err instanceof NhnCloudCliError && err.exitCode === EXIT_AUTH_ERROR) {

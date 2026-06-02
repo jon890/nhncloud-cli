@@ -8,9 +8,16 @@ export interface ServiceCredential {
   secret?: string;
 }
 
+export interface IaasCredential {
+  tenantId: string;
+  username: string;
+  password: string;
+  region: string;
+}
+
 export interface ProfileCredentials {
   userAccessKey?: UserAccessKey;
-  [service: string]: UserAccessKey | ServiceCredential | undefined;
+  [service: string]: UserAccessKey | ServiceCredential | IaasCredential | undefined;
 }
 
 export interface Credentials {

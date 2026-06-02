@@ -3,8 +3,8 @@
   "description": "nhncloud instance(Compute) 명령군 — Keystone 토큰 인증, region별 endpoint, list/get/create/delete + --wait 폴링, --yes 즉시 삭제 (Issue #5, docs/flow.md, ADR-010 기반)",
   "created_at": "2026-06-02T00:00:00Z",
   "updated_at": "2026-06-02T00:00:00Z",
-  "status": "pending",
-  "current_phase": 0,
+  "status": "completed",
+  "current_phase": 6,
   "total_phases": 6,
   "error_message": null,
   "blocked_reason": null,
@@ -13,7 +13,7 @@
       "number": 1,
       "title": "iaas 자격증명 타입 + configure 확장",
       "file": "phase-01.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     },
@@ -21,7 +21,7 @@
       "number": 2,
       "title": "Keystone token + region endpoint 캐시 (api/keystone.ts)",
       "file": "phase-02.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     },
@@ -29,7 +29,7 @@
       "number": 3,
       "title": "InstanceClient (list/get/create/delete + waitForActive)",
       "file": "phase-03.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     },
@@ -37,7 +37,7 @@
       "number": 4,
       "title": "instance 명령 4종 + entrypoint 등록",
       "file": "phase-04.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     },
@@ -45,7 +45,7 @@
       "number": 5,
       "title": "빌드 검증 + smoke test + SKILL/README 갱신",
       "file": "phase-05.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     },
@@ -53,7 +53,7 @@
       "number": 6,
       "title": "commit + push + index.json 완료 마킹",
       "file": "phase-06.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "haiku"
     }
