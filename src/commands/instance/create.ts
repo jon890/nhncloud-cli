@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { readFileSync, statSync } from "node:fs";
 import chalk from "chalk";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { output, type OutputOptions } from "../../formatters/table.js";
@@ -17,6 +18,7 @@ interface CreateGlobalOpts extends OutputOptions {
   securityGroup?: string[];
   ephemeralDiskSize?: string;
   protect?: boolean;
+  userData?: string;
   wait?: boolean;
   timeout?: string;
   region?: string;
@@ -54,6 +56,7 @@ export const createCommand = new Command("create")
   .option("--security-group <name>", "보안 그룹 이름 (여러 개: 반복 지정)", (v, prev: string[]) => [...prev, v], [] as string[])
   .option("--ephemeral-disk-size <gb>", "임시 디스크 크기 (GB, NHN 확장)")
   .option("--protect", "삭제 방지 설정 (NHN 확장)")
+  .option("--user-data <path>", "cloud-init user-data 파일 경로 (base64 인코딩해 주입, 인코딩 후 65535 바이트 한도)")
   .option("--wait", "ACTIVE 상태가 될 때까지 대기")
   .option("--timeout <sec>", "wait 타임아웃 (초, 기본 300)", "300")
   .option("--region <region>", "region override (기본: iaas 자격증명의 region)")
@@ -65,6 +68,45 @@ export const createCommand = new Command("create")
     const networks = opts.network ?? [];
     if (networks.length === 0) {
       throw new NhnCloudCliError("--network 는 최소 1개 필요합니다.", EXIT_PARAM_ERROR);
+    }
+
+    // ── user-data: 파일 읽기 + base64 인코딩 + 한도 검증 (spinner 전, fail-fast) ──
+    let userDataBase64: string | undefined;
+    if (opts.userData !== undefined) {
+      // 메모리 폭발 방지 + 파일 유형 검증: 읽기 전에 stat 으로 먼저 차단한다 ([[adr-012]]).
+      // base64 인코딩 후 65535 한도 → raw 상한 49149 바이트.
+      let stat: ReturnType<typeof statSync>;
+      try {
+        stat = statSync(opts.userData);
+      } catch (e) {
+        const reason =
+          (e as NodeJS.ErrnoException).code ?? (e instanceof Error ? e.message : String(e));
+        throw new NhnCloudCliError(
+          `--user-data 파일을 읽을 수 없습니다: ${opts.userData} (${reason})`,
+          EXIT_PARAM_ERROR,
+        );
+      }
+      if (!stat.isFile()) {
+        throw new NhnCloudCliError(
+          `--user-data 가 일반 파일이 아닙니다: ${opts.userData}`,
+          EXIT_PARAM_ERROR,
+        );
+      }
+      if (stat.size > 49149) {
+        throw new NhnCloudCliError(
+          `--user-data 가 너무 큽니다 (${stat.size} 바이트). base64 인코딩 후 65535 바이트 한도라 raw 49149 바이트까지만 허용됩니다.`,
+          EXIT_PARAM_ERROR,
+        );
+      }
+      const raw = readFileSync(opts.userData);
+      userDataBase64 = raw.toString("base64");
+      // base64 출력은 ASCII → .length 가 곧 바이트 수. docs: 인코딩 후 65535 바이트 한도 ([[adr-012]])
+      if (userDataBase64.length > 65535) {
+        throw new NhnCloudCliError(
+          `--user-data 가 base64 인코딩 후 65535 바이트를 초과합니다 (${userDataBase64.length} 바이트). cloud-init 내용을 줄이세요.`,
+          EXIT_PARAM_ERROR,
+        );
+      }
     }
 
     const timeoutMs = parseInt(opts.timeout ?? "300", 10) * 1000;
@@ -88,6 +130,7 @@ export const createCommand = new Command("create")
         securityGroups: opts.securityGroup && opts.securityGroup.length > 0 ? opts.securityGroup : undefined,
         ephemeralDiskSize: opts.ephemeralDiskSize !== undefined ? parseInt(opts.ephemeralDiskSize, 10) : undefined,
         protect: opts.protect,
+        userDataBase64,
       });
     } catch (err) {
       stopSpinner(false);

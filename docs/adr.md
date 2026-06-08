@@ -13,6 +13,7 @@
 - [ADR-009](#adr-009): configure 대화형 마법사 + 비대화형 flag + 연결 테스트
 - [ADR-010](#adr-010): IaaS Keystone 토큰 인증 + region 별 compute endpoint 캐시
 - [ADR-011](#adr-011): Instance 발급 — boot-from-volume 필수 + POST 축약 응답
+- [ADR-012](#adr-012): instance create user_data — base64 주입 + 65535 인코딩 후 한도
 
 ---
 

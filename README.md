@@ -195,6 +195,16 @@ nhncloud instance create \
   --boot-volume-size 30 \
   --wait
 
+# cloud-init user-data 주입 (부팅 시 자동 셋업 — NVIDIA 드라이버·docker 등)
+nhncloud instance create \
+  --name gpu-runner \
+  --flavor <gpu-flavor-id> \
+  --image <image-id> \
+  --network <network-uuid> \
+  --boot-volume-size 30 \
+  --user-data ./cloud-init.yaml \
+  --wait
+
 # --quiet --wait: 첫 IP 한 줄만 stdout (CI 파이프용)
 IP=$(nhncloud instance create --name ci-runner \
   --flavor <flavor-id> --image <image-id> --network <network-uuid> \
