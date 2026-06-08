@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import chalk from "chalk";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { output, type OutputOptions } from "../../formatters/table.js";
@@ -73,15 +73,32 @@ export const createCommand = new Command("create")
     // ── user-data: 파일 읽기 + base64 인코딩 + 한도 검증 (spinner 전, fail-fast) ──
     let userDataBase64: string | undefined;
     if (opts.userData !== undefined) {
-      let raw: Buffer;
+      // 메모리 폭발 방지 + 파일 유형 검증: 읽기 전에 stat 으로 먼저 차단한다 ([[adr-012]]).
+      // base64 인코딩 후 65535 한도 → raw 상한 49149 바이트.
+      let stat: ReturnType<typeof statSync>;
       try {
-        raw = readFileSync(opts.userData);
-      } catch {
+        stat = statSync(opts.userData);
+      } catch (e) {
+        const reason =
+          (e as NodeJS.ErrnoException).code ?? (e instanceof Error ? e.message : String(e));
         throw new NhnCloudCliError(
-          `--user-data 파일을 읽을 수 없습니다: ${opts.userData}`,
+          `--user-data 파일을 읽을 수 없습니다: ${opts.userData} (${reason})`,
           EXIT_PARAM_ERROR,
         );
       }
+      if (!stat.isFile()) {
+        throw new NhnCloudCliError(
+          `--user-data 가 일반 파일이 아닙니다: ${opts.userData}`,
+          EXIT_PARAM_ERROR,
+        );
+      }
+      if (stat.size > 49149) {
+        throw new NhnCloudCliError(
+          `--user-data 가 너무 큽니다 (${stat.size} 바이트). base64 인코딩 후 65535 바이트 한도라 raw 49149 바이트까지만 허용됩니다.`,
+          EXIT_PARAM_ERROR,
+        );
+      }
+      const raw = readFileSync(opts.userData);
       userDataBase64 = raw.toString("base64");
       // base64 출력은 ASCII → .length 가 곧 바이트 수. docs: 인코딩 후 65535 바이트 한도 ([[adr-012]])
       if (userDataBase64.length > 65535) {
