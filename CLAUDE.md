@@ -111,3 +111,38 @@ src/
 새 기능은 `/planning` (8단계, CLI 는 4단계 압축) 으로 설계 후 docs 반영,
 `/plan-and-build` 또는 `/build-with-teams` 로 구현.
 docs 는 task 생성 전에 commit (docs-first).
+
+## 개인 식별 정보 / 사내 식별자 노출 금지 (public OSS)
+
+이 repo 는 GitHub public + npm public (`@bifos/nhncloud-cli`) 이므로 다음 식별자는 **README / skills / docs / CLAUDE.md / 이슈 본문 + src 코드 (테스트 fixture·에러 메시지 예시 포함) 어디에도 노출 금지**.
+코드 예시·시나리오·issue body 작성 시 항상 placeholder 를 쓴다.
+
+| 노출 금지 | 대체 |
+|---|---|
+| NHN Cloud UAK (Deploy id/secret) | `<uak-id>` / `<uak-secret>` |
+| Log & Crash appkey / secret | `<appkey>` / `<secret>` |
+| Instance tenantId / username / API 비밀번호 | `<tenant-id>` / `<username>` / `<password>` |
+| NHN 사내 도메인 (구체 도메인은 공개 repo 라 여기 명시하지 않음) | `example.com` |
+| 사내 이메일 | `user@example.com` |
+| 실제 인스턴스 ID / 네트워크 UUID (사용자 리소스) | `<instance-id>` / `<network-uuid>` |
+| 실명 (본인 + 동료 한국어 이름) | 가상 이름 (`홍길동` 등) — 가상은 OK |
+
+**검증 grep** (commit / 이슈 작성 / release 전 실행):
+
+사내 도메인 블랙리스트를 여기 적으면 그 자체가 노출이므로, **공개 도메인 화이트리스트 외의 도메인을 검출**하는 방식을 쓴다.
+
+```bash
+# cwd: <repo root>
+# 1) 공개 도메인 화이트리스트 밖의 도메인 (사내 도메인 가능성) — 사내 도메인은 여기 명시하지 않는다
+grep -rnoE "[A-Za-z0-9.-]+\.(com|co\.kr|net)" README.md skills/ docs/ CLAUDE.md src/ 2>/dev/null \
+  | grep -vE "nhncloud\.com|nhncloudservice\.com|github\.com|npmjs\.com|example\.com|claude\.com|anthropic\.com"
+# 0건이어야 함 (남으면 사내/미허용 도메인 가능성 — placeholder 또는 화이트리스트 검토)
+
+# 2) 실제 비밀 형태 (placeholder <...> 제외) — secret/password/appkey 뒤 16자 이상 영숫자
+grep -rnE "(secret|password|appkey)['\"]?[[:space:]]*[:=][[:space:]]*['\"][A-Za-z0-9]{16,}" README.md skills/ docs/ src/ 2>/dev/null
+# 0건이어야 함 (남으면 실제값 가능성 — placeholder 로 교체)
+```
+
+**자동화**: `/release` 스킬의 개인 식별 정보 사전 점검 단계가 위 grep 두 명령을 release 전 자동 실행한다.
+
+**예외**: 사용자가 명시적으로 "내부용이라 OK" 등 동의한 경우만. 디폴트는 placeholder.
