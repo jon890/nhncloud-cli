@@ -83,6 +83,7 @@ src/
 | configure 마법사 / 자격증명 쓰기 | ADR-009, ADR-004 |
 | Instance (OpenStack) 인증·region endpoint | ADR-010, ADR-005 |
 | Instance 발급 (boot-from-volume·POST 축약 응답) | ADR-011 |
+| Instance user_data 주입 (base64·65535 인코딩 후 한도) | ADR-012 |
 
 신규 ADR 추가 시 본 표에 행 추가.
 

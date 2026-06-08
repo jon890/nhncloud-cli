@@ -171,6 +171,7 @@ nhncloud instance delete <id> [options]         # 인스턴스 삭제
 | `--security-group <sg>` | create | 보안 그룹 이름 (반복) |
 | `--ephemeral-disk-size <n>` | create | NHN 확장 — 추가 로컬 디스크 크기(GB) |
 | `--protect` | create | NHN 확장 — 삭제 보호 설정 |
+| `--user-data <path>` | create | cloud-init user-data 파일 경로 — base64 인코딩해 `user_data` 주입 (인코딩 후 65535 바이트 한도, [[adr-012]]) |
 | `--wait` | create | ACTIVE + IP 할당까지 폴링 대기 |
 | `--timeout <s>` | create | `--wait` timeout (기본 300) |
 | `--yes` | delete | confirm 생략 (CI·자동화용) |

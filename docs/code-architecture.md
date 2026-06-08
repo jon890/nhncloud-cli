@@ -54,7 +54,7 @@ src/
     instance/
       list.ts               # nhncloud instance list
       get.ts                # nhncloud instance get <id>
-      create.ts             # nhncloud instance create (--wait 지원)
+      create.ts             # nhncloud instance create (--wait, --user-data 지원 / [[adr-011]] [[adr-012]])
       delete.ts             # nhncloud instance delete <id> (--yes 지원)
 ```
 
