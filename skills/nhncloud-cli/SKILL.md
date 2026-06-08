@@ -326,6 +326,7 @@ NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
 | `--security-group <name>` | 아니오 | 보안 그룹 이름 (반복 지정) |
 | `--ephemeral-disk-size <gb>` | 아니오 | 임시 디스크 크기(GB, NHN 확장) |
 | `--protect` | 아니오 | 삭제 방지 설정 (NHN 확장) |
+| `--user-data <path>` | 아니오 | cloud-init user-data 파일 경로. base64 인코딩해 `user_data` 주입 (인코딩 후 65535 바이트 한도, 초과 시 입력 오류). 부팅 시 드라이버·패키지 자동 셋업에 사용 |
 | `--wait` | 아니오 | ACTIVE 상태 + IP 할당까지 대기 |
 | `--timeout <sec>` | 아니오 | wait 타임아웃 (초, 기본 300) |
 | `--region <region>` | 아니오 | region override (kr1/kr2/kr3/jp1) |
@@ -356,6 +357,16 @@ nhncloud instance delete "$INSTANCE_ID" --yes
 
 # 4. 목록에서 id 만 추출
 nhncloud instance list --quiet
+
+# 5. cloud-init 으로 부팅 시 셋업 자동화 (일회성 GPU CI 러너)
+nhncloud instance create \
+  --name gpu-ci \
+  --flavor <gpu-flavor-id> \
+  --image <image-id> \
+  --network <network-uuid> \
+  --boot-volume-size 30 \
+  --user-data ./setup-nvidia-docker.yaml \
+  --wait --quiet
 ```
 
 ### instance 에러 코드
