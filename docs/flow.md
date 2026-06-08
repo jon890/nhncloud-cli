@@ -167,6 +167,7 @@ nhncloud instance delete <id> [options]         # 인스턴스 삭제
 | `--flavor <id>` | create | flavor UUID (필수) |
 | `--image <id>` | create | image UUID (필수) |
 | `--network <id>` | create | network UUID (필수, 반복 가능) |
+| `--boot-volume-size <gb>` | create | boot-from-volume root 볼륨 크기(GB). GPU(g2) 등 일부 flavor 는 필수 ([[adr-011]]) |
 | `--key-name <k>` | create | SSH 키페어 이름 |
 | `--security-group <sg>` | create | 보안 그룹 이름 (반복) |
 | `--ephemeral-disk-size <n>` | create | NHN 확장 — 추가 로컬 디스크 크기(GB) |
