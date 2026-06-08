@@ -37,4 +37,9 @@ export interface CreateServerParams {
   ephemeralDiskSize?: number;
   /** NHN 확장: 삭제 방지 여부. 정의 시에만 payload 에 포함 */
   protect?: boolean;
+  /**
+   * base64 인코딩된 cloud-init user-data. 정의 시에만 payload 의 `user_data` 로 포함.
+   * 파일 읽기·인코딩·65535 한도 검증은 command 단에서 끝낸다 ([[adr-012]]).
+   */
+  userDataBase64?: string;
 }

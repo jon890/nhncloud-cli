@@ -120,6 +120,7 @@ export class InstanceClient {
   /**
    * 인스턴스를 생성한다 (POST /servers).
    * NHN 확장 필드(ephemeralDiskSize / protect)는 정의됐을 때만 payload 에 포함한다.
+   * userDataBase64 도 정의됐을 때만 `user_data` 로 포함한다 (인코딩은 command 단에서 완료).
    */
   async create(params: CreateServerParams): Promise<Server> {
     const url = `${this.computeEndpoint}/servers`;
@@ -159,6 +160,9 @@ export class InstanceClient {
     }
     if (params.protect !== undefined) {
       serverBody["NHN-EXT-ATTR:protect"] = params.protect;
+    }
+    if (params.userDataBase64 !== undefined) {
+      serverBody["user_data"] = params.userDataBase64;
     }
 
     let raw: unknown;
