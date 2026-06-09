@@ -32,7 +32,7 @@ nhncloud logncrash send --file ./error.log --level ERROR
 echo "배치 작업 종료" | nhncloud logncrash send --level INFO
 
 # 프로젝트 버전·소스 지정
-nhncloud logncrash send --body "deploy 시작" --version 2.3.0 --source batch
+nhncloud logncrash send --body "deploy 시작" --app-version 2.3.0 --source batch
 ````
 
 검색과 다른 인증을 한 줄로 안내한다 (코드블록 인접 산문):
@@ -59,7 +59,7 @@ nhncloud logncrash send --body "deploy 시작" --version 2.3.0 --source batch
 ### logncrash send 전송
 
 - `nhncloud logncrash send --body "<메시지>"` — 로그 한 건을 Log & Crash 로 전송. 본문은 `--body`, 또는 `--file <path>`, 또는 stdin(파이프) 으로 전달한다.
-- `--level` 로 DEBUG/INFO/WARN/ERROR/FATAL 을 지정한다. `--version`(projectVersion)·`--source`/`--type`/`--host` 로 부가 필드를 설정한다.
+- `--level` 로 DEBUG/INFO/WARN/ERROR/FATAL 을 지정한다. `--app-version`(projectVersion)·`--source`/`--type`/`--host` 로 부가 필드를 설정한다.
 - 검색과 달리 collector 로 전송하며 **appkey 만 사용**한다 (secret 불요·ADR-014). 단일 로그 본문은 8MB 한도이며 초과 시 입력 오류로 차단된다.
 ```
 
