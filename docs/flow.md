@@ -183,6 +183,7 @@ nhncloud instance reboot <id> [options]         # 인스턴스 재부팅 (--hard
 | `--wait` | create | ACTIVE + IP 할당까지 폴링 대기 |
 | `--timeout <s>` | create | `--wait` timeout (기본 300) |
 | `--yes` | delete | confirm 생략 (CI·자동화용) |
+| `--hard` | reboot | HARD 재부팅 (강제 전원 cycle, 기본은 SOFT) |
 
 전역 옵션: `--json` / `--quiet` / `--no-color`.
 
