@@ -168,6 +168,18 @@ nhncloud logncrash search --query '*' --from 1d --to now --json | jq '.totalItem
 # 인스턴스 목록 조회
 nhncloud instance list
 
+# 인스턴스 타입(flavor) 목록 — id·name 만
+nhncloud instance flavors
+
+# 타입 상세 — vcpus·ram·disk 포함 (테이블은 핵심 5컬럼)
+nhncloud instance flavors --detail
+
+# 전체 필드(is_public·extra_specs 등)는 --json 으로
+nhncloud instance flavors --detail --json
+
+# RAM 8GB 이상 타입만 필터
+nhncloud instance flavors --detail --min-ram 8192
+
 # 단일 인스턴스 상태 조회
 nhncloud instance get <instance-id>
 

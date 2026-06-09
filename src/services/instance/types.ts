@@ -18,6 +18,46 @@ export interface Server {
   updated: string;
 }
 
+/** flavor 응답의 링크 항목 (self / bookmark) */
+export interface FlavorLink {
+  href: string;
+  rel: string;
+}
+
+/** 인스턴스 타입(flavor) 요약 — `GET /flavors` (id·name·links 만 보장) */
+export interface Flavor {
+  id: string;
+  name: string;
+  links: FlavorLink[];
+}
+
+/**
+ * 인스턴스 타입(flavor) 상세 — `GET /flavors/detail`.
+ * 요약 필드에 스펙(ram·vcpus·disk 등)이 더해진다.
+ */
+export interface FlavorDetail extends Flavor {
+  /** 메모리 크기(MB) */
+  ram: number;
+  /** 가상 CPU 수 */
+  vcpus: number;
+  /** root 블록 스토리지 크기(GB) */
+  disk: number;
+  swap: string | number;
+  "OS-FLV-EXT-DATA:ephemeral": number;
+  "OS-FLV-DISABLED:disabled": boolean;
+  "os-flavor-access:is_public": boolean;
+  rxtx_factor: number;
+  extra_specs?: Record<string, unknown>;
+}
+
+/** flavor 목록 조회 쿼리 파라미터 (`GET /flavors`·`GET /flavors/detail` 공통) */
+export interface FlavorListParams {
+  /** 최소 블록 스토리지 크기(GB) 이상만 필터 */
+  minDisk?: number;
+  /** 최소 RAM 크기(MB) 이상만 필터 */
+  minRam?: number;
+}
+
 /** `POST /servers` 요청 파라미터 */
 export interface CreateServerParams {
   name: string;

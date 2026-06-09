@@ -9,6 +9,7 @@ import { artifactsCommand } from "./commands/deploy/artifacts.js";
 import { serverGroupsCommand } from "./commands/deploy/server-groups.js";
 import { historiesCommand } from "./commands/deploy/histories.js";
 import { listCommand } from "./commands/instance/list.js";
+import { flavorsCommand } from "./commands/instance/flavors.js";
 import { getCommand } from "./commands/instance/get.js";
 import { createCommand } from "./commands/instance/create.js";
 import { deleteCommand } from "./commands/instance/delete.js";
@@ -55,6 +56,7 @@ program.addCommand(deployCommand);
 // instance 커맨드 그룹
 const instanceCommand = new Command("instance").description("Compute 인스턴스 관련 명령");
 instanceCommand.addCommand(listCommand);
+instanceCommand.addCommand(flavorsCommand);
 instanceCommand.addCommand(getCommand);
 instanceCommand.addCommand(createCommand);
 instanceCommand.addCommand(deleteCommand);

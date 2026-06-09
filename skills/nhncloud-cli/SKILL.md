@@ -305,6 +305,8 @@ NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
 | 의도 | 커맨드 |
 |------|--------|
 | 인스턴스 목록 조회 | `nhncloud instance list` |
+| 인스턴스 타입(flavor) 목록 | `nhncloud instance flavors` |
+| 인스턴스 타입 상세 (스펙 포함) | `nhncloud instance flavors --detail` (전체 필드는 `--json`) |
 | 특정 인스턴스 상태 조회 | `nhncloud instance get <id>` |
 | 인스턴스 생성 (즉시 반환) | `nhncloud instance create --name <name> --flavor <id> --image <id> --network <uuid>` |
 | 인스턴스 생성 + ACTIVE 대기 | `nhncloud instance create ... --wait` |
@@ -312,6 +314,14 @@ NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
 | 인스턴스 삭제 (confirm 없이) | `nhncloud instance delete <id> --yes` |
 | 다른 region 사용 | `nhncloud instance list --region kr2` |
 | 다른 profile 사용 | `nhncloud instance list --profile staging` |
+
+### instance flavors 조회
+
+- `nhncloud instance flavors` — 인스턴스 타입 id·name 목록.
+  create 의 `--flavor` 에 넣을 id 를 고를 때 사용한다.
+- `--detail` 로 vcpus·ram(MB)·disk(GB) 스펙을 확인한다.
+  테이블은 핵심 5컬럼이며, is_public·extra_specs 등 나머지 필드는 `--json` 으로 확인한다.
+- `--min-disk <gb>` / `--min-ram <mb>` 로 조건에 맞는 타입만 필터한다.
 
 ### instance create 옵션
 
