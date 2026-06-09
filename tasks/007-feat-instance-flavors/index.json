@@ -2,9 +2,9 @@
   "name": "007-feat-instance-flavors",
   "description": "instance flavors 명령 추가 — 인스턴스 타입(flavor) 조회. 단일 명령 + --detail 로 GET /flavors(id·name) vs GET /flavors/detail(vcpus·ram·disk 등 스펙) 분기. --min-disk/--min-ram 은 NHN docs 의 minDisk/minRam 쿼리 파라미터로 그대로 전달. 테이블은 핵심 5컬럼(id·name·vcpus·ram·disk), 나머지 필드(is_public·extra_specs 등)는 --json. NHN Cloud Instance public-api docs 의 flavor 응답 구조로 필드 실재 확인. ADR 미동반(표준 Nova GET + 일반적 목록/상세 합치기). 인증·endpoint·출력은 기존 resolveInstanceClient / output() 재사용.",
   "created_at": "2026-06-09T00:00:00Z",
-  "updated_at": "2026-06-09T00:00:00Z",
-  "status": "pending",
-  "current_phase": 0,
+  "updated_at": "2026-06-09T01:00:00Z",
+  "status": "completed",
+  "current_phase": 2,
   "total_phases": 2,
   "error_message": null,
   "blocked_reason": null,
@@ -13,7 +13,7 @@
       "number": 1,
       "title": "코드 — types/client/flavors command/index 등록 (오버로드 + 입력 검증)",
       "file": "phase-01.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     },
@@ -21,7 +21,7 @@
       "number": 2,
       "title": "공개 docs (README + SKILL) 사용 예 반영 + index.json 완료 마킹",
       "file": "phase-02.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     }
