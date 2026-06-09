@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { readFileSync, statSync, writeFileSync, renameSync } from "node:fs";
+import { readFileSync, statSync, writeFileSync, renameSync, unlinkSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import chalk from "chalk";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
@@ -55,8 +55,16 @@ function savePrivateKey(filePath: string, privateKey: string): void {
     renameSync(tmp, filePath);
   } catch (e) {
     const reason = (e as NodeJS.ErrnoException).code ?? (e instanceof Error ? e.message : String(e));
+    // writeFileSync 성공 후 renameSync 실패(cross-device 등) 시 평문 private_key 가 담긴
+    // 0600 tmp 가 디스크에 남는다. best-effort 로 정리하고, 정리도 실패하면 회수할 수 있게 경로를 알린다.
+    let tmpNote = "";
+    try {
+      unlinkSync(tmp);
+    } catch {
+      tmpNote = ` — 0600 임시 파일이 남았을 수 있습니다: ${tmp}`;
+    }
     throw new NhnCloudCliError(
-      `private_key 파일을 저장할 수 없습니다: ${filePath} (${reason})`,
+      `private_key 파일을 저장할 수 없습니다: ${filePath} (${reason})${tmpNote}`,
       EXIT_PARAM_ERROR,
     );
   }
@@ -151,7 +159,8 @@ const createKeypairCmd = new Command("create")
           process.stderr.write(chalk.green(`  private_key 를 ${opts.output} 에 저장했습니다 (mode 0600).\n`));
         } catch (saveErr) {
           // (b) 저장 실패 — private_key 는 1회성이라 여기서 잃으면 영구 복구 불가.
-          // temp 를 지우지 않고(마지막 사본 파괴 방지) stdout 으로 출력해 유실을 막는다.
+          // savePrivateKey 가 0600 tmp 를 정리하므로 디스크에 평문 사본은 남지 않는다.
+          // 유실은 stdout 출력으로 막는다 (즉시 안전한 곳에 보관 안내).
           const reason = saveErr instanceof Error ? saveErr.message : String(saveErr);
           process.stderr.write(
             chalk.red(`  ⚠ private_key 파일 저장 실패 (${reason}). 유실 방지를 위해 아래에 출력합니다 — 즉시 안전한 곳에 보관하세요.\n`),
@@ -200,9 +209,10 @@ const deleteKeypairCmd = new Command("delete")
       stopSpinner(false);
       throw err;
     }
-    stopSpinner(true, `키페어 삭제 완료: ${name}`);
+    stopSpinner(true);
 
-    if (!opts.quiet) process.stdout.write(`deleted: ${name}\n`);
+    // 부수효과 명령: success 는 stderr, stdout 은 비운다 (delete.ts 와 동일 컨벤션).
+    process.stderr.write(chalk.green(`✓ 키페어 "${name}" 가 삭제되었습니다.\n`));
   });
 
 // ── keypair 그룹 ──────────────────────────────────────────────────────────────

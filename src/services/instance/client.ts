@@ -109,8 +109,14 @@ function isKeypairsResponse(val: unknown): val is { keypairs: { keypair: Keypair
   );
 }
 
-/** 단건/생성 응답: { keypair: {...} } — name·public_key·fingerprint 검증 */
-function isKeypairResponse(val: unknown): val is { keypair: Record<string, unknown> } {
+/**
+ * 생성 응답: { keypair: Keypair (+ 생성 시 user_id·private_key) }.
+ * name·public_key·fingerprint 만 필수 검증하고 user_id·private_key 는 옵셔널 narrow —
+ * 호출부에서 `as string` 단언 없이 직접 접근하게 한다.
+ */
+function isCreateKeypairResponse(
+  val: unknown,
+): val is { keypair: Keypair & { user_id?: string; private_key?: string } } {
   if (typeof val !== "object" || val === null) return false;
   const obj = val as Record<string, unknown>;
   return isKeypair(obj["keypair"]);
@@ -444,19 +450,22 @@ export class InstanceClient {
     } catch (err) {
       throw toNhnCloudCliError(err);
     }
-    if (!isKeypairResponse(raw)) {
+    if (!isCreateKeypairResponse(raw)) {
       throw new NhnCloudCliError(
         "instance keypair create 응답 형식이 올바르지 않습니다 — keypair 객체가 없습니다.",
         EXIT_API_ERROR,
       );
     }
+    // 가드가 name·public_key·fingerprint 를 string 으로, user_id·private_key 를 옵셔널로 narrow — 단언 불필요.
     const kp = raw.keypair;
     return {
-      name: kp["name"] as string,
-      public_key: kp["public_key"] as string,
-      fingerprint: kp["fingerprint"] as string,
-      user_id: typeof kp["user_id"] === "string" ? kp["user_id"] : "",
-      private_key: typeof kp["private_key"] === "string" ? kp["private_key"] : undefined,
+      name: kp.name,
+      public_key: kp.public_key,
+      fingerprint: kp.fingerprint,
+      user_id: kp.user_id ?? "",
+      // 빈 문자열은 정의되지 않은 것과 동일 취급 — 빈 키 파일 저장/빈 줄 출력 방지.
+      private_key:
+        kp.private_key !== undefined && kp.private_key.length > 0 ? kp.private_key : undefined,
     };
   }
 
