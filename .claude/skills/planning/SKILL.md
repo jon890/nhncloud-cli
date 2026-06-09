@@ -199,7 +199,7 @@ docs/flow.md                  ←  docs/prd.md
 
 | 변경 유형 | CLAUDE.md | adr.md | code-architecture.md | prd.md | flow.md | data-schema.md | README.md | skills/nhncloud-cli/SKILL.md |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| 신규 CLI 명령 (소) | 주의사항 1줄 + "N개 명령" 카운트 | — | 디렉터리 트리 + 필요 시 utils 추가 | MVP 범위 한 줄 (`- \`dooray X\` — 한 줄 설명`) | 사용자 흐름 섹션 (대화 / 입출력 예시) | (캐시 도입 시) | 사용 예 섹션 | 빠른 참조 표 + 자동화 시나리오 |
+| 신규 CLI 명령 (소) | 주의사항 1줄 + "N개 명령" 카운트 | — | 디렉터리 트리 + 필요 시 utils 추가 | MVP 범위 한 줄 (`- \`dooray X\` — 한 줄 설명`) | 사용자 흐름 섹션 (대화 / 입출력 예시) + 새 옵션 시 옵션 표 행 | (캐시 도입 시) | 사용 예 섹션 + intro "지원 명령" 문구 | 빠른 참조 표 + 자동화 시나리오 + 프론트매터 description |
 | 신규 ADR 동반 변경 | 주의사항 + ADR 참조 표 행 | ADR 본문 + 상단 ADR Index 목록 한 줄 등재 | 해당 영역에 ADR-NNN 역참조 한 줄 | (사용자 facing 변경 시) | (사용자 흐름 변경 시) | (스키마 결정 시) | 사용 예 (해당 명령 있을 때) | 시나리오 (해당 명령 있을 때) |
 | 캐시 schema / TTL 변경 | 캐시 규약 행 | ADR 갱신 (ADR-004/010) | utils/cache 섹션 | — | — | 캐시 디렉터리 + 스키마 본문 | — | — |
 | 새 API 호출 패턴 (재시도/redirect 등) | — | 정책 결정 ADR (예: ADR-015, ADR-026) | api/ 섹션 + ADR-NNN 역참조 | — | — | — | — | — |
