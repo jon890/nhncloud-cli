@@ -1,7 +1,7 @@
 # nhncloud-cli
 
 NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 통합 CLI.
-현재 `configure`, `logncrash search` (Log & Crash 로그 검색), `deploy` (배포·바이너리 조회), `instance` (Compute 인스턴스 목록·발급·전원 제어·키페어 관리·이미지 조회 포함) 명령을 지원한다.
+현재 `configure`, `logncrash search/send` (Log & Crash 로그 검색·전송), `deploy` (배포·바이너리 조회), `instance` (Compute 인스턴스 목록·발급·전원 제어·키페어 관리·이미지 조회 포함) 명령을 지원한다.
 
 ## 설치
 
@@ -111,6 +111,24 @@ nhncloud logncrash search \
 
 시간은 상대시간 (`1h` / `30m` / `2d` / `now`) 또는 ISO8601 (`2026-05-01T00:00:00+09:00`) 로 입력한다.
 API 제약상 검색 시작은 최근 90일 이내, 검색 범위는 31일 이하여야 한다 (초과 시 입력 오류로 거절).
+
+### 로그 전송
+
+```bash
+# 로그 한 건 전송 — 본문 직접
+nhncloud logncrash send --body "결제 완료" --level INFO
+
+# 파일에서 본문 읽어 전송
+nhncloud logncrash send --file ./error.log --level ERROR
+
+# 파이프(stdin)로 전송
+echo "배치 작업 종료" | nhncloud logncrash send --level INFO
+
+# 프로젝트 버전·소스 지정
+nhncloud logncrash send --body "deploy 시작" --app-version 2.3.0 --source batch
+```
+
+> logncrash send 는 검색과 다른 collector 로 전송하며 appkey 만 사용한다 (secret 불요). 단일 로그 본문은 8MB 까지.
 
 ### 출력 모드
 
