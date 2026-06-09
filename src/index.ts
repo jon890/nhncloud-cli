@@ -4,6 +4,7 @@ import { setQuiet } from "./utils/spinner.js";
 import { NhnCloudCliError } from "./utils/errors.js";
 import { configureCommand } from "./commands/configure.js";
 import { searchCommand } from "./commands/logncrash/search.js";
+import { sendCommand } from "./commands/logncrash/send.js";
 import { runCommand } from "./commands/deploy/run.js";
 import { artifactsCommand } from "./commands/deploy/artifacts.js";
 import { serverGroupsCommand } from "./commands/deploy/server-groups.js";
@@ -47,6 +48,7 @@ program.addCommand(configureCommand);
 // logncrash 커맨드 그룹
 const logncrashCommand = new Command("logncrash").description("Log & Crash 관련 명령");
 logncrashCommand.addCommand(searchCommand);
+logncrashCommand.addCommand(sendCommand);
 
 program.addCommand(logncrashCommand);
 
