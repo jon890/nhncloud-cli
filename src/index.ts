@@ -13,6 +13,8 @@ import { flavorsCommand } from "./commands/instance/flavors.js";
 import { getCommand } from "./commands/instance/get.js";
 import { createCommand } from "./commands/instance/create.js";
 import { deleteCommand } from "./commands/instance/delete.js";
+import { keypairsCommand } from "./commands/instance/keypairs.js";
+import { keypairCommand } from "./commands/instance/keypair.js";
 
 const program = new Command();
 
@@ -60,6 +62,8 @@ instanceCommand.addCommand(flavorsCommand);
 instanceCommand.addCommand(getCommand);
 instanceCommand.addCommand(createCommand);
 instanceCommand.addCommand(deleteCommand);
+instanceCommand.addCommand(keypairsCommand);
+instanceCommand.addCommand(keypairCommand);
 
 program.addCommand(instanceCommand);
 

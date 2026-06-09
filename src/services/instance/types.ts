@@ -58,6 +58,37 @@ export interface FlavorListParams {
   minRam?: number;
 }
 
+/** 키페어 요약 — `GET /os-keypairs` 의 각 원소 keypair (name·public_key·fingerprint 보장) */
+export interface Keypair {
+  name: string;
+  public_key: string;
+  fingerprint: string;
+}
+
+/** 키페어 상세 — `GET /os-keypairs/{name}` (요약 + 메타데이터) */
+export interface KeypairDetail extends Keypair {
+  user_id: string;
+  id: string;
+  created_at: string;
+}
+
+/** `POST /os-keypairs` 요청 파라미터 */
+export interface CreateKeypairParams {
+  name: string;
+  /** 등록할 기존 공개키. 정의 시에만 body 에 포함 (이때 private_key 응답 없음) */
+  publicKey?: string;
+}
+
+/**
+ * `POST /os-keypairs` 응답의 keypair.
+ * public_key 미지정 생성이면 `private_key` 가 1회성으로 포함된다 (이후 재조회 불가).
+ */
+export interface CreateKeypairResult extends Keypair {
+  user_id: string;
+  /** NHN 이 생성한 경우에만 1회성으로 포함. 등록(public_key 지정) 시 없음 */
+  private_key?: string;
+}
+
 /** `POST /servers` 요청 파라미터 */
 export interface CreateServerParams {
   name: string;
