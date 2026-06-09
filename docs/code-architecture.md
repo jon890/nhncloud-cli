@@ -18,7 +18,7 @@ src/
     credentials.ts          # ~/.nhncloud/ 로드 + 머지 쓰기, profile 해석
     types.ts                # Credentials(profile.userAccessKey + 서비스 블록) / Config 타입
   api/
-    endpoints.ts            # 서비스별 엔드포인트 맵 + image host 맵 추가 (adr-005, adr-013)
+    endpoints.ts            # 서비스별 엔드포인트 맵 + image host 맵 + logncrash-collector 키 (adr-005, adr-013, adr-014)
     envelope.ts             # NHN 공통 봉투 unwrap + 에러 매핑 (adr-006)
     httpError.ts            # ky HTTPError → NhnCloudCliError (status별 exit code)
     oauth.ts                # UAK → access_token 교환 + 캐시 (adr-007)
@@ -27,8 +27,8 @@ src/
     token-store.ts          # ~/.nhncloud/cache/ token + endpoint 읽기·쓰기 (mode 0600)
   services/
     logncrash/
-      client.ts             # LogncrashClient — search()
-      types.ts
+      client.ts             # LogncrashClient — search() / send() (send 는 collector host + appkey-only, adr-014)
+      types.ts              # LogSearchParams/Result / LogSendParams / LogLevel
     deploy/
       client.ts             # DeployClient — run / artifacts / serverGroups / histories / binaryGroups / binaries
       types.ts              # DeployRunParams / BinaryGroup / Binary / BinaryListParams
@@ -46,6 +46,7 @@ src/
     configure.ts            # nhncloud configure (대화형 + flag, 연결 테스트, adr-009)
     logncrash/
       search.ts             # nhncloud logncrash search
+      send.ts               # nhncloud logncrash send (--body/--file/stdin, 8MB 한도, adr-014)
     deploy/
       run.ts                # nhncloud deploy run <target>
       artifacts.ts          # nhncloud deploy artifacts
