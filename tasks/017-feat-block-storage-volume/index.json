@@ -1,0 +1,45 @@
+{
+  "name": "017-feat-block-storage-volume",
+  "description": "Block Storage volume 명령 + instance volume attach/detach/volumes 추가. volume list(GET /v2/{tenantId}/volumes) / volume get(GET .../volumes/{id}) / volume create(POST .../volumes, body {volume:{size,name?,description?,volume_type?,snapshot_id?}}) — Block Storage 는 catalog type 이 compute 가 아니라 volumev2 이고 host 가 <region>-api-block-storage-infrastructure.nhncloudservice.com 이며 경로에 tenantId 를 포함한다(compute 와 같은 모양, host 만 다름). 핵심: endpoint 해석을 volumev2 host 로 확장 — 010(image endpoint 확장, ADR-013 도입) + 013(network host 추가) 의 멀티서비스 endpoint 패턴을 재사용하고 ADR-013 을 보강한다(별도 ADR 신설 금지). 010 phase-01 + ROADMAP 013(network endpoint 확장) phase-01 을 선행 의존으로 둔다(둘 다 같은 getIaasToken/iaas-token 캐시 구조를 확장하므로 후행 task 가 그 구조 위에 host 한 개를 더한다). 인증은 기존 Keystone X-Auth-Token 재사용. instance volume attach/detach/volumes 는 Block Storage 가 아니라 compute endpoint 의 Nova os-volume_attachments(GET/POST /v2/{tenantId}/servers/{serverId}/os-volume_attachments, body {volumeAttachment:{volumeId}}; detach DELETE .../os-volume_attachments/{volumeId}) 를 쓴다 — NHN 이 이 Nova 확장을 지원하는지 Instance 가이드에 명확치 않아 phase-03 에서 구현 전 실측(실제 호출)으로 확인 후 확정(추측 구현 금지). list/get/create(Block Storage) 는 docs 확정. 새 서비스 디렉터리 src/services/blockstorage/ + src/commands/volume/ + resolveVolumeClient helper; attach/detach/volumes 는 src/services/instance/client.ts(compute endpoint) 에 추가. phase 4분할 — blockstorage endpoint 확장 선행, volume 명령, instance volume attach/detach/volumes(실측 후), ADR-013 보강+공개 docs+완료 마킹.",
+  "created_at": "2026-06-09T00:00:00Z",
+  "updated_at": "2026-06-09T00:00:00Z",
+  "status": "pending",
+  "current_phase": 1,
+  "total_phases": 4,
+  "error_message": null,
+  "blocked_reason": null,
+  "phases": [
+    {
+      "number": 1,
+      "title": "blockstorage endpoint 해석 확장 — BLOCKSTORAGE host 맵 + blockStorageEndpoint(keystone/token-store)",
+      "file": "phase-01.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    },
+    {
+      "number": 2,
+      "title": "volume list/get/create 명령 — services/blockstorage(types/client) / resolveVolumeClient / command / index 등록",
+      "file": "phase-02.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    },
+    {
+      "number": 3,
+      "title": "instance volume attach/detach/volumes — os-volume_attachments 실측 후 instance client(compute endpoint) 추가",
+      "file": "phase-03.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    },
+    {
+      "number": 4,
+      "title": "ADR-013 보강(blockstorage host) + 공개 docs(README/SKILL/flow/code-architecture/CLAUDE.md) + 완료 마킹",
+      "file": "phase-04.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    }
+  ]
+}

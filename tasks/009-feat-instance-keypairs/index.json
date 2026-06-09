@@ -1,0 +1,29 @@
+{
+  "name": "009-feat-instance-keypairs",
+  "description": "키페어 관리 명령 추가 — instance keypairs(목록) / keypair get <name> / keypair create <name> / keypair delete <name>. OpenStack Nova os-keypairs (GET/POST/DELETE /v2/{tenantId}/os-keypairs[/{name}]). 핵심 설계: create 시 public_key 미지정이면 NHN 이 키쌍을 생성하고 응답에 private_key 가 1회성으로 포함(이후 재조회 불가) — --output/-o 로 파일(mode 0600) 저장 경로 제공, 미지정 시 stderr 에 '한 번만 표시됨' 경고와 함께 stdout 출력. --public-key <path|string> 로 기존 공개키를 등록하면 private_key 는 오지 않는다. 인증·endpoint 는 기존 resolveInstanceClient(Keystone X-Auth-Token + region 별 compute endpoint) 재사용. ADR 미동반(표준 Nova os-keypairs CRUD).",
+  "created_at": "2026-06-09T00:00:00Z",
+  "updated_at": "2026-06-09T00:00:00Z",
+  "status": "pending",
+  "current_phase": 0,
+  "total_phases": 2,
+  "error_message": null,
+  "blocked_reason": null,
+  "phases": [
+    {
+      "number": 1,
+      "title": "코드 — types/client 4 메서드/keypairs·keypair 커맨드/index 등록 (private_key 1회성 0600 저장)",
+      "file": "phase-01.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    },
+    {
+      "number": 2,
+      "title": "공개 docs (CLAUDE.md 카운트 + flow.md + code-architecture.md + README + SKILL) 반영 + index.json 완료 마킹",
+      "file": "phase-02.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    }
+  ]
+}

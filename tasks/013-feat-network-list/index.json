@@ -1,0 +1,37 @@
+{
+  "name": "013-feat-network-list",
+  "description": "network list (VPC 목록) + subnet list (서브넷 목록) 명령 추가 — instance create --network <uuid> 에 넣을 network/subnet UUID 소스. NHN VPC public-api: GET /v2.0/vpcs (vpcs[].{id,name,cidrv4,state,router:external}) / GET /v2.0/vpcsubnets (vpcsubnets[].{id,cidr,vpc_id,gateway,available_ip_count}). 주의: NHN VPC 는 raw Neutron /v2.0/networks 가 아니라 NHN 고유 /v2.0/vpcs·/v2.0/vpcsubnets. catalog type 은 network, host 패턴 <region>-api-network-infrastructure.nhncloudservice.com 이며 경로에 tenantId segment 없음(/v2.0/...). 인증은 기존 Keystone X-Auth-Token 재사용(새 토큰 불필요). 새 서비스 디렉터리 services/network (client+types) + commands/network (list, subnet) 신설, Keystone 토큰·endpoint 해석은 instance 와 공유. endpoint 확장은 010(010-feat-instance-images) phase-01 의 IaaS 멀티 서비스 endpoint 해석 패턴(정적 host 맵 + getIaasToken 다중 endpoint 반환) 위에 NETWORK host 맵을 더하는 방식 — 별도 ADR 신설 없이 ADR-013 을 network 까지 보강한다. **010 endpoint 확장(phase-01) 선행 의존**: getIaasToken 다중 endpoint 반환 + IaasTokenCache 확장 구조가 먼저 있어야 한다. 미확인(실측): network host 패턴 정확성 — 구현 전 serviceCatalog type==network publicURL 덤프 또는 추정 host 로 GET /v2.0/vpcs 호출로 확정(추측 구현 금지). phase 3분할 — network endpoint 해석 확장(010 패턴 위 NETWORK host + networkEndpoint + 실측), network/subnet 명령(services/network client + commands + index 등록), ADR-013 보강 + 공개 docs + 완료 마킹.",
+  "created_at": "2026-06-09T00:00:00Z",
+  "updated_at": "2026-06-09T00:00:00Z",
+  "status": "pending",
+  "current_phase": 1,
+  "total_phases": 3,
+  "error_message": null,
+  "blocked_reason": null,
+  "phases": [
+    {
+      "number": 1,
+      "title": "network endpoint 해석 확장 — NETWORK host 맵 + networkEndpoint(010 패턴 위) + 실측",
+      "file": "phase-01.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    },
+    {
+      "number": 2,
+      "title": "network/subnet 명령 — services/network(client+types) / listVpcs·listSubnets / commands network list·subnet list / index 등록",
+      "file": "phase-02.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    },
+    {
+      "number": 3,
+      "title": "ADR-013 보강(network host) + 공개 docs(README/SKILL/flow/code-architecture/CLAUDE.md) + 완료 마킹",
+      "file": "phase-03.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    }
+  ]
+}

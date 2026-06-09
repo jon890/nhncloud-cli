@@ -1,0 +1,29 @@
+{
+  "name": "012-feat-logncrash-send",
+  "description": "logncrash send 명령 추가 — 로그를 Log & Crash 로 전송 (기존 search 의 대칭 쓰기). 검색(api-lncs-search)과 별도 collector host (api-logncrash) + appkey-only 인증(body 의 projectName=appkey, secret 불요) 이라 ADR-014 동반. 입력은 --body(필수, 또는 stdin/--file), --level(DEBUG/INFO/WARN/ERROR/FATAL), --version, --source/--type/--host 옵션. 단일 로그 8MB 한도를 인코딩 없이 byte 길이로 검증(fail-fast). 응답 봉투 resultCode 는 숫자 — 기존 envelope unwrap 이 isSuccessful 로만 판정해 그대로 수용. 자격증명은 기존 logncrash 블록의 appkey 재사용(secret 불요), projectVersion 은 옵션/기본값.",
+  "created_at": "2026-06-09T00:00:00Z",
+  "updated_at": "2026-06-09T00:00:00Z",
+  "status": "pending",
+  "current_phase": 1,
+  "total_phases": 2,
+  "error_message": null,
+  "blocked_reason": null,
+  "phases": [
+    {
+      "number": 1,
+      "title": "코드 — endpoints collector 키 + types LogSendParams + client send() + send 명령 + index 등록 + ADR-014 초안 + docs(CLAUDE.md/flow/code-architecture)",
+      "file": "phase-01.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    },
+    {
+      "number": 2,
+      "title": "공개 docs (README + SKILL) 사용 예 반영 + index.json 완료 마킹",
+      "file": "phase-02.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    }
+  ]
+}
