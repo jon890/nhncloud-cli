@@ -1,4 +1,4 @@
-# Phase 01 — 코드: logncrash send 명령 (로그 전송) + ADR-014 + 내부 docs
+# Phase 01 — 코드: logncrash send 명령 (endpoints collector + types + client send() + send 명령 + index 등록)
 
 ## 목표
 
@@ -315,7 +315,7 @@ node dist/index.js logncrash send --help 2>&1 | grep -Ec -- "--body|--file|--lev
 # 4b. --version 이 CLI 버전 플래그가 아니라 projectVersion 옵션으로 파싱되는지 (MINOR 3 — Commander version 플래그 충돌 점검)
 #     send 는 .version() 을 호출하지 않으므로 subcommand 레벨 --version <ver> 은 일반 옵션이어야 한다.
 echo "hi" | node dist/index.js logncrash send --version 9.9.9 --level BOGUS; echo "exit=$?"
-# 기대: CLI 버전("0.3.0")을 출력하고 종료하지 않고, --level BOGUS 검증까지 도달해 exit=3
+# 기대: CLI 버전("0.3.0")을 출력하지 않고, --level BOGUS 검증까지 도달해 exit=3
 #       (만약 "0.3.0" 만 출력하고 exit=0 이면 --version 이 버전 플래그로 가로채진 것 → --app-version 등으로 rename 필요)
 
 # 5. exit code 리터럴 미사용 (9-1)

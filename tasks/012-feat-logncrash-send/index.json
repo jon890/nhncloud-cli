@@ -11,10 +11,17 @@
   "phases": [
     {
       "number": 1,
-      "title": "코드 — endpoints collector 키 + types LogSendParams + client send() + send 명령 + index 등록 + ADR-014 초안 + docs(CLAUDE.md/flow/code-architecture)",
+      "title": "코드 — endpoints collector 키 + types LogLevel/LogSendParams + client send() + send 명령 + index 등록",
       "file": "phase-01.md",
       "status": "pending",
-      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "allowedTools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep"
+      ],
       "model": "sonnet"
     },
     {
@@ -22,7 +29,14 @@
       "title": "공개 docs (README + SKILL) 사용 예 반영 + index.json 완료 마킹",
       "file": "phase-02.md",
       "status": "pending",
-      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "allowedTools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep"
+      ],
       "model": "sonnet"
     }
   ]
