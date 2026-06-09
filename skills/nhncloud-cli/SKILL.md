@@ -1,6 +1,6 @@
 ---
 name: nhncloud-cli
-description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색(logncrash search), Deploy 배포 실행(deploy), Compute 인스턴스 관리(instance — 목록·발급·전원 제어·키페어) 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
+description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색(logncrash search), Deploy 배포 실행·바이너리 그룹·바이너리 목록 조회, Compute 인스턴스 관리(instance — 목록·발급·전원 제어·키페어·이미지) 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
 ---
 
 # nhncloud-cli
@@ -206,6 +206,8 @@ UAK 는 NHN Cloud 콘솔 → 계정 → User Access Key 에서 발급한다.
 | 아티팩트 목록 조회 | `nhncloud deploy artifacts my-service` |
 | 서버그룹 목록 조회 | `nhncloud deploy server-groups my-service` |
 | 배포 이력 조회 | `nhncloud deploy histories my-service` |
+| 바이너리 그룹 목록 | `nhncloud deploy binary-groups <target>` |
+| 바이너리 목록 | `nhncloud deploy binaries <target> --binary-group <key>` (전체 필드는 `--json`) |
 | 다른 profile 사용 | `nhncloud deploy run my-service --profile staging` |
 
 ### deploy run 옵션
@@ -242,6 +244,17 @@ nhncloud deploy run my-service --artifact-id <artifactId>
 # 배포 이력에서 최근 상태만 확인
 nhncloud deploy histories my-service --json | jq '.[0] | {deployKey, deployStatus}'
 ```
+
+### deploy 바이너리 조회
+
+- `nhncloud deploy binary-groups <target>` — 아티팩트의 바이너리 그룹 목록을 조회한다.
+  출력의 key 를 binaries 입력으로 쓴다.
+- `nhncloud deploy binaries <target> --binary-group <key>` — 해당 그룹의 바이너리 목록을 조회한다.
+  컬럼: version·binaryName·size(bytes)·uploadDate·uploader.
+  `--binary-group` 은 필수다.
+- 정렬은 `--sort-key UPLOAD_DATE --sort-direction DESC`, 페이지는 `--page-num` / `--page-size`.
+- size 는 bytes 정수이며 KB/MB 변환 없이 원시값으로 출력한다.
+  정밀값은 `--json` 으로 확인한다.
 
 ### deploy 에러 코드
 

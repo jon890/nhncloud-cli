@@ -2,9 +2,9 @@
   "name": "011-feat-deploy-binaries",
   "description": "deploy 바이너리 조회 2종 추가 — `deploy binary-groups <target>`(바이너리 그룹 목록, GET .../binary-groups → key·name·description·regionCode·createDate) + `deploy binaries <target> --binary-group <key>`(바이너리 목록, GET .../binary-groups/{key}/binaries, pageNum/pageSize/sortKey/sortDirection 쿼리 → totalCount·binaries[]). target 좌표(appKey/artifactId)는 server-groups/histories 와 동일하게 named target(config, ADR-008) + flag override. binaryGroupKey 는 binary-groups 조회로 얻은 key 를 binaries 입력으로 연결하는 것이 CLI 가치. 인증은 기존 Deploy OAuth client_credentials 패턴(ADR-007) 그대로 — ADR 미동반. resultCode 는 문자열이며 기존 envelope unwrap 이 이미 수용.",
   "created_at": "2026-06-09T00:00:00Z",
-  "updated_at": "2026-06-09T00:00:00Z",
-  "status": "pending",
-  "current_phase": 1,
+  "updated_at": "2026-06-09T09:00:00Z",
+  "status": "completed",
+  "current_phase": 2,
   "total_phases": 2,
   "error_message": null,
   "blocked_reason": null,
@@ -13,7 +13,7 @@
       "number": 1,
       "title": "코드 — types BinaryGroup/Binary, client binaryGroups()/binaries(), 명령 2종, index 등록, 내부 docs 반영",
       "file": "phase-01.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     },
@@ -21,7 +21,7 @@
       "number": 2,
       "title": "공개 docs (README + SKILL) 사용 예 반영 + index.json 완료 마킹",
       "file": "phase-02.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     }
