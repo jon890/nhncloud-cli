@@ -2,7 +2,7 @@ import ky from "ky";
 import { toNhnCloudCliError } from "../../api/httpError.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_API_ERROR } from "../../utils/exit-codes.js";
-import type { Server, CreateServerParams } from "./types.js";
+import type { Server, CreateServerParams, Flavor, FlavorDetail, FlavorListParams } from "./types.js";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_POLL_INTERVAL_MS = 5_000;
@@ -31,6 +31,18 @@ function isServersResponse(val: unknown): val is { servers: Server[] } {
   if (typeof val !== "object" || val === null) return false;
   const obj = val as Record<string, unknown>;
   return Array.isArray(obj["servers"]);
+}
+
+function isFlavor(val: unknown): val is Flavor {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  return typeof obj["id"] === "string" && typeof obj["name"] === "string";
+}
+
+function isFlavorsResponse(val: unknown): val is { flavors: Flavor[] } {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  return Array.isArray(obj["flavors"]) && obj["flavors"].every(isFlavor);
 }
 
 /**
@@ -200,6 +212,47 @@ export class InstanceClient {
         retry: 0,
         timeout: DEFAULT_TIMEOUT_MS,
       });
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * 인스턴스 타입(flavor)을 조회한다.
+   * - 기본: GET /flavors (id·name·links 요약)
+   * - detail: GET /flavors/detail (vcpus·ram·disk 등 스펙 포함)
+   * minDisk(GB)·minRam(MB)는 NHN docs 의 쿼리 파라미터로 그대로 전달한다.
+   */
+  async listFlavors(params?: FlavorListParams & { detail?: false }): Promise<Flavor[]>;
+  async listFlavors(params: FlavorListParams & { detail: true }): Promise<FlavorDetail[]>;
+  async listFlavors(
+    params: FlavorListParams & { detail?: boolean } = {},
+  ): Promise<Flavor[] | FlavorDetail[]> {
+    const path = params.detail ? "/flavors/detail" : "/flavors";
+    const url = `${this.computeEndpoint}${path}`;
+
+    const searchParams: Record<string, number> = {};
+    if (params.minDisk !== undefined) searchParams["minDisk"] = params.minDisk;
+    if (params.minRam !== undefined) searchParams["minRam"] = params.minRam;
+
+    try {
+      const raw = await ky
+        .get(url, {
+          headers: this.authHeaders(),
+          searchParams,
+          retry: 0,
+          timeout: DEFAULT_TIMEOUT_MS,
+        })
+        .json();
+
+      if (!isFlavorsResponse(raw)) {
+        throw new NhnCloudCliError(
+          "instance flavors 응답 형식이 올바르지 않습니다 — flavors 배열이 없습니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      // detail 응답은 Flavor 의 상위 집합(상세 필드 추가) — 오버로드 시그니처가 호출부에 정확한 타입을 부여한다.
+      return raw.flavors as Flavor[] | FlavorDetail[];
     } catch (err) {
       throw toNhnCloudCliError(err);
     }
