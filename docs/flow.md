@@ -158,6 +158,9 @@ nhncloud instance flavors [options]             # 인스턴스 타입(flavor) �
 nhncloud instance get <id> [options]            # 단일 인스턴스 상태 조회
 nhncloud instance create [options]              # 인스턴스 발급
 nhncloud instance delete <id> [options]         # 인스턴스 삭제
+nhncloud instance start <id> [options]          # 인스턴스 시작
+nhncloud instance stop <id> [options]           # 인스턴스 정지
+nhncloud instance reboot <id> [options]         # 인스턴스 재부팅 (--hard 로 HARD)
 ```
 
 | 옵션 | 적용 | 설명 |
@@ -180,6 +183,7 @@ nhncloud instance delete <id> [options]         # 인스턴스 삭제
 | `--wait` | create | ACTIVE + IP 할당까지 폴링 대기 |
 | `--timeout <s>` | create | `--wait` timeout (기본 300) |
 | `--yes` | delete | confirm 생략 (CI·자동화용) |
+| `--hard` | reboot | HARD 재부팅 (강제 전원 cycle, 기본은 SOFT) |
 
 전역 옵션: `--json` / `--quiet` / `--no-color`.
 
@@ -196,6 +200,13 @@ nhncloud instance delete <id> [options]         # 인스턴스 삭제
 - `--wait` 지정 시 5초 간격으로 `GET /servers/{id}` 폴링해 `ACTIVE` 상태 + 첫 IP 할당까지 대기한다.
 - `--timeout` 초과 시 `EXIT_API_ERROR` 로 종료 (생성된 인스턴스는 남으므로 사용자가 delete 또는 재시도).
 - `--quiet` + `--wait` 조합은 ACTIVE 도달 후 IP 한 줄만 stdout — CI 에서 다음 step 으로 바로 파이프.
+
+### 전원 제어 (start / stop / reboot)
+
+- 전원 제어(`start`/`stop`/`reboot`)는 모두 `POST /servers/{id}/action` 한 경로다 (응답 202 무본문).
+  client 의 공용 `serverAction(id, payload)` 가 action body(`os-start`/`os-stop`/`reboot.type`)만 달리해 호출한다.
+  조회가 아니라 동작이라 출력은 성공 메시지(stderr)뿐이고 stdout 은 비운다 (delete 와 동일).
+  상태 전이 확인은 후속 `instance get <id>` 로 한다.
 
 ### delete 안전 정책
 

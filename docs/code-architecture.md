@@ -33,7 +33,7 @@ src/
       client.ts             # DeployClient — run / artifacts / serverGroups / histories
       types.ts
     instance/
-      client.ts             # InstanceClient — list / get / create / delete / listFlavors + waitForActive
+      client.ts             # InstanceClient — list / get / create / delete / listFlavors / start / stop / reboot + waitForActive (전원 제어는 공용 serverAction 경유)
       types.ts              # Server / CreateServerParams / Flavor / FlavorDetail (NHN 확장 필드 포함)
   utils/
     errors.ts               # NhnCloudCliError(message, exitCode)
@@ -57,6 +57,7 @@ src/
       get.ts                # nhncloud instance get <id>
       create.ts             # nhncloud instance create (--wait, --user-data 지원 / [[adr-011]] [[adr-012]])
       delete.ts             # nhncloud instance delete <id> (--yes 지원)
+      power.ts              # nhncloud instance start/stop/reboot <id> (전원 제어, serverAction 재사용)
 ```
 
 ## 레이어 의존 방향
