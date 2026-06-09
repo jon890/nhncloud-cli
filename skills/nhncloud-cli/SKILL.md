@@ -307,6 +307,9 @@ NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
 | 인스턴스 목록 조회 | `nhncloud instance list` |
 | 인스턴스 타입(flavor) 목록 | `nhncloud instance flavors` |
 | 인스턴스 타입 상세 (스펙 포함) | `nhncloud instance flavors --detail` (전체 필드는 `--json`) |
+| 키페어 목록 | `nhncloud instance keypairs` |
+| 키페어 생성 (키 저장) | `nhncloud instance keypair create <keypair-name> -o ./key.pem` |
+| 키페어 삭제 | `nhncloud instance keypair delete <keypair-name>` |
 | 특정 인스턴스 상태 조회 | `nhncloud instance get <id>` |
 | 인스턴스 생성 (즉시 반환) | `nhncloud instance create --name <name> --flavor <id> --image <id> --network <uuid>` |
 | 인스턴스 생성 + ACTIVE 대기 | `nhncloud instance create ... --wait` |
@@ -314,6 +317,15 @@ NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
 | 인스턴스 삭제 (confirm 없이) | `nhncloud instance delete <id> --yes` |
 | 다른 region 사용 | `nhncloud instance list --region kr2` |
 | 다른 profile 사용 | `nhncloud instance list --profile staging` |
+
+### instance keypair 관리
+
+- `nhncloud instance keypairs` — 키페어 name·fingerprint 목록.
+  create 의 `--key-name` 에 넣을 키를 고를 때 사용한다.
+- `nhncloud instance keypair create <keypair-name> -o <keyfile>` — NHN 이 키쌍을 생성하고 private_key 를 `<keyfile>` 에 mode 0600 으로 저장한다.
+  **private_key 는 생성 시 한 번만 받을 수 있으므로** 자동화에서는 항상 `-o` 로 저장한다.
+- `--public-key <path|key>` 로 기존 공개키를 등록하면 private_key 는 반환되지 않는다.
+- `nhncloud instance keypair delete <keypair-name>` — 삭제.
 
 ### instance flavors 조회
 

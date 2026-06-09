@@ -33,8 +33,8 @@ src/
       client.ts             # DeployClient — run / artifacts / serverGroups / histories
       types.ts
     instance/
-      client.ts             # InstanceClient — list / get / create / delete / listFlavors + waitForActive
-      types.ts              # Server / CreateServerParams / Flavor / FlavorDetail (NHN 확장 필드 포함)
+      client.ts             # InstanceClient — list / get / create / delete / listFlavors / listKeypairs / getKeypair / createKeypair / deleteKeypair + waitForActive
+      types.ts              # Server / CreateServerParams / Flavor / FlavorDetail / Keypair / KeypairDetail / CreateKeypair* (NHN 확장 필드 포함)
   utils/
     errors.ts               # NhnCloudCliError(message, exitCode)
     exit-codes.ts           # EXIT_* 상수
@@ -57,6 +57,8 @@ src/
       get.ts                # nhncloud instance get <id>
       create.ts             # nhncloud instance create (--wait, --user-data 지원 / [[adr-011]] [[adr-012]])
       delete.ts             # nhncloud instance delete <id> (--yes 지원)
+      keypairs.ts           # nhncloud instance keypairs (목록)
+      keypair.ts            # nhncloud instance keypair get/create/delete (--public-key / --output, private_key 0600 저장)
 ```
 
 ## 레이어 의존 방향

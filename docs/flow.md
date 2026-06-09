@@ -158,6 +158,10 @@ nhncloud instance flavors [options]             # 인스턴스 타입(flavor) �
 nhncloud instance get <id> [options]            # 단일 인스턴스 상태 조회
 nhncloud instance create [options]              # 인스턴스 발급
 nhncloud instance delete <id> [options]         # 인스턴스 삭제
+nhncloud instance keypairs [options]            # 키페어 목록
+nhncloud instance keypair get <name> [options]  # 단일 키페어 조회
+nhncloud instance keypair create <name> [opts]  # 키페어 생성 (private_key 1회성)
+nhncloud instance keypair delete <name> [opts]  # 키페어 삭제
 ```
 
 | 옵션 | 적용 | 설명 |
@@ -180,6 +184,8 @@ nhncloud instance delete <id> [options]         # 인스턴스 삭제
 | `--wait` | create | ACTIVE + IP 할당까지 폴링 대기 |
 | `--timeout <s>` | create | `--wait` timeout (기본 300) |
 | `--yes` | delete | confirm 생략 (CI·자동화용) |
+| `--public-key <path\|key>` | keypair create | 기존 공개키 등록 (파일 경로 또는 키 문자열). 지정 시 private_key 미반환 |
+| `-o, --output <keyfile>` | keypair create | NHN 이 생성한 private_key 를 파일(mode 0600)로 저장 |
 
 전역 옵션: `--json` / `--quiet` / `--no-color`.
 
@@ -189,6 +195,21 @@ nhncloud instance delete <id> [options]         # 인스턴스 삭제
 - `--detail` 은 `GET /flavors/detail` — 테이블에 vcpus·ram(MB)·disk(GB)를 더한다.
 - 테이블은 핵심 5컬럼(id·name·vcpus·ram·disk)만 보여준다. is_public·extra_specs 등 나머지 필드는 `--json` 으로 확인한다.
 - `--min-disk`·`--min-ram` 은 그대로 쿼리 파라미터로 전달해 NHN API 가 필터링한다.
+
+### keypair 관리
+
+- `instance keypairs` — name·fingerprint 목록.
+  create 의 `--key-name` 에 넣을 키페어를 고르는 단계.
+- `instance keypair get <name>` — 단건 상세 (name·fingerprint·user_id·created_at·public_key).
+- `instance keypair create <name>` — 키페어 생성.
+  두 경로로 동작한다.
+  - `--public-key <path|key>` 지정: 기존 공개키를 등록한다.
+    NHN 은 private_key 를 만들지 않으므로 응답에 private_key 가 없다.
+  - 미지정: NHN 이 키쌍을 생성하고 응답에 **private_key 를 한 번만** 포함한다 (이후 `keypair get` 으로도 재조회 불가).
+    - `--output <keyfile>` 지정 시 private_key 를 mode 0600 파일로 원자적으로 저장한다 (자동화 권장).
+    - 미지정 시 stderr 에 "한 번만 표시됨" 경고와 함께 private_key 를 stdout 으로 출력한다.
+  - `--output` 과 `--public-key` 동시 지정은 모순이라 `EXIT_PARAM_ERROR` 로 차단한다 (등록 경로엔 private_key 가 없다).
+- `instance keypair delete <name>` — 삭제 (202/204 무응답).
 
 ### create 비동기 + `--wait`
 

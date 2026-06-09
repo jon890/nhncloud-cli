@@ -224,7 +224,25 @@ IP=$(nhncloud instance create --name ci-runner \
 
 # 인스턴스 삭제 (confirm 생략)
 nhncloud instance delete <instance-id> --yes
+
+# 키페어 목록 (name·fingerprint)
+nhncloud instance keypairs
+
+# 단일 키페어 조회
+nhncloud instance keypair get <keypair-name>
+
+# 키페어 생성 — NHN 이 키쌍 생성, private_key 를 0600 파일로 저장 (한 번만 받을 수 있음)
+nhncloud instance keypair create <keypair-name> -o ./my-key.pem
+
+# 기존 공개키 등록 (private_key 미반환)
+nhncloud instance keypair create <keypair-name> --public-key ~/.ssh/id_rsa.pub
+
+# 키페어 삭제
+nhncloud instance keypair delete <keypair-name>
 ```
+
+> **private_key 안내**: 키페어 생성 시 NHN 이 만든 private_key 는 생성 응답 **한 번만** 반환됩니다.
+> `-o <keyfile>` 로 저장하거나 stdout 을 안전한 곳에 보관하세요. 분실 시 복구할 수 없습니다.
 
 지원 region: `kr1` / `kr2` / `kr3` / `jp1` (`--region` 으로 override 가능).
 
