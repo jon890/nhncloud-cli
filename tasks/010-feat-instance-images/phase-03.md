@@ -135,11 +135,12 @@ grep -c "ADR-013" CLAUDE.md
 grep -c "instance images" CLAUDE.md
 # 기대: 1 이상
 
-# 4. flow/README/SKILL/code-architecture 모두 images 반영
+# 4. flow/README/SKILL/code-architecture 모두 "instance images" 신규 행 반영 (변별 토큰)
+#    주의: grep 'image' 는 기존 --image <id> 텍스트로도 통과(false-pass) → 신규 명령 토큰으로 검증
 for f in docs/flow.md README.md skills/nhncloud-cli/SKILL.md docs/code-architecture.md; do
-  echo "$f: $(grep -c 'image' "$f")"
+  echo "$f: $(grep -c 'instance images\|listImages\|images\.ts' "$f")"
 done
-# 기대: 각 파일 1 이상
+# 기대: 각 파일 1 이상 (code-architecture 는 listImages/images.ts, 나머지는 instance images)
 
 # 5. 개인 식별 정보 grep (CLAUDE.md 의 release 사전 점검 1) — 화이트리스트 밖 도메인 0건
 grep -rnoE "(https?://|@)[A-Za-z0-9.-]+\.(com|co\.kr|net)" README.md skills/ docs/ CLAUDE.md src/ 2>/dev/null \

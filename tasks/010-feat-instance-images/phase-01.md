@@ -248,7 +248,21 @@ grep -c "imageEndpoint" src/api/keystone.ts
 # 7. 캐시 가드가 imageEndpoint 검사
 grep -c 'imageEndpoint' src/cache/token-store.ts
 # 기대: 5 이상 (interface·guard·read 타입·read 반환·write)
+
+# 8. 실측 게이트 (필수 — estimate 로 완료 금지) — 추정값 주석이 남아 있으면 실측 미수행
+grep -c "실측 확정 전까지 추정값\|⚠️ 실측" src/api/endpoints.ts src/api/keystone.ts 2>/dev/null | awk -F: '{s+=$2} END{print s}'
+# 기대: 0 (실측으로 host/경로 확정 후 추정 경고 주석 제거 — estimate 잔존 금지)
 ```
+
+**실측 강제 절차 (MAJOR — estimate 완료 금지)**:
+phase-01 은 image host 패턴·`/v2/images` tenant 유무를 **실제 호출로 확정**한 뒤에만 완료로 본다.
+
+1. `playground_dev` profile 의 iaas 자격증명으로 실측한다 (이 profile 에 tenantId·username·password·region 존재 — 확인됨). GET /v2/images 는 읽기 전용이라 부작용 없음.
+   - Keystone 토큰 발급 → 추정 host `https://<region>-api-image-infrastructure.nhncloudservice.com/v2/images?limit=1` 을 `X-Auth-Token` 으로 호출해 HTTP status 확인.
+   - 200 이 아니면 (b) Keystone catalog 응답의 `type=="image"` publicURL 을 1회 덤프해 실제 host·경로 확정.
+2. 확정된 host 패턴·tenant 유무를 `endpoints.ts` IMAGE_HOST + `keystone.ts` imageEndpoint 에 반영하고 **`⚠️ 실측 확정 전까지 추정값` 경고 주석을 제거**한다 (성공 기준 #8 이 이를 검증).
+3. 실측 결과(확정 host·경로·HTTP status)를 team-lead 보고 + PR 본문에 기록한다.
+4. **자격증명 접근 불가 등으로 실측 자체가 불가능하면 estimate 로 완료하지 말고 `PHASE_BLOCKED: image endpoint 실측 불가 — 자격증명/네트워크 확인 필요` 로 보고**한다 (추측 머지 금지, CLAUDE.md API 스펙 절차).
 
 ## 수동 확인 (실측 — 자격증명 필요, 사용자/구현자 직접 수행)
 

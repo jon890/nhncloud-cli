@@ -282,7 +282,8 @@ export const imagesCommand = new Command("images")
     });
 
     // next 페이지 안내는 stderr(데이터 오염 금지). table 모드에서만.
-    if (result.next && opts.output !== "json" && opts.output !== "quiet") {
+    // OutputOptions(formatters/table.ts) 는 json?/quiet? boolean 이라 output 필드가 없다 — 두 플래그로 판정.
+    if (result.next && !opts.json && !opts.quiet) {
       const lastId = result.images.at(-1)?.id;
       if (lastId) {
         process.stderr.write(`다음 페이지: --marker ${lastId}\n`);
@@ -292,7 +293,8 @@ export const imagesCommand = new Command("images")
 ```
 
 > `--visibility` 의 `as (typeof VISIBILITY_VALUES)[number]` 는 `Array.includes` 의 리터럴 union 인자 제약을 만족시키기 위한 좁히기용 단언이다 — 값 자체를 강제 변환하지 않는다(5-3 의 "검증된 입력 좁히기" 정당 케이스). 데이터 응답 캐스트(`as Image[]`)와 다르다.
-> `opts.output` 의 실제 필드명은 `OutputOptions`(formatters/table.ts) 정의를 확인해 일치시킨다 — quiet/json 플래그가 별도 boolean 이면 그쪽을 쓴다(추측 금지).
+> table 모드 판정은 `!opts.json && !opts.quiet` 로 한다 — `OutputOptions` 에 `output` 문자열 필드는 없다 (json?/quiet? boolean).
+> 참고: index.json description 의 query 중 `size_min/max`·`sort_key/dir`·`member_status` 는 MVP 에서 의도적으로 제외하고 limit/marker/name/visibility/owner/status 만 노출한다.
 
 ### 5. `src/index.ts`
 

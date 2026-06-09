@@ -1,6 +1,6 @@
 import ky from "ky";
 import { readIaasToken, writeIaasToken } from "../cache/token-store.js";
-import { keystoneIdentityUrl, instanceHost } from "./endpoints.js";
+import { keystoneIdentityUrl, instanceHost, imageHost } from "./endpoints.js";
 import { toNhnCloudCliError } from "./httpError.js";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_API_ERROR } from "../utils/exit-codes.js";
@@ -39,18 +39,26 @@ export async function getIaasToken(
   profile: string,
   iaas: IaasCredential,
   forceRefresh = false,
-): Promise<{ tokenId: string; computeEndpoint: string }> {
+): Promise<{ tokenId: string; computeEndpoint: string; imageEndpoint: string }> {
   // 캐시 확인 (forceRefresh 시 건너뜀)
   if (!forceRefresh) {
     const cached = await readIaasToken(profile, iaas.region);
     if (cached !== null) {
-      return { tokenId: cached.tokenId, computeEndpoint: cached.computeEndpoint };
+      return {
+        tokenId: cached.tokenId,
+        computeEndpoint: cached.computeEndpoint,
+        imageEndpoint: cached.imageEndpoint,
+      };
     }
   }
 
   // region → host 검증 (미등록 region 은 EXIT_PARAM_ERROR)
   const host = instanceHost(iaas.region);
   const computeEndpoint = `https://${host}/v2/${encodeURIComponent(iaas.tenantId)}`;
+
+  // image(Glance v2): 같은 토큰 재사용, host 만 다르다.
+  // 실측 확정 (2026-06-09): tenant segment 없음 — GET /v2/images → 200, /v2/{tenantId}/images → 404.
+  const imageEndpoint = `https://${imageHost(iaas.region)}/v2`;
 
   // Keystone v2 토큰 발급
   let raw: unknown;
@@ -85,8 +93,8 @@ export async function getIaasToken(
 
   // forceRefresh 시 캐시에 저장하지 않음 (임시 검증 용도)
   if (!forceRefresh) {
-    await writeIaasToken(profile, iaas.region, { tokenId, expiresAt, computeEndpoint });
+    await writeIaasToken(profile, iaas.region, { tokenId, expiresAt, computeEndpoint, imageEndpoint });
   }
 
-  return { tokenId, computeEndpoint };
+  return { tokenId, computeEndpoint, imageEndpoint };
 }

@@ -50,12 +50,75 @@ export interface FlavorDetail extends Flavor {
   extra_specs?: Record<string, unknown>;
 }
 
+/** 이미지 요약 — `GET /v2/images` (Glance v2). 보장 필드는 docs 예제 기준. */
+export interface Image {
+  id: string;
+  /** Glance v2 스펙상 nullable (사용자 업로드 이미지에 이름이 없을 수 있음) */
+  name: string | null;
+  status: string;
+  visibility: string;
+  /** 바이트 크기 (없을 수 있음) */
+  size?: number;
+  owner?: string;
+  created_at?: string;
+}
+
+/** 이미지 목록 조회 쿼리 파라미터 (`GET /v2/images`). docs 의 query 이름 그대로. */
+export interface ImageListParams {
+  limit?: number;
+  marker?: string;
+  name?: string;
+  visibility?: string;
+  owner?: string;
+  status?: string;
+}
+
+/**
+ * 이미지 목록 결과 — marker 페이지네이션.
+ * `next` 는 다음 페이지 경로(있으면). 다음 페이지는 호출부가 marker 로 이어 받는다.
+ */
+export interface ImageListResult {
+  images: Image[];
+  next?: string;
+}
+
 /** flavor 목록 조회 쿼리 파라미터 (`GET /flavors`·`GET /flavors/detail` 공통) */
 export interface FlavorListParams {
   /** 최소 블록 스토리지 크기(GB) 이상만 필터 */
   minDisk?: number;
   /** 최소 RAM 크기(MB) 이상만 필터 */
   minRam?: number;
+}
+
+/** 키페어 요약 — `GET /os-keypairs` 의 각 원소 keypair (name·public_key·fingerprint 보장) */
+export interface Keypair {
+  name: string;
+  public_key: string;
+  fingerprint: string;
+}
+
+/** 키페어 상세 — `GET /os-keypairs/{name}` (요약 + 메타데이터) */
+export interface KeypairDetail extends Keypair {
+  user_id: string;
+  id: string;
+  created_at: string;
+}
+
+/** `POST /os-keypairs` 요청 파라미터 */
+export interface CreateKeypairParams {
+  name: string;
+  /** 등록할 기존 공개키. 정의 시에만 body 에 포함 (이때 private_key 응답 없음) */
+  publicKey?: string;
+}
+
+/**
+ * `POST /os-keypairs` 응답의 keypair.
+ * public_key 미지정 생성이면 `private_key` 가 1회성으로 포함된다 (이후 재조회 불가).
+ */
+export interface CreateKeypairResult extends Keypair {
+  user_id: string;
+  /** NHN 이 생성한 경우에만 1회성으로 포함. 등록(public_key 지정) 시 없음 */
+  private_key?: string;
 }
 
 /** `POST /servers` 요청 파라미터 */

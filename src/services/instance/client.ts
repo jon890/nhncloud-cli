@@ -2,7 +2,20 @@ import ky from "ky";
 import { toNhnCloudCliError } from "../../api/httpError.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_API_ERROR } from "../../utils/exit-codes.js";
-import type { Server, CreateServerParams, Flavor, FlavorDetail, FlavorListParams } from "./types.js";
+import type {
+  Server,
+  CreateServerParams,
+  Flavor,
+  FlavorDetail,
+  FlavorListParams,
+  Image,
+  ImageListParams,
+  ImageListResult,
+  Keypair,
+  KeypairDetail,
+  CreateKeypairParams,
+  CreateKeypairResult,
+} from "./types.js";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_POLL_INTERVAL_MS = 5_000;
@@ -37,6 +50,26 @@ function isFlavor(val: unknown): val is Flavor {
   if (typeof val !== "object" || val === null) return false;
   const obj = val as Record<string, unknown>;
   return typeof obj["id"] === "string" && typeof obj["name"] === "string";
+}
+
+function isImage(val: unknown): val is Image {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  return (
+    typeof obj["id"] === "string" &&
+    // Glance v2 스펙상 name 은 nullable — null 인 private 이미지 하나가 페이지 전체를 거부하지 않게 허용.
+    (typeof obj["name"] === "string" || obj["name"] === null) &&
+    typeof obj["status"] === "string" &&
+    typeof obj["visibility"] === "string"
+  );
+}
+
+function isImagesResponse(val: unknown): val is { images: Image[]; next?: string } {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  // next 는 술어가 약속하는 대로 undefined 또는 string 만 통과시킨다 (타입 약속 ↔ 런타임 일치).
+  const nextOk = obj["next"] === undefined || typeof obj["next"] === "string";
+  return Array.isArray(obj["images"]) && obj["images"].every(isImage) && nextOk;
 }
 
 function isFlavorsResponse(val: unknown): val is { flavors: Flavor[] } {
@@ -74,6 +107,62 @@ function isCreateResponse(val: unknown): val is { server: { id: string } } {
   return typeof (server as Record<string, unknown>)["id"] === "string";
 }
 
+// ── 키페어 타입 가드 ──────────────────────────────────────────────────────────
+
+function isKeypair(val: unknown): val is Keypair {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  return (
+    typeof obj["name"] === "string" &&
+    typeof obj["public_key"] === "string" &&
+    typeof obj["fingerprint"] === "string"
+  );
+}
+
+/** 목록 응답: { keypairs: [{ keypair: {...} }] } — 원소가 한 단계 더 감싸짐 */
+function isKeypairsResponse(val: unknown): val is { keypairs: { keypair: Keypair }[] } {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  return (
+    Array.isArray(obj["keypairs"]) &&
+    obj["keypairs"].every((e) => {
+      if (typeof e !== "object" || e === null) return false;
+      return isKeypair((e as Record<string, unknown>)["keypair"]);
+    })
+  );
+}
+
+/**
+ * 생성 응답: { keypair: Keypair (+ 생성 시 user_id·private_key) }.
+ * name·public_key·fingerprint 만 필수 검증하고 user_id·private_key 는 옵셔널 narrow —
+ * 호출부에서 `as string` 단언 없이 직접 접근하게 한다.
+ */
+function isCreateKeypairResponse(
+  val: unknown,
+): val is { keypair: Keypair & { user_id?: string; private_key?: string } } {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  return isKeypair(obj["keypair"]);
+}
+
+function isKeypairDetail(val: unknown): val is KeypairDetail {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  return (
+    typeof obj["name"] === "string" &&
+    typeof obj["public_key"] === "string" &&
+    typeof obj["fingerprint"] === "string" &&
+    typeof obj["user_id"] === "string" &&
+    typeof obj["id"] === "string" &&
+    typeof obj["created_at"] === "string"
+  );
+}
+
+function isKeypairDetailResponse(val: unknown): val is { keypair: KeypairDetail } {
+  if (typeof val !== "object" || val === null) return false;
+  return isKeypairDetail((val as Record<string, unknown>)["keypair"]);
+}
+
 // ── IP 주소 추출 helper ───────────────────────────────────────────────────────
 
 function hasIpAddress(server: Server): boolean {
@@ -85,10 +174,12 @@ function hasIpAddress(server: Server): boolean {
 export class InstanceClient {
   private readonly tokenId: string;
   private readonly computeEndpoint: string;
+  private readonly imageEndpoint: string;
 
-  constructor(tokenId: string, computeEndpoint: string) {
+  constructor(tokenId: string, computeEndpoint: string, imageEndpoint: string) {
     this.tokenId = tokenId;
     this.computeEndpoint = computeEndpoint;
+    this.imageEndpoint = imageEndpoint;
   }
 
   private authHeaders(): Record<string, string> {
@@ -317,6 +408,135 @@ export class InstanceClient {
         );
       }
       return raw.flavors;
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /** 키페어 목록을 조회한다 (GET /os-keypairs). 응답 원소의 한겹(keypair)을 풀어 반환. */
+  async listKeypairs(): Promise<Keypair[]> {
+    const url = `${this.computeEndpoint}/os-keypairs`;
+    try {
+      const raw = await ky
+        .get(url, { headers: this.authHeaders(), retry: 0, timeout: DEFAULT_TIMEOUT_MS })
+        .json();
+      if (!isKeypairsResponse(raw)) {
+        throw new NhnCloudCliError(
+          "instance keypairs 응답 형식이 올바르지 않습니다 — keypairs 배열이 없습니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return raw.keypairs.map((e) => e.keypair);
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /** 단일 키페어를 조회한다 (GET /os-keypairs/{name}). */
+  async getKeypair(name: string): Promise<KeypairDetail> {
+    const url = `${this.computeEndpoint}/os-keypairs/${encodeURIComponent(name)}`;
+    try {
+      const raw = await ky
+        .get(url, { headers: this.authHeaders(), retry: 0, timeout: DEFAULT_TIMEOUT_MS })
+        .json();
+      if (!isKeypairDetailResponse(raw)) {
+        throw new NhnCloudCliError(
+          `instance keypair get(${name}) 응답 형식이 올바르지 않습니다 — keypair 상세 필드가 없습니다.`,
+          EXIT_API_ERROR,
+        );
+      }
+      return raw.keypair;
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * 키페어를 생성한다 (POST /os-keypairs).
+   * publicKey 미지정이면 NHN 이 키쌍을 생성하고 응답 keypair 에 private_key 가 1회성으로 포함된다.
+   * publicKey 지정이면 기존 공개키를 등록하고 private_key 는 응답에 없다.
+   */
+  async createKeypair(params: CreateKeypairParams): Promise<CreateKeypairResult> {
+    const url = `${this.computeEndpoint}/os-keypairs`;
+    const keypairBody: Record<string, unknown> = { name: params.name };
+    if (params.publicKey !== undefined) {
+      keypairBody["public_key"] = params.publicKey;
+    }
+    let raw: unknown;
+    try {
+      raw = await ky
+        .post(url, {
+          headers: this.authHeaders(),
+          json: { keypair: keypairBody },
+          retry: 0,
+          timeout: DEFAULT_TIMEOUT_MS,
+        })
+        .json();
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+    if (!isCreateKeypairResponse(raw)) {
+      throw new NhnCloudCliError(
+        "instance keypair create 응답 형식이 올바르지 않습니다 — keypair 객체가 없습니다.",
+        EXIT_API_ERROR,
+      );
+    }
+    // 가드가 name·public_key·fingerprint 를 string 으로, user_id·private_key 를 옵셔널로 narrow — 단언 불필요.
+    const kp = raw.keypair;
+    return {
+      name: kp.name,
+      public_key: kp.public_key,
+      fingerprint: kp.fingerprint,
+      user_id: kp.user_id ?? "",
+      // 빈 문자열은 정의되지 않은 것과 동일 취급 — 빈 키 파일 저장/빈 줄 출력 방지.
+      private_key:
+        kp.private_key !== undefined && kp.private_key.length > 0 ? kp.private_key : undefined,
+    };
+  }
+
+  /** 키페어를 삭제한다 (DELETE /os-keypairs/{name}, 202/204 무응답). */
+  async deleteKeypair(name: string): Promise<void> {
+    const url = `${this.computeEndpoint}/os-keypairs/${encodeURIComponent(name)}`;
+    try {
+      await ky.delete(url, { headers: this.authHeaders(), retry: 0, timeout: DEFAULT_TIMEOUT_MS });
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * 이미지 목록을 조회한다 (GET /v2/images, Glance v2).
+   * compute 와 다른 host(imageEndpoint)지만 같은 Keystone 토큰을 쓴다.
+   * 한 페이지(기본 limit 25)만 반환한다 — next 가 있으면 호출부가 marker 로 이어 받는다.
+   */
+  async listImages(params: ImageListParams = {}): Promise<ImageListResult> {
+    const url = `${this.imageEndpoint}/images`;
+
+    const searchParams: Record<string, string | number> = {};
+    if (params.limit !== undefined) searchParams["limit"] = params.limit;
+    if (params.marker !== undefined) searchParams["marker"] = params.marker;
+    if (params.name !== undefined) searchParams["name"] = params.name;
+    if (params.visibility !== undefined) searchParams["visibility"] = params.visibility;
+    if (params.owner !== undefined) searchParams["owner"] = params.owner;
+    if (params.status !== undefined) searchParams["status"] = params.status;
+
+    try {
+      const raw = await ky
+        .get(url, {
+          headers: this.authHeaders(),
+          searchParams,
+          retry: 0,
+          timeout: DEFAULT_TIMEOUT_MS,
+        })
+        .json();
+
+      if (!isImagesResponse(raw)) {
+        throw new NhnCloudCliError(
+          "instance images 응답 형식이 올바르지 않습니다 — images 배열이 없습니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return { images: raw.images, next: raw.next };
     } catch (err) {
       throw toNhnCloudCliError(err);
     }

@@ -76,11 +76,11 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, appkey·
 
 ```
 ~/.nhncloud/cache/deploy-token-<profile>.json   # { accessToken, expiresAt } — mode 0600
-~/.nhncloud/cache/iaas-token-<profile>-<region>.json   # { tokenId, expiresAt, computeEndpoint } — mode 0600
+~/.nhncloud/cache/iaas-token-<profile>-<region>.json   # { tokenId, expiresAt, computeEndpoint, imageEndpoint } — mode 0600
 ```
 
 - deploy — OAuth `access_token` 을 만료시각과 함께 저장 ([[adr-007]])
-- iaas — Keystone token + region 별 정적 host 맵으로 구성한 compute endpoint 캐시 ([[adr-005]], [[adr-010]])
+- iaas — Keystone token + region 별 정적 host 맵으로 구성한 compute·image endpoint 캐시 ([[adr-005]], [[adr-010]], [[adr-013]])
 - 만료 전 재사용, 만료 시 재발급. logncrash 는 토큰 캐시 불필요
 
 ## profile 해석 순서

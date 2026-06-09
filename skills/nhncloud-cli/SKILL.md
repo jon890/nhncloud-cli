@@ -1,12 +1,12 @@
 ---
 name: nhncloud-cli
-description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색(logncrash search), Deploy 배포 실행·바이너리 그룹·바이너리 목록 조회, Compute 인스턴스 관리(instance — 목록·발급·전원 제어) 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
+description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색(logncrash search), Deploy 배포 실행·바이너리 그룹·바이너리 목록 조회, Compute 인스턴스 관리(instance — 목록·발급·전원 제어·키페어·이미지) 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
 ---
 
 # nhncloud-cli
 
 NHN Cloud PaaS 서비스를 AWS CLI 방식으로 호출하는 TypeScript CLI.
-`configure`, `logncrash search`, `deploy`, `instance` 명령을 지원한다.
+`configure`, `logncrash search`, `deploy`, `instance` (전원 제어·keypair 포함) 명령을 지원한다.
 
 ## 설치
 
@@ -318,8 +318,13 @@ NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
 | 의도 | 커맨드 |
 |------|--------|
 | 인스턴스 목록 조회 | `nhncloud instance list` |
+| 이미지 목록 조회 | `nhncloud instance images` (create --image 소스, 전체 필드는 `--json`) |
+| 특정 노출 범위 이미지 | `nhncloud instance images --visibility public` |
 | 인스턴스 타입(flavor) 목록 | `nhncloud instance flavors` |
 | 인스턴스 타입 상세 (스펙 포함) | `nhncloud instance flavors --detail` (전체 필드는 `--json`) |
+| 키페어 목록 | `nhncloud instance keypairs` |
+| 키페어 생성 (키 저장) | `nhncloud instance keypair create <keypair-name> -o ./key.pem` |
+| 키페어 삭제 | `nhncloud instance keypair delete <keypair-name>` |
 | 특정 인스턴스 상태 조회 | `nhncloud instance get <id>` |
 | 인스턴스 생성 (즉시 반환) | `nhncloud instance create --name <name> --flavor <id> --image <id> --network <uuid>` |
 | 인스턴스 생성 + ACTIVE 대기 | `nhncloud instance create ... --wait` |
@@ -337,6 +342,15 @@ NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
 - `nhncloud instance stop <id>` — 동작 중인(ACTIVE) 인스턴스를 끈다 (→ SHUTOFF).
 - `nhncloud instance reboot <id>` — 재부팅한다. 기본은 SOFT(OS graceful), `--hard` 는 강제 전원 cycle.
 - 세 명령 모두 요청만 보내고(202 무본문) 상태 전이는 비동기다. 전이 확인은 `nhncloud instance get <id>` 로 한다.
+
+### instance keypair 관리
+
+- `nhncloud instance keypairs` — 키페어 name·fingerprint 목록.
+  create 의 `--key-name` 에 넣을 키를 고를 때 사용한다.
+- `nhncloud instance keypair create <keypair-name> -o <keyfile>` — NHN 이 키쌍을 생성하고 private_key 를 `<keyfile>` 에 mode 0600 으로 저장한다.
+  **private_key 는 생성 시 한 번만 받을 수 있으므로** 자동화에서는 항상 `-o` 로 저장한다.
+- `--public-key <path|key>` 로 기존 공개키를 등록하면 private_key 는 반환되지 않는다.
+- `nhncloud instance keypair delete <keypair-name>` — 삭제.
 
 ### instance flavors 조회
 
