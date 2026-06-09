@@ -175,6 +175,7 @@ tasks/
 6. **구체적 시그니처**: 생성할 함수의 이름, 파라미터, 반환 타입 명시
 7. **성공 기준에 모든 작업 검증 포함**: grep/test/diff/build 명령으로 표현
 8. **Blocked 조건**: 자동 복구 불가능한 상황의 마커 (`PHASE_BLOCKED: ...`)
+9. **성공 기준 bash 블록의 `# cwd:` 는 절대경로 금지 → `<레포 루트>` 플레이스홀더**: build-with-teams 로 실행하면 worktree(`feat/{plan}` branch) 에서 돌므로 main repo 절대경로를 박으면 executor 가 main working tree 를 오염시킨다. 실행 주체(team-lead)가 worktree 절대경로를 executor 스폰 프롬프트로 전달한다. (pitfall 1-17 — PR #1/#2/#9 세 번 재발한 근원 패턴)
 
 ## CLI 레이어 phase 가이드 (dooray-cli)
 

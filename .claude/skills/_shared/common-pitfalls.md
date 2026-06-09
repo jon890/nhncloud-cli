@@ -306,6 +306,7 @@ grep -nE "selectOne|mandatory|MandatoryGroups|SelectOneGroups" src/resolvers/tag
 
 **Why**: PR #1 (plan001) — plan-and-build 표준으로 작성된 task 를 build-with-teams 로 실행. critic 이 phase-07 의 commit/push 책임 충돌 + 7개 phase cwd 하드코딩을 REVISE 로 잡음. plan-and-build 표준 task 를 build-with-teams 로 재실행할 때마다 재발 가능.
   PR #2 (plan002) 재발 확인 — phase-06 이 동일하게 commit/push 를 담고 6개 phase cwd 가 main 절대경로였음. critic 이 다시 CRITICAL 로 잡음. 두 번 연속 재발했으므로 근원(`planning` / `task-create`)에서 마지막 phase 를 "마킹만 + cwd 플레이스홀더" 로 생성하도록 고치는 것이 정석. 그 전까지는 critic 단계 보정에 의존.
+  PR #9 (plan007) 세 번째 재발 — phase-01/02 의 `# cwd:` 가 main repo 절대경로. critic 이 MAJOR 로 잡아 worktree 경로로 보정 후 APPROVE. 근원 수정 착수 — plan-and-build SKILL "Phase 프롬프트 작성 핵심 규칙" 9번에 "성공 기준 bash 블록 cwd 는 절대경로 금지 → `<레포 루트>` 플레이스홀더" 규칙 추가. 이후 task 생성부터 cwd 하드코딩이 안 나오는지 확인 필요.
 
 ## 1-18. 신규 명령 task 가 영향 표 필수 사용자 가이드 docs 를 "범위 외" 로 스킵
 
