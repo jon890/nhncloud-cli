@@ -168,8 +168,8 @@ export class DeployClient {
    */
   async binaryGroups(appKey: string, artifactId: string): Promise<BinaryGroup[]> {
     const url =
-      `${this.baseUrl}/api/v2.1/projects/${appKey}` +
-      `/artifacts/${artifactId}/binary-groups`;
+      `${this.baseUrl}/api/v2.1/projects/${encodeURIComponent(appKey)}` +
+      `/artifacts/${encodeURIComponent(artifactId)}/binary-groups`;
 
     try {
       const res = await ky
@@ -205,8 +205,8 @@ export class DeployClient {
     params: BinaryListParams = {},
   ): Promise<{ totalCount: number; binaries: Binary[] }> {
     const url =
-      `${this.baseUrl}/api/v2.1/projects/${appKey}` +
-      `/artifacts/${artifactId}/binary-groups/${binaryGroupKey}/binaries`;
+      `${this.baseUrl}/api/v2.1/projects/${encodeURIComponent(appKey)}` +
+      `/artifacts/${encodeURIComponent(artifactId)}/binary-groups/${binaryGroupKey}/binaries`;
 
     const searchParams: Record<string, string | number> = {};
     if (params.pageNum !== undefined) searchParams["pageNum"] = params.pageNum;
@@ -232,7 +232,15 @@ export class DeployClient {
           EXIT_API_ERROR,
         );
       }
-      const totalCount = typeof body.totalCount === "number" ? body.totalCount : list.length;
+      // totalCount 는 number 가 정상이나 string("123") 으로 올 수 있어(resultCode 처럼 타입 혼재)
+      // 숫자 문자열이면 변환해 "전체 항목 수" 의미를 보존한다. 그 외에만 현재 페이지 길이로 fallback.
+      const tc = body.totalCount;
+      const totalCount =
+        typeof tc === "number"
+          ? tc
+          : typeof tc === "string" && /^\d+$/.test(tc)
+            ? Number(tc)
+            : list.length;
       return { totalCount, binaries: list };
     } catch (err) {
       throw toNhnCloudCliError(err);

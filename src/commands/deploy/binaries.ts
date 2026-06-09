@@ -17,14 +17,20 @@ interface BinariesGlobalOpts extends OutputOptions {
   profile?: string;
 }
 
-/** 옵션 문자열을 양의 정수로 파싱. 비숫자·0 이하면 EXIT_PARAM_ERROR. */
+/**
+ * 옵션 문자열을 양의 정수로 파싱. 양의 정수 표기(`[1-9]\d*`)만 허용한다.
+ * 정규식 사전 검증으로 빈 문자열·소수·지수 표기(`1e2`)·공백을 일관되게 거른다
+ * (`Number()` 만으로는 `"1e2"`→100, `""`→0 이 새어 들어온다).
+ */
 function parsePositiveInt(value: string | undefined, flag: string): number | undefined {
   if (value === undefined) return undefined;
-  const n = Number(value);
-  if (!Number.isInteger(n) || n <= 0) {
-    throw new NhnCloudCliError(`${flag} 는 1 이상의 정수여야 합니다 (입력: ${value}).`, EXIT_PARAM_ERROR);
+  if (!/^[1-9]\d*$/.test(value)) {
+    throw new NhnCloudCliError(
+      `${flag} 는 1 이상의 정수여야 합니다 (입력: ${JSON.stringify(value)}).`,
+      EXIT_PARAM_ERROR,
+    );
   }
-  return n;
+  return Number(value);
 }
 
 export const binariesCommand = new Command("binaries")
@@ -78,13 +84,15 @@ export const binariesCommand = new Command("binaries")
     // ── 5. 출력 (0건도 output() 한 경로로 — 7-2; binarySize 단위는 bytes 헤더 명시) ──
     output(opts, {
       headers: ["binaryKey", "version", "binaryName", "size(bytes)", "uploadDate", "uploader"],
+      // 가드는 binaryKey·binarySize 만 검증 — 나머지 필드는 응답에서 누락 시 "undefined" 가
+      // 표에 박히지 않게 ?? "" 로 방어한다 (타입 정합성 실측은 후속 이슈).
       rows: result.binaries.map((b) => [
         String(b.binaryKey),
-        b.version,
-        b.binaryName,
+        b.version ?? "",
+        b.binaryName ?? "",
         String(b.binarySize),
-        b.uploadDate,
-        b.uploader,
+        b.uploadDate ?? "",
+        b.uploader ?? "",
       ]),
       // raw 에 totalCount 포함 → --json 으로 페이지 정보 확인 가능
       raw: result,

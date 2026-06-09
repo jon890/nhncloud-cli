@@ -42,12 +42,13 @@ export const binaryGroupsCommand = new Command("binary-groups")
     // ── 4. 출력 (0건도 output() 한 경로로 — 7-2) ──
     output(opts, {
       headers: ["key", "name", "regionCode", "createDate", "description"],
+      // 가드는 key·name 만 검증 — 나머지 필드는 누락 시 "undefined" 가 박히지 않게 ?? "" 방어.
       rows: groups.map((g) => [
         String(g.key),
-        g.name,
-        g.regionCode,
-        g.createDate,
-        g.description,
+        g.name ?? "",
+        g.regionCode ?? "",
+        g.createDate ?? "",
+        g.description ?? "",
       ]),
       raw: groups,
       // ids 에 key 를 넣어 --quiet 시 그룹 key 만 출력 → binaries --binary-group 에 파이프 가능
