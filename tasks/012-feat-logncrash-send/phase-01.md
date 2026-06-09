@@ -15,51 +15,20 @@
 - 요청 body 선택: `logSource`(기본 "http")·`logType`(기본 "log")·`host`·`sendTime`·`logLevel`(DEBUG/INFO/WARN/ERROR/FATAL)
 - 사용자 정의 필드: `txt*`(전문검색)·`long*`(정수)·`double*`(실수) prefix — 이번 phase 범위 밖(후속)
 - 제한: 요청당 52MB, 단일 로그(JSON) 8MB
-- 응답: `header.{ isSuccessful, resultCode(숫자), resultMessage }` — 기존 `unwrap` 이 `isSuccessful` 로만 판정하므로 숫자 resultCode 를 그대로 수용한다 ([[adr-006]])
+- 응답: 검색과 같은 **중첩 봉투** `{ header: { isSuccessful, resultCode(숫자 0=성공), resultMessage } }` — 공식 docs 수집(collector) API 가이드 예제로 확정 (flat 아님). `isSuccessful` 로만 판정하고 숫자 resultCode 를 그대로 수용한다 ([[adr-006]]). body 는 없을 수 있어 쓰지 않는다.
 
-## ADR 동반 — ADR-014
+## 결정 docs 는 team-lead 가 docs-first 로 이미 반영함 (이 phase 범위 밖)
 
-이 task 는 **검색과 별도 collector host + appkey-only 인증(secret 불요)** 라는 직관에 반하는 동작을 도입하므로 ADR 을 동반한다.
+ADR-014 + `CLAUDE.md`(카운트 22·ADR 참조 표·인증 모델 collector 행) + `docs/flow.md`(send 흐름) + `docs/code-architecture.md`(endpoints collector·client send·send.ts 트리) 는 **결정 docs 라 phase 안에서 편집 금지** (planning SKILL 갱신 시점 분리 / common-pitfalls 1-18). team-lead 가 이 branch 의 직전 commit (`docs: add ADR-014 ...`) 으로 이미 반영했다.
+executor 는 **이 docs 들을 건드리지 않는다.** 코드만 작성한다. (공개 docs README/SKILL 은 phase-02 에서.)
 
-> ADR 번호 주의: 현재 `docs/adr.md` 최대 ADR-013 (images task 가 사용), 그 다음이므로 **이 task 는 ADR-014** 를 쓴다.
-
-`docs/adr.md` 맨 끝(ADR-013 다음)에 아래 ADR-014 초안을 추가한다:
-
-```markdown
-<a id="adr-014"></a>
-
-## ADR-014: Log & Crash collector — 검색과 별도 host + appkey-only 인증(secret 불요)
-
-- **결정**: 로그 전송(`logncrash send`)은 검색과 다른 collector host 와 인증 모델을 쓴다.
-  - host: `POST https://api-logncrash.nhncloudservice.com/v2/log` (검색의 `api-lncs-search` 와 별도)
-  - 인증: 헤더 인증 없음 — body 의 `projectName` 필드에 appkey 를 넣어 프로젝트를 식별한다 (검색의 `X-LNCS-SECRET` 와 다른 모델, secret 불요)
-  - `endpoints.ts` 의 `ENDPOINTS` 맵에 `logncrash-collector` 키를 추가해 검색(`logncrash`)과 분리한다.
-- **맥락**: Log & Crash 는 검색(read)과 수집(write)의 host·인증이 서로 다르다.
-  - 검색은 secret 기반 헤더 인증(`X-LNCS-SECRET`), 수집은 appkey 만으로 식별(secret 불요).
-  - 두 동작을 같은 host·인증으로 가정하면 전송이 401 또는 404 로 실패한다.
-- **대안 기각**:
-  - 검색 host 재사용 — 수집 엔드포인트가 없어 404.
-  - `X-LNCS-SECRET` 헤더 전송 — 수집은 헤더 인증을 받지 않으며 secret 을 요구하지 않는다.
-  - endpoints 맵 키 공유(`logncrash` 하나) — read/write host 가 달라 한 키로 둘을 못 가린다. 별 키(`logncrash-collector`)로 분리.
-- **트레이드오프**: 한 서비스(logncrash)가 endpoints 맵에서 키 2개를 갖는다. host 가 실제로 다르므로 분리가 정직하다.
-```
-
-`CLAUDE.md` 의 "상황별 ADR 필수 참조" 표에 행을 추가한다:
-
-```markdown
-| Log & Crash 로그 전송 (collector host·appkey-only 인증) | ADR-014 |
-```
-
-## 변경 파일 (8개)
+## 변경 파일 (5개 — 코드만)
 
 1. `src/api/endpoints.ts` — `ENDPOINTS` 맵에 `logncrash-collector` 키 추가
-2. `src/services/logncrash/types.ts` — `LogSendParams` 추가
+2. `src/services/logncrash/types.ts` — `LogLevel` + `LogSendParams` 추가
 3. `src/services/logncrash/client.ts` — `send()` 메서드 추가
 4. `src/commands/logncrash/send.ts` — 신규 명령
 5. `src/index.ts` — `logncrashCommand.addCommand(sendCommand)`
-6. `docs/adr.md` — ADR-014 초안 추가
-7. `CLAUDE.md` — 명령 카운트(실제 base 직접 확인 후 +1, 현재 21→22) + 인증 모델 표(collector 행) + ADR 참조 표(ADR-014 행)
-8. `docs/flow.md` + `docs/code-architecture.md` — logncrash 흐름에 send / client send + endpoints collector + ADR-014 역참조
 
 ## 회피 항목 (code-review-pitfalls 사전 확인)
 
@@ -318,34 +287,11 @@ import { sendCommand } from "./commands/logncrash/send.js";
 logncrashCommand.addCommand(sendCommand);
 ```
 
-### 6. `docs/adr.md`
+### (결정 docs 는 executor 범위 밖)
 
-위 "ADR 동반 — ADR-014" 의 초안 블록을 파일 맨 끝(ADR-013 다음)에 추가.
+`docs/adr.md`(ADR-014) · `CLAUDE.md` · `docs/flow.md` · `docs/code-architecture.md` 는 team-lead 가 docs-first commit 으로 이미 반영했다. executor 는 손대지 않는다.
 
-### 7. `CLAUDE.md` (내부 docs — 이 phase 안에서 갱신)
-
-- "지원 명령 (N개)" 카운트를 실제 base 에서 +1 갱신 (현재 base 21개 → 22개. executor 는 갱신 직전 `grep '지원 명령' CLAUDE.md` 로 실제 base 확인 후 +1), `logncrash send` 항목 추가:
-  ```markdown
-  - `logncrash send` — 로그를 Log & Crash 로 전송 (검색의 대칭 쓰기, collector host + appkey-only 인증·ADR-014). 본문은 `--body`/`--file`/stdin, 단일 로그 8MB 한도.
-  ```
-- "상황별 ADR 필수 참조" 표에 행 추가:
-  ```markdown
-  | Log & Crash 로그 전송 (collector host·appkey-only 인증) | ADR-014 |
-  ```
-- "NHN Cloud 인증 모델" 표에 collector 행 추가:
-  ```markdown
-  | Log & Crash 전송(collector) | appkey (secret 불요) | 인증 헤더 없음 — body 의 projectName=appkey |
-  ```
-
-### 8. `docs/flow.md` + `docs/code-architecture.md`
-
-- `docs/flow.md` — "logncrash search 흐름" 섹션 **다음** 에 "logncrash send 흐름" 절을 추가 (명령 시그니처 표 + 입력 해석 순서 --body>--file>stdin + 8MB 한도 + 에러 경로 표). search 흐름의 표 형식을 따른다. collector host·appkey-only 인증을 [[adr-014]] 로 역참조.
-- `docs/code-architecture.md`:
-  - `services/logncrash/client.ts` 주석을 `LogncrashClient — search() / send()` 로 갱신.
-  - `commands/logncrash/` 트리에 `send.ts` 줄 추가 (`# nhncloud logncrash send`).
-  - `api/endpoints.ts` 인접 또는 "인증·엔드포인트 추상화" 절에 collector 키(`logncrash-collector`) 와 [[adr-014]] 역참조 한 줄 추가.
-
-## 성공 기준 (검증 명령 + 기대값)
+## 성공 기준 (검증 명령 + 기대값 — executor 코드 산출물 한정)
 
 ```bash
 # cwd: <repo root 또는 plan012 worktree>
@@ -366,13 +312,17 @@ node dist/index.js logncrash --help 2>&1 | grep -c "send"
 node dist/index.js logncrash send --help 2>&1 | grep -Ec -- "--body|--file|--level|--version|--source|--type|--host"
 # 기대: 7
 
+# 4b. --version 이 CLI 버전 플래그가 아니라 projectVersion 옵션으로 파싱되는지 (MINOR 3 — Commander version 플래그 충돌 점검)
+#     send 는 .version() 을 호출하지 않으므로 subcommand 레벨 --version <ver> 은 일반 옵션이어야 한다.
+echo "hi" | node dist/index.js logncrash send --version 9.9.9 --level BOGUS; echo "exit=$?"
+# 기대: CLI 버전("0.3.0")을 출력하고 종료하지 않고, --level BOGUS 검증까지 도달해 exit=3
+#       (만약 "0.3.0" 만 출력하고 exit=0 이면 --version 이 버전 플래그로 가로채진 것 → --app-version 등으로 rename 필요)
+
 # 5. exit code 리터럴 미사용 (9-1)
 grep -nE "NhnCloudCliError\([^,]+,\s*[0-9]+" src/commands/logncrash/send.ts | wc -l
 # 기대: 0
 
-# 6. send 가 secret 을 읽지 않음 (ADR-014 / 2-4) — cred.secret / X-LNCS-SECRET 미등장
-grep -nE "cred\.secret|X-LNCS-SECRET" src/commands/logncrash/send.ts src/services/logncrash/client.ts | grep -v "search" | grep "send" | wc -l
-# 보조 확인: send.ts 에는 cred.secret 참조가 없어야 함
+# 6. send 가 secret 을 읽지 않음 (ADR-014 / 2-4) — send.ts 에 cred.secret 참조 없음
 grep -c "cred.secret" src/commands/logncrash/send.ts
 # 기대: 0
 
@@ -380,9 +330,9 @@ grep -c "cred.secret" src/commands/logncrash/send.ts
 grep -nE "appkey\s*\?\?\s*\"\"" src/commands/logncrash/send.ts | wc -l
 # 기대: 0
 
-# 8. collector 키가 endpoints 에 등록
+# 8. collector 키가 endpoints 에 등록 (맵 정의 1회)
 grep -c "logncrash-collector" src/api/endpoints.ts
-# 기대: 2  (맵 정의 1 + 없으면 1; 최소 1 이상 — 정의에 1회면 1)
+# 기대: 1
 
 # 9. 본문 없음(파이프 아님·옵션 없음) → EXIT_PARAM_ERROR(3)
 node dist/index.js logncrash send < /dev/null; echo "exit=$?"
@@ -393,19 +343,7 @@ node dist/index.js logncrash send < /dev/null; echo "exit=$?"
 echo "hello" | node dist/index.js logncrash send --level BOGUS; echo "exit=$?"
 # 기대: stderr 에 "DEBUG/INFO/WARN/ERROR/FATAL", exit=3
 
-# 11. ADR-014 가 adr.md 에 추가
-grep -c "ADR-014" docs/adr.md
-# 기대: 1 이상
-
-# 12. CLAUDE.md 명령 카운트 갱신 (base 21개 → 22개)
-grep -c "지원 명령 (22개)" CLAUDE.md
-# 기대: 1
-
-# 13. CLAUDE.md ADR 참조 표 + 인증 모델 표에 collector 반영
-grep -c "ADR-014" CLAUDE.md
-# 기대: 1 이상
-grep -c "collector" CLAUDE.md
-# 기대: 1 이상
+# (11~13 결정 docs grep 은 제거 — adr.md/CLAUDE.md 는 team-lead 가 docs-first 로 반영, docs-verifier 가 검증)
 
 # 14. spinner-before-validation 회귀 없음 (1-2) — resolveBody/검증이 startSpinner 보다 앞
 awk '/\.action\(async/,/^  \}\)\;/' src/commands/logncrash/send.ts | grep -nE "(startSpinner|resolveBody\(|MAX_LOG_BYTES)" | head -4
