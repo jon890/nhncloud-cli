@@ -54,7 +54,8 @@ function isImage(val: unknown): val is Image {
   return (
     typeof obj["id"] === "string" &&
     typeof obj["name"] === "string" &&
-    typeof obj["status"] === "string"
+    typeof obj["status"] === "string" &&
+    typeof obj["visibility"] === "string"
   );
 }
 
