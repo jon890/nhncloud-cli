@@ -1,7 +1,7 @@
 # nhncloud-cli
 
 NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 통합 CLI.
-현재 `logncrash search` (Log & Crash 로그 검색) 를 지원한다.
+`configure`, `logncrash search`, `deploy`, `instance` 명령군을 지원한다.
 
 ## 설치
 
@@ -167,6 +167,15 @@ nhncloud logncrash search --query '*' --from 1d --to now --json | jq '.totalItem
 ```bash
 # 인스턴스 목록 조회
 nhncloud instance list
+
+# 이미지 목록 (create --image <id> 에 넣을 image id 확인)
+nhncloud instance images
+
+# public 이미지만, 전체 필드 JSON
+nhncloud instance images --visibility public --json
+
+# 페이지네이션 — 다음 페이지
+nhncloud instance images --limit 20 --marker <last-image-id>
 
 # 인스턴스 타입(flavor) 목록 — id·name 만
 nhncloud instance flavors

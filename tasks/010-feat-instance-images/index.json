@@ -2,9 +2,9 @@
   "name": "010-feat-instance-images",
   "description": "instance images 명령 추가 — 이미지 목록 조회 (create --image <id> 에 넣을 image id 소스). GET /v2/images (Glance v2 — service catalog type 이 compute 가 아니라 image, tenantId path segment 없음). 핵심: endpoint 해석을 compute 외 type 으로 확장하는 첫 사례 → ADR-013 동반. ADR-005 의 정적 host 맵 노선 유지(catalog 동적 파싱 기각): endpoints.ts 에 IMAGE host 맵 추가, getIaasToken 반환에 imageEndpoint 추가, iaas-token 캐시 구조 확장. image host 패턴(<region>-api-image-infrastructure.nhncloudservice.com 추정)과 /v2/images 의 tenant 유무는 미확인 — phase-01 에서 실제 호출로 확인 후 확정(추측 구현 금지). query: limit·marker·name·visibility·owner·status·size_min/max·sort_key/dir·member_status. 응답: images[].{id,name,status,visibility,size,owner,created_at} + next(marker 페이지네이션). 인증은 기존 Keystone X-Auth-Token 재사용. phase 3분할 — endpoint 확장 선행, images 명령, ADR+docs.",
   "created_at": "2026-06-09T00:00:00Z",
-  "updated_at": "2026-06-09T00:00:00Z",
-  "status": "pending",
-  "current_phase": 1,
+  "updated_at": "2026-06-09T12:00:00Z",
+  "status": "completed",
+  "current_phase": 3,
   "total_phases": 3,
   "error_message": null,
   "blocked_reason": null,
@@ -13,7 +13,7 @@
       "number": 1,
       "title": "endpoint 해석 확장 — IMAGE host 맵 + imageEndpoint(keystone/token-store) + 실측",
       "file": "phase-01.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     },
@@ -21,7 +21,7 @@
       "number": 2,
       "title": "images 조회 명령 — types Image / client listImages(페이지네이션) / command / index 등록",
       "file": "phase-02.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     },
@@ -29,7 +29,7 @@
       "number": 3,
       "title": "ADR-013 반영 + 공개 docs(README/SKILL/flow/code-architecture/CLAUDE.md) + 완료 마킹",
       "file": "phase-03.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     }

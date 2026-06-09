@@ -14,6 +14,7 @@
 - [ADR-010](#adr-010): IaaS Keystone 토큰 인증 + region 별 compute endpoint 캐시
 - [ADR-011](#adr-011): Instance 발급 — boot-from-volume 필수 + POST 축약 응답
 - [ADR-012](#adr-012): instance create user_data — base64 주입 + 65535 인코딩 후 한도
+- [ADR-013](#adr-013): IaaS 멀티 서비스 endpoint 해석 — image catalog host 맵 추가 (정적 맵 유지)
 
 ---
 
@@ -182,3 +183,28 @@
 - **대안 기각**:
   - client 에서 인코딩(이슈 초안) — 한도 검증을 위해 command 에서 또 인코딩해야 해 이중 작업이 된다. command 단일 인코딩이 fail-fast + 중복 제거.
   - 인코딩 전 65535 검증 — docs 문구와 어긋나고 API 가 거부할 요청을 과소 차단한다.
+
+---
+
+<a id="adr-013"></a>
+
+## ADR-013: IaaS 멀티 서비스 endpoint 해석 — image catalog host 맵 추가 (정적 맵 유지)
+
+- **결정**: image(Glance v2) endpoint 도 compute 와 동일하게 region 별 **정적 host 맵**으로 해석한다.
+  - `endpoints.ts` 에 `IMAGE_HOST` 맵 + `imageHost(region)` 추가.
+  - `getIaasToken` 이 `computeEndpoint` 와 `imageEndpoint` 를 함께 반환하고, 한 토큰 캐시에 같이 보관한다.
+  - image 는 compute 와 다른 host(`<region>-api-image-infrastructure.nhncloudservice.com`, 실측 확정)지만 **같은 Keystone 토큰**(`X-Auth-Token`)을 재사용한다.
+  - Glance 경로는 compute 의 `/v2/{tenantId}/...` 와 달리 tenant segment 가 없다(`/v2/images`, 실측 확정: GET /v2/images → 200, GET /v2/{tenantId}/images → 404).
+- **맥락**: instance images 는 service catalog type 이 compute 가 아니라 image 인 첫 명령이다.
+  - 기존 코드는 compute host 만 정적 맵으로 갖고 serviceCatalog 를 파싱하지 않는다([[adr-005]]).
+  - region 별 image host 도 compute 와 같은 정적 패턴이라 맵 한 개를 더해 해결된다.
+- **대안 기각**:
+  - **serviceCatalog 동적 파싱** — 토큰 발급 응답에서 type 별 endpoint 를 추출하면 host 맵이 필요 없어진다.
+    하지만 토큰마다 catalog 파싱이 붙고(가드·실패 처리 증가), 캐시 구조도 type 별 endpoint 맵으로 커진다.
+    서비스가 image 하나 더 느는 시점에 동적 파싱까지 도입하는 것은 과하다 — [[adr-005]] 의 정적 맵 노선을 연장한다.
+    (서비스 type 이 더 늘어 맵 관리가 부담이 되는 시점에 재검토한다.)
+  - **profile 에 endpoint 직접 저장** — 설정 부담 + region override 와 충돌.
+- **트레이드오프**:
+  - region 코드가 compute·image 두 host 맵에 중복된다 — region 추가 시 동기화 누락 위험.
+    두 맵 key 집합 일치를 빌드 검증(grep)으로 가드한다.
+  - host 패턴·tenant 유무를 docs 만으로 확정하지 못해 실측으로 확정했다(추측 구현 금지).
