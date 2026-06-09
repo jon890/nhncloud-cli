@@ -32,6 +32,7 @@ AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트�
 - `nhncloud instance` — Compute 인스턴스 제어 (OpenStack Nova v2 호환, ephemeral CI runner 자동화)
   - `create` — 발급 (비동기 기본, `--wait` 로 ACTIVE+IP 대기)
   - `list` / `get <id>` / `delete <id>` — 조회·삭제 (`--yes` 로 즉시 삭제)
+  - `flavors` — 인스턴스 타입(flavor) 목록·상세 조회 (`--detail`, `--min-disk`/`--min-ram` 필터)
   - GPU 인스턴스도 같은 명령으로 — GPU flavor id 를 `--flavor` 에 넘기면 된다 (NHN docs 가 API 호환성을 명시하진 않지만 동일 Nova v2 카탈로그를 공유)
 - profile 기반 자격증명 (`~/.nhncloud/credentials.json` + `~/.nhncloud/config.json`)
 - 출력 3모드 — 테이블 / `--json` / `--quiet`

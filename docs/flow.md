@@ -154,6 +154,7 @@ OpenStack Nova v2 호환 Compute 명령군. Keystone 토큰을 발급해 region 
 
 ```
 nhncloud instance list [options]                # 인스턴스 목록
+nhncloud instance flavors [options]             # 인스턴스 타입(flavor) 조회
 nhncloud instance get <id> [options]            # 단일 인스턴스 상태 조회
 nhncloud instance create [options]              # 인스턴스 발급
 nhncloud instance delete <id> [options]         # 인스턴스 삭제
@@ -163,6 +164,9 @@ nhncloud instance delete <id> [options]         # 인스턴스 삭제
 |------|------|------|
 | `--region <r>` | 전체 | `iaas.region` override (kr1/kr2/kr3/jp1) |
 | `--profile <name>` | 전체 | profile 선택 |
+| `--detail` | flavors | `GET /flavors/detail` — vcpus·ram·disk 등 스펙 포함 (없으면 id·name 만) |
+| `--min-disk <gb>` | flavors | 최소 블록 스토리지 크기(GB) 이상만 필터 (양의 정수) |
+| `--min-ram <mb>` | flavors | 최소 RAM 크기(MB) 이상만 필터 (양의 정수) |
 | `--name <n>` | create | 인스턴스 이름 (필수) |
 | `--flavor <id>` | create | flavor UUID (필수) |
 | `--image <id>` | create | image UUID (필수) |
@@ -178,6 +182,13 @@ nhncloud instance delete <id> [options]         # 인스턴스 삭제
 | `--yes` | delete | confirm 생략 (CI·자동화용) |
 
 전역 옵션: `--json` / `--quiet` / `--no-color`.
+
+### flavors 조회
+
+- 기본(`instance flavors`)은 `GET /flavors` — id·name 만 테이블에 표시한다. create 에 넣을 flavor id 를 고르는 단계.
+- `--detail` 은 `GET /flavors/detail` — 테이블에 vcpus·ram(MB)·disk(GB)를 더한다.
+- 테이블은 핵심 5컬럼(id·name·vcpus·ram·disk)만 보여준다. is_public·extra_specs 등 나머지 필드는 `--json` 으로 확인한다.
+- `--min-disk`·`--min-ram` 은 그대로 쿼리 파라미터로 전달해 NHN API 가 필터링한다.
 
 ### create 비동기 + `--wait`
 

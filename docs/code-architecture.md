@@ -33,8 +33,8 @@ src/
       client.ts             # DeployClient — run / artifacts / serverGroups / histories
       types.ts
     instance/
-      client.ts             # InstanceClient — list / get / create / delete + waitForActive
-      types.ts              # Server / CreateServerParams (NHN 확장 필드 포함)
+      client.ts             # InstanceClient — list / get / create / delete / listFlavors + waitForActive
+      types.ts              # Server / CreateServerParams / Flavor / FlavorDetail (NHN 확장 필드 포함)
   utils/
     errors.ts               # NhnCloudCliError(message, exitCode)
     exit-codes.ts           # EXIT_* 상수
@@ -53,6 +53,7 @@ src/
       histories.ts          # nhncloud deploy histories <target>
     instance/
       list.ts               # nhncloud instance list
+      flavors.ts            # nhncloud instance flavors (--detail / --min-disk / --min-ram)
       get.ts                # nhncloud instance get <id>
       create.ts             # nhncloud instance create (--wait, --user-data 지원 / [[adr-011]] [[adr-012]])
       delete.ts             # nhncloud instance delete <id> (--yes 지원)
