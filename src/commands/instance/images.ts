@@ -81,7 +81,7 @@ export const imagesCommand = new Command("images")
       headers: ["id", "name", "status", "visibility", "size"],
       rows: result.images.map((img) => [
         img.id,
-        img.name,
+        img.name ?? "-",
         img.status,
         img.visibility,
         img.size === undefined ? "-" : String(img.size),

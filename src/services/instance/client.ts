@@ -53,7 +53,8 @@ function isImage(val: unknown): val is Image {
   const obj = val as Record<string, unknown>;
   return (
     typeof obj["id"] === "string" &&
-    typeof obj["name"] === "string" &&
+    // Glance v2 스펙상 name 은 nullable — null 인 private 이미지 하나가 페이지 전체를 거부하지 않게 허용.
+    (typeof obj["name"] === "string" || obj["name"] === null) &&
     typeof obj["status"] === "string" &&
     typeof obj["visibility"] === "string"
   );
@@ -62,7 +63,9 @@ function isImage(val: unknown): val is Image {
 function isImagesResponse(val: unknown): val is { images: Image[]; next?: string } {
   if (typeof val !== "object" || val === null) return false;
   const obj = val as Record<string, unknown>;
-  return Array.isArray(obj["images"]) && obj["images"].every(isImage);
+  // next 는 술어가 약속하는 대로 undefined 또는 string 만 통과시킨다 (타입 약속 ↔ 런타임 일치).
+  const nextOk = obj["next"] === undefined || typeof obj["next"] === "string";
+  return Array.isArray(obj["images"]) && obj["images"].every(isImage) && nextOk;
 }
 
 function isFlavorsResponse(val: unknown): val is { flavors: Flavor[] } {

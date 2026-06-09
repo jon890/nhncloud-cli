@@ -208,3 +208,4 @@
   - region 코드가 compute·image 두 host 맵에 중복된다 — region 추가 시 동기화 누락 위험.
     구현 시 두 맵 key 집합 일치를 성공 기준 grep 으로 확인한다 (상시 런타임 가드는 아님 — 추가 시 후속 task).
   - host 패턴·tenant 유무를 docs 만으로 확정하지 못해 실측으로 확정했다(추측 구현 금지).
+  - **kr1/kr2 만 publicURL 실측 확정. kr3/jp1 IMAGE_HOST 는 같은 패턴으로 추론**(미실측) — 자격증명 확보 시 후속 실측. 첫 호출이 host 에서 실패하면 `getaddrinfo ENOTFOUND` 로만 드러난다.

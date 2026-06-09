@@ -53,7 +53,8 @@ export interface FlavorDetail extends Flavor {
 /** 이미지 요약 — `GET /v2/images` (Glance v2). 보장 필드는 docs 예제 기준. */
 export interface Image {
   id: string;
-  name: string;
+  /** Glance v2 스펙상 nullable (사용자 업로드 이미지에 이름이 없을 수 있음) */
+  name: string | null;
   status: string;
   visibility: string;
   /** 바이트 크기 (없을 수 있음) */
