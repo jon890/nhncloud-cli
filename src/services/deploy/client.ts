@@ -2,7 +2,33 @@ import ky from "ky";
 import { endpointFor } from "../../api/endpoints.js";
 import { unwrap, type NhnEnvelope } from "../../api/envelope.js";
 import { toNhnCloudCliError } from "../../api/httpError.js";
-import type { DeployRunParams } from "./types.js";
+import { NhnCloudCliError } from "../../utils/errors.js";
+import { EXIT_API_ERROR } from "../../utils/exit-codes.js";
+import type { DeployRunParams, BinaryGroup, Binary, BinaryListParams } from "./types.js";
+
+/**
+ * 응답 타입 가드 — 5-4 회피.
+ * key/binaryKey 는 number | string 수용 (docs 봇 차단으로 실측 불가,
+ * 불명확 케이스이므로 완화. 형식 오류로 죽는 것을 방지).
+ * 진단 노트: 실측 후 number 확정 시 string 분기 제거 가능.
+ */
+function isBinaryGroup(val: unknown): val is BinaryGroup {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  const keyType = typeof obj["key"];
+  return (keyType === "number" || keyType === "string") && typeof obj["name"] === "string";
+}
+
+function isBinary(val: unknown): val is Binary {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  const binaryKeyType = typeof obj["binaryKey"];
+  const binarySizeType = typeof obj["binarySize"];
+  return (
+    (binaryKeyType === "number" || binaryKeyType === "string") &&
+    (binarySizeType === "number" || binarySizeType === "string")
+  );
+}
 
 /** 동기 모드(async=false) 배포 최대 응답 대기 시간 (600초) */
 const SYNC_TIMEOUT_MS = 600_000;
@@ -132,6 +158,82 @@ export class DeployClient {
         .json<NhnEnvelope<Record<string, unknown>>>();
 
       return unwrap(res);
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * 바이너리 그룹 목록을 조회한다.
+   */
+  async binaryGroups(appKey: string, artifactId: string): Promise<BinaryGroup[]> {
+    const url =
+      `${this.baseUrl}/api/v2.1/projects/${appKey}` +
+      `/artifacts/${artifactId}/binary-groups`;
+
+    try {
+      const res = await ky
+        .get(url, {
+          headers: this.authHeaders(),
+          retry: 0,
+          timeout: DEFAULT_TIMEOUT_MS,
+        })
+        .json<NhnEnvelope<{ binaryGroups?: unknown }>>();
+
+      const body = unwrap(res);
+      const list = body.binaryGroups;
+      if (!Array.isArray(list) || !list.every(isBinaryGroup)) {
+        throw new NhnCloudCliError(
+          "binary-groups 응답 형식이 올바르지 않습니다 — binaryGroups 배열이 없습니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return list;
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * 특정 바이너리 그룹의 바이너리 목록을 조회한다.
+   * pageNum/pageSize/sortKey/sortDirection 은 NHN docs 의 쿼리 파라미터로 그대로 전달한다.
+   */
+  async binaries(
+    appKey: string,
+    artifactId: string,
+    binaryGroupKey: number,
+    params: BinaryListParams = {},
+  ): Promise<{ totalCount: number; binaries: Binary[] }> {
+    const url =
+      `${this.baseUrl}/api/v2.1/projects/${appKey}` +
+      `/artifacts/${artifactId}/binary-groups/${binaryGroupKey}/binaries`;
+
+    const searchParams: Record<string, string | number> = {};
+    if (params.pageNum !== undefined) searchParams["pageNum"] = params.pageNum;
+    if (params.pageSize !== undefined) searchParams["pageSize"] = params.pageSize;
+    if (params.sortKey !== undefined) searchParams["sortKey"] = params.sortKey;
+    if (params.sortDirection !== undefined) searchParams["sortDirection"] = params.sortDirection;
+
+    try {
+      const res = await ky
+        .get(url, {
+          headers: this.authHeaders(),
+          searchParams,
+          retry: 0,
+          timeout: DEFAULT_TIMEOUT_MS,
+        })
+        .json<NhnEnvelope<{ totalCount?: unknown; binaries?: unknown }>>();
+
+      const body = unwrap(res);
+      const list = body.binaries;
+      if (!Array.isArray(list) || !list.every(isBinary)) {
+        throw new NhnCloudCliError(
+          "binaries 응답 형식이 올바르지 않습니다 — binaries 배열이 없습니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      const totalCount = typeof body.totalCount === "number" ? body.totalCount : list.length;
+      return { totalCount, binaries: list };
     } catch (err) {
       throw toNhnCloudCliError(err);
     }

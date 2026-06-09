@@ -8,6 +8,8 @@ import { runCommand } from "./commands/deploy/run.js";
 import { artifactsCommand } from "./commands/deploy/artifacts.js";
 import { serverGroupsCommand } from "./commands/deploy/server-groups.js";
 import { historiesCommand } from "./commands/deploy/histories.js";
+import { binaryGroupsCommand } from "./commands/deploy/binary-groups.js";
+import { binariesCommand } from "./commands/deploy/binaries.js";
 import { listCommand } from "./commands/instance/list.js";
 import { flavorsCommand } from "./commands/instance/flavors.js";
 import { getCommand } from "./commands/instance/get.js";
@@ -50,6 +52,8 @@ deployCommand.addCommand(runCommand);
 deployCommand.addCommand(artifactsCommand);
 deployCommand.addCommand(serverGroupsCommand);
 deployCommand.addCommand(historiesCommand);
+deployCommand.addCommand(binaryGroupsCommand);
+deployCommand.addCommand(binariesCommand);
 
 program.addCommand(deployCommand);
 

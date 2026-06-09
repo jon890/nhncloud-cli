@@ -1,3 +1,35 @@
+/** 바이너리 그룹 — `GET .../binary-groups` 의 binaryGroups[] 항목 */
+export interface BinaryGroup {
+  /** 그룹 key (binaries 조회의 binaryGroupKey 입력) */
+  key: number | string;
+  name: string;
+  description: string;
+  regionCode: string;
+  createDate: string;
+}
+
+/** 바이너리 — `GET .../binary-groups/{key}/binaries` 의 binaries[] 항목 */
+export interface Binary {
+  binaryKey: number | string;
+  version: string;
+  binaryName: string;
+  /** 파일 크기 (bytes) */
+  binarySize: number | string;
+  uploadDate: string;
+  uploader: string;
+  description: string;
+}
+
+/** 바이너리 목록 조회 쿼리 파라미터 */
+export interface BinaryListParams {
+  pageNum?: number;
+  pageSize?: number;
+  /** 정렬 기준 (예: UPLOAD_DATE) */
+  sortKey?: string;
+  /** 정렬 방향 (예: DESC) */
+  sortDirection?: string;
+}
+
 export interface DeployRunParams {
   appKey: string;
   artifactId: string;
