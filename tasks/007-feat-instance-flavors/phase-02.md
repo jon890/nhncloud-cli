@@ -68,7 +68,7 @@ phase-01·02 완료 후:
 ## 성공 기준 (검증 명령 + 기대값)
 
 ```bash
-# cwd: /Users/nhn/personal/nhncloud-cli
+# cwd: /Users/nhn/personal/nhncloud-cli/.claude/worktrees/plan007
 
 # 1. README 에 flavors 예시 반영
 grep -c "instance flavors" README.md

@@ -263,7 +263,7 @@ instanceCommand.addCommand(flavorsCommand);
 ## 성공 기준 (검증 명령 + 기대값)
 
 ```bash
-# cwd: /Users/nhn/personal/nhncloud-cli
+# cwd: /Users/nhn/personal/nhncloud-cli/.claude/worktrees/plan007
 
 # 1. 타입 체크 — type 추가 + 오버로드 포함 → 필수
 pnpm tsc --noEmit 2>&1 | grep -E "^src/" | wc -l
