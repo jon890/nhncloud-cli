@@ -15,6 +15,7 @@ import { flavorsCommand } from "./commands/instance/flavors.js";
 import { getCommand } from "./commands/instance/get.js";
 import { createCommand } from "./commands/instance/create.js";
 import { deleteCommand } from "./commands/instance/delete.js";
+import { startCommand, stopCommand, rebootCommand } from "./commands/instance/power.js";
 
 const program = new Command();
 
@@ -64,6 +65,9 @@ instanceCommand.addCommand(flavorsCommand);
 instanceCommand.addCommand(getCommand);
 instanceCommand.addCommand(createCommand);
 instanceCommand.addCommand(deleteCommand);
+instanceCommand.addCommand(startCommand);
+instanceCommand.addCommand(stopCommand);
+instanceCommand.addCommand(rebootCommand);
 
 program.addCommand(instanceCommand);
 
