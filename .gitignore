@@ -5,3 +5,6 @@ dist/
 .omc/
 .claude/worktrees/
 .claude/scheduled_tasks.lock
+
+# playwright MCP 임시 산출물
+.playwright-mcp/
