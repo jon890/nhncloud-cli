@@ -1,7 +1,7 @@
 # nhncloud-cli
 
 NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 통합 CLI.
-현재 `logncrash search` (Log & Crash 로그 검색) 를 지원한다.
+`configure`, `logncrash`, `deploy`, `instance` 명령군을 지원한다.
 
 ## 설치
 
@@ -88,6 +88,15 @@ nhncloud deploy server-groups my-service
 
 # 배포 이력 조회
 nhncloud deploy histories my-service
+
+# 바이너리 그룹 목록 — 그룹 key 확인
+nhncloud deploy binary-groups my-service
+
+# 위에서 확인한 key 로 바이너리 목록 조회
+nhncloud deploy binaries my-service --binary-group <key>
+
+# 업로드 최신순 정렬 + 전체 필드는 --json
+nhncloud deploy binaries my-service --binary-group <key> --sort-key UPLOAD_DATE --sort-direction DESC --json
 ```
 
 ### 로그 검색
