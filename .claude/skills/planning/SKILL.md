@@ -197,6 +197,8 @@ docs/flow.md                  ←  docs/prd.md
 
 신규 작업 시 아래 표에서 해당 행을 찾아 **표시된 모든 docs 를 손댄다**. "(해당 시)" 같은 모호한 어휘 금지 — 표시되어 있으면 변경, 표시 없으면 미손.
 
+**한 task 가 복수 변경 유형에 해당하면 해당 행들의 docs 를 합집합으로 손댄다.** 한 행만 보고 끝내지 않는다 — 예: "신규 ADR 동반 변경" + "캐시 schema 변경" 둘 다인 task 는 후자의 `data-schema.md` 필수 항목도 갱신해야 한다 (PR #12 에서 ADR 행만 보고 캐시 schema 행의 data-schema.md 를 놓쳐 docs-verifier UPDATE_NEEDED).
+
 | 변경 유형 | CLAUDE.md | adr.md | code-architecture.md | prd.md | flow.md | data-schema.md | README.md | skills/nhncloud-cli/SKILL.md |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | 신규 CLI 명령 (소) | 주의사항 1줄 + "N개 명령" 카운트 | — | 디렉터리 트리 + 필요 시 utils 추가 | MVP 범위 한 줄 (`- \`dooray X\` — 한 줄 설명`) | 사용자 흐름 섹션 (대화 / 입출력 예시) + 새 옵션 시 옵션 표 행 | (캐시 도입 시) | 사용 예 섹션 + intro "지원 명령" 문구 | 빠른 참조 표 + 자동화 시나리오 + 프론트매터 description |
