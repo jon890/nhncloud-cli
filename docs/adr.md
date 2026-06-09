@@ -206,5 +206,5 @@
   - **profile 에 endpoint 직접 저장** — 설정 부담 + region override 와 충돌.
 - **트레이드오프**:
   - region 코드가 compute·image 두 host 맵에 중복된다 — region 추가 시 동기화 누락 위험.
-    두 맵 key 집합 일치를 빌드 검증(grep)으로 가드한다.
+    구현 시 두 맵 key 집합 일치를 성공 기준 grep 으로 확인한다 (상시 런타임 가드는 아님 — 추가 시 후속 task).
   - host 패턴·tenant 유무를 docs 만으로 확정하지 못해 실측으로 확정했다(추측 구현 금지).
