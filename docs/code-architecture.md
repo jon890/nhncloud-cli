@@ -30,8 +30,8 @@ src/
       client.ts             # LogncrashClient — search()
       types.ts
     deploy/
-      client.ts             # DeployClient — run / artifacts / serverGroups / histories
-      types.ts
+      client.ts             # DeployClient — run / artifacts / serverGroups / histories / binaryGroups / binaries
+      types.ts              # DeployRunParams / BinaryGroup / Binary / BinaryListParams
     instance/
       client.ts             # InstanceClient — list / get / create / delete / listFlavors + waitForActive
       types.ts              # Server / CreateServerParams / Flavor / FlavorDetail (NHN 확장 필드 포함)
@@ -51,6 +51,8 @@ src/
       artifacts.ts          # nhncloud deploy artifacts
       server-groups.ts      # nhncloud deploy server-groups <target>
       histories.ts          # nhncloud deploy histories <target>
+      binary-groups.ts      # nhncloud deploy binary-groups <target>
+      binaries.ts           # nhncloud deploy binaries <target> --binary-group <key>
     instance/
       list.ts               # nhncloud instance list
       flavors.ts            # nhncloud instance flavors (--detail / --min-disk / --min-ram)

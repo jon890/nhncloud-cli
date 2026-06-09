@@ -105,6 +105,8 @@ nhncloud deploy run <target> [options]      # 배포 실행
 nhncloud deploy artifacts [options]          # 아티팩트 목록
 nhncloud deploy server-groups <target> [options]   # 서버그룹 목록
 nhncloud deploy histories <target> [options]       # 배포 이력
+nhncloud deploy binary-groups <target> [options]   # 바이너리 그룹 목록
+nhncloud deploy binaries <target> --binary-group <key> [options]  # 바이너리 목록
 ```
 
 `<target>` 은 config.json 의 deploy target 이름. target 이 좌표(appKey·artifactId·serverGroupId·scenarioIds)를 공급하며, 아래 flag 로 개별 override.
@@ -121,6 +123,11 @@ nhncloud deploy histories <target> [options]       # 배포 이력
 | `--note <s>` | run | 배포 메모 (기본 timestamp) |
 | `--async` | run | 즉시 반환 (기본은 완료 대기) |
 | `--profile <name>` | 전체 | profile 선택 |
+| `--binary-group <key>` | binaries | 조회할 바이너리 그룹 key (필수) |
+| `--page-num <n>` | binaries | 페이지 번호 (1 이상) |
+| `--page-size <n>` | binaries | 페이지 크기 (1 이상) |
+| `--sort-key <k>` | binaries | 정렬 기준 (예: UPLOAD_DATE) |
+| `--sort-direction <d>` | binaries | 정렬 방향 (예: DESC) |
 
 전역 옵션: `--json` / `--quiet` / `--no-color`.
 
