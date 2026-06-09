@@ -5,7 +5,7 @@
 NHN Cloud 서비스를 AWS CLI 처럼 호출하는 통합 CLI.
 TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 
-## 지원 명령 (12개)
+## 지원 명령 (15개)
 
 - `configure` — 자격증명 설정 마법사 (대화형 + flag, UAK + 서비스별 키, 연결 테스트).
 - `logncrash search` — Log & Crash 로그 검색 (시간 범위는 90일 이내·31일 이하로 제한, 초과 시 입력 오류).
@@ -18,6 +18,9 @@ TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 - `instance get` — 단일 인스턴스 상태 조회.
 - `instance create` — 인스턴스 발급 (기본 비동기, `--wait` 로 ACTIVE+IP 대기).
 - `instance delete` — 인스턴스 삭제 (기본 confirm, `--yes` 즉시).
+- `instance start` — 인스턴스 시작 (SHUTOFF→ACTIVE).
+- `instance stop` — 인스턴스 정지 (ACTIVE/ERROR→SHUTOFF).
+- `instance reboot` — 인스턴스 재부팅 (기본 SOFT, `--hard` 로 HARD).
 - `instance images` — 이미지 목록 조회 (`create --image <id>` 소스, `--visibility`/`--name`/`--owner`/`--status` 필터, marker 페이지네이션, 전체 필드는 `--json`).
 
 ## API 스펙 확인 절차
