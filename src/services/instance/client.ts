@@ -45,6 +45,24 @@ function isFlavorsResponse(val: unknown): val is { flavors: Flavor[] } {
   return Array.isArray(obj["flavors"]) && obj["flavors"].every(isFlavor);
 }
 
+function isFlavorDetail(val: unknown): val is FlavorDetail {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  return (
+    typeof obj["id"] === "string" &&
+    typeof obj["name"] === "string" &&
+    typeof obj["vcpus"] === "number" &&
+    typeof obj["ram"] === "number" &&
+    typeof obj["disk"] === "number"
+  );
+}
+
+function isFlavorDetailsResponse(val: unknown): val is { flavors: FlavorDetail[] } {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  return Array.isArray(obj["flavors"]) && obj["flavors"].every(isFlavorDetail);
+}
+
 /**
  * POST /servers 응답은 축약형 — `{ server: { id, links, security_groups, adminPass } }`
  * 처럼 name/status/addresses 가 없다. id 만 검증한다 (전체 정보는 get 으로 재조회).
@@ -245,14 +263,25 @@ export class InstanceClient {
         })
         .json();
 
+      // detail 분기는 vcpus·ram·disk(number)까지 검증해 응답 스키마 드리프트 시
+      // "undefined" 셀 출력 대신 명확한 에러로 차단한다. 가드가 타입을 좁히므로 단언이 필요 없다.
+      if (params.detail) {
+        if (!isFlavorDetailsResponse(raw)) {
+          throw new NhnCloudCliError(
+            "instance flavors --detail 응답 형식이 올바르지 않습니다 — vcpus·ram·disk 필드가 없습니다.",
+            EXIT_API_ERROR,
+          );
+        }
+        return raw.flavors;
+      }
+
       if (!isFlavorsResponse(raw)) {
         throw new NhnCloudCliError(
           "instance flavors 응답 형식이 올바르지 않습니다 — flavors 배열이 없습니다.",
           EXIT_API_ERROR,
         );
       }
-      // detail 응답은 Flavor 의 상위 집합(상세 필드 추가) — 오버로드 시그니처가 호출부에 정확한 타입을 부여한다.
-      return raw.flavors as Flavor[] | FlavorDetail[];
+      return raw.flavors;
     } catch (err) {
       throw toNhnCloudCliError(err);
     }
