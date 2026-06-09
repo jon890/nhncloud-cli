@@ -50,6 +50,38 @@ export interface FlavorDetail extends Flavor {
   extra_specs?: Record<string, unknown>;
 }
 
+/** 이미지 요약 — `GET /v2/images` (Glance v2). 보장 필드는 docs 예제 기준. */
+export interface Image {
+  id: string;
+  /** Glance v2 스펙상 nullable (사용자 업로드 이미지에 이름이 없을 수 있음) */
+  name: string | null;
+  status: string;
+  visibility: string;
+  /** 바이트 크기 (없을 수 있음) */
+  size?: number;
+  owner?: string;
+  created_at?: string;
+}
+
+/** 이미지 목록 조회 쿼리 파라미터 (`GET /v2/images`). docs 의 query 이름 그대로. */
+export interface ImageListParams {
+  limit?: number;
+  marker?: string;
+  name?: string;
+  visibility?: string;
+  owner?: string;
+  status?: string;
+}
+
+/**
+ * 이미지 목록 결과 — marker 페이지네이션.
+ * `next` 는 다음 페이지 경로(있으면). 다음 페이지는 호출부가 marker 로 이어 받는다.
+ */
+export interface ImageListResult {
+  images: Image[];
+  next?: string;
+}
+
 /** flavor 목록 조회 쿼리 파라미터 (`GET /flavors`·`GET /flavors/detail` 공통) */
 export interface FlavorListParams {
   /** 최소 블록 스토리지 크기(GB) 이상만 필터 */

@@ -154,6 +154,7 @@ OpenStack Nova v2 호환 Compute 명령군. Keystone 토큰을 발급해 region 
 
 ```
 nhncloud instance list [options]                # 인스턴스 목록
+nhncloud instance images [options]              # 이미지 목록 (create --image 소스)
 nhncloud instance flavors [options]             # 인스턴스 타입(flavor) 조회
 nhncloud instance get <id> [options]            # 단일 인스턴스 상태 조회
 nhncloud instance create [options]              # 인스턴스 발급
@@ -174,6 +175,12 @@ nhncloud instance keypair delete <name> [opts]  # 키페어 삭제
 | `--detail` | flavors | `GET /flavors/detail` — vcpus·ram·disk 등 스펙 포함 (없으면 id·name 만) |
 | `--min-disk <gb>` | flavors | 최소 블록 스토리지 크기(GB) 이상만 필터 (양의 정수) |
 | `--min-ram <mb>` | flavors | 최소 RAM 크기(MB) 이상만 필터 (양의 정수) |
+| `--limit <n>` | images | 한 페이지 최대 개수 |
+| `--marker <id>` | images | 이 image id 다음부터 조회 (페이지네이션) |
+| `--visibility <v>` | images | 노출 범위 필터 (public/private/shared) |
+| `--name <name>` | images | 이름으로 필터 |
+| `--owner <id>` | images | 소유자(프로젝트 id)로 필터 |
+| `--status <status>` | images | 상태로 필터 (예: active) |
 | `--name <n>` | create | 인스턴스 이름 (필수) |
 | `--flavor <id>` | create | flavor UUID (필수) |
 | `--image <id>` | create | image UUID (필수) |

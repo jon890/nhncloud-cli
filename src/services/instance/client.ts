@@ -8,6 +8,9 @@ import type {
   Flavor,
   FlavorDetail,
   FlavorListParams,
+  Image,
+  ImageListParams,
+  ImageListResult,
   Keypair,
   KeypairDetail,
   CreateKeypairParams,
@@ -47,6 +50,26 @@ function isFlavor(val: unknown): val is Flavor {
   if (typeof val !== "object" || val === null) return false;
   const obj = val as Record<string, unknown>;
   return typeof obj["id"] === "string" && typeof obj["name"] === "string";
+}
+
+function isImage(val: unknown): val is Image {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  return (
+    typeof obj["id"] === "string" &&
+    // Glance v2 스펙상 name 은 nullable — null 인 private 이미지 하나가 페이지 전체를 거부하지 않게 허용.
+    (typeof obj["name"] === "string" || obj["name"] === null) &&
+    typeof obj["status"] === "string" &&
+    typeof obj["visibility"] === "string"
+  );
+}
+
+function isImagesResponse(val: unknown): val is { images: Image[]; next?: string } {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  // next 는 술어가 약속하는 대로 undefined 또는 string 만 통과시킨다 (타입 약속 ↔ 런타임 일치).
+  const nextOk = obj["next"] === undefined || typeof obj["next"] === "string";
+  return Array.isArray(obj["images"]) && obj["images"].every(isImage) && nextOk;
 }
 
 function isFlavorsResponse(val: unknown): val is { flavors: Flavor[] } {
@@ -151,10 +174,12 @@ function hasIpAddress(server: Server): boolean {
 export class InstanceClient {
   private readonly tokenId: string;
   private readonly computeEndpoint: string;
+  private readonly imageEndpoint: string;
 
-  constructor(tokenId: string, computeEndpoint: string) {
+  constructor(tokenId: string, computeEndpoint: string, imageEndpoint: string) {
     this.tokenId = tokenId;
     this.computeEndpoint = computeEndpoint;
+    this.imageEndpoint = imageEndpoint;
   }
 
   private authHeaders(): Record<string, string> {
@@ -474,6 +499,44 @@ export class InstanceClient {
     const url = `${this.computeEndpoint}/os-keypairs/${encodeURIComponent(name)}`;
     try {
       await ky.delete(url, { headers: this.authHeaders(), retry: 0, timeout: DEFAULT_TIMEOUT_MS });
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * 이미지 목록을 조회한다 (GET /v2/images, Glance v2).
+   * compute 와 다른 host(imageEndpoint)지만 같은 Keystone 토큰을 쓴다.
+   * 한 페이지(기본 limit 25)만 반환한다 — next 가 있으면 호출부가 marker 로 이어 받는다.
+   */
+  async listImages(params: ImageListParams = {}): Promise<ImageListResult> {
+    const url = `${this.imageEndpoint}/images`;
+
+    const searchParams: Record<string, string | number> = {};
+    if (params.limit !== undefined) searchParams["limit"] = params.limit;
+    if (params.marker !== undefined) searchParams["marker"] = params.marker;
+    if (params.name !== undefined) searchParams["name"] = params.name;
+    if (params.visibility !== undefined) searchParams["visibility"] = params.visibility;
+    if (params.owner !== undefined) searchParams["owner"] = params.owner;
+    if (params.status !== undefined) searchParams["status"] = params.status;
+
+    try {
+      const raw = await ky
+        .get(url, {
+          headers: this.authHeaders(),
+          searchParams,
+          retry: 0,
+          timeout: DEFAULT_TIMEOUT_MS,
+        })
+        .json();
+
+      if (!isImagesResponse(raw)) {
+        throw new NhnCloudCliError(
+          "instance images 응답 형식이 올바르지 않습니다 — images 배열이 없습니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return { images: raw.images, next: raw.next };
     } catch (err) {
       throw toNhnCloudCliError(err);
     }

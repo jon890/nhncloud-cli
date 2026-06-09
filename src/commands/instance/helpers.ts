@@ -16,6 +16,6 @@ export async function resolveInstanceClient(opts: {
   // --region flag 가 있으면 자격증명의 region 을 덮어쓴다
   const effectiveIaas = opts.region ? { ...iaas, region: opts.region } : iaas;
 
-  const { tokenId, computeEndpoint } = await getIaasToken(profileName, effectiveIaas);
-  return { client: new InstanceClient(tokenId, computeEndpoint), profileName };
+  const { tokenId, computeEndpoint, imageEndpoint } = await getIaasToken(profileName, effectiveIaas);
+  return { client: new InstanceClient(tokenId, computeEndpoint, imageEndpoint), profileName };
 }

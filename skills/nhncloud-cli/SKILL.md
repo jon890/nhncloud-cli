@@ -305,6 +305,8 @@ NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
 | 의도 | 커맨드 |
 |------|--------|
 | 인스턴스 목록 조회 | `nhncloud instance list` |
+| 이미지 목록 조회 | `nhncloud instance images` (create --image 소스, 전체 필드는 `--json`) |
+| 특정 노출 범위 이미지 | `nhncloud instance images --visibility public` |
 | 인스턴스 타입(flavor) 목록 | `nhncloud instance flavors` |
 | 인스턴스 타입 상세 (스펙 포함) | `nhncloud instance flavors --detail` (전체 필드는 `--json`) |
 | 키페어 목록 | `nhncloud instance keypairs` |
