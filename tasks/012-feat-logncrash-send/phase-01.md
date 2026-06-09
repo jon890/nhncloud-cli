@@ -21,9 +21,9 @@
 
 이 task 는 **검색과 별도 collector host + appkey-only 인증(secret 불요)** 라는 직관에 반하는 동작을 도입하므로 ADR 을 동반한다.
 
-> ADR 번호 주의: 현재 `docs/adr.md` 최대 ADR-012, 단 010 계열 task 가 ADR-013 을 예약했으므로 **이 task 는 ADR-014** 를 쓴다.
+> ADR 번호 주의: 현재 `docs/adr.md` 최대 ADR-013 (images task 가 사용), 그 다음이므로 **이 task 는 ADR-014** 를 쓴다.
 
-`docs/adr.md` 맨 끝(ADR-012 다음)에 아래 ADR-014 초안을 추가한다:
+`docs/adr.md` 맨 끝(ADR-013 다음)에 아래 ADR-014 초안을 추가한다:
 
 ```markdown
 <a id="adr-014"></a>
@@ -58,7 +58,7 @@
 4. `src/commands/logncrash/send.ts` — 신규 명령
 5. `src/index.ts` — `logncrashCommand.addCommand(sendCommand)`
 6. `docs/adr.md` — ADR-014 초안 추가
-7. `CLAUDE.md` — 명령 카운트(10→11) + 인증 모델 표(collector 행) + ADR 참조 표(ADR-014 행)
+7. `CLAUDE.md` — 명령 카운트(실제 base 직접 확인 후 +1, 현재 21→22) + 인증 모델 표(collector 행) + ADR 참조 표(ADR-014 행)
 8. `docs/flow.md` + `docs/code-architecture.md` — logncrash 흐름에 send / client send + endpoints collector + ADR-014 역참조
 
 ## 회피 항목 (code-review-pitfalls 사전 확인)
@@ -320,11 +320,11 @@ logncrashCommand.addCommand(sendCommand);
 
 ### 6. `docs/adr.md`
 
-위 "ADR 동반 — ADR-014" 의 초안 블록을 파일 맨 끝(ADR-012 다음)에 추가.
+위 "ADR 동반 — ADR-014" 의 초안 블록을 파일 맨 끝(ADR-013 다음)에 추가.
 
 ### 7. `CLAUDE.md` (내부 docs — 이 phase 안에서 갱신)
 
-- "지원 명령 (10개)" → "지원 명령 (11개)" 로 카운트 갱신, `logncrash send` 항목 추가:
+- "지원 명령 (N개)" 카운트를 실제 base 에서 +1 갱신 (현재 base 21개 → 22개. executor 는 갱신 직전 `grep '지원 명령' CLAUDE.md` 로 실제 base 확인 후 +1), `logncrash send` 항목 추가:
   ```markdown
   - `logncrash send` — 로그를 Log & Crash 로 전송 (검색의 대칭 쓰기, collector host + appkey-only 인증·ADR-014). 본문은 `--body`/`--file`/stdin, 단일 로그 8MB 한도.
   ```
@@ -397,8 +397,8 @@ echo "hello" | node dist/index.js logncrash send --level BOGUS; echo "exit=$?"
 grep -c "ADR-014" docs/adr.md
 # 기대: 1 이상
 
-# 12. CLAUDE.md 명령 카운트 갱신
-grep -c "지원 명령 (11개)" CLAUDE.md
+# 12. CLAUDE.md 명령 카운트 갱신 (base 21개 → 22개)
+grep -c "지원 명령 (22개)" CLAUDE.md
 # 기대: 1
 
 # 13. CLAUDE.md ADR 참조 표 + 인증 모델 표에 collector 반영

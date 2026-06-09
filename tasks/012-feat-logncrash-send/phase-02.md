@@ -41,7 +41,11 @@ nhncloud logncrash send --body "deploy 시작" --version 2.3.0 --source batch
 > logncrash send 는 검색과 다른 collector 로 전송하며 appkey 만 사용한다 (secret 불요). 단일 로그 본문은 8MB 까지.
 ```
 
+(c) **intro "지원 명령" 문구 갱신 (회고 PR #11·#13 — 메타 문구 누락 방지)**: README.md 상단 intro 가 `logncrash search` 만 언급하면 `logncrash search/send` 병기 또는 현재 명령 커버리지를 반영하도록 갱신한다 (산문 + bullet 양쪽 점검).
+
 ### 2. `skills/nhncloud-cli/SKILL.md`
+
+(b-0) **프론트매터 description 갱신 (회고 PR #13 — SKILL 은 프론트매터 + 본문 두 곳)**: `skills/nhncloud-cli/SKILL.md` 의 `description:` 이 logncrash 를 `로그 검색` 만 언급하면 `로그 검색·전송(search/send)` 으로 send 를 병기한다. 프론트매터 description 은 AI 에이전트 스킬 선택 트리거라 누락 시 send 작업이 매칭에서 빠진다 (본문 갱신과 별개 위치 — 둘 다 손댄다).
 
 (a) 빠른 참조 표에서 "Log & Crash 로그 검색" 행 **다음** 에 추가:
 
