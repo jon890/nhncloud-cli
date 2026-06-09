@@ -14,6 +14,8 @@ import { getCommand } from "./commands/instance/get.js";
 import { createCommand } from "./commands/instance/create.js";
 import { deleteCommand } from "./commands/instance/delete.js";
 import { startCommand, stopCommand, rebootCommand } from "./commands/instance/power.js";
+import { keypairsCommand } from "./commands/instance/keypairs.js";
+import { keypairCommand } from "./commands/instance/keypair.js";
 
 const program = new Command();
 
@@ -64,6 +66,8 @@ instanceCommand.addCommand(deleteCommand);
 instanceCommand.addCommand(startCommand);
 instanceCommand.addCommand(stopCommand);
 instanceCommand.addCommand(rebootCommand);
+instanceCommand.addCommand(keypairsCommand);
+instanceCommand.addCommand(keypairCommand);
 
 program.addCommand(instanceCommand);
 

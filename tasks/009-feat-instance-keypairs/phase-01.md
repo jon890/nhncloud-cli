@@ -303,8 +303,7 @@ export const keypairsCommand = new Command("keypairs")
 
 ```ts
 import { Command } from "commander";
-import { readFileSync, statSync } from "node:fs";
-import { writeFileSync, renameSync } from "node:fs";   // 0600 원자 쓰기용 — 아래 savePrivateKey 참조
+import { readFileSync, statSync, writeFileSync, renameSync } from "node:fs";   // 0600 원자 쓰기 + --public-key 파일 입력용
 import { randomBytes } from "node:crypto";
 import chalk from "chalk";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
@@ -428,6 +427,14 @@ const createKeypairCmd = new Command("create")
         EXIT_PARAM_ERROR,
       );
     }
+    // (c) 생성 경로(public-key 미지정) + --quiet + --output 미지정 → private_key 무성 유실 footgun 차단.
+    // NHN 생성 키는 1회성이라 stdout 억제 + 파일 미저장이면 복구 불가하게 사라진다 → 사전 거부.
+    if (publicKey === undefined && opts.quiet && opts.output === undefined) {
+      throw new NhnCloudCliError(
+        "NHN 이 생성하는 private_key 는 1회만 반환됩니다. --quiet 로 생성할 때는 --output <keyfile> 로 저장 경로를 지정하세요 (미지정 시 키 유실).",
+        EXIT_PARAM_ERROR,
+      );
+    }
 
     // ── 2. 자격증명 + token ──
     const { client } = await resolveInstanceClient(opts);
@@ -443,17 +450,27 @@ const createKeypairCmd = new Command("create")
     }
     stopSpinner(true);
 
-    // ── 4. private_key 처리 ──
+    // ── 4. private_key 처리 (1회성 — 절대 조용히 잃지 않는다) ──
     if (result.private_key !== undefined) {
       if (opts.output !== undefined) {
-        savePrivateKey(opts.output, result.private_key);
-        process.stderr.write(chalk.green(`  private_key 를 ${opts.output} 에 저장했습니다 (mode 0600).\n`));
+        try {
+          savePrivateKey(opts.output, result.private_key);
+          process.stderr.write(chalk.green(`  private_key 를 ${opts.output} 에 저장했습니다 (mode 0600).\n`));
+        } catch (saveErr) {
+          // (b) 저장 실패 — private_key 는 1회성이라 여기서 잃으면 영구 복구 불가.
+          // temp 를 지우지 않고(마지막 사본 파괴 방지) stdout 으로 출력해 유실을 막는다.
+          const reason = saveErr instanceof Error ? saveErr.message : String(saveErr);
+          process.stderr.write(
+            chalk.red(`  ⚠ private_key 파일 저장 실패 (${reason}). 유실 방지를 위해 아래에 출력합니다 — 즉시 안전한 곳에 보관하세요.\n`),
+          );
+          process.stdout.write(result.private_key + "\n");
+        }
       } else {
-        // 한 번만 표시됨 — stderr 경고 + stdout 출력 (--quiet 면 stderr 경고만)
+        // 한 번만 표시됨 — stderr 경고 + stdout 출력. (--quiet + 미저장 조합은 위 입력검증에서 이미 차단됨)
         process.stderr.write(
           chalk.yellow("  ⚠ private_key 는 지금 한 번만 표시됩니다. 분실 시 복구 불가 — 안전한 곳에 보관하세요.\n"),
         );
-        if (!opts.quiet) process.stdout.write(result.private_key + "\n");
+        process.stdout.write(result.private_key + "\n");
       }
     }
 
@@ -571,6 +588,18 @@ grep -nE "client\.(listKeypairs|getKeypair|createKeypair|deleteKeypair)" src/com
 # 11. private_key 가 메타 table/json 에 노출되지 않음 (rest 분리로 meta 만 raw)
 grep -nE "raw: meta" src/commands/instance/keypair.ts | wc -l
 # 기대: 1
+
+# 11b. raw 에 result 전체(private_key 포함)를 넘기지 않음 — 회귀 방어
+grep -nE "raw: result\b" src/commands/instance/keypair.ts | wc -l
+# 기대: 0
+
+# 12. (c) 무성 유실 차단 — 생성 경로 + --quiet + --output 미지정 거부 분기 존재
+grep -nE "private_key 는 1회만 반환" src/commands/instance/keypair.ts | wc -l
+# 기대: 1
+
+# 13. (b) 저장 실패 fallback — savePrivateKey 호출이 try 로 감싸지고 catch 에서 stdout 출력
+awk '/savePrivateKey\(opts\.output/,/process\.stdout\.write\(result\.private_key/' src/commands/instance/keypair.ts | grep -cE "catch|stdout\.write\(result\.private_key"
+# 기대: 2 이상 (catch 블록 + stdout fallback)
 ```
 
 ## 수동 확인 (자격증명 필요 — 사용자/QA 단계)
