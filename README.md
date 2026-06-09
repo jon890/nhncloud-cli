@@ -1,7 +1,7 @@
 # nhncloud-cli
 
 NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 통합 CLI.
-현재 `logncrash search` (Log & Crash 로그 검색) 를 지원한다.
+현재 `configure`, `logncrash search` (Log & Crash 로그 검색), `deploy` (배포), `instance` (Compute 인스턴스·키페어 관리) 명령을 지원한다.
 
 ## 설치
 

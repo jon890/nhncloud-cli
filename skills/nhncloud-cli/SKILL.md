@@ -1,12 +1,12 @@
 ---
 name: nhncloud-cli
-description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색(logncrash search), Deploy 배포 실행 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
+description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색(logncrash search), Deploy 배포 실행(deploy), Compute 인스턴스·키페어 관리(instance/keypair) 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
 ---
 
 # nhncloud-cli
 
 NHN Cloud PaaS 서비스를 AWS CLI 방식으로 호출하는 TypeScript CLI.
-`configure`, `logncrash search`, `deploy` 명령을 지원한다.
+`configure`, `logncrash search`, `deploy`, `instance` (keypair 포함) 명령을 지원한다.
 
 ## 설치
 
