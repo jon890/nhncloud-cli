@@ -296,6 +296,41 @@ export class InstanceClient {
   }
 
   /**
+   * 서버 action 을 실행한다 (POST /servers/{id}/action, 202 무본문).
+   * NHN Cloud(OpenStack Nova)의 모든 전원·라이프사이클 action 의 공용 경로다.
+   * payload 는 호출자가 action 별로 구성한다 (예: { "os-start": null }).
+   * start/stop/reboot 가 이 helper 를 재사용하며, resize/shelve 등 향후 action 도 동일.
+   */
+  private async serverAction(id: string, payload: Record<string, unknown>): Promise<void> {
+    const url = `${this.computeEndpoint}/servers/${encodeURIComponent(id)}/action`;
+    try {
+      await ky.post(url, {
+        headers: this.authHeaders(),
+        json: payload,
+        retry: 0,
+        timeout: DEFAULT_TIMEOUT_MS,
+      });
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /** 인스턴스를 시작한다 (SHUTOFF → ACTIVE). */
+  async start(id: string): Promise<void> {
+    return this.serverAction(id, { "os-start": null });
+  }
+
+  /** 인스턴스를 정지한다 (ACTIVE/ERROR → SHUTOFF). */
+  async stop(id: string): Promise<void> {
+    return this.serverAction(id, { "os-stop": null });
+  }
+
+  /** 인스턴스를 재부팅한다. type 기본 SOFT, HARD 는 강제 전원 cycle. */
+  async reboot(id: string, type: "SOFT" | "HARD" = "SOFT"): Promise<void> {
+    return this.serverAction(id, { reboot: { type } });
+  }
+
+  /**
    * 인스턴스 타입(flavor)을 조회한다.
    * - 기본: GET /flavors (id·name·links 요약)
    * - detail: GET /flavors/detail (vcpus·ram·disk 등 스펙 포함)

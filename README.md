@@ -1,7 +1,7 @@
 # nhncloud-cli
 
 NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 통합 CLI.
-현재 `configure`, `logncrash search` (Log & Crash 로그 검색), `deploy` (배포), `instance` (Compute 인스턴스·키페어 관리) 명령을 지원한다.
+현재 `configure`, `logncrash search` (Log & Crash 로그 검색), `deploy` (배포), `instance` (Compute 인스턴스 목록·발급·전원 제어·키페어 관리 포함) 명령을 지원한다.
 
 ## 설치
 
@@ -224,6 +224,16 @@ IP=$(nhncloud instance create --name ci-runner \
 
 # 인스턴스 삭제 (confirm 생략)
 nhncloud instance delete <instance-id> --yes
+
+# 인스턴스 정지 / 시작
+nhncloud instance stop <instance-id>
+nhncloud instance start <instance-id>
+
+# 재부팅 (기본 SOFT)
+nhncloud instance reboot <instance-id>
+
+# HARD 재부팅 (강제 전원 cycle)
+nhncloud instance reboot <instance-id> --hard
 
 # 키페어 목록 (name·fingerprint)
 nhncloud instance keypairs

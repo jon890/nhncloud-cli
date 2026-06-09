@@ -320,6 +320,11 @@ grep -nE "selectOne|mandatory|MandatoryGroups|SelectOneGroups" src/resolvers/tag
 
 **Why**: PR #1 (plan001) — phase-06 이 "README.md 는 PoC 범위 외" 로 명시 스킵했으나 영향 표는 README 사용 예를 필수로 요구 → docs-verifier UPDATE_NEEDED. 신규 명령마다 재발 가능.
 
+**메타 문구 누락 보강 (PR #10·#11 연속 관측)**: 사용 예 섹션은 갱신하면서 **README intro "지원 명령" 문구 + `skills/nhncloud-cli/SKILL.md` 프론트매터 description + 본문 명령 목록** 을 빠뜨리는 누락이 008·009 연속으로 docs-verifier UPDATE_NEEDED 를 유발했다. 이 셋은 명령 본문 추가와 떨어진 "한 줄 요약"이라 잊기 쉽다.
+  - **backlog 일괄 생성 task 의 함정**: 008·009 처럼 docs sweep 으로 미리 만든 phase 파일은 **회고 이전에 작성**되어, 회고로 planning 영향 표를 보강해도(008 PR #10 에서 intro/description 을 표에 추가) 그 phase-02 작업 목록에는 반영돼 있지 않다. executor 는 영향 표를 능동 대조하지 않고 phase 작업 목록을 따르므로 또 놓친다.
+  - **대응**: backlog task 를 build-with-teams 로 돌릴 때 team-lead 가 executor 스폰 프롬프트에 "새 명령 추가 시 README intro 지원 명령 문구 + SKILL 프론트매터 description + 본문 명령 목록도 갱신" 을 명시한다 (영향 표 보강만으로는 backlog phase 에 소급 안 됨).
+  - **SKILL.md 는 두 곳 (PR #11·#13 연속 재발)**: 프론트매터 `description`(line 3, 파일 최상단 메타) 과 본문 명령 목록·매핑 표는 **별개 위치**다. executor 가 "SKILL 갱신" 을 받으면 눈에 띄는 본문(사용 예·매핑 표)만 고치고 프론트매터 description 을 빠뜨리는 사고가 반복된다(009 PR #11, 011 PR #13 둘 다 docs-verifier 가 프론트매터 description 만 UPDATE_NEEDED). 스폰 프롬프트에서 "프론트매터 description(line 3) **과** 본문 명령 목록 **둘 다**" 로 분리해 명시한다. 프론트매터 description 은 AI 에이전트의 스킬 선택 트리거라 누락 시 새 명령이 자연어 매칭에서 빠진다.
+
 ## 1-19. 검증 helper 가 캐시 우선(cache-first) 함수를 재사용 → false-positive
 
 **증상**: 자격증명·연결 검증 helper 가 기존 캐시 우선 getter (예: `getAccessToken` 이 `readToken(profile)` 캐시 히트 시 외부 호출 생략) 를 그대로 재사용.
@@ -366,6 +371,26 @@ grep -rnE "phase [0-9]+ 에서|예정|추가한다" tasks/{plan}/
 **Self-check**: punt 한 산출물마다 받는 phase 번호가 의존성상 가능한가? 그 phase 작업목록 + 성공기준에 실제로 등장하는가?
 
 **Why**: PR #6 (plan004) critic MAJOR — phase-1 이 `verifyIaas` 를 phase-3 으로 punt 했으나 phase-3 에 작업항목 0건. token 발급이 phase-2 라 phase-3 에선 못 만드는 의존성 오류까지 겹침. 검증 helper·헬퍼 추출을 다른 phase 로 미루는 작업마다 재발 가능.
+
+## 1-22. 성공 기준이 핵심 위험을 enforce 못함 (구조 검사만 / 변별력 없는 grep)
+
+**증상**: phase 성공 기준이 `tsc`·`build`·구조 grep 만 담아, 그 task 의 *진짜 위험* 을 자동으로 막지 못한다. 자율 pipeline 에서 estimate·누락이 green 으로 통과한다. 두 갈래:
+- **실측 미강제**: "추측 금지·실측 확정" 이 전제인 task 인데, 성공 기준에 실측을 강제하는 게이트가 없어 추정값으로 코드를 채워도 전부 통과 (예: 새 endpoint host/경로 estimate).
+- **변별력 없는 docs grep**: `grep -c 'image'` 처럼 **기존 텍스트로도 통과**하는 토큰을 검증에 써서, 신규 행을 안 넣어도 green (false-pass). PR #10·#11 의 docs drift 학습이 정확히 이 구멍으로 다시 샜다.
+
+**Good**:
+- 실측 필요 task 는 성공 기준에 forcing function 을 넣는다 — 실측 후 제거되는 `⚠️ 추정값` 주석 잔존 0 검사, 또는 실측 결과(HTTP status 등) 기록 + 실패 시 `PHASE_BLOCKED`.
+- docs 검증 grep 은 **신규 고유 토큰**(`instance images`·`listImages` 등 그 변경으로만 생기는 문자열)으로 한다. 기존 코드/문서에 이미 있는 부분문자열(`image`·`--image`) 금지. 편집 전 baseline 이 0 인지 확인.
+
+**검출**:
+```bash
+# phase 성공 기준의 docs grep 이 기존 텍스트로도 통과하는지 — 편집 전 baseline
+git stash; grep -c '<검증토큰>' <docs>; git stash pop   # baseline >0 이면 변별력 없음
+```
+
+**Self-check**: 이 task 의 핵심 위험(실측 확정 / 신규 docs 행 / 런타임 불변식)이 성공 기준의 자동 검사로 *실제로 막히는가*? 추정값·누락 상태로 성공 기준을 전부 통과시킬 수 있으면 게이트가 비어 있는 것.
+
+**Why**: PR #12 (plan010) critic 2 MAJOR — ① image endpoint 실측이 성공 기준에 없어 estimate 완료 가능, ② docs 검증이 `grep -c 'image'` 라 기존 `--image` 텍스트로 통과. 둘 다 성공 기준 문구를 forcing/변별 토큰으로 바꿔 해소. 외부 의존 실측·신규 docs 행이 있는 task 마다 재발 가능.
 
 ## 섹션 1 소진 체크리스트
 
