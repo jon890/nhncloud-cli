@@ -292,6 +292,19 @@ grep -nE "if \(!opts\.[a-zA-Z]+\)" src/commands/   # 위 requiredOption 목록�
 
 **Self-check**: action 내부 `if(!opts.X)` 의 X 가 이미 `requiredOption` 인가? 그렇다면 제거했는가?
 
+## 4-4. 양의 정수 옵션을 `Number()` 로만 검증 (지수·빈 문자열·공백 누수)
+
+**증상**: `--page-num`·`--binary-group` 같은 양의 정수 옵션을 `const n = Number(v); if (!Number.isInteger(n) || n <= 0) throw` 로 검증.
+`Number("1e2") === 100` (지수 표기가 100 으로 통과), `Number(" 5 ") === 5` (공백 통과), `Number("") === 0` (빈 문자열은 reject 되나 에러 메시지가 `(입력: )` 빈 괄호).
+**Good**: `/^[1-9]\d*$/` 정규식으로 표기 자체를 사전 검증한 뒤 `Number()`. 빈 문자열·소수·지수·공백을 일관 거부. 에러 메시지는 `JSON.stringify(value)` 로 입력을 표기해 빈 괄호 방지.
+
+```bash
+grep -nE "Number\([a-z]" src/commands/   # 옵션 파싱에서 regex 없이 Number 만 쓰는 곳
+```
+
+**Why**: PR #13 (plan011) — `parsePositiveInt` 가 `1e2` 를 100 으로 통과시키고 빈 문자열 메시지가 빈 괄호.
+**Self-check**: 양의 정수 옵션 파서가 regex 표기 검증 후 Number 하는가? 에러 메시지가 빈 입력에도 명확한가?
+
 # 5. 타입 안전성
 
 ## 5-1. Map.has → get()! non-null assertion
@@ -424,6 +437,20 @@ grep -rnE "as \w+\[\] \| \w+\[\]" src/   # union 배열 단언 반환 의심
 
 **Why**: plan007 (PR #9) bot review 🟡 — `listFlavors` `--detail` 응답이 공통 가드(`isFlavorsResponse`)만 거쳐 detail 필드 미검증. Nova 스키마 드리프트 시 "undefined" 셀 출력. critic 은 phase 단계에서 이 캐스트를 정당으로 봤으나 런타임 드리프트는 놓침.
 
+## 5-6. 외부 API nullable 필드를 string-only 가드로 검증 → null 항목 하나가 전체 응답 거부
+
+**증상**: 배열 응답의 각 요소를 `every(isX)` 로 검증하는데 가드가 `typeof obj["name"] === "string"` 처럼 string 만 허용.
+외부 API 스펙상 그 필드가 nullable 이면(예: Glance v2 `image.name`) name 이 null 인 항목 하나가 `every` 를 false 로 만들어 **전체 페이지/응답이 "형식 오류" 로 거부**된다. 5-5 와 반대 방향 — 5-5 는 가드가 너무 느슨, 이건 너무 엄격.
+**Good**: 공식 스펙이 nullable 인 필드는 `typeof v === "string" || v === null` 로 허용하고 타입도 `string | null`, 출력부는 `?? "-"`. 실제로 항상 채워진다고 실측되면 그 사실을 ADR 트레이드오프에 남기고 엄격 유지.
+
+```bash
+# 외부 목록 API 가드의 string-only 검사 + 해당 필드가 공식 스펙상 nullable 인지 대조
+grep -nE "typeof obj\[\"[a-z_]+\"\] === \"string\"" src/services/
+```
+
+**Why**: PR #12 (plan010) — Glance `image.name` 이 nullable 인데 string-only 가드라 name=null private 이미지 하나가 페이지 전체 리스팅을 끊음.
+**Self-check**: 목록 응답 요소 가드의 각 필드가 외부 스펙상 nullable/optional 인지 확인했는가? string-only 가 과잉 거부를 일으키지 않는가?
+
 # 6. API/HTTP 패턴
 
 ## 6-1. redirect manual + status code 분기 누락
@@ -443,6 +470,22 @@ grep -nE "redirect.*manual|throwHttpErrors.*false" src/api/client.ts
 **Why**: PR #72 (plan035) ADR-029 / ADR-015 연관.
 
 **Self-check**: `redirect: "manual"` 패턴이 있으면 status 분기도 함께 있는가?
+
+## 6-2. 수치 응답 필드의 string/number 타입 혼재 (resultCode 패턴 확산)
+
+**증상**: `totalCount` 같은 수치 메타 필드를 `typeof x === "number" ? x : fallback` 로만 처리.
+NHN 봉투의 `resultCode` 가 서비스마다 string/number 인 것처럼([[adr-006]]), 수치 필드도 string(`"123"`) 으로 올 수 있다. 이때 number 체크 실패 → fallback(예: 현재 페이지 길이)으로 빠져 "전체 항목 수" 의미가 어긋난다.
+**Good**: 숫자 문자열이면 변환을 우선 시도하고 fallback 은 최후에만.
+
+```ts
+const n = typeof x === "number" ? x
+  : typeof x === "string" && /^\d+$/.test(x) ? Number(x)
+  : fallback;
+```
+
+**검출**: `grep -nE "typeof .*=== \"number\" \?" src/services/` — number-only 처리 + 의미 있는 fallback 인지 확인.
+**Why**: PR #13 (plan011) — binaries `totalCount` 가 string 일 때 `list.length` 로 fallback 해 전체 수 의미 손실.
+**Self-check**: API 수치 필드를 number-only 로 검사하는가? `resultCode` 처럼 string 가능성이 있으면 숫자 문자열 변환을 우선했는가?
 
 ## 7-1. 문서 자리수/범위 표기와 코드 regex 불일치
 
