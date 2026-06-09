@@ -224,6 +224,16 @@ IP=$(nhncloud instance create --name ci-runner \
 
 # 인스턴스 삭제 (confirm 생략)
 nhncloud instance delete <instance-id> --yes
+
+# 인스턴스 정지 / 시작
+nhncloud instance stop <instance-id>
+nhncloud instance start <instance-id>
+
+# 재부팅 (기본 SOFT)
+nhncloud instance reboot <instance-id>
+
+# HARD 재부팅 (강제 전원 cycle)
+nhncloud instance reboot <instance-id> --hard
 ```
 
 지원 region: `kr1` / `kr2` / `kr3` / `jp1` (`--region` 으로 override 가능).

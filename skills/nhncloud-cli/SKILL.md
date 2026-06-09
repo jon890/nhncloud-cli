@@ -312,8 +312,18 @@ NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
 | 인스턴스 생성 + ACTIVE 대기 | `nhncloud instance create ... --wait` |
 | GPU 인스턴스 생성 | `nhncloud instance create --flavor <gpu-flavor-id> --boot-volume-size <gb> ...` (GPU 는 boot-from-volume 필수) |
 | 인스턴스 삭제 (confirm 없이) | `nhncloud instance delete <id> --yes` |
+| 인스턴스 시작 | `nhncloud instance start <id>` |
+| 인스턴스 정지 | `nhncloud instance stop <id>` |
+| 인스턴스 재부팅 | `nhncloud instance reboot <id>` (`--hard` 로 HARD) |
 | 다른 region 사용 | `nhncloud instance list --region kr2` |
 | 다른 profile 사용 | `nhncloud instance list --profile staging` |
+
+### instance 전원 제어 (start / stop / reboot)
+
+- `nhncloud instance start <id>` — 정지된(SHUTOFF) 인스턴스를 켠다 (→ ACTIVE).
+- `nhncloud instance stop <id>` — 동작 중인(ACTIVE) 인스턴스를 끈다 (→ SHUTOFF).
+- `nhncloud instance reboot <id>` — 재부팅한다. 기본은 SOFT(OS graceful), `--hard` 는 강제 전원 cycle.
+- 세 명령 모두 요청만 보내고(202 무본문) 상태 전이는 비동기다. 전이 확인은 `nhncloud instance get <id>` 로 한다.
 
 ### instance flavors 조회
 
