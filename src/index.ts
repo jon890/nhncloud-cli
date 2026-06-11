@@ -29,6 +29,8 @@ import { resizeCommand, resizeConfirmCommand, resizeRevertCommand } from "./comm
 import { imagesCommand } from "./commands/instance/images.js";
 import { keypairsCommand } from "./commands/instance/keypairs.js";
 import { keypairCommand } from "./commands/instance/keypair.js";
+import { volumeCommand as instanceVolumeCommand } from "./commands/instance/volume.js";
+import { volumesCommand } from "./commands/instance/volumes.js";
 
 const program = new Command();
 
@@ -91,6 +93,8 @@ instanceCommand.addCommand(resizeRevertCommand);
 instanceCommand.addCommand(imagesCommand);
 instanceCommand.addCommand(keypairsCommand);
 instanceCommand.addCommand(keypairCommand);
+instanceCommand.addCommand(instanceVolumeCommand); // instance volume attach/detach
+instanceCommand.addCommand(volumesCommand);        // instance volumes
 
 program.addCommand(instanceCommand);
 
