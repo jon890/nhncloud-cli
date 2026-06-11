@@ -108,8 +108,8 @@ scrollKey 유효기간은 1분이다. 한 페이지 처리 후 1분 안에 다�
 
 ### 출력
 
-- `--output <file>` 필수. 기본 JSON Lines (한 줄당 한 로그), `--format json` 이면 JSON 배열.
-- 진행 상황(수집/전체 건수)은 spinner(stderr), 데이터는 파일에만 쓴다. 파일은 temp 파일에 쓴 뒤 원자적으로 교체한다 (중단 시 부분 파일 방지, 실패 시 temp 정리).
+- `--output <file>` 필수. 기본 JSON Lines (한 줄당 한 로그), `--format json` 이면 JSON 배열. 기존 파일은 기본 거부 — `--force` 로만 덮어쓴다 (deploy download 와 동일 정책).
+- 진행 상황(수집/전체 건수)은 spinner(stderr), 데이터는 파일에만 쓴다. 페이지 수신 즉시 temp 파일에 스트리밍 append (전량 메모리 적재 회피) 후 원자적으로 교체한다 (중단 시 부분 파일 방지, 실패 시 temp 정리).
 - 시간 범위 제한은 search 와 동일 (90일 이내·31일 이하).
 
 ## logncrash send 흐름

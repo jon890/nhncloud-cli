@@ -150,6 +150,7 @@ scrollKey 유효기간은 1분이므로 데이터가 많을 때는 `--size` 를 
 | `--output <file>` | 예 | 출력 파일 경로 |
 | `--format <fmt>` | 아니오 | `jsonl`(기본, 한 줄당 한 로그) 또는 `json`(배열) |
 | `--size <n>` | 아니오 | scroll pageSize — 범위 10~100, 기본 100 |
+| `--force` | 아니오 | 출력 파일이 있으면 덮어쓴다 (기본 거부) |
 | `--profile <name>` | 아니오 | 사용할 profile 이름 |
 
 ### 로그 전송

@@ -154,7 +154,7 @@ nhncloud logncrash search \
 
 - `nhncloud logncrash export` — 검색 결과 전체를 파일로 내보낸다.
   단발 검색(search)이 한 페이지만 보여주는 것과 달리, scroll 로 전체(최대 10만 건)를 순회한다.
-- `--output <file>` 필수. 기본은 JSON Lines(한 줄당 한 로그), `--format json` 이면 JSON 배열.
+- `--output <file>` 필수. 기본은 JSON Lines(한 줄당 한 로그), `--format json` 이면 JSON 배열. 기존 파일은 기본 거부 — 덮어쓰려면 `--force`.
 - 진행 상황은 stderr, 데이터는 파일에만 쓴다(stdout 비움).
 - scrollKey 는 1분 만료 — 데이터가 많아 1분을 넘기면 만료 에러가 난다.
   이때는 검색 범위를 좁히거나 `--size`(범위 10~100, 기본 100)를 키워 페이지 수를 줄인 뒤 다시 시도한다.

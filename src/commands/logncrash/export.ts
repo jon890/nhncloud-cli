@@ -1,5 +1,6 @@
 import { Command } from "commander";
-import { rename, writeFile, rm } from "node:fs/promises";
+import { rename, rm } from "node:fs/promises";
+import { createWriteStream, statSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { resolveTime, assertSearchRange } from "../../utils/time.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
@@ -16,10 +17,27 @@ interface ExportGlobalOpts {
   output?: string;
   format?: string;
   size?: string;
+  force?: boolean;
   profile?: string;
 }
 
 const MAX_TOTAL = 100_000; // 안전 상한 (API 최대 10만 건)
+
+/** 출력 경로가 이미 존재하면 --force 없이는 거부 (deploy download 와 동일 정책). ENOENT 만 정상. */
+function assertWritable(path: string, force: boolean): void {
+  if (force) return;
+  try {
+    statSync(path);
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return;
+    const reason = (e as NodeJS.ErrnoException).code ?? (e instanceof Error ? e.message : String(e));
+    throw new NhnCloudCliError(`--output 경로를 확인할 수 없습니다: ${path} (${reason})`, EXIT_PARAM_ERROR);
+  }
+  throw new NhnCloudCliError(
+    `--output 대상이 이미 존재합니다: ${path}. 덮어쓰려면 --force 를 쓰세요.`,
+    EXIT_PARAM_ERROR,
+  );
+}
 
 export const exportCommand = new Command("export")
   .description("Log & Crash 로그를 scroll 로 전체 추출해 파일로 저장 (대량 추출)")
@@ -29,6 +47,7 @@ export const exportCommand = new Command("export")
   .option("--output <file>", "출력 파일 경로 (필수)")
   .option("--format <fmt>", "출력 형식: jsonl(기본, 한 줄당 한 로그) 또는 json(배열)", "jsonl")
   .option("--size <n>", "scroll 페이지 크기 (docs 범위 10~100, 기본 100)", "100")
+  .option("--force", "출력 파일이 있으면 덮어쓴다")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (_opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<ExportGlobalOpts>();
@@ -67,6 +86,8 @@ export const exportCommand = new Command("export")
     const toIso = resolveTime(opts.to);
     assertSearchRange(fromIso, toIso);
 
+    assertWritable(opts.output, opts.force ?? false); // 덮어쓰기 정책 — 네트워크 호출 전 차단
+
     // ── 3. 자격증명 로드 (?? "" 금지 — 미설정 시 CONFIG_ERROR) ──
     const profileName = await resolveProfileName(opts.profile);
     const cred = await getServiceCredential("logncrash", profileName);
@@ -84,59 +105,71 @@ export const exportCommand = new Command("export")
     }
     const client = new LogncrashClient(cred.appkey, cred.secret);
 
-    // ── 4. scroll 루프 (spinner 내부 try/catch — 루프 중 throw 해도 leak 없음) ──
-    // 진행 표시는 spinner.text 로 갱신한다 — 별도 process.stderr.write 면 ora 애니메이션과
-    // 같은 줄에서 뒤섞여 출력이 깨진다.
+    // ── 4. scroll 루프 + 스트리밍 쓰기 ──
+    // 페이지 수신 즉시 temp 파일에 append 한다 — 전체(최대 10만 건)를 메모리에 모은 뒤
+    // 한 번에 JSON.stringify 하면 큰 로그에서 V8 string 한계로 OOM 한다.
+    // 진행 표시는 spinner.text 로만 갱신(별도 stderr.write 는 ora 와 줄이 뒤섞임).
+    const tmp = opts.output + "." + randomBytes(4).toString("hex") + ".tmp";
+    const stream = createWriteStream(tmp, { encoding: "utf-8" });
     const spinner = startSpinner("로그 추출 중...");
 
-    const collected: Record<string, unknown>[] = [];
+    let count = 0;
     let total = 0;
-    try {
-      let res: ScrollResult = await client.scrollStart({ query: opts.query, from: fromIso, to: toIso, pageSize: size });
-      collected.push(...res.data);
-      total = res.totalItems;
-      spinner.text = `로그 추출 중... ${collected.length}/${total}`;
-
-      // data 가 빌 때까지(또는 상한 도달까지) scrollKey 로 이어 호출.
-      while (res.data.length > 0 && res.scrollKey && collected.length < Math.min(total, MAX_TOTAL)) {
-        const key = res.scrollKey;
-        res = await scrollNextOrExpire(client, key);
-        collected.push(...res.data);
-        spinner.text = `로그 추출 중... ${collected.length}/${total}`;
+    let first = true;
+    const writePage = (data: Record<string, unknown>[]): void => {
+      for (const log of data) {
+        if (count >= MAX_TOTAL) break;
+        const json = JSON.stringify(log);
+        stream.write(format === "json" ? (first ? json : "," + json) : json + "\n");
+        first = false;
+        count++;
       }
+    };
+
+    try {
+      if (format === "json") stream.write("[");
+      let res: ScrollResult = await client.scrollStart({ query: opts.query, from: fromIso, to: toIso, pageSize: size });
+      total = res.totalItems;
+      writePage(res.data);
+      spinner.text = `로그 추출 중... ${count}/${total}`;
+
+      while (res.data.length > 0 && res.scrollKey && count < Math.min(total, MAX_TOTAL)) {
+        res = await scrollNextOrExpire(client, res.scrollKey);
+        writePage(res.data);
+        spinner.text = `로그 추출 중... ${count}/${total}`;
+      }
+      if (format === "json") stream.write("]\n");
+
+      await new Promise<void>((resolve, reject) => {
+        stream.once("error", reject);
+        stream.end(resolve);
+      });
     } catch (err) {
       stopSpinner(false);
+      stream.destroy();
+      await rm(tmp, { force: true }).catch(() => {});
       throw err;
     }
 
-    stopSpinner(true, `${collected.length}건 추출 완료`);
+    stopSpinner(true, `${count}건 추출 완료`);
 
-    // No-silent-caps: total 이 상한을 넘으면 잘렸음을 stderr 로 명시(조용한 절단 금지).
-    if (total > MAX_TOTAL) {
-      process.stderr.write(
-        `경고: 전체 ${total}건 중 상한 ${MAX_TOTAL}건까지만 추출했습니다. 검색 범위를 좁혀 나눠 추출하세요.\n`,
-      );
-    }
-
-    // ── 5. 원자적 파일 쓰기 (temp + rename — 부분 파일 방지) ──
-    const body =
-      format === "json"
-        ? JSON.stringify(collected, null, 2) + "\n"
-        : collected.map((log) => JSON.stringify(log)).join("\n") + (collected.length > 0 ? "\n" : "");
-
-    const tmp = opts.output + "." + randomBytes(4).toString("hex") + ".tmp";
+    // ── 5. 원자적 교체 (temp → output) ──
     try {
-      await writeFile(tmp, body, { encoding: "utf-8" });
       await rename(tmp, opts.output);
     } catch (err) {
-      // 실패 시 temp 고아 파일을 남기지 않는다 (best-effort unlink — 정리 실패는 무시).
       await rm(tmp, { force: true }).catch(() => {});
       const reason = (err as NodeJS.ErrnoException).code ?? (err instanceof Error ? err.message : String(err));
       throw new NhnCloudCliError(`출력 파일을 쓸 수 없습니다: ${opts.output} (${reason})`, EXIT_PARAM_ERROR);
     }
 
-    // 진행/완료는 stderr — stdout 은 비워둔다(데이터는 파일).
-    process.stderr.write(`${opts.output} 에 ${collected.length}건 저장\n`);
+    // No-silent-caps: 실제로 상한에 걸려 잘렸을 때만 경고(부분 수집을 cap 으로 오인하지 않도록).
+    if (count >= MAX_TOTAL && total > MAX_TOTAL) {
+      process.stderr.write(
+        `경고: 전체 ${total}건 중 상한 ${MAX_TOTAL}건까지만 추출했습니다. 검색 범위를 좁혀 나눠 추출하세요.\n`,
+      );
+    }
+
+    process.stderr.write(`${opts.output} 에 ${count}건 저장\n`);
   });
 
 /**
