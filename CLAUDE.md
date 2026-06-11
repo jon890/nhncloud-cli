@@ -5,7 +5,7 @@
 NHN Cloud 서비스를 AWS CLI 처럼 호출하는 통합 CLI.
 TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 
-## 지원 명령 (28개)
+## 지원 명령 (30개)
 
 - `configure` — 자격증명 설정 마법사 (대화형 + flag, UAK + 서비스별 키, 연결 테스트).
 - `logncrash search` — Log & Crash 로그 검색 (시간 범위는 90일 이내·31일 이하로 제한, 초과 시 입력 오류).
@@ -16,6 +16,8 @@ TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 - `deploy histories` — 배포 이력 조회.
 - `deploy binary-groups` — 바이너리 그룹 목록 조회.
 - `deploy binaries` — 특정 바이너리 그룹의 바이너리 목록 조회 (`--binary-group <key>` 필수, 페이지네이션·정렬).
+- `deploy upload <target> --file <path> --binary-group <key>` — 로컬 파일을 바이너리 그룹에 업로드 (multipart, ADR-015).
+- `deploy download <target> --binary-group <key> --binary-key <key> -o <file>` — 바이너리를 로컬 파일로 다운로드 (봉투 우회, 기본 덮어쓰기 거부·`--force`, ADR-015).
 - `instance list` — Compute 인스턴스 목록 조회 (region 별).
 - `instance flavors` — 인스턴스 타입(flavor) 조회 (기본 id·name, `--detail` 로 스펙, `--min-disk`/`--min-ram` 필터, 전체 필드는 `--json`).
 - `instance availability-zones` — 가용성 영역 목록 조회 (zoneName·available, 발급 가능 영역 확인용).
@@ -105,6 +107,7 @@ src/
 | Instance image endpoint 해석 (compute 외 type 확장) | ADR-013, ADR-005, ADR-010 |
 | Network(VPC) endpoint 해석 (compute·image 외 type 확장) | ADR-013, ADR-005, ADR-010 |
 | Log & Crash 로그 전송 (collector host·appkey-only 인증) | ADR-014 |
+| deploy 바이너리 전송 (multipart 업로드·봉투 우회 다운로드) | ADR-015, ADR-002, ADR-006 |
 
 신규 ADR 추가 시 본 표에 행 추가.
 

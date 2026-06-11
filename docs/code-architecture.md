@@ -30,7 +30,7 @@ src/
       client.ts             # LogncrashClient — search() / send() (send 는 collector host + appkey-only, adr-014)
       types.ts              # LogSearchParams/Result / LogSendParams / LogLevel
     deploy/
-      client.ts             # DeployClient — run / artifacts / serverGroups / histories / binaryGroups / binaries
+      client.ts             # DeployClient — run / artifacts / serverGroups / histories / binaryGroups / binaries / uploadBinary(multipart) / downloadBinary(봉투 우회, adr-015)
       types.ts              # DeployRunParams / BinaryGroup / Binary / BinaryListParams
     instance/
       client.ts             # InstanceClient — list / get / create / delete / listFlavors / listAvailabilityZones / start / stop / reboot / resize / confirmResize / revertResize / listKeypairs / getKeypair / createKeypair / deleteKeypair / listImages + waitForActive (전원 제어·resize 는 공용 serverAction 경유)
@@ -57,6 +57,8 @@ src/
       histories.ts          # nhncloud deploy histories <target>
       binary-groups.ts      # nhncloud deploy binary-groups <target>
       binaries.ts           # nhncloud deploy binaries <target> --binary-group <key>
+      upload.ts             # nhncloud deploy upload (multipart 파일 업로드 + 파일 가드, adr-015)
+      download.ts           # nhncloud deploy download (봉투 우회 파일 저장 + 덮어쓰기 정책, adr-015)
     instance/
       list.ts               # nhncloud instance list
       flavors.ts            # nhncloud instance flavors (--detail / --min-disk / --min-ram)

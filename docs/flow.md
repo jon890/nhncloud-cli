@@ -152,6 +152,8 @@ nhncloud deploy server-groups <target> [options]   # 서버그룹 목록
 nhncloud deploy histories <target> [options]       # 배포 이력
 nhncloud deploy binary-groups <target> [options]   # 바이너리 그룹 목록
 nhncloud deploy binaries <target> --binary-group <key> [options]  # 바이너리 목록
+nhncloud deploy upload <target> --file <p> --binary-group <key>   # 바이너리 업로드 (multipart)
+nhncloud deploy download <target> --binary-group <k> --binary-key <bk> -o <f>  # 바이너리 다운로드 (--force)
 ```
 
 `<target>` 은 config.json 의 deploy target 이름. target 이 좌표(appKey·artifactId·serverGroupId·scenarioIds)를 공급하며, 아래 flag 로 개별 override.

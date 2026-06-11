@@ -30,6 +30,28 @@ export interface BinaryListParams {
   sortDirection?: string;
 }
 
+/** 바이너리 업로드 요청 — multipart/form-data 로 전송 */
+export interface UploadBinaryParams {
+  appKey: string;
+  artifactId: string;
+  /** 업로드 대상 바이너리 그룹 key (binary-groups 조회로 확인) */
+  binaryGroupKey: number;
+  /** 업로드할 파일 내용 (command 에서 statSync 가드 후 읽은 Buffer) */
+  fileBuffer: Buffer;
+  /** form 의 파일 파트 파일명 (basename) */
+  fileName: string;
+  /** applicationType 텍스트 파트 (예: server) */
+  applicationType: string;
+  /** 설명 (선택) */
+  description?: string;
+}
+
+/** 바이너리 업로드 응답 — body.{downloadUrl, binaryKey} */
+export interface UploadBinaryResult {
+  downloadUrl: string;
+  binaryKey: number;
+}
+
 export interface DeployRunParams {
   appKey: string;
   artifactId: string;

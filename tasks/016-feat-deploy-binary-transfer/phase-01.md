@@ -12,18 +12,18 @@
 
 `--binary-group <key>` 는 task 011 의 `deploy binary-groups <target>` 조회로 얻은 `key` 를 입력으로 넣는다 (011 선행 의존).
 
-## API 스펙 (NHN Cloud Deploy v2.1 public-api docs — 확정)
+## API 스펙 (NHN Cloud Deploy v2.1 — docs 봇차단으로 일부 **실측 pending**, 쓰기라 수동 QA 1차 호출로 확정)
 
-근거: <https://docs.nhncloud.com> Deploy public-api 가이드. endpoint·요청 형식·응답 구조 모두 docs 예제로 대조함.
+근거: <https://docs.nhncloud.com> Deploy public-api 가이드(봇차단으로 WebFetch 제한). 아래 ⚠️ 표시는 **수동 QA 1차 호출로 확정**할 항목 — 추측 머지 금지(CLAUDE.md). upload 는 쓰기라 어차피 수동 QA 이므로 거기서 함께 확정한다.
 
 - **endpoint**: `POST /api/v2.1/projects/{appKey}/artifacts/{artifactId}/binary-group/{binaryGroupKey}`
-  - 경로 세그먼트가 `binary-group` (단수) 임에 주의 — 011 의 조회 endpoint 는 `binary-groups` (복수) 였다. docs 그대로 따른다.
+  - ⚠️ **경로 세그먼트 단/복수 미확정**: 여기선 `binary-group`(단수)로 추정하나, 011 의 조회 endpoint 는 `binary-groups`(복수)다 (`client.ts:172,209` 확인). 어느 쪽이 200 인지 **수동 QA 로 확정** — 404 면 복수형으로 교체.
 - **요청 형식**: `multipart/form-data`
   - `binaryFile` — 업로드할 파일 (파일 파트).
   - `applicationType` — 예 `"server"` (텍스트 파트). `--application-type` 옵션, 기본 `"server"`.
   - `description` — 설명 (텍스트 파트, 선택). `--description` 옵션.
 - **응답**: 봉투 JSON. `body.{ downloadUrl, binaryKey }`.
-  - `resultCode` 는 **문자열** — 기존 `unwrap`(ADR-006, `isSuccessful` 로만 판정) 이 그대로 수용. 별도 처리 불필요.
+  - ⚠️ `binaryKey` 타입(number|string) 미확정 — 코드는 둘 다 수용 후 `Number()` 정규화(기존 isBinary 와 동일). `resultCode` 는 **문자열** — 기존 `unwrap`(ADR-006, `isSuccessful` 로만 판정) 이 그대로 수용.
 - **인증**: UAK → OAuth `client_credentials` access_token → `X-NHN-AUTHORIZATION: Bearer <token>`.
   기존 `createDeployClient` (helpers.ts) 가 그대로 처리 (ADR-007).
   - **Content-Type 주의**: multipart 는 boundary 를 런타임이 정해야 하므로 `Content-Type` 헤더를 **수동으로 박지 않는다**. ky 에 `body: FormData` 를 넘기면 boundary 가 자동 설정된다. `authHeaders()` 에는 인증 헤더만 둔다.
@@ -36,13 +36,19 @@
 - **파일 입력 가드 (code-review-pitfalls 9-1 파일 입력)**: `--file <path>` 를 `readFileSync` 로 바로 읽지 않는다. 읽기 전 `statSync` 한 번으로 errno 노출(ENOENT/EACCES/EISDIR 구분) + `isFile()` (디렉터리 차단) + size 가드를 끝낸다. `instance/create.ts` 의 `--user-data` 블록이 1:1 reference. errno 는 `(e as NodeJS.ErrnoException).code` 로 노출, 실패 시 `EXIT_PARAM_ERROR`.
   - **크기 한도**: user-data 처럼 인코딩 후 역산하는 한도는 없다 — 바이너리 원본을 그대로 보낸다. 다만 무제한 read 로 인한 메모리 폭발을 막기 위해 보수적 상한(예 `512 MB`)을 둔다. 상한 초과 시 `EXIT_PARAM_ERROR` + "너무 큽니다" 안내. 상수로 `MAX_UPLOAD_BYTES` 선언(매직 넘버 회피).
 
-## 변경 파일 (5개)
+## ⚠️ 소유권 분리 + 쓰기 작업 정책 (1-24 / 1-26)
+
+- **1-24**: 결정 docs(`CLAUDE.md` 카운트·`docs/flow.md`·`docs/code-architecture.md`·`docs/adr.md` ADR-015)는 executor 가 phase 안에서 편집하지 않는다. **team-lead 가 phase-01·02(코드) 완료 후 docs-first commit 으로 일괄 작성**한다 (아래 "내부 docs 반영" 절은 team-lead 작성 스펙). executor 의 phase-01 범위는 **코드 4파일(아래 1~4)** 뿐.
+- **1-26 (쓰기 작업)**: `deploy upload` 는 실제 바이너리를 업로드하는 **쓰기 작업**이라 executor 가 자율 호출하지 않는다 (사용자 정책: 코드만, 실제 upload 는 수동 QA). multipart 코드는 작성·빌드·정적 검증(tsc/help)까지만, 실제 업로드 호출은 phase-03 의 수동 QA 절로 남긴다.
+
+## 변경 파일 (executor — 코드 4개)
 
 1. `src/services/deploy/types.ts` — `UploadBinaryParams` / `UploadBinaryResult` 추가.
 2. `src/services/deploy/client.ts` — `uploadBinary()` 메서드 추가 (multipart 전송 경로 — 신규).
 3. `src/commands/deploy/upload.ts` — 신규 명령 (파일 가드 + 옵션).
 4. `src/index.ts` — `deployCommand.addCommand(uploadCommand)` 등록.
-5. 내부 docs 4곳 (아래 "내부 docs 반영" 절).
+
+> (내부 docs 4곳 = team-lead docs-first. 아래 "내부 docs 반영" 절은 team-lead 작성 스펙 — executor 는 손대지 않는다.)
 
 ## 작업 상세
 
@@ -81,7 +87,8 @@ export interface UploadBinaryResult {
 ```ts
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_API_ERROR } from "../../utils/exit-codes.js";
-import type { DeployRunParams, UploadBinaryParams, UploadBinaryResult } from "./types.js";
+// ⚠️ 아래는 추가할 type 만 보여준다 — client.ts 의 기존 type import(DeployRunParams/BinaryGroup/Binary/BinaryListParams 등)에 **merge** 한다 (단일 줄 literal 교체 금지 — 기존 type 누락 시 tsc 깨짐):
+import type { /* ...기존... */ UploadBinaryParams, UploadBinaryResult } from "./types.js";
 ```
 
 (b) `run()` 메서드 **뒤** 에 추가. `run()` 의 골격(URL 조립 → ky → unwrap → try/catch `toNhnCloudCliError`)을 따르되 `json:` 대신 `body: FormData` 를 쓴다:
@@ -119,13 +126,15 @@ import type { DeployRunParams, UploadBinaryParams, UploadBinaryResult } from "./
         .json<NhnEnvelope<{ downloadUrl?: unknown; binaryKey?: unknown }>>();
 
       const body = unwrap(res);
-      if (typeof body.downloadUrl !== "string" || typeof body.binaryKey !== "number") {
+      // binaryKey 는 number|string 모두 수용 (기존 isBinary 와 동일 — Deploy 는 resultCode 도 문자열, 실측 전 타입 미확정).
+      const keyType = typeof body.binaryKey;
+      if (typeof body.downloadUrl !== "string" || (keyType !== "number" && keyType !== "string")) {
         throw new NhnCloudCliError(
           "upload 응답 형식이 올바르지 않습니다 — downloadUrl/binaryKey 누락.",
           EXIT_API_ERROR,
         );
       }
-      return { downloadUrl: body.downloadUrl, binaryKey: body.binaryKey };
+      return { downloadUrl: body.downloadUrl, binaryKey: Number(body.binaryKey) };
     } catch (err) {
       throw toNhnCloudCliError(err);
     }
@@ -164,14 +173,19 @@ interface UploadGlobalOpts extends OutputOptions {
   profile?: string;
 }
 
-/** 옵션 문자열을 양의 정수로 파싱. 비숫자·0 이하면 EXIT_PARAM_ERROR. */
+/**
+ * 옵션 문자열을 양의 정수로 파싱 (011 binaries.ts 와 **동일한 regex 버전** — pitfall 4-4).
+ * `Number()` 만 쓰면 `1e2`→100, `0x10`→16, `" 5 "`→5, `""`→0 이 새어 들어오므로 regex 로 표기 자체를 검증한다.
+ */
 function parsePositiveInt(value: string | undefined, flag: string): number | undefined {
   if (value === undefined) return undefined;
-  const n = Number(value);
-  if (!Number.isInteger(n) || n <= 0) {
-    throw new NhnCloudCliError(`${flag} 는 1 이상의 정수여야 합니다 (입력: ${value}).`, EXIT_PARAM_ERROR);
+  if (!/^[1-9]\d*$/.test(value)) {
+    throw new NhnCloudCliError(
+      `${flag} 는 1 이상의 정수여야 합니다 (입력: ${JSON.stringify(value)}).`,
+      EXIT_PARAM_ERROR,
+    );
   }
-  return n;
+  return Number(value);
 }
 
 export const uploadCommand = new Command("upload")
@@ -277,7 +291,7 @@ import { uploadCommand } from "./commands/deploy/upload.js";
 deployCommand.addCommand(uploadCommand);
 ```
 
-## 내부 docs 반영 (이 phase 안에서 — README/SKILL 은 phase-03)
+## 내부 docs 반영 (team-lead docs-first — executor 범위 밖, README/SKILL 은 phase-03)
 
 코드 산출물에 의존하지 않는 내부 docs 는 이 phase 에서 동기화한다.
 
@@ -368,9 +382,11 @@ grep -c "MAX_UPLOAD_BYTES" src/commands/deploy/upload.ts
 awk '/\.action\(async/,/^  \}\)\;/' src/commands/deploy/upload.ts | grep -nE "(startSpinner|statSync)" | head -3
 # 기대: statSync 호출이 startSpinner 보다 앞 줄번호
 
-# 12. --binary-group 비숫자 → EXIT_PARAM_ERROR(3), 네트워크 호출 전 차단
-node dist/index.js deploy upload sometarget --file package.json --binary-group abc; echo "exit=$?"
-# 기대: stderr 에 "1 이상의 정수", exit=3
+# 12. --binary-group 비숫자/지수/16진수/공백 → EXIT_PARAM_ERROR(3) (regex 검증 — 4-4)
+for v in abc 1e2 0x10 " 5 " ""; do
+  node dist/index.js deploy upload sometarget --file package.json --binary-group "$v"; echo "  '$v' → exit=$?"
+done
+# 기대: 모두 stderr "1 이상의 정수" + exit=3 (Number() 만 쓰면 1e2/0x10/" 5 " 가 통과해버림 — regex 라야 전부 거부)
 
 # 13. --file 부재 → EXIT_PARAM_ERROR(3), errno(ENOENT) 노출
 node dist/index.js deploy upload sometarget --file /no/such/file --binary-group 1; echo "exit=$?"
