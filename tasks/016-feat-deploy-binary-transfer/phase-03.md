@@ -35,7 +35,7 @@ README/SKILL 은 코드 산출물(실제 옵션/출력)에 의존하므로 마�
 
 (b) 파일 끝 ADR-014(혹은 현재 최대 ADR) 뒤에 앵커 + 본문 추가.
 
-> **번호 확인**: 본 task 작성 시점 docs/adr.md 의 최대 ADR 은 ADR-012 이나, ROADMAP 상 010=ADR-013·012=ADR-014 가 예약돼 이 task 는 **ADR-015** 후보다. phase 작업 시점에 `grep -nE "^## ADR-0" docs/adr.md` 로 실제 최대 번호를 확인하고, 013·014 가 이미 들어왔으면 015 로, 아니면 다음 가용 번호로 조정한다 (번호 충돌 금지).
+> **번호 확인 (확정)**: base(feat/015)의 docs/adr.md 최대 ADR 은 **014** (013=image·network, 014=logncrash collector 모두 머지됨). 따라서 이 task 는 **ADR-015** 로 확정. team-lead 가 docs-first 작성 시 `grep -nE "^## ADR-0" docs/adr.md` 로 재확인한다.
 
 ```
 <a id="adr-015"></a>

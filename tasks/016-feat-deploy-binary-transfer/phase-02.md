@@ -12,15 +12,15 @@ download 응답은 **봉투 JSON 이 아니라 파일 바이너리 스트림**�
 
 `--binary-group <key>` / `--binary-key <key>` 는 task 011 의 `deploy binary-groups` / `deploy binaries` 조회로 얻는다 (011 선행 의존). `--binary-key` 는 phase-01 의 `deploy upload` 응답으로도 얻을 수 있다.
 
-## API 스펙 (NHN Cloud Deploy v2.1 public-api docs — 확정)
+## API 스펙 (NHN Cloud Deploy v2.1 — docs 봇차단으로 일부 **실측 pending**, 수동 QA 로 확정)
 
-근거: <https://docs.nhncloud.com> Deploy public-api 가이드.
+근거: <https://docs.nhncloud.com> Deploy public-api 가이드(봇차단). 아래 ⚠️ 는 **수동 QA round-trip(upload→download→diff)으로 확정** — 추측 머지 금지.
 
 - **endpoint**: `GET /api/v2.1/projects/{appKey}/artifacts/{artifactId}/binary-group/{binaryGroupKey}/binaries/{binaryKey}`
-  - 경로 세그먼트가 `binary-group` (단수) — phase-01 upload 와 동일. 011 조회의 `binary-groups` (복수) 와 다름. docs 그대로.
-- **응답**: **봉투 JSON 이 아니라 파일 바이너리 스트림**이다.
-  - `resultCode` / `header.isSuccessful` **미적용** — `unwrap` 을 호출하면 안 된다 (JSON 파싱 자체가 실패하거나 바이너리를 텍스트로 오해석).
-  - 성공/실패 판정은 **HTTP status** 로만 한다 (ky 기본 `throwHttpErrors: true` 가 4xx/5xx 를 HTTPError 로 던짐 → 기존 `toNhnCloudCliError` 가 처리).
+  - ⚠️ 단/복수 세그먼트 미확정 (phase-01 upload 와 함께 수동 QA 로 확정 — 404 면 `binary-groups` 복수형).
+- **응답**: ⚠️ **응답이 raw 파일 바이너리인지, downloadUrl 을 담은 JSON 메타인지 미확정** (upload 응답이 `downloadUrl` 을 주므로 실제 바이트는 그 URL 일 가능성). 수동 QA 1차 호출로 확정한다.
+  - **코드 설계 (양쪽 견고)**: `.arrayBuffer()` 로 받아 `writeFileSync` 한다. 응답이 raw 바이너리면 그대로 저장. **만약 QA 에서 JSON(downloadUrl) 로 판명되면** — 저장 파일 첫 바이트가 `{` 인지 점검해 안내하거나, downloadUrl 2차 GET 으로 받도록 review-fix 한다 (수동 QA step 5 의 `diff` 가 wrong-content 를 잡는다).
+  - `unwrap` 은 호출하지 않는다 (바이너리 가정 경로). 성공/실패는 **HTTP status** 로만 (ky `throwHttpErrors: true` → HTTPError → `toNhnCloudCliError`).
 - **인증**: phase-01 과 동일 (`X-NHN-AUTHORIZATION: Bearer <token>`, ADR-007).
 
 ## 회피 항목 (code-review-pitfalls 사전 확인)
@@ -111,14 +111,16 @@ interface DownloadGlobalOpts extends OutputOptions {
   profile?: string;
 }
 
-/** 옵션 문자열을 양의 정수로 파싱. 비숫자·0 이하면 EXIT_PARAM_ERROR. */
+/** 옵션 문자열을 양의 정수로 파싱 (011 binaries.ts 와 동일한 regex 버전 — pitfall 4-4). */
 function parsePositiveInt(value: string | undefined, flag: string): number | undefined {
   if (value === undefined) return undefined;
-  const n = Number(value);
-  if (!Number.isInteger(n) || n <= 0) {
-    throw new NhnCloudCliError(`${flag} 는 1 이상의 정수여야 합니다 (입력: ${value}).`, EXIT_PARAM_ERROR);
+  if (!/^[1-9]\d*$/.test(value)) {
+    throw new NhnCloudCliError(
+      `${flag} 는 1 이상의 정수여야 합니다 (입력: ${JSON.stringify(value)}).`,
+      EXIT_PARAM_ERROR,
+    );
   }
-  return n;
+  return Number(value);
 }
 
 /** 대상 경로가 이미 존재하면(파일/디렉터리 무관) --force 없이는 거부. ENOENT 만 정상. */
@@ -200,7 +202,7 @@ import { downloadCommand } from "./commands/deploy/download.js";
 deployCommand.addCommand(downloadCommand);
 ```
 
-## 내부 docs 반영 (이 phase 안에서 — README/SKILL 은 phase-03)
+## 내부 docs 반영 (team-lead docs-first — executor 범위 밖, README/SKILL 은 phase-03)
 
 ### (a) `CLAUDE.md` — 명령 카운트 + 항목
 
