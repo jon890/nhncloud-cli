@@ -32,7 +32,7 @@ nhncloud logncrash send --file ./error.log --level ERROR
 echo "배치 작업 종료" | nhncloud logncrash send --level INFO
 
 # 프로젝트 버전·소스 지정
-nhncloud logncrash send --body "deploy 시작" --version 2.3.0 --source batch
+nhncloud logncrash send --body "deploy 시작" --app-version 2.3.0 --source batch
 ````
 
 검색과 다른 인증을 한 줄로 안내한다 (코드블록 인접 산문):
@@ -41,7 +41,11 @@ nhncloud logncrash send --body "deploy 시작" --version 2.3.0 --source batch
 > logncrash send 는 검색과 다른 collector 로 전송하며 appkey 만 사용한다 (secret 불요). 단일 로그 본문은 8MB 까지.
 ```
 
+(c) **intro "지원 명령" 문구 갱신 (회고 PR #11·#13 — 메타 문구 누락 방지)**: README.md 상단 intro 가 `logncrash search` 만 언급하면 `logncrash search/send` 병기 또는 현재 명령 커버리지를 반영하도록 갱신한다 (산문 + bullet 양쪽 점검).
+
 ### 2. `skills/nhncloud-cli/SKILL.md`
+
+(b-0) **프론트매터 description 갱신 (회고 PR #13 — SKILL 은 프론트매터 + 본문 두 곳)**: `skills/nhncloud-cli/SKILL.md` 의 `description:` 이 logncrash 를 `로그 검색` 만 언급하면 `로그 검색·전송(search/send)` 으로 send 를 병기한다. 프론트매터 description 은 AI 에이전트 스킬 선택 트리거라 누락 시 send 작업이 매칭에서 빠진다 (본문 갱신과 별개 위치 — 둘 다 손댄다).
 
 (a) 빠른 참조 표에서 "Log & Crash 로그 검색" 행 **다음** 에 추가:
 
@@ -55,7 +59,7 @@ nhncloud logncrash send --body "deploy 시작" --version 2.3.0 --source batch
 ### logncrash send 전송
 
 - `nhncloud logncrash send --body "<메시지>"` — 로그 한 건을 Log & Crash 로 전송. 본문은 `--body`, 또는 `--file <path>`, 또는 stdin(파이프) 으로 전달한다.
-- `--level` 로 DEBUG/INFO/WARN/ERROR/FATAL 을 지정한다. `--version`(projectVersion)·`--source`/`--type`/`--host` 로 부가 필드를 설정한다.
+- `--level` 로 DEBUG/INFO/WARN/ERROR/FATAL 을 지정한다. `--app-version`(projectVersion)·`--source`/`--type`/`--host` 로 부가 필드를 설정한다.
 - 검색과 달리 collector 로 전송하며 **appkey 만 사용**한다 (secret 불요·ADR-014). 단일 로그 본문은 8MB 한도이며 초과 시 입력 오류로 차단된다.
 ```
 

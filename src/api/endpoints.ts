@@ -6,6 +6,7 @@ import { EXIT_API_ERROR, EXIT_PARAM_ERROR } from "../utils/exit-codes.js";
  */
 const ENDPOINTS: Record<string, string> = {
   logncrash: "https://api-lncs-search.nhncloudservice.com",
+  "logncrash-collector": "https://api-logncrash.nhncloudservice.com",
   deploy: "https://api-deploy.nhncloudservice.com",
 };
 

@@ -1,12 +1,12 @@
 ---
 name: nhncloud-cli
-description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색(logncrash search), Deploy 배포 실행·바이너리 그룹·바이너리 목록 조회, Compute 인스턴스 관리(instance — 목록·발급·전원 제어·키페어·이미지) 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
+description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색·전송(logncrash search/send), Deploy 배포 실행·바이너리 그룹·바이너리 목록 조회, Compute 인스턴스 관리(instance — 목록·발급·전원 제어·키페어·이미지) 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
 ---
 
 # nhncloud-cli
 
 NHN Cloud PaaS 서비스를 AWS CLI 방식으로 호출하는 TypeScript CLI.
-`configure`, `logncrash search`, `deploy`, `instance` (전원 제어·keypair 포함) 명령을 지원한다.
+`configure`, `logncrash search/send`, `deploy`, `instance` (전원 제어·keypair 포함) 명령을 지원한다.
 
 ## 설치
 
@@ -99,6 +99,7 @@ logncrash appkey 와 secret 은 콘솔 → Log & Crash Search → 프로젝트 �
 | 시간 범위 지정 검색 | `nhncloud logncrash search --query '*' --from 2024-01-01T00:00:00+09:00 --to 2024-01-01T12:00:00+09:00` |
 | 페이지네이션 | `nhncloud logncrash search --query '*' --from 1h --to now --page 1 --size 50` |
 | 다른 profile 사용 | `nhncloud logncrash search --query '*' --from 1h --to now --profile staging` |
+| Log & Crash 로그 전송 | `nhncloud logncrash send --body "<메시지>" --level INFO` |
 
 ## logncrash search 옵션
 
@@ -147,6 +148,15 @@ nhncloud logncrash search \
 | 인증 실패 (401/403) | 2 (AUTH_ERROR) |
 | API 오류 / 봉투 isSuccessful:false | 1 (API_ERROR) |
 | 시간 범위 초과·필수 옵션 누락 | 3 (PARAM_ERROR) |
+
+### logncrash send 전송
+
+- `nhncloud logncrash send --body "<메시지>"` — 로그 한 건을 Log & Crash 로 전송한다.
+  본문은 `--body`, 또는 `--file <path>`, 또는 stdin(파이프) 으로 전달한다.
+- `--level` 로 DEBUG/INFO/WARN/ERROR/FATAL 을 지정한다.
+  `--app-version`(projectVersion)·`--source`/`--type`/`--host` 로 부가 필드를 설정한다.
+- 검색과 달리 collector 로 전송하며 **appkey 만 사용**한다 (secret 불요·ADR-014).
+  단일 로그 본문은 8MB 한도이며 초과 시 입력 오류로 차단된다.
 
 ---
 

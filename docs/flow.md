@@ -88,6 +88,51 @@ nhncloud logncrash search [options]
 | 봉투 `isSuccessful: false` / 기타 4xx·5xx | `EXIT_API_ERROR` |
 | 시간 범위 초과 등 입력 오류 | `EXIT_PARAM_ERROR` |
 
+## logncrash send 흐름
+
+검색의 대칭 쓰기. 검색과 **다른 collector host(`api-logncrash`) + appkey-only 인증(secret 불요)** 을 쓴다 ([[adr-014]]).
+
+```bash
+nhncloud logncrash send --body "결제 완료" --level INFO
+echo "배치 종료" | nhncloud logncrash send --level INFO
+nhncloud logncrash send --file ./error.log --level ERROR
+```
+
+### 명령 시그니처
+
+```
+nhncloud logncrash send [options]
+```
+
+| 옵션 | 필수 | 설명 |
+|------|:---:|------|
+| `--body <text>` | 조건 | 로그 메시지 본문 (미지정 시 `--file` 또는 stdin) |
+| `--file <path>` | 조건 | 본문을 읽을 파일 경로 (stat 가드 + 8MB 한도) |
+| `--level <level>` | 아니오 | DEBUG/INFO/WARN/ERROR/FATAL |
+| `--app-version <ver>` | 아니오 | projectVersion (기본 `1.0.0`). `--version` 은 CLI 버전 플래그라 `--app-version` 사용 |
+| `--source <s>` / `--type <t>` / `--host <h>` | 아니오 | logSource(기본 http)·logType(기본 log)·host |
+| `--profile <name>` | 아니오 | profile 선택 |
+
+전역 옵션: `--json` / `--quiet` / `--no-color`.
+
+### 입력 해석 순서
+
+`--body` > `--file` > stdin(파이프) 순으로 본문을 해석한다. 셋 다 없으면 입력 오류.
+본문 byte 길이(`Buffer.byteLength`)가 **8MB(단일 로그 한도)** 초과면 전송 전 차단한다 (collector 는 base64 인코딩하지 않아 원본 byte 기준).
+
+### 인증·전송
+
+- 검색의 `X-LNCS-SECRET` 헤더가 없다. body 의 `projectName` 에 appkey 를 넣어 식별한다 (secret 불요·[[adr-014]]).
+- 응답은 검색과 같은 중첩 봉투 `{ header: { isSuccessful, resultCode(숫자), resultMessage } }` — `isSuccessful` 로만 판정한다 ([[adr-006]]).
+
+### 에러 경로
+
+| 상황 | exit code |
+|------|-----------|
+| appkey 누락 | `EXIT_CONFIG_ERROR` |
+| 본문 없음 / 빈 본문 / 8MB 초과 / 잘못된 level / 파일 stat 실패 | `EXIT_PARAM_ERROR` |
+| 봉투 `isSuccessful: false` / 기타 4xx·5xx | `EXIT_API_ERROR` |
+
 ## deploy 흐름
 
 배포 좌표는 `config.json` 의 named target 으로 참조하고, OAuth 토큰은 캐시한다 ([[adr-007]], [[adr-008]]).
