@@ -481,6 +481,34 @@ planning SKILL "갱신 시점 분리" 표는 이 6개를 **결정 docs = plannin
 
 **Why**: PR #23 (plan018) docs-verifier UPDATE_NEEDED — `floatingip list` headers 는 `[id, floating_ip_address, status, port_id, fixed_ip_address]` 5개인데 CLAUDE.md·flow.md 가 `fixed_ip_address` 누락한 4개로 기재. 두 곳 보강으로 해소. 새 list 명령마다 재발 가능.
 
+> **확장 — 옵션 표도 동일**: README/SKILL 의 새 명령 **옵션 목록**도 commander `.option(...)` 정의와 1:1 이어야 한다. 특히 수치 옵션의 범위·기본값(`--size` 범위 10~100·기본 100)을 docs 에 빠뜨리면 사용자가 허용값을 모른다. `grep -nE "\.option\(" src/commands/<svc>/<cmd>.ts` → README/SKILL 옵션 표와 대조. (PR #24 plan019 docs-verifier UPDATE — export `--size` 범위·`--profile` 가 README 표에 누락.)
+
+## 1-30. plan 의 REVISE/FIX 수정이 자기 plan 의 성공기준 grep 토큰·회피항목을 깨뜨림 (변경 전파 누락)
+
+**증상**: REVISE 반영으로 코드의 **문자열(에러 메시지·상수·식별자)을 바꿨는데**, 그 문자열을 부분일치로 검사하던 **성공기준 grep 토큰**이나 **회피 항목의 예시 문구**를 같이 안 고친다. 결과: (a) 올바른 구현인데 성공기준이 옛 토큰을 못 찾아 **false-fail**, (b) 그 false-fail 을 "고치려고" executor 가 옛 문자열을 도로 넣어 **방금 한 수정이 되돌아간다**.
+
+**Good**: 문자열을 바꾸는 수정은 **그 문자열을 참조하는 모든 곳을 같은 수정에서 갱신**한다.
+- 바꾼 문자열을 plan 전체에서 grep: `grep -n "<옛 토큰>" tasks/<plan>/phase-*.md` → 성공기준·회피항목·docs 인용 전부 새 토큰으로.
+- 성공기준 grep 토큰은 **변경에 안정적인 마커**를 고른다 — 자주 바뀌는 단정 문구 대신 구조적 마커(`원인:` 같은 "원본 보존" 표식).
+- 회피 항목이 옛 메시지를 "예시"로 들고 있으면 구현과 어긋나므로 같이 갱신 — executor 가 회피항목을 스펙으로 읽고 되돌릴 위험 차단.
+
+**Self-check**: 이번 수정이 바꾼 문자열(메시지·상수)을 grep 하는 성공기준이 있는가? 그 grep 토큰이 새 문자열과 일치하는가? 회피항목·docs 인용에 옛 문자열이 남았는가?
+
+**Why**: PR #24 (plan019) critic M4 — M3 가 만료 메시지를 `"scrollKey 가 만료되었습니다..."` → `"...(원인: ${err.message}). 만료(유효 1분)일 수 있으니..."` 로 바꿨는데 성공기준 #9 가 여전히 `grep -c "scrollKey 가 만료"` → 올바른 구현이 false-fail. 그 게이트 압박이 M3 를 되돌릴 경로를 염. #9 토큰을 `"원인:"`(원본보존 마커)로 교체 + 회피항목 갱신으로 해소. 문자열 바꾸는 REVISE 마다 재발 가능.
+
+## 1-31. 새 API 의 수치 파라미터 범위(pageSize/limit/maxResults)를 docs 확인 없이 추측 기본값·상한으로 박음
+
+**증상**: 새 endpoint 의 `pageSize`·`limit` 같은 수치 파라미터의 **허용 범위·기본값**을 docs 확인 없이 추측한다(예: "pageSize 기본 1000·최대 1000"). 실제 docs 한도가 다르면(10~100) 코드 검증·기본값·help 텍스트가 전부 틀린 채 ship 되고, 첫 실호출에서 422/400 또는 조용한 절단으로 드러난다. tsc·help 성공기준은 수치 범위를 모르니 못 잡는다.
+
+**Good**: 수치 파라미터는 **공식 docs 의 범위 명세를 인용**해 확정한 뒤 검증·기본값·help·docs 를 모두 그 값으로 맞춘다.
+- API 가이드에서 "pageSize: 10~100" 같은 범위 문구·예제 값을 찾아 plan 에 인용.
+- 검증은 4-4(정수 regex) 후 docs 범위로 clamp/거절. help·README·SKILL·코드 기본값이 한 값으로 일치하는지 cross-check.
+- docs 가 봇차단이면 1-27(B) 처럼 "추정 — 수동 QA 확정" 으로 격하하고 보수적 기본값.
+
+**Self-check**: 새 수치 옵션의 범위·기본값이 docs 인용에 근거하는가, 추측인가? 코드 검증·기본값·help·README·SKILL 다섯 곳이 같은 범위로 일치하는가?
+
+**Why**: PR #24 (plan019) critic M2 부수발견 — export `--size`(scroll pageSize)를 1~1000·기본 1000 으로 추측했으나 공식 Log & Crash Search API docs 는 **10~100**. WebFetch 로 응답 예제·범위 확정 후 10~100·기본 100 으로 전 경로 정정. 새 API 의 페이지네이션·한도 수치마다 재발 가능.
+
 ## 섹션 1 소진 체크리스트
 
 plan 제출 전 10개 패턴 모두 self-check:
