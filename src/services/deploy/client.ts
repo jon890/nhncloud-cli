@@ -4,7 +4,7 @@ import { unwrap, type NhnEnvelope } from "../../api/envelope.js";
 import { toNhnCloudCliError } from "../../api/httpError.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_API_ERROR } from "../../utils/exit-codes.js";
-import type { DeployRunParams, BinaryGroup, Binary, BinaryListParams } from "./types.js";
+import type { DeployRunParams, BinaryGroup, Binary, BinaryListParams, UploadBinaryParams, UploadBinaryResult } from "./types.js";
 
 /**
  * 응답 타입 가드 — 5-4 회피.
@@ -242,6 +242,56 @@ export class DeployClient {
             ? Number(tc)
             : list.length;
       return { totalCount, binaries: list };
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * 바이너리를 multipart/form-data 로 업로드한다.
+   *
+   * 신규 전송 경로 — 기존 메서드는 ky `json:`(JSON body) 만 쓴다 (ADR-015).
+   * - 파일 파트(binaryFile)는 command 에서 statSync 가드 후 읽은 Buffer 를 Blob 으로 감싼다.
+   * - Content-Type 은 수동으로 박지 않는다 — ky 가 FormData 에서 multipart boundary 를 자동 설정한다.
+   *
+   * ⚠️ 실측 pending — 수동 QA 로 확정 필요:
+   *   - endpoint 경로 세그먼트 단/복수(`binary-group` vs `binary-groups`) — 404 시 복수형으로 교체.
+   *   - 응답 binaryKey 타입(number|string) — 코드는 둘 다 수용 후 Number() 정규화.
+   */
+  async uploadBinary(params: UploadBinaryParams): Promise<UploadBinaryResult> {
+    const url =
+      `${this.baseUrl}/api/v2.1/projects/${params.appKey}` +
+      `/artifacts/${params.artifactId}/binary-group/${params.binaryGroupKey}`;
+
+    const form = new FormData();
+    // Buffer → Uint8Array → Blob (Node 18+ 전역 Blob/FormData 사용; Buffer 직접 전달 시 타입 불일치)
+    const blob = new Blob([new Uint8Array(params.fileBuffer)]);
+    form.append("binaryFile", blob, params.fileName);
+    form.append("applicationType", params.applicationType);
+    if (params.description !== undefined) {
+      form.append("description", params.description);
+    }
+
+    try {
+      const res = await ky
+        .post(url, {
+          headers: this.authHeaders(), // 인증 헤더만 — multipart boundary 는 ky 가 자동 설정
+          body: form,
+          retry: 0,
+          timeout: SYNC_TIMEOUT_MS, // 업로드는 파일 크기에 따라 길 수 있어 긴 timeout
+        })
+        .json<NhnEnvelope<{ downloadUrl?: unknown; binaryKey?: unknown }>>();
+
+      const body = unwrap(res);
+      // binaryKey 는 number|string 모두 수용 (기존 isBinary 와 동일 — Deploy 는 resultCode 도 문자열, 실측 전 타입 미확정).
+      const keyType = typeof body.binaryKey;
+      if (typeof body.downloadUrl !== "string" || (keyType !== "number" && keyType !== "string")) {
+        throw new NhnCloudCliError(
+          "upload 응답 형식이 올바르지 않습니다 — downloadUrl/binaryKey 누락.",
+          EXIT_API_ERROR,
+        );
+      }
+      return { downloadUrl: body.downloadUrl, binaryKey: Number(body.binaryKey) };
     } catch (err) {
       throw toNhnCloudCliError(err);
     }

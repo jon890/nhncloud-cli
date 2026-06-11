@@ -11,6 +11,7 @@ import { serverGroupsCommand } from "./commands/deploy/server-groups.js";
 import { historiesCommand } from "./commands/deploy/histories.js";
 import { binaryGroupsCommand } from "./commands/deploy/binary-groups.js";
 import { binariesCommand } from "./commands/deploy/binaries.js";
+import { uploadCommand } from "./commands/deploy/upload.js";
 import { listCommand } from "./commands/instance/list.js";
 import { listCommand as networkListCommand } from "./commands/network/list.js";
 import { subnetCommand } from "./commands/network/subnet.js";
@@ -64,6 +65,7 @@ deployCommand.addCommand(serverGroupsCommand);
 deployCommand.addCommand(historiesCommand);
 deployCommand.addCommand(binaryGroupsCommand);
 deployCommand.addCommand(binariesCommand);
+deployCommand.addCommand(uploadCommand);
 
 program.addCommand(deployCommand);
 
