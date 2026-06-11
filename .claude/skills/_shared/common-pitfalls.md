@@ -456,6 +456,31 @@ planning SKILL "갱신 시점 분리" 표는 이 6개를 **결정 docs = plannin
 
 **Why**: PR #21 (plan016) critic 4 MAJOR — parsePositiveInt 옛 약화 버전 재도입(A) · binaryKey number 강제(과엄격) · download 응답/endpoint "확정"(B) · 내부 docs 헤딩 모순(C). 모두 reference 코드 grep 대조 + 실측 pending 격하 + 헤딩 통일로 해소. "기존 패턴 재사용" + "bot 차단 API" plan 마다 재발.
 
+## 1-28. 이미 버전 segment(`/v2.0`·`/v2`)를 포함한 endpoint base 에 경로를 붙이며 버전을 또 붙임 → 이중 prefix(404)
+
+**증상**: 기존 서비스 client 의 endpoint base(`networkEndpoint`·`blockStorageEndpoint`·`imageEndpoint` 등)가 이미 API 버전 segment 를 포함(`https://host/v2.0`)하는데, 새 메서드 URL 을 `${this.networkEndpoint}/v2.0/floatingips` 처럼 버전을 **다시** 붙인다 → 실제 호출은 `https://host/v2.0/v2.0/floatingips` 로 404.
+같은 파일의 기존 메서드(`${this.networkEndpoint}/vpcs`)와 내부 모순인데, tsc·`--help` 성공 기준은 URL 문자열을 실행하지 않아 잡지 못하고 수동 QA 첫 호출에서야 404 로 드러난다. plan 이 endpoint 재사용을 주장할수록(같은 catalog type) 재발한다.
+
+**Good**: endpoint 재사용 plan 은 **base 가 버전 segment 를 이미 포함하는지 reference 메서드로 확인**한 뒤 경로만 붙인다.
+- 새 메서드 작성 전 기존 메서드 URL 을 grep: `grep -n "this.<endpoint>}" src/services/<svc>/client.ts` → `${...}/vpcs`(버전 없음)면 base 에 버전 포함 → 새 메서드도 `${...}/floatingips`(버전 빼고).
+- phase 성공 기준에 음수 검증 grep 추가: `grep -c "<endpoint>}/v2" client.ts` = **0** (base 가 버전 포함일 때).
+
+**Self-check**: endpoint base 변수가 host 만인가, 버전까지 포함하나(`keystone.ts`·endpoint 해석부에서 확인)? 새 URL 이 기존 형제 메서드와 같은 prefix 깊이인가? base 가 버전 포함이면 새 경로에 `/v2`·`/v2.0` 리터럴이 없는가?
+
+**Why**: PR #23 (plan018) critic CRITICAL — floatingip 6개 메서드 전부 `${networkEndpoint}/v2.0/...` 로 이중 `/v2.0`. networkEndpoint 가 이미 `https://host/v2.0`(keystone.ts) 라 전 명령 404. 6곳 모두 `/v2.0` 제거로 해소. compute/image/network/blockstorage 처럼 버전 포함 base 를 공유하는 IaaS 명령마다 재발 가능.
+
+## 1-29. list/조회 명령의 출력 컬럼을 docs 에 적을 때 실제 `headers: [...]` 배열과 1:1 누락
+
+**증상**: 새 `list` 명령의 가시 컬럼을 CLAUDE.md·flow.md·README 에 "(id·name·status, 전체는 --json)" 식으로 적으면서, 실제 `output()` 의 `headers: [...]` 배열보다 **컬럼을 빠뜨린다**(예: headers 5개인데 docs 엔 4개). 사용자가 docs 만 보고 특정 컬럼이 안 나온다고 오인하거나, docs 에만 있는 유령 컬럼을 기대한다 — 문서 부패(A).
+
+**Good**: 출력 컬럼을 docs 에 나열할 땐 **command 의 `headers` 배열을 grep 해 그대로 옮긴다**.
+- `grep -n "headers:" src/commands/<svc>/<cmd>.ts` → 배열 원소를 docs 컬럼 설명과 1:1 대조.
+- 컬럼이 4개 이상이면 모두 적거나 "주요 N개 + 전체는 --json" 로 명시(임의 누락 금지).
+
+**Self-check**: docs 의 "(컬럼1·컬럼2·…)" 가 실제 `headers` 배열 길이·원소와 일치하는가? CLAUDE.md·flow.md·README 세 곳의 컬럼 나열이 서로, 그리고 코드와 일관되는가?
+
+**Why**: PR #23 (plan018) docs-verifier UPDATE_NEEDED — `floatingip list` headers 는 `[id, floating_ip_address, status, port_id, fixed_ip_address]` 5개인데 CLAUDE.md·flow.md 가 `fixed_ip_address` 누락한 4개로 기재. 두 곳 보강으로 해소. 새 list 명령마다 재발 가능.
+
 ## 섹션 1 소진 체크리스트
 
 plan 제출 전 10개 패턴 모두 self-check:
