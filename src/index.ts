@@ -19,6 +19,9 @@ import { getCommand as volumeGetCommand } from "./commands/volume/get.js";
 import { createCommand as volumeCreateCommand } from "./commands/volume/create.js";
 import { listCommand as networkListCommand } from "./commands/network/list.js";
 import { subnetCommand } from "./commands/network/subnet.js";
+import { listCommand as fipListCommand } from "./commands/floatingip/list.js";
+import { createCommand as fipCreateCommand } from "./commands/floatingip/create.js";
+import { deleteCommand as fipDeleteCommand } from "./commands/floatingip/delete.js";
 import { flavorsCommand } from "./commands/instance/flavors.js";
 import { availabilityZonesCommand } from "./commands/instance/availability-zones.js";
 import { getCommand } from "./commands/instance/get.js";
@@ -112,6 +115,16 @@ volumeCommand.addCommand(volumeGetCommand);
 volumeCommand.addCommand(volumeCreateCommand);
 
 program.addCommand(volumeCommand);
+
+// floatingip 커맨드 그룹
+const floatingipCommand = new Command("floatingip").description(
+  "Floating IP(인스턴스 공인 IP) 관리",
+);
+floatingipCommand.addCommand(fipListCommand);
+floatingipCommand.addCommand(fipCreateCommand);
+floatingipCommand.addCommand(fipDeleteCommand);
+
+program.addCommand(floatingipCommand);
 
 program.parseAsync().catch((err: unknown) => {
   const message = err instanceof Error ? err.message : String(err);
