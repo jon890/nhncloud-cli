@@ -7,20 +7,30 @@ docs 는 코드 산출물(실제 옵션/출력 경로)에 의존하므로 **마�
 
 핵심: "export 는 scroll 로 전체를 파일로 내보내며, scrollKey 는 1분 만료라 만료 시 안내 에러로 막힌다" 를 흐름 문서에 명시한다.
 
+## ⚠️ 소유권 분리 (common-pitfalls 1-24)
+
+결정 docs(`CLAUDE.md`·`docs/flow.md`·`docs/code-architecture.md`)는 **team-lead 가 docs-first 로** phase-01 코드 후 일괄 작성한다 — executor 의 phase-02 범위가 아니다. executor 의 phase-02 범위는 **공개 사용자 docs(README·SKILL) + 완료 마킹(index.json) 뿐**.
+
+> **새 ADR 없음**: export 는 search 의 host(`api-lncs-search`)·인증(`X-LNCS-SECRET`)·봉투 helper 를 재사용 — 신규 endpoint·인증·좌표 없음. "상황별 ADR 필수 참조" 표에 행 추가 안 함.
+> **카운트**: base 39 → logncrash export 1개 = **40개**. (이 task 는 feat/018 위에 stack — base 가 39다. 옛 "11→12" 표기는 무효.)
+
 ## 변경 파일 (6개)
 
-1. `CLAUDE.md` — 지원 명령 카운트 + logncrash export 행 추가
-2. `README.md` — logncrash 사용 예에 export 추가
-3. `skills/nhncloud-cli/SKILL.md` — 빠른 참조 표 + export 시나리오 반영
+**(team-lead docs-first — executor 범위 밖)**
+1. `CLAUDE.md` — 지원 명령 카운트(39→40) + logncrash export 행 추가
 4. `docs/flow.md` — logncrash export 흐름 추가(scrollKey 1분 만료 루프 명시)
 5. `docs/code-architecture.md` — `LogncrashClient` 메서드 목록에 scrollStart/scrollNext + export.ts 추가
+
+**(executor phase-02)**
+2. `README.md` — logncrash 사용 예에 export 추가
+3. `skills/nhncloud-cli/SKILL.md` — 빠른 참조 표 + export 시나리오 반영
 6. `tasks/019-feat-logncrash-export/index.json` — status `completed` + current_phase 갱신
 
 ## 작업 상세
 
 ### 1. `CLAUDE.md`
 
-(a) `## 지원 명령 (11개)` → `## 지원 명령 (12개)` 로 카운트 갱신.
+(a) `## 지원 명령 (39개)` → `## 지원 명령 (40개)` 로 카운트 갱신 (base 가 feat/018 = 39).
 
 (b) `logncrash search` 행 **다음** 에 추가:
 
@@ -106,10 +116,10 @@ scrollKey 유효기간은 1분이다. 한 페이지 처리 후 1분 안에 다�
 
 ### 5. `docs/code-architecture.md`
 
-(a) services 트리의 `client.ts # LogncrashClient — search()` 를 갱신:
+(a) services 트리의 실제 라인 `client.ts # LogncrashClient — search() / send() (send 는 collector host + appkey-only, adr-014)` 를 갱신 — 기존 `send` 설명을 보존하면서 scroll 메서드만 추가:
 
 ```
-      client.ts             # LogncrashClient — search / scrollStart / scrollNext
+      client.ts             # LogncrashClient — search / send / scrollStart / scrollNext (send 는 collector host + appkey-only, adr-014)
 ```
 
 (b) commands 트리의 `search.ts # nhncloud logncrash search` **다음** 줄에 추가:
@@ -134,8 +144,8 @@ phase-01·02 완료 후:
 ```bash
 # cwd: <repo root> (또는 plan019 worktree)
 
-# 1. CLAUDE.md 명령 카운트 갱신
-grep -c "## 지원 명령 (12개)" CLAUDE.md
+# 1. CLAUDE.md 명령 카운트 갱신 (base 39 → 40)
+grep -c "## 지원 명령 (40개)" CLAUDE.md
 # 기대: 1
 
 # 2. CLAUDE.md 에 export 행
