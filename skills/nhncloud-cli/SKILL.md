@@ -1,12 +1,12 @@
 ---
 name: nhncloud-cli
-description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색·전송(logncrash search/send), Deploy 배포 실행·바이너리 그룹·바이너리 목록 조회, Compute 인스턴스 관리(instance — 목록·발급·전원 제어·키페어·이미지) 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
+description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색·전송(logncrash search/send), Deploy 배포 실행·바이너리 그룹·바이너리 목록 조회, Compute 인스턴스 관리(instance — 목록·발급·전원 제어·키페어·이미지), VPC·서브넷 조회(network list/subnet list) 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
 ---
 
 # nhncloud-cli
 
 NHN Cloud PaaS 서비스를 AWS CLI 방식으로 호출하는 TypeScript CLI.
-`configure`, `logncrash search/send`, `deploy`, `instance` (전원 제어·keypair 포함) 명령을 지원한다.
+`configure`, `logncrash search/send`, `deploy`, `instance` (전원 제어·keypair 포함), `network` (VPC·서브넷 조회) 명령을 지원한다.
 
 ## 설치
 
@@ -435,3 +435,49 @@ nhncloud instance create \
 | 미등록 region / 필수 옵션 누락 | 3 (PARAM_ERROR) |
 | API 오류 / waitForActive 타임아웃 | 1 (API_ERROR) |
 | 비대화형 delete 에서 --yes 미지정 | 3 (PARAM_ERROR) |
+
+---
+
+## network — VPC·서브넷 조회
+
+`network` 명령군은 NHN VPC API 를 호출한다.
+`instance` 와 같은 `iaas` 자격증명·Keystone 토큰을 공유하므로 별도 설정이 필요 없다.
+
+### 의도 → 커맨드 매핑
+
+| 의도 | 커맨드 |
+|------|--------|
+| VPC 목록 조회 | `nhncloud network list` (전체 필드는 `--json`) |
+| 서브넷 목록 조회 | `nhncloud network subnet list` |
+| 다른 region VPC | `nhncloud network list --region kr2` |
+| VPC id 를 instance create 에 사용 | `nhncloud instance create ... --network <network-uuid>` |
+
+> **`--network` 가 받는 uuid**: `network list` 의 **VPC id** 를 그대로 사용한다 (subnet id 아님, 실측 확정).
+> VPC id 를 `--quiet` 로 추출해 create 로 파이프하는 흐름을 지원한다.
+
+### 체이닝 예시
+
+```bash
+# VPC id 한 줄씩 (--quiet)
+nhncloud network list --quiet
+
+# 서브넷 id·CIDR 확인
+nhncloud network subnet list --json | jq '.[] | {id, cidr, vpc_id}'
+
+# VPC 선택 후 인스턴스 생성
+nhncloud instance create \
+  --name web \
+  --flavor <flavor-id> \
+  --image <image-id> \
+  --network <network-uuid> \
+  --wait --quiet
+```
+
+### network 에러 코드
+
+| 상황 | exit code |
+|------|-----------|
+| iaas 자격증명 누락·불완전 | 4 (CONFIG_ERROR) |
+| Keystone 인증 실패 (401/403) | 2 (AUTH_ERROR) |
+| 미등록 region | 3 (PARAM_ERROR) |
+| VPC API 오류 | 1 (API_ERROR) |

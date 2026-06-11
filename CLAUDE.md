@@ -5,7 +5,7 @@
 NHN Cloud 서비스를 AWS CLI 처럼 호출하는 통합 CLI.
 TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 
-## 지원 명령 (22개)
+## 지원 명령 (24개)
 
 - `configure` — 자격증명 설정 마법사 (대화형 + flag, UAK + 서비스별 키, 연결 테스트).
 - `logncrash search` — Log & Crash 로그 검색 (시간 범위는 90일 이내·31일 이하로 제한, 초과 시 입력 오류).
@@ -29,6 +29,8 @@ TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 - `instance keypair create <name>` — 키페어 생성. `--public-key` 미지정 시 NHN 이 키쌍 생성 — private_key 1회성 반환, `--output <keyfile>` 로 0600 저장.
 - `instance keypair delete <name>` — 키페어 삭제.
 - `instance images` — 이미지 목록 조회 (`create --image <id>` 소스, `--visibility`/`--name`/`--owner`/`--status` 필터, marker 페이지네이션, 전체 필드는 `--json`).
+- `network list` — VPC 목록 조회 (`instance create --network <uuid>` 의 uuid = VPC id·실측 확정. id·name·cidrv4·state·external, 전체 필드는 `--json`).
+- `network subnet list` — 서브넷 목록 조회 (id·cidr·소속 VPC·gateway·가용 IP).
 
 ## API 스펙 확인 절차
 
@@ -97,6 +99,7 @@ src/
 | Instance 발급 (boot-from-volume·POST 축약 응답) | ADR-011 |
 | Instance user_data 주입 (base64·65535 인코딩 후 한도) | ADR-012 |
 | Instance image endpoint 해석 (compute 외 type 확장) | ADR-013, ADR-005, ADR-010 |
+| Network(VPC) endpoint 해석 (compute·image 외 type 확장) | ADR-013, ADR-005, ADR-010 |
 | Log & Crash 로그 전송 (collector host·appkey-only 인증) | ADR-014 |
 
 신규 ADR 추가 시 본 표에 행 추가.

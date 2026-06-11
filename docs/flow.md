@@ -302,3 +302,41 @@ nhncloud instance keypair delete <name> [opts]  # 키페어 삭제
 | 잘못된 region | `EXIT_PARAM_ERROR` |
 | `--wait` timeout | `EXIT_API_ERROR` (메시지에 마지막 status 포함) |
 | Compute API 4xx · 5xx | `EXIT_API_ERROR` |
+
+## network 흐름
+
+NHN VPC 명령군. instance 와 같은 Keystone 토큰을 발급해 region 별 network endpoint 로 호출한다 ([[adr-013]], [[adr-010]]).
+VPC 목록은 `instance create --network <uuid>` 에 넣을 **VPC id** 를 고르는 단계다 (Nova `networks[].uuid` = VPC id, 실측 확정).
+
+### 인증 흐름
+
+instance 와 동일하다 — `iaas` 블록 + Keystone `X-Auth-Token` 재사용(새 토큰 발급 없음).
+endpoint 만 network host(`<region>-api-network-infrastructure...`, tenant segment 없음)로 다르다.
+
+### 명령 시그니처
+
+```
+nhncloud network list [options]              # VPC 목록 (create --network 소스)
+nhncloud network subnet list [options]       # 서브넷 목록
+```
+
+| 옵션 | 적용 | 설명 |
+|------|------|------|
+| `--region <r>` | 전체 | `iaas.region` override (kr1/kr2/kr3/jp1) |
+| `--profile <name>` | 전체 | profile 선택 |
+
+전역 옵션: `--json` / `--quiet` / `--no-color`.
+
+### 출력
+
+- `network list` 테이블: `id` / `name` / `cidrv4` / `state` / `external`(router:external). 전체 필드는 `--json`.
+- `network subnet list` 테이블: `id` / `cidr` / `vpc_id` / `gateway` / `available_ip`. 전체 필드는 `--json`.
+- `--quiet` 는 id 만 — `network list --quiet` 의 VPC id 를 `instance create --network <uuid>` 로 바로 파이프한다 (uuid = VPC id, 실측 확정).
+
+### network 에러 경로
+
+| 상황 | exit code |
+|------|-----------|
+| `iaas` 자격증명 누락 / Keystone 발급 실패 | `EXIT_CONFIG_ERROR` 또는 `EXIT_AUTH_ERROR` |
+| 잘못된 region | `EXIT_PARAM_ERROR` |
+| VPC API 4xx · 5xx | `EXIT_API_ERROR` |

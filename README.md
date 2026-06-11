@@ -1,7 +1,7 @@
 # nhncloud-cli
 
 NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 통합 CLI.
-현재 `configure`, `logncrash search/send` (Log & Crash 로그 검색·전송), `deploy` (배포·바이너리 조회), `instance` (Compute 인스턴스 목록·발급·전원 제어·키페어 관리·이미지 조회 포함) 명령을 지원한다.
+현재 `configure`, `logncrash search/send` (Log & Crash 로그 검색·전송), `deploy` (배포·바이너리 조회), `instance` (Compute 인스턴스 목록·발급·전원 제어·키페어 관리·이미지 조회 포함), `network` (VPC·서브넷 목록 조회) 명령을 지원한다.
 
 ## 설치
 
@@ -291,6 +291,35 @@ nhncloud instance keypair delete <keypair-name>
 > `-o <keyfile>` 로 저장하거나 stdout 을 안전한 곳에 보관하세요. 분실 시 복구할 수 없습니다.
 
 지원 region: `kr1` / `kr2` / `kr3` / `jp1` (`--region` 으로 override 가능).
+
+### 네트워크 (Network)
+
+`instance create --network <uuid>` 에 넣을 VPC id 를 확인하거나 서브넷 구성을 조회한다.
+`network` 명령군은 `instance` 와 같은 `iaas` 자격증명·Keystone 토큰을 공유한다 — 별도 설정이 필요 없다.
+
+```bash
+# VPC 목록 (instance create --network <uuid> 에 넣을 VPC id 확인)
+nhncloud network list
+
+# 전체 필드 JSON
+nhncloud network list --json
+
+# 서브넷 목록 (소속 VPC·CIDR·가용 IP 확인)
+nhncloud network subnet list
+
+# 다른 region
+nhncloud network list --region kr2
+
+# create 흐름 — 확인한 VPC id 를 --network 에 사용 (--network 가 받는 uuid = VPC id, 실측 확정)
+nhncloud instance create \
+  --name web \
+  --flavor <flavor-id> \
+  --image <image-id> \
+  --network <network-uuid>
+```
+
+> **`--network` 가 받는 id**: `network list` 의 VPC id 를 그대로 `--network` 에 사용한다.
+> subnet id 가 아니다 — `instance list --json` 의 addresses 키와 VPC name 이 1:1 대응함을 실측으로 확인.
 
 ## 개발
 

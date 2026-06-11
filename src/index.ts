@@ -12,6 +12,8 @@ import { historiesCommand } from "./commands/deploy/histories.js";
 import { binaryGroupsCommand } from "./commands/deploy/binary-groups.js";
 import { binariesCommand } from "./commands/deploy/binaries.js";
 import { listCommand } from "./commands/instance/list.js";
+import { listCommand as networkListCommand } from "./commands/network/list.js";
+import { subnetCommand } from "./commands/network/subnet.js";
 import { flavorsCommand } from "./commands/instance/flavors.js";
 import { getCommand } from "./commands/instance/get.js";
 import { createCommand } from "./commands/instance/create.js";
@@ -78,6 +80,13 @@ instanceCommand.addCommand(keypairsCommand);
 instanceCommand.addCommand(keypairCommand);
 
 program.addCommand(instanceCommand);
+
+// network 커맨드 그룹
+const networkCommand = new Command("network").description("VPC·서브넷 조회");
+networkCommand.addCommand(networkListCommand);
+networkCommand.addCommand(subnetCommand);
+
+program.addCommand(networkCommand);
 
 program.parseAsync().catch((err: unknown) => {
   const message = err instanceof Error ? err.message : String(err);
