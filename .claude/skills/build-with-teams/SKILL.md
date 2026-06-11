@@ -180,6 +180,29 @@ sub-agent는 main 워킹 디렉터리에서 실행될 수 있다.
 - 파일 참조는 반드시 `/Users/.../.claude/worktrees/{plan이름}/tasks/{plan}/phase-XX.md` 형식의 절대경로
 - 팀원이 구버전을 본다고 의심되면 `grep`한 실제 파일 내용을 메시지에 붙여 넣고 절대경로 재확인 요청
 
+### executor 완료 보고 직후 — worktree 반영 검증 (필수)
+
+절대경로를 줘도 executor 가 **main 워킹 디렉터리에서 파일을 새로 만들/고칠** 수 있다(상대경로로 `src/...` 생성 시 cwd=main 이면 main 에 떨어짐). 이 경우 worktree 브랜치엔 변경이 0이라 commit 할 게 없고, main 은 엉뚱하게 더럽혀진다.
+
+executor 가 phase 완료를 보고하면 team-lead 는 commit 전에 **worktree 에서 변경 실재를 확인**한다:
+
+```bash
+# cwd: /Users/.../.claude/worktrees/{plan}
+git status --short    # executor 가 보고한 파일이 여기 보여야 한다
+```
+
+비어 있으면 executor 가 main 에서 작업한 것이다. 복구:
+
+```bash
+# main 디렉터리에서 executor 변경만 stash (untracked 포함)
+cd <repo root>; git stash push -u -- <executor 가 보고한 파일들>
+# worktree 로 옮겨 적용
+cd .claude/worktrees/{plan}; git stash apply
+# 충돌(README/SKILL/index 등 base 차이)은 union 으로 해소 후 git add, stash drop
+```
+
+base 가 다르면(executor 가 main=구 base 에서 작업) 충돌이 난다 — 명령 카운트·문서는 worktree(정 base) 쪽 union 으로 맞춘다.
+
 ## 모델 라우팅 (task 규모 기반)
 
 task의 `index.json` + phase 파일을 읽고 규모를 판정하여 팀원 모델을 동적으로 조정.
