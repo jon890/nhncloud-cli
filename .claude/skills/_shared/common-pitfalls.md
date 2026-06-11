@@ -414,6 +414,19 @@ planning SKILL "갱신 시점 분리" 표는 이 6개를 **결정 docs = plannin
 
 **Why**: PR #16 (plan012) critic MAJOR — phase-01 이 ADR-014 + CLAUDE.md + flow + code-architecture 편집을 묶어 pitfall 1-18·갱신 시점 분리와 충돌. team-lead docs-first 분리로 해소. plan012~019 처럼 일괄 생성된 backlog task 군은 모두 같은 구조라 매 plan 재발 가능 — 실행 전 선제 분리.
 
+> **변형 (실측 의존 결정 docs)**: 결정 docs 내용이 phase 의 **실측 확정값**(예: endpoint host, API 가 받는 id 종류)에 의존하면, team-lead 가 docs-first 를 코드 phase **이전**이 아니라 **이후**(실측값 반영 후) 별도 commit 으로 작성한다. 소유권(team-lead)은 유지, 타이밍만 코드 뒤로. commit 순서: feat(코드) → docs(결정) → docs(공개). repo 의 ADR-013(image)·ADR-013 보강(network)이 실측 후 작성된 선례 — PR #17(plan013).
+
+## 1-25. source-feeding 명령의 round-trip 미검증 — list 가 내놓는 id 가 소비 명령에 실제 먹히는지 안 봄
+
+**증상**: 새 "조회/목록" 명령의 존재 이유가 다른 명령의 인자 소스("이 `list` 의 id 를 `create --X` 에 넣어라")인데, 실측·docs 가 **목록 API 가 200 인지**만 확인하고 **그 id 가 소비 명령에 실제 round-trip 되는지**는 확인 안 한다.
+공개 docs(README/SKILL)·CLI help(`.description`)에 "이 id 를 --X 에 그대로" 단정을 ship 하는데, 실제로는 다른 id(상위/하위 리소스 id)를 요구하면 사용자가 발급 실패하고 원인을 못 찾는다.
+
+**Good**: source-feeding 명령은 **round-trip 을 명시 검증**한다 — (a) 소비 명령(`create` 등)의 해당 인자 docs 예제로 어느 id 인지 확인, (b) read-only 로 기존 리소스의 첨부 정보(`get`/`list --json`)에서 그 id 가 어느 목록의 id 와 일치하는지 대조, (c) 불확정이면 동의 하 1회 테스트로 확정. 확정 전엔 docs·`.description` 에서 "그대로 --X 에" 단정을 빼고 보수 표기. 확정 결과를 모든 docs(README/SKILL/flow/ADR/CLAUDE)+CLI help 에 일관 반영.
+
+**Self-check**: "이 list 의 id 를 다른 명령 인자로" 라는 주장이 있는가? 그 id 가 소비 명령에 실제 먹히는지(상위 vs 하위 리소스 id) 확인하는 단계가 실측·수동 QA 에 있는가? CLI `.description` 같은 바이너리 ship 텍스트의 단정도 확정에 맞췄는가?
+
+**Why**: PR #17 (plan013) critic MAJOR — `network list` 의 VPC id 가 `instance create --network` 에 먹히는지 미검증인 채 docs 단정. 실측(인스턴스 addresses=VPC name 1:1)으로 "VPC id = --network" 확정 후 반영. availability-zone·floating-ip 등 "조회→다른 명령 인자" 구조마다 재발 가능.
+
 ## 섹션 1 소진 체크리스트
 
 plan 제출 전 10개 패턴 모두 self-check:
