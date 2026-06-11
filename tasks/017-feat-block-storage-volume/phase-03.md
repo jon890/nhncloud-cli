@@ -144,7 +144,9 @@ async detachVolume(serverId: string, volumeId: string): Promise<void> {
 function isServerVolumeAttachment(val: unknown): val is ServerVolumeAttachment {
   if (typeof val !== "object" || val === null) return false;
   const o = val as Record<string, unknown>;
-  return typeof o["id"] === "string" && typeof o["volumeId"] === "string";
+  // volumeId(camel) / volume_id(snake) 혼재 가능 — 양쪽 수용 (1-27). read-only GET 응답으로 실제 키 확정 후 좁힐 수 있음.
+  const volId = o["volumeId"] ?? o["volume_id"];
+  return typeof o["id"] === "string" && typeof volId === "string";
 }
 function isVolumeAttachmentsResponse(val: unknown): val is { volumeAttachments: ServerVolumeAttachment[] } {
   if (typeof val !== "object" || val === null) return false;

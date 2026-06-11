@@ -11,16 +11,11 @@
 phase-01 은 **endpoint 확장만** 한다 (volume 명령은 phase-02, instance volume attach/detach 는 phase-03).
 선행 분리한 이유: endpoint 해석이 keystone/token-store 구조 변경을 동반하고, 명령보다 회귀 위험이 크기 때문이다.
 
-## 선행 의존 (반드시 먼저 머지된 상태에서 시작)
+## 선행 의존 (이미 base 에 머지 완료 — 확인됨)
 
-- **010 phase-01** — `getIaasToken` 반환·iaas-token 캐시에 `imageEndpoint` 를 더하고 멀티서비스 host 맵 패턴(ADR-013)을 도입한 선행 작업.
-- **013(network endpoint 확장) phase-01** — 같은 캐시 구조에 `networkEndpoint`(network host)를 더한 선행 작업.
-  - ⚠️ 현재 `tasks/013-feat-network-list/` 폴더는 아직 생성되지 않았다(ROADMAP 백로그에만 존재).
-    013 task 폴더를 먼저 생성·구현하거나, 010 패턴만으로 진행할지 사용자에게 확정한 뒤 시작한다.
-  - 본 phase 는 010·013 이 확립한 "한 토큰 캐시에 type 별 endpoint 를 함께 보관" 구조를 전제로 작성됐다.
-
-`getIaasToken` 의 반환은 이미 `{ tokenId, computeEndpoint, imageEndpoint, networkEndpoint }` 형태일 것이다.
-017 은 여기에 `blockStorageEndpoint` 를 더한다.
+- **010(image)·013(network) endpoint 확장은 이미 base(feat/016 chained)에 머지 완료**다. 검증: `grep -c "NETWORK_HOST" src/api/endpoints.ts` ≥1, `grep -c "networkEndpoint" src/api/keystone.ts` ≥1, `src/services/network/`·`src/commands/network/` 존재, CLAUDE.md 에 `network list`/`network subnet list` 등재.
+- 따라서 `getIaasToken` 의 반환은 이미 `{ tokenId, computeEndpoint, imageEndpoint, networkEndpoint }` 형태다. **017 은 여기에 `blockStorageEndpoint` 하나만 더한다** (010·013 이 확립한 "한 토큰 캐시에 type 별 endpoint 함께 보관" 구조 위에 한 줄 추가).
+  - (013 task 폴더 신설·사용자 확인 같은 hedge 는 불요 — network 는 이미 정식 명령으로 동작 중이다.)
 
 ## 핵심 설계 결정 — 정적 맵 노선 유지 (ADR-005 / ADR-013 연장)
 
@@ -30,14 +25,14 @@ phase-01 은 **endpoint 확장만** 한다 (volume 명령은 phase-02, instance 
   block storage 는 host 만 다르고 tenant segment 를 **포함**한다.
 - `getIaasToken` 의 반환·캐시에 `blockStorageEndpoint` 를 더한다 (compute·image·network 와 한 토큰 캐시에 함께 보관).
 
-## 확정 사항 (docs 확인 완료 — 이 부분은 실측 불요)
+## host/경로 (docs 확정, 첫 호출 200 으로 확인 예정 — 1-27)
 
 - host: `<region>-api-block-storage-infrastructure.nhncloudservice.com`
 - 경로: `/v2/{tenantId}/volumes` (compute 와 동일하게 tenantId **포함**)
 - catalog type: `volumev2`
 
-> attach/detach 의 Nova `os-volume_attachments` 지원 여부 실측은 phase-03 에서 한다.
-> phase-01 의 block storage host/경로는 docs 확정이라 실측 불요. 다만 첫 실제 호출(phase-02)에서 200 이 안 오면 그 시점에 host 패턴을 재확인한다.
+> **톤 주의 (1-27)**: image/network host 는 serviceCatalog publicURL **실측 확정**이었으나 blockstorage host 는 **docs 추론**이다. 코드 주석·phase-04 ADR-013 보강에서 "실측 확정" 으로 단정하지 말고 "docs 확정, 첫 호출 200 으로 확인 예정" 톤을 쓴다. phase-02 첫 read-only 호출(volume list)에서 200 이 안 오면(`getaddrinfo ENOTFOUND` 등) 그 시점에 host 패턴/catalog publicURL 로 재확인한다.
+> attach/detach 의 Nova `os-volume_attachments` 지원 여부는 phase-03 read-only GET 으로 확인한다.
 
 ## 변경 파일 (3개)
 
