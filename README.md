@@ -1,7 +1,7 @@
 # nhncloud-cli
 
 NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 통합 CLI.
-현재 `configure`, `logncrash search/send` (Log & Crash 로그 검색·전송), `deploy` (배포·바이너리 조회), `instance` (Compute 인스턴스 목록·발급·전원 제어·타입 변경·키페어 관리·이미지·가용성 영역 조회 포함), `network` (VPC·서브넷 목록 조회) 명령을 지원한다.
+현재 `configure`, `logncrash search/send` (Log & Crash 로그 검색·전송), `deploy` (배포·바이너리 조회·업로드·다운로드), `instance` (Compute 인스턴스 목록·발급·전원 제어·타입 변경·키페어 관리·이미지·가용성 영역 조회 포함), `network` (VPC·서브넷 목록 조회) 명령을 지원한다.
 
 ## 설치
 
@@ -97,6 +97,15 @@ nhncloud deploy binaries my-service --binary-group <key>
 
 # 업로드 최신순 정렬 + 전체 필드는 --json
 nhncloud deploy binaries my-service --binary-group <key> --sort-key UPLOAD_DATE --sort-direction DESC --json
+
+# 바이너리 업로드 — binary-groups 로 확인한 그룹 key 에 파일 올리기
+nhncloud deploy upload <target> --file ./build/app.jar --binary-group <key> --description "release build"
+
+# 업로드 응답의 binaryKey 만 필요하면 --quiet
+nhncloud deploy upload <target> --file ./build/app.jar --binary-group <key> --quiet
+
+# 바이너리 다운로드 — 파일로 저장 (기본 덮어쓰기 거부, --force 로 강제)
+nhncloud deploy download <target> --binary-group <key> --binary-key <binary-key> -o ./app.jar
 ```
 
 ### 로그 검색
