@@ -165,10 +165,11 @@ nhncloud network subnet list
 # 다른 region
 nhncloud network list --region kr2
 
-# create 흐름 — VPC id 를 그대로 --network 에
+# create 흐름 — 확인한 network id 를 --network 에 사용
 nhncloud instance create --name web --flavor <flavor-id> --image <image-id> --network <network-uuid>
 ```
 
+> **`--network` 가 받는 id 종류 (phase-02 미확인 항목에서 확정)**: VPC id 인지 subnet id 인지 확정된 결과를 위 예시 주석·설명에 명시한다. **확정 전에는 "VPC id 를 그대로" 같은 단정을 쓰지 않고** "`network list`/`network subnet list` 로 id 를 확인해 `--network` 에 사용" 수준으로 보수적으로 적는다 (critic MAJOR — 틀린 사용법 ship 방지).
 > README 예시의 network/subnet id 는 placeholder(`<network-uuid>`·`<subnet-id>`) — 실제 UUID·CIDR 노출 금지(CLAUDE.md 개인 식별 정보 정책).
 
 ### 6. `skills/nhncloud-cli/SKILL.md`

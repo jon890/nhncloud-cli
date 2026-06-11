@@ -2,11 +2,22 @@
 
 ## 목표
 
-`nhncloud network list`(VPC 목록) · `nhncloud network subnet list`(서브넷 목록)로 VPC·서브넷을 조회한다 — `instance create --network <uuid>` 에 넣을 network/subnet UUID 소스.
+`nhncloud network list`(VPC 목록) · `nhncloud network subnet list`(서브넷 목록)로 VPC·서브넷 정보를 조회한다. 두 명령은 `instance create --network` 에 넣을 id 를 사용자가 **확인**하는 도구다.
 
 - `GET /v2.0/vpcs`(NHN VPC, phase-01 에서 확장한 `networkEndpoint` 사용) → `vpcs[].{id, name, cidrv4, state, router:external}`
 - `GET /v2.0/vpcsubnets` → `vpcsubnets[].{id, cidr, vpc_id, gateway, available_ip_count}`
 - 핵심 필드만 테이블, 전체는 `--json`.
+
+## ⚠️ 미확인 항목 — `instance create --network` 가 받는 id 종류 (docs 단정 전 확정)
+
+`instance create --network <uuid>` 는 Nova `networks: [{ uuid }]` 로 매핑된다(`src/services/instance/client.ts`). 그 `uuid` 가 **VPC id(`vpcs[].id`)** 인지 **subnet id(`vpcsubnets[].id`)** 인지 **별도 Neutron network id** 인지가 docs 만으로 확정되지 않았다 (NHN VPC 는 raw Neutron `/v2.0/networks` 가 아니다 — 콘솔 흐름은 "VPC 선택 → 서브넷 선택").
+
+- **확정 방법 (우선순위)**:
+  1. NHN Cloud Instance/VPC OpenStack 호환 public-api docs 의 `POST /servers` `networks` 필드 예제로 어느 id 인지 확인 (docs 단일 소스).
+  2. docs 로 불확정이면 read-only 실측 — `instance get <기존 인스턴스>` 또는 `instance list --json` 의 network 첨부 정보에 나타나는 id 를 `vpcs[].id`·`vpcsubnets[].id` 와 대조 (기존 인스턴스가 어느 id 로 붙어 있는지).
+  3. 그래도 불확정이면 수동 QA 로 테스트 인스턴스 1회 발급(쓰기 작업 — 사용자 동의 하)으로 round-trip 확정.
+- **docs 반영 규칙 (phase-03)**: 확정되기 전에는 README/SKILL/flow 에서 "`network list` id 를 `--network` 에 그대로" 라는 **단정을 쓰지 않는다.** 확정된 id 종류(VPC 또는 subnet)를 명시하거나, 미확정이면 "VPC·서브넷 id 를 확인해 `--network` 에 사용 (어느 id 인지는 콘솔/ docs 로 확인)" 수준으로 보수적으로 적는다.
+- 이 확정 결과는 team-lead 가 phase-03 결정 docs(flow.md create 소스 문구) 와 executor 의 README/SKILL 에 반영한다.
 
 근거: NHN Cloud VPC public-api docs (NHN 고유 `/v2.0/vpcs`·`/v2.0/vpcsubnets` — raw Neutron `/v2.0/networks` 아님).
 - VPC 응답: `{ vpcs: [{ id, name, cidrv4, state, "router:external", ... }] }`
@@ -93,6 +104,7 @@ export interface VpcSubnet {
 ```
 
 > 위 필드 중 docs 예제에 항상 있지 않은 것(예: `gateway` 가 없는 서브넷)은 `?` optional 로 낮춘다 — phase 시작 시 docs 예제로 재확인.
+> **optional 로 낮추면 row 매핑도 함께 고친다 (minor 3)**: `subnet.ts` 의 `s.gateway`·`String(s.available_ip_count)` 가 `string|undefined` 가 되어 tsc 오류 → `s.gateway ?? ""`·`s.available_ip_count != null ? String(s.available_ip_count) : ""` 로 fallback. types 를 optional 로 바꾸면서 row fallback 을 빠뜨리면 빌드 실패.
 
 ### 2. `src/services/network/client.ts` (신규)
 
@@ -420,7 +432,9 @@ node dist/index.js network subnet list
 node dist/index.js network list --json | head
 # 기대: JSON 배열, 각 원소에 id·name·"router:external"
 
-# create 에 넣을 network uuid 확인 흐름
-node dist/index.js network list --quiet
-# 기대: VPC id 한 줄씩 (instance create --network <uuid> 에 그대로 사용)
+# create 에 넣을 id 확인 흐름 (위 "미확인 항목" 확정 후)
+node dist/index.js network list --quiet      # VPC id 한 줄씩
+node dist/index.js network subnet list --quiet  # subnet id 한 줄씩
+# instance create --network 가 받는 id 종류(VPC vs subnet)를 위 "미확인 항목" 절차로 확정한 뒤,
+# 기존 인스턴스(instance get/list --json)의 network 첨부 id 와 대조해 어느 목록의 id 를 쓰는지 확인.
 ```

@@ -43,6 +43,8 @@ endpoint 해석이 keystone/token-store 구조 변경을 동반하고, 명령보
    - 확정된 경로 형태를 `networkEndpoint` 구성에 그대로 반영한다.
 
 > 실측으로도 host/경로가 확정 안 되면 phase 를 멈추고 사용자에게 보고한다(blocked). 추측한 채로 구현·머지하지 않는다(CLAUDE.md "API 스펙 확인 절차").
+>
+> **실측 주체 (모호성 해소)**: executor 가 outbound 호출이 가능하면 (자격증명에 `iaas` 블록 존재 — Keystone 토큰 발급 후 read-only `GET /v2.0/vpcs` 200 확인) **executor 가 직접 Bash 로 실측**한다. egress 가 막혀 호출이 안 되면 즉시 `PHASE_BLOCKED` 로 team-lead 에게 보고하고 사람이 실측한다. 어느 경우든 확정 전엔 추정 host 로 머지하지 않는다.
 
 ## 변경 파일 (3개)
 
@@ -87,13 +89,16 @@ export function networkHost(region: string): string {
   const host = NETWORK_HOST[region];
   if (!host) {
     throw new NhnCloudCliError(
-      `지원하지 않는 region 입니다: "${region}". 사용 가능한 region: ${Object.keys(NETWORK_HOST).join(", ")}`,
+      `지원하지 않는 region 입니다: "${region}". 사용 가능한 region: ${IAAS_REGIONS.join(", ")}`,
       EXIT_PARAM_ERROR,
     );
   }
   return host;
 }
 ```
+
+> **minor 1 (일관성)**: 에러 메시지의 region 목록은 `instanceHost`·`imageHost` 와 동일하게 **공유 상수 `IAAS_REGIONS`** 를 쓴다 (`Object.keys(NETWORK_HOST)` 아님). 실제 `endpoints.ts` 의 기존 두 host helper 가 `IAAS_REGIONS` 를 쓰는지 먼저 확인하고 같은 모양으로 맞춘다.
+> **minor 2 (stale 주석)**: `endpoints.ts` 에 "두 IaaS host 맵(compute·image)" 류의 주석이 있으면 `NETWORK_HOST` 추가로 **세 맵**이 되므로 그 주석도 "compute·image·network 세 맵" 으로 갱신한다 (작업 항목에 포함).
 
 ### 2. `src/api/keystone.ts`
 
