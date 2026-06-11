@@ -33,8 +33,8 @@ src/
       client.ts             # DeployClient — run / artifacts / serverGroups / histories / binaryGroups / binaries
       types.ts              # DeployRunParams / BinaryGroup / Binary / BinaryListParams
     instance/
-      client.ts             # InstanceClient — list / get / create / delete / listFlavors / start / stop / reboot / resize / confirmResize / revertResize / listKeypairs / getKeypair / createKeypair / deleteKeypair / listImages + waitForActive (전원 제어·resize 는 공용 serverAction 경유)
-      types.ts              # Server / CreateServerParams / Flavor / FlavorDetail / Keypair / KeypairDetail / CreateKeypair* / Image (NHN 확장 필드 포함)
+      client.ts             # InstanceClient — list / get / create / delete / listFlavors / listAvailabilityZones / start / stop / reboot / resize / confirmResize / revertResize / listKeypairs / getKeypair / createKeypair / deleteKeypair / listImages + waitForActive (전원 제어·resize 는 공용 serverAction 경유)
+      types.ts              # Server / CreateServerParams / Flavor / FlavorDetail / AvailabilityZone / Keypair / KeypairDetail / CreateKeypair* / Image (NHN 확장 필드 포함)
     network/
       client.ts             # NetworkClient — listVpcs / listSubnets (instance 와 Keystone 토큰 공유, [[adr-013]])
       types.ts              # Vpc / VpcSubnet ("router:external" 콜론 키)
@@ -60,6 +60,7 @@ src/
     instance/
       list.ts               # nhncloud instance list
       flavors.ts            # nhncloud instance flavors (--detail / --min-disk / --min-ram)
+      availability-zones.ts # nhncloud instance availability-zones (zoneName·available)
       get.ts                # nhncloud instance get <id>
       create.ts             # nhncloud instance create (--wait, --user-data 지원 / [[adr-011]] [[adr-012]])
       delete.ts             # nhncloud instance delete <id> (--yes 지원)

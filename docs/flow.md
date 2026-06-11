@@ -208,6 +208,7 @@ OpenStack Nova v2 호환 Compute 명령군. Keystone 토큰을 발급해 region 
 nhncloud instance list [options]                # 인스턴스 목록
 nhncloud instance images [options]              # 이미지 목록 (create --image 소스)
 nhncloud instance flavors [options]             # 인스턴스 타입(flavor) 조회
+nhncloud instance availability-zones [options]  # 가용성 영역(AZ) 목록 조회
 nhncloud instance get <id> [options]            # 단일 인스턴스 상태 조회
 nhncloud instance create [options]              # 인스턴스 발급
 nhncloud instance delete <id> [options]         # 인스턴스 삭제
