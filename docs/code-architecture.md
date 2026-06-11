@@ -18,11 +18,11 @@ src/
     credentials.ts          # ~/.nhncloud/ 로드 + 머지 쓰기, profile 해석
     types.ts                # Credentials(profile.userAccessKey + 서비스 블록) / Config 타입
   api/
-    endpoints.ts            # 서비스별 엔드포인트 맵 + image host 맵 + logncrash-collector 키 (adr-005, adr-013, adr-014)
+    endpoints.ts            # 서비스별 엔드포인트 맵 + image·network host 맵 + logncrash-collector 키 (adr-005, adr-013, adr-014)
     envelope.ts             # NHN 공통 봉투 unwrap + 에러 매핑 (adr-006)
     httpError.ts            # ky HTTPError → NhnCloudCliError (status별 exit code)
     oauth.ts                # UAK → access_token 교환 + 캐시 (adr-007)
-    keystone.ts             # IaaS tenantId·username·password → tokenId + compute·image endpoint 동시 반환 (adr-005, adr-010, adr-013)
+    keystone.ts             # IaaS tenantId·username·password → tokenId + compute·image·network endpoint 동시 반환 (adr-005, adr-010, adr-013)
   cache/
     token-store.ts          # ~/.nhncloud/cache/ token + endpoint 읽기·쓰기 (mode 0600)
   services/
@@ -35,6 +35,9 @@ src/
     instance/
       client.ts             # InstanceClient — list / get / create / delete / listFlavors / start / stop / reboot / listKeypairs / getKeypair / createKeypair / deleteKeypair / listImages + waitForActive (전원 제어는 공용 serverAction 경유)
       types.ts              # Server / CreateServerParams / Flavor / FlavorDetail / Keypair / KeypairDetail / CreateKeypair* / Image (NHN 확장 필드 포함)
+    network/
+      client.ts             # NetworkClient — listVpcs / listSubnets (instance 와 Keystone 토큰 공유, [[adr-013]])
+      types.ts              # Vpc / VpcSubnet ("router:external" 콜론 키)
   utils/
     errors.ts               # NhnCloudCliError(message, exitCode)
     exit-codes.ts           # EXIT_* 상수
@@ -64,6 +67,10 @@ src/
       keypairs.ts           # nhncloud instance keypairs (목록)
       keypair.ts            # nhncloud instance keypair get/create/delete (--public-key / --output, private_key 0600 저장)
       images.ts             # nhncloud instance images (--visibility/--limit/--marker 등, [[adr-013]])
+    network/
+      list.ts               # nhncloud network list (VPC, create --network 소스 = VPC id)
+      subnet.ts             # nhncloud network subnet list
+      helpers.ts            # resolveNetworkClient (Keystone 토큰 공유, [[adr-013]])
 ```
 
 ## 레이어 의존 방향
@@ -83,11 +90,12 @@ dooray-cli 는 단일 `config + client` 로 충분했지만, NHN Cloud 는 서�
 - `api/endpoints.ts` — 서비스명 → 엔드포인트 (gov 분기는 후속, [[adr-005]])
 - `api/envelope.ts` — `{ header, body }` 봉투 검사, `resultCode` 타입 혼재 흡수 ([[adr-006]])
 - `api/oauth.ts` + `cache/token-store.ts` — deploy 전용. UAK → access_token 교환 후 단기 캐시 ([[adr-007]])
-- `api/keystone.ts` + `cache/token-store.ts` — instance 등 IaaS 전용. Keystone token + region 별 compute·image endpoint 캐시 ([[adr-010]], [[adr-013]])
+- `api/keystone.ts` + `cache/token-store.ts` — instance·network 등 IaaS 전용. Keystone token + region 별 compute·image·network endpoint 캐시 ([[adr-010]], [[adr-013]])
 - 각 `services/<svc>/client.ts` — 위 조각을 조합해 서비스 고유 헤더 부착
   - logncrash: `X-LNCS-SECRET`
   - deploy: `X-NHN-AUTHORIZATION: Bearer <token>` + config target 좌표 ([[adr-008]])
   - instance: `X-Auth-Token: <tokenId>` + region 별 compute endpoint
+  - network: `X-Auth-Token: <tokenId>` + region 별 network endpoint (instance 와 토큰 공유, [[adr-013]])
 
 ## 커맨드 실행 흐름 (예: `nhncloud logncrash search`)
 
