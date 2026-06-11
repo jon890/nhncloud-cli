@@ -6,13 +6,24 @@ phase-01 의 실제 명령 인자/출력에 맞춰 docs 를 갱신한다.
 공개 docs(README·SKILL)는 코드 산출물(실제 옵션/출력)에 의존하므로 **마지막 phase 에서** 갱신한다.
 내부 docs(CLAUDE.md 명령 수·flow.md 시그니처·code-architecture.md client 메서드/command 파일)도 함께 갱신해 코드와 어긋나지 않게 한다.
 
-## 변경 파일 (6개)
+## ⚠️ 소유권 분리 (common-pitfalls 1-24 / 갱신 시점 분리)
 
-1. `README.md` — instance 사용 예 블록에 availability-zones 추가
-2. `skills/nhncloud-cli/SKILL.md` — 빠른 참조 표 행 + 시나리오 안내
-3. `CLAUDE.md` — 지원 명령 수(11 → 12) + availability-zones bullet 추가
+아래 작업 3~5 (`CLAUDE.md` · `docs/flow.md` · `docs/code-architecture.md`) 는 **결정 docs 라 executor 가 phase 안에서 편집하지 않는다.** team-lead 가 phase-01(코드) 완료 후 docs-first 성격의 별도 commit 으로 작성한다. 아래 3~5 상세는 그 team-lead 작성 스펙으로 남겨둔다.
+
+**executor 의 phase-02 범위는 작업 1(README) · 2(SKILL) · 6(완료 마킹) 뿐이다.**
+
+> **카운트**: 실제 base 27개(feat/014 chained) → **28개**. (옛 "11 → 12" 표기는 무시 — 실제 카운트 직접 확인.)
+
+## 변경 파일
+
+**(team-lead, phase-01 후 docs-first commit — executor 범위 밖)**
+3. `CLAUDE.md` — 지원 명령 수(27 → 28) + availability-zones bullet 추가
 4. `docs/flow.md` — 명령 시그니처 블록에 availability-zones 행 추가
 5. `docs/code-architecture.md` — client 메서드 목록·command 파일 목록에 추가
+
+**(executor phase-02)**
+1. `README.md` — instance 사용 예 블록에 availability-zones 추가 + intro "지원 명령" 문구
+2. `skills/nhncloud-cli/SKILL.md` — 빠른 참조 표 행 + 시나리오 안내 + 프론트매터 description
 6. `tasks/015-feat-instance-availability-zones/index.json` — status `completed` + 갱신
 
 ## 작업 상세
@@ -22,7 +33,7 @@ phase-01 의 실제 명령 인자/출력에 맞춰 docs 를 갱신한다.
 instance 사용 예 코드블록에서 `# 단일 인스턴스 상태 조회` **앞**(flavors 예시 블록 다음)에 availability-zones 예시를 추가:
 
 ````
-# 가용성 영역(availability zone) 목록 — create 의 --availability-zone 후보
+# 가용성 영역(availability zone) 목록 (영역명·가용 여부)
 nhncloud instance availability-zones
 
 # 전체 응답(zoneState 등)은 --json 으로
@@ -42,8 +53,8 @@ nhncloud instance availability-zones --json
 ```
 ### instance availability-zones 조회
 
-- `nhncloud instance availability-zones` — 가용성 영역 목록(zoneName·available). create 의 `--availability-zone` 에 넣을 영역을 고를 때.
-- `available` 이 false 인 영역은 신규 발급이 막혀 있으니 true 인 영역을 고른다.
+- `nhncloud instance availability-zones` — 가용성 영역 목록(zoneName·available). 인스턴스 발급 가능한 영역을 확인할 때. (현재 `instance create` 에는 `--availability-zone` 옵션이 없다 — 영역 정보 참고용.)
+- `available` 이 false 인 영역은 신규 발급이 막혀 있으니 true 인 영역을 참고한다.
 - 전체 응답(zoneState 등)은 `--json` 으로 확인한다.
 ```
 
@@ -51,12 +62,12 @@ nhncloud instance availability-zones --json
 
 ### 3. `CLAUDE.md`
 
-(a) `## 지원 명령 (11개)` 헤더의 수를 **12개**로 변경.
+(a) `## 지원 명령 (N개)` 헤더 수를 실제 base +1 로 변경 (현재 27 → **28**).
 
 (b) `instance flavors` bullet **다음** 줄에 추가:
 
 ```
-- `instance availability-zones` — 가용성 영역 목록 조회 (create 의 `--availability-zone` 후보, zoneName·available).
+- `instance availability-zones` — 가용성 영역 목록 조회 (zoneName·available, 발급 가능 영역 확인용).
 ```
 
 ### 4. `docs/flow.md`
@@ -102,6 +113,8 @@ phase-01·02 완료 후:
 
 ## 성공 기준 (검증 명령 + 기대값)
 
+> **순서 주의**: #3·#5·#6 은 `CLAUDE.md`/`docs/flow.md`/`docs/code-architecture.md`(= team-lead docs-first commit 범위)를 검사한다. 이 기준들은 **team-lead 가 결정 docs 를 commit 한 뒤** 통과한다 — executor 의 phase-02(README/SKILL/index.json) 산출물만으로는 통과하지 않는다. 실행 순서: phase-01(코드) → team-lead 결정 docs commit → executor phase-02.
+
 ```bash
 # cwd: <repo root 또는 worktree>
 
@@ -113,8 +126,8 @@ grep -c "instance availability-zones" README.md
 grep -c "instance availability-zones" skills/nhncloud-cli/SKILL.md
 # 기대: 2 이상
 
-# 3. CLAUDE.md 명령 수 갱신 (12개)
-grep -c "지원 명령 (12개)" CLAUDE.md
+# 3. CLAUDE.md 명령 수 갱신 (27→28) — team-lead docs-first 가 반영
+grep -c "지원 명령 (28개)" CLAUDE.md
 # 기대: 1
 
 # 4. CLAUDE.md bullet 추가

@@ -1,7 +1,7 @@
 # nhncloud-cli
 
 NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 통합 CLI.
-현재 `configure`, `logncrash search/send` (Log & Crash 로그 검색·전송), `deploy` (배포·바이너리 조회), `instance` (Compute 인스턴스 목록·발급·전원 제어·타입 변경·키페어 관리·이미지 조회 포함), `network` (VPC·서브넷 목록 조회) 명령을 지원한다.
+현재 `configure`, `logncrash search/send` (Log & Crash 로그 검색·전송), `deploy` (배포·바이너리 조회), `instance` (Compute 인스턴스 목록·발급·전원 제어·타입 변경·키페어 관리·이미지·가용성 영역 조회 포함), `network` (VPC·서브넷 목록 조회) 명령을 지원한다.
 
 ## 설치
 
@@ -215,6 +215,12 @@ nhncloud instance flavors --detail --json
 
 # RAM 8GB 이상 타입만 필터
 nhncloud instance flavors --detail --min-ram 8192
+
+# 가용성 영역(availability zone) 목록 (영역명·가용 여부)
+nhncloud instance availability-zones
+
+# 전체 응답(zoneState 등)은 --json 으로
+nhncloud instance availability-zones --json
 
 # 단일 인스턴스 상태 조회
 nhncloud instance get <instance-id>
