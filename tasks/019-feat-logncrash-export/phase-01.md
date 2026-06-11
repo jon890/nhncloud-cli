@@ -54,7 +54,7 @@ NHN Cloud Log & Crash Search API 가이드의 scroll 응답 예제로 확정:
 - **1-2 (scroll 루프 중 spinner/진행표시 + try/catch)**: scroll 루프 전체를 `startSpinner` 직후 try/catch 로 감싸고, 루프 안에서 진행 건수를 stderr 로 갱신하며, catch 에서 `stopSpinner(false)` 후 re-throw — 루프 중 어느 페이지에서 throw 해도 spinner leak 없음.
 - **9-1 (exit code 리터럴 금지)**: 모든 throw 는 `EXIT_PARAM_ERROR` / `EXIT_CONFIG_ERROR` / `EXIT_API_ERROR` **상수** 사용 (숫자 리터럴·`/* EXIT_* */` 주석 금지).
 - **8-1 (export 파일 원자적 쓰기)**: 최종 파일은 temp 파일(`<output>.<rand>.tmp`)에 쓰고 `rename` 으로 원자적 교체 — 루프 중 중단 시 부분 파일이 최종 경로에 남지 않게 한다.
-- **scrollKey 만료 시 명확한 에러**: scrollKey 만료(API 가 `isSuccessful:false` + 만료 메시지, 또는 다음 호출에서 scrollKey 누락)면 `EXIT_API_ERROR` + "scrollKey 가 만료되었습니다(유효 1분). 범위를 좁혀 다시 시도하세요." 안내 — raw 401/500 로 새지 않게 한다.
+- **scroll 다음페이지 실패 안내 — 원본 메시지 보존(단정 금지)**: `scrollNext` 가 `EXIT_API_ERROR` 로 실패하면 만료라고 **단정하지 말고** 원본 `err.message` 를 보존한 채 만료 가능성만 덧붙인다 — `scroll 다음 페이지 요청이 실패했습니다 (원인: ${err.message}). scrollKey 만료(유효 1분)일 수 있으니 ...`. `EXIT_API_ERROR` 는 만료뿐 아니라 5xx·네트워크 blip·빈 body 에서도 나므로 만료로 단정하면 원인 진단이 사라진다. 401/403(AUTH)은 감싸지 않고 통과. raw status 가 사용자에게 그대로 새지 않게 하되 원인은 보존한다.
 - **search 시간 범위 제한(90일/31일) 재사용**: `resolveTime` + `assertSearchRange` 를 search.ts 와 동일하게 호출(중복 구현 금지) — export 도 동일 제약을 받는다.
 - **2-4 (자격증명 빈문자열 fallback 금지)**: `cred.appkey`/`cred.secret` 미설정 시 `?? ""` 금지 — search.ts 처럼 호출 전 존재 검증 후 `EXIT_CONFIG_ERROR`.
 - **2-1 (type 변경 → tsc)**: 새 type 추가 = type 변경 → 성공 기준에 `pnpm tsc --noEmit` 필수 (tsup 은 type-check 우회).
@@ -377,9 +377,12 @@ grep -nE "rename\(|randomBytes\(" src/commands/logncrash/export.ts | wc -l
 grep -nE "resolveTime|assertSearchRange" src/commands/logncrash/export.ts | wc -l
 # 기대: 3 이상 (import + from + to + assert)
 
-# 9. scrollKey 만료 안내 에러 존재
-grep -c "scrollKey 가 만료" src/commands/logncrash/export.ts
+# 9. scroll 다음페이지 실패 안내 — 원본 메시지 보존(만료 단정 금지, M3) 확인
+#    "원인:" 은 원본 err.message 를 보존한다는 마커. 만료는 "일 수 있으니" 로 완화.
+grep -c "원인:" src/commands/logncrash/export.ts
 # 기대: 1
+grep -c "만료(유효 1분)일 수 있" src/commands/logncrash/export.ts
+# 기대: 1 (만료를 단정하지 않고 가능성으로 안내)
 
 # 10. --query 누락 → EXIT_PARAM_ERROR(3) (자격증명·네트워크 전 차단)
 node dist/index.js logncrash export --from 1h --to now --output /tmp/x.jsonl; echo "exit=$?"
