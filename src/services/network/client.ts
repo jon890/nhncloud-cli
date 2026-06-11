@@ -11,7 +11,14 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 function isVpc(val: unknown): val is Vpc {
   if (typeof val !== "object" || val === null) return false;
   const obj = val as Record<string, unknown>;
-  return typeof obj["id"] === "string" && typeof obj["name"] === "string";
+  // 출력에 쓰는 필드를 모두 검증 — 타입(required)·실측("항상 존재")과 일치, "undefined" 셀 방지.
+  return (
+    typeof obj["id"] === "string" &&
+    typeof obj["name"] === "string" &&
+    typeof obj["cidrv4"] === "string" &&
+    typeof obj["state"] === "string" &&
+    typeof obj["router:external"] === "boolean"
+  );
 }
 
 function isVpcsResponse(val: unknown): val is { vpcs: Vpc[] } {
@@ -23,7 +30,14 @@ function isVpcsResponse(val: unknown): val is { vpcs: Vpc[] } {
 function isSubnet(val: unknown): val is VpcSubnet {
   if (typeof val !== "object" || val === null) return false;
   const obj = val as Record<string, unknown>;
-  return typeof obj["id"] === "string" && typeof obj["cidr"] === "string";
+  // vpc_id·gateway·available_ip_count 는 subnet list 의 핵심 출력값 — 모두 검증 (실측: 항상 존재).
+  return (
+    typeof obj["id"] === "string" &&
+    typeof obj["cidr"] === "string" &&
+    typeof obj["vpc_id"] === "string" &&
+    typeof obj["gateway"] === "string" &&
+    typeof obj["available_ip_count"] === "number"
+  );
 }
 
 function isSubnetsResponse(val: unknown): val is { vpcsubnets: VpcSubnet[] } {
