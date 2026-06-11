@@ -14,6 +14,9 @@ import { binariesCommand } from "./commands/deploy/binaries.js";
 import { uploadCommand } from "./commands/deploy/upload.js";
 import { downloadCommand } from "./commands/deploy/download.js";
 import { listCommand } from "./commands/instance/list.js";
+import { listCommand as volumeListCommand } from "./commands/volume/list.js";
+import { getCommand as volumeGetCommand } from "./commands/volume/get.js";
+import { createCommand as volumeCreateCommand } from "./commands/volume/create.js";
 import { listCommand as networkListCommand } from "./commands/network/list.js";
 import { subnetCommand } from "./commands/network/subnet.js";
 import { flavorsCommand } from "./commands/instance/flavors.js";
@@ -26,6 +29,8 @@ import { resizeCommand, resizeConfirmCommand, resizeRevertCommand } from "./comm
 import { imagesCommand } from "./commands/instance/images.js";
 import { keypairsCommand } from "./commands/instance/keypairs.js";
 import { keypairCommand } from "./commands/instance/keypair.js";
+import { volumeCommand as instanceVolumeCommand } from "./commands/instance/volume.js";
+import { volumesCommand } from "./commands/instance/volumes.js";
 
 const program = new Command();
 
@@ -88,6 +93,8 @@ instanceCommand.addCommand(resizeRevertCommand);
 instanceCommand.addCommand(imagesCommand);
 instanceCommand.addCommand(keypairsCommand);
 instanceCommand.addCommand(keypairCommand);
+instanceCommand.addCommand(instanceVolumeCommand); // instance volume attach/detach
+instanceCommand.addCommand(volumesCommand);        // instance volumes
 
 program.addCommand(instanceCommand);
 
@@ -97,6 +104,14 @@ networkCommand.addCommand(networkListCommand);
 networkCommand.addCommand(subnetCommand);
 
 program.addCommand(networkCommand);
+
+// volume 커맨드 그룹
+const volumeCommand = new Command("volume").description("Block Storage 볼륨 관련 명령");
+volumeCommand.addCommand(volumeListCommand);
+volumeCommand.addCommand(volumeGetCommand);
+volumeCommand.addCommand(volumeCreateCommand);
+
+program.addCommand(volumeCommand);
 
 program.parseAsync().catch((err: unknown) => {
   const message = err instanceof Error ? err.message : String(err);

@@ -1,12 +1,12 @@
 ---
 name: nhncloud-cli
-description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색·전송(logncrash search/send), Deploy 배포 실행·바이너리 그룹·바이너리 목록 조회·업로드·다운로드(deploy upload/download), Compute 인스턴스 관리(instance — 목록·발급·전원 제어·타입 변경(resize/resize-confirm/resize-revert)·키페어·이미지·가용성 영역 조회), VPC·서브넷 조회(network list/subnet list) 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
+description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색·전송(logncrash search/send), Deploy 배포 실행·바이너리 그룹·바이너리 목록 조회·업로드·다운로드(deploy upload/download), Compute 인스턴스 관리(instance — 목록·발급·전원 제어·타입 변경(resize/resize-confirm/resize-revert)·키페어·이미지·가용성 영역 조회·볼륨 연결(instance volume attach/detach, instance volumes)), VPC·서브넷 조회(network list/subnet list), Block Storage 볼륨 관리(volume list/get/create) 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
 ---
 
 # nhncloud-cli
 
 NHN Cloud PaaS 서비스를 AWS CLI 방식으로 호출하는 TypeScript CLI.
-`configure`, `logncrash search/send`, `deploy`, `instance` (전원 제어·keypair 포함), `network` (VPC·서브넷 조회) 명령을 지원한다.
+`configure`, `logncrash search/send`, `deploy`, `instance` (전원 제어·keypair·볼륨 연결 포함), `network` (VPC·서브넷 조회), `volume` (Block Storage 볼륨 목록·조회·생성) 명령을 지원한다.
 
 ## 설치
 
@@ -506,3 +506,62 @@ nhncloud instance create \
 | Keystone 인증 실패 (401/403) | 2 (AUTH_ERROR) |
 | 미등록 region | 3 (PARAM_ERROR) |
 | VPC API 오류 | 1 (API_ERROR) |
+
+---
+
+## volume — Block Storage 볼륨 관리
+
+`volume` 명령군은 NHN Block Storage (Cinder volumev2) API 를 호출한다.
+`instance`·`network` 와 같은 `iaas` 자격증명·Keystone 토큰을 공유하므로 별도 설정이 필요 없다.
+
+> **쓰기 작업 주의**: `volume create`, `instance volume attach`, `instance volume detach` 는 쓰기 작업이다.
+> 실행 전 환경을 확인한다(수동 QA 필수).
+
+### 의도 → 커맨드 매핑
+
+| 의도 | 커맨드 |
+|------|--------|
+| 볼륨 목록 조회 | `nhncloud volume list` |
+| 정렬·페이지네이션 | `nhncloud volume list --sort created_at:desc --limit 20` |
+| 단일 볼륨 상세 조회 | `nhncloud volume get <volume-id>` |
+| 볼륨 생성 (⚠️ 쓰기) | `nhncloud volume create --size <gb>` |
+| 이름·타입 지정 생성 (⚠️ 쓰기) | `nhncloud volume create --size 50 --name my-volume --volume-type "General SSD"` |
+| 인스턴스 연결 볼륨 목록 | `nhncloud instance volumes <instance-id>` |
+| 볼륨 연결 (⚠️ 쓰기) | `nhncloud instance volume attach <instance-id> --volume <volume-id>` |
+| 볼륨 연결 해제 (⚠️ 쓰기) | `nhncloud instance volume detach <instance-id> <volume-id>` |
+| 다른 region | `nhncloud volume list --region kr2` |
+
+> **UX 비대칭**: `attach` 는 `--volume <id>` 플래그로 볼륨을 지정하고,
+> `detach` 는 `<instanceId> <volumeId>` 위치 인수 두 개로 지정한다.
+
+### volume list 옵션
+
+| 옵션 | 필수 | 설명 |
+|------|:---:|------|
+| `--sort <field:dir>` | 아니오 | 정렬 (예: `created_at:desc`) |
+| `--limit <n>` | 아니오 | 최대 반환 건수 |
+| `--offset <n>` | 아니오 | 오프셋 |
+| `--marker <id>` | 아니오 | 페이지네이션 marker |
+| `--region <region>` | 아니오 | region override (kr1/kr2/kr3/jp1) |
+| `--profile <name>` | 아니오 | 사용할 profile 이름 |
+
+### volume create 옵션
+
+| 옵션 | 필수 | 설명 |
+|------|:---:|------|
+| `--size <gb>` | 예 | 볼륨 크기(GB) |
+| `--name <name>` | 아니오 | 볼륨 이름 |
+| `--description <text>` | 아니오 | 볼륨 설명 |
+| `--volume-type <type>` | 아니오 | 볼륨 타입 (예: `General SSD`) |
+| `--snapshot-id <id>` | 아니오 | 스냅샷 ID (스냅샷으로부터 생성) |
+| `--region <region>` | 아니오 | region override |
+| `--profile <name>` | 아니오 | 사용할 profile 이름 |
+
+### volume 에러 코드
+
+| 상황 | exit code |
+|------|-----------|
+| iaas 자격증명 누락·불완전 | 4 (CONFIG_ERROR) |
+| Keystone 인증 실패 (401/403) | 2 (AUTH_ERROR) |
+| 미등록 region / 필수 옵션 누락 | 3 (PARAM_ERROR) |
+| Block Storage API 오류 | 1 (API_ERROR) |

@@ -11,6 +11,9 @@ Block Storage 볼륨 조회·발급 명령을 추가한다.
 새 서비스이므로 **새 디렉터리** `src/services/blockstorage/` + `src/commands/volume/` 를 만든다.
 endpoint 해석은 phase-01 의 `blockStorageEndpoint` 를 쓰고, 인증은 기존 Keystone `X-Auth-Token` 재사용.
 
+> **⚠️ 1-26 (volume create = 쓰기)**: `volume create` 는 실제 볼륨을 발급하는 **쓰기 작업**(비용 발생)이라 executor 가 자율 호출하지 않는다 (코드만, 실제 발급은 수동 QA). list/get(읽기)는 executor 가 확인 가능. create 응답 축약형 여부는 수동 QA 첫 호출로 확정하되, 코드는 Cinder 표준 `{volume:{id,status,...}}` 가정으로 작성한다.
+> **결정 docs(adr/CLAUDE/flow/code-architecture)는 phase-04 의 team-lead docs-first** — phase-02 는 코드만.
+
 ## 선행 의존
 
 - **phase-01 완료** — `getIaasToken` 이 `blockStorageEndpoint` 를 반환하고 캐시에 보관하는 상태.
@@ -65,12 +68,14 @@ export interface VolumeAttachment {
 /** Block Storage 볼륨 (Cinder volumev2) */
 export interface Volume {
   id: string;
-  name: string;
+  /** 볼륨 이름 — Cinder 는 미지정 시 null (nullable, isImage 선례) */
+  name: string | null;
   /** 볼륨 크기(GB) */
   size: number;
   /** creating / available / in-use 등 */
   status: string;
-  volume_type: string;
+  /** 볼륨 타입 — nullable 가능 */
+  volume_type: string | null;
   attachments: VolumeAttachment[];
   created_at: string;
 }
@@ -98,8 +103,23 @@ export interface VolumeListParams {
 
 `InstanceClient`(instance/client.ts) 와 같은 형태 — 생성자에 `tokenId`·`blockStorageEndpoint`, `X-Auth-Token` 헤더, ky retry 0 / timeout.
 
-응답 타입 가드(5-4): `isVolume`(id·name·size:number·status:string + `attachments` 가 `Array.isArray`), `isVolumesResponse`(`volumes` 가 `Array.isArray` + every `isVolume`), `isVolumeResponse`(`volume` 이 `isVolume`).
-`create` 응답은 발급 직후라 `status==="creating"` 일 수 있으므로 `isVolumeResponse` 로 검증(축약형 아님 — Cinder 는 전체 볼륨 객체 반환).
+응답 타입 가드(5-4): `isVolume`, `isVolumesResponse`(`volumes` 가 `Array.isArray` + every `isVolume`), `isVolumeResponse`(`volume` 이 `isVolume`).
+**⚠️ `name` 은 nullable (MAJOR — isImage 선례)**: Cinder 볼륨은 `--name` 미지정 시 `name: null` 이다. 이 코드베이스는 이미 같은 교훈을 학습했다 — `src/services/instance/client.ts` 의 `isImage` 가 `(typeof name === "string" || name === null)` 로 nullable 을 허용한다("null 인 항목 하나가 페이지 전체를 거부하지 않게"). `isVolume` 도 **동일하게 name 을 `string|null` 로 허용**한다. 안 그러면 이름 없는 볼륨 하나가 `volume list`(executor read-only) 전체 200 응답을 `EXIT_API_ERROR` 로 거부한다. `volume_type` 도 nullable 가능성이 있어 최소 보장 필드(id·size·status)만 strict 로 두고 나머지는 느슨하게.
+
+```ts
+function isVolume(val: unknown): val is Volume {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  return (
+    typeof obj["id"] === "string" &&
+    (typeof obj["name"] === "string" || obj["name"] === null) &&  // nullable (isImage 선례)
+    typeof obj["size"] === "number" &&
+    typeof obj["status"] === "string" &&
+    Array.isArray(obj["attachments"])
+  );
+}
+```
+`create` 응답은 발급 직후라 `status==="creating"` 일 수 있으므로 `isVolumeResponse` 로 검증(축약형 여부는 수동 QA 첫 호출로 확정 — Cinder 표준은 전체 볼륨 객체 반환 가정).
 
 ```ts
 export class BlockStorageClient {

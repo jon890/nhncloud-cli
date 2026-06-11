@@ -132,6 +132,20 @@ export interface AvailabilityZone {
   };
 }
 
+/**
+ * Nova os-volume_attachments 응답 항목 (compute endpoint).
+ * Cinder 의 VolumeAttachment(server_id/volume_id snake)와 필드명이 달라 ServerVolumeAttachment 로 명명.
+ * 실측 확정 (2026-06-11 GET 200): 모두 camelCase — device/id/serverId/volumeId.
+ */
+export interface ServerVolumeAttachment {
+  /** 게스트에 노출되는 디바이스 경로 (예: /dev/vda) */
+  device: string;
+  /** attachment id (보통 volumeId 와 동일 — 실측 확인) */
+  id: string;
+  serverId: string;
+  volumeId: string;
+}
+
 /** `POST /servers` 요청 파라미터 */
 export interface CreateServerParams {
   name: string;

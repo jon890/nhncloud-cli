@@ -76,7 +76,21 @@ const NETWORK_HOST: Record<string, string> = {
   jp1: "jp1-api-network-infrastructure.nhncloudservice.com",
 };
 
-/** IaaS region 목록 — compute·image·network 공통. region 추가 시 세 host 맵을 함께 갱신한다. */
+/**
+ * region → Block Storage(Cinder volumev2) API host 맵 (ADR-013, ADR-005 연장).
+ * block storage 는 compute 와 다른 host 지만 같은 Keystone 토큰을 재사용한다.
+ * 경로는 compute 와 동일하게 /v2/{tenantId}/... 형태(tenant 포함) — image(Glance)와 다르다.
+ * host 패턴은 NHN Cloud docs 기준 **추론**(serviceCatalog publicURL 실측 미완) — 첫 호출 200 으로 확인 예정 (1-27). image/network 의 실측 확정과 톤 구분.
+ * region key 집합은 INSTANCE_HOST(및 IMAGE/NETWORK_HOST)와 일치해야 한다 (모두 IaaS region).
+ */
+const BLOCKSTORAGE_HOST: Record<string, string> = {
+  kr1: "kr1-api-block-storage-infrastructure.nhncloudservice.com",
+  kr2: "kr2-api-block-storage-infrastructure.nhncloudservice.com",
+  kr3: "kr3-api-block-storage-infrastructure.nhncloudservice.com",
+  jp1: "jp1-api-block-storage-infrastructure.nhncloudservice.com",
+};
+
+/** IaaS region 목록 — compute·image·network·blockstorage 공통. region 추가 시 네 host 맵을 함께 갱신한다. */
 const IAAS_REGIONS = Object.keys(INSTANCE_HOST).join(", ");
 
 /**
@@ -115,6 +129,21 @@ export function imageHost(region: string): string {
  */
 export function networkHost(region: string): string {
   const host = NETWORK_HOST[region];
+  if (!host) {
+    throw new NhnCloudCliError(
+      `지원하지 않는 region 입니다: "${region}". 사용 가능한 region: ${IAAS_REGIONS}`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+  return host;
+}
+
+/**
+ * region 에 해당하는 Block Storage API host 를 반환한다.
+ * 미등록 region 은 EXIT_PARAM_ERROR.
+ */
+export function blockStorageHost(region: string): string {
+  const host = BLOCKSTORAGE_HOST[region];
   if (!host) {
     throw new NhnCloudCliError(
       `지원하지 않는 region 입니다: "${region}". 사용 가능한 region: ${IAAS_REGIONS}`,

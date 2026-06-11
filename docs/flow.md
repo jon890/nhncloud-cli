@@ -220,6 +220,9 @@ nhncloud instance reboot <id> [options]         # 인스턴스 재부팅 (--hard
 nhncloud instance resize <id> --flavor <id>     # 타입(flavor) 변경 (VERIFY_RESIZE 후 confirm/revert)
 nhncloud instance resize-confirm <id>           # resize 확정
 nhncloud instance resize-revert <id>            # resize 롤백
+nhncloud instance volumes <id>                  # 인스턴스 연결 볼륨 목록
+nhncloud instance volume attach <id> --volume <vid>  # 볼륨 연결 (쓰기)
+nhncloud instance volume detach <id> <vid>      # 볼륨 해제 (쓰기)
 nhncloud instance keypairs [options]            # 키페어 목록
 nhncloud instance keypair get <name> [options]  # 단일 키페어 조회
 nhncloud instance keypair create <name> [opts]  # 키페어 생성 (private_key 1회성)
@@ -354,3 +357,26 @@ nhncloud network subnet list [options]       # 서브넷 목록
 | `iaas` 자격증명 누락 / Keystone 발급 실패 | `EXIT_CONFIG_ERROR` 또는 `EXIT_AUTH_ERROR` |
 | 잘못된 region | `EXIT_PARAM_ERROR` |
 | VPC API 4xx · 5xx | `EXIT_API_ERROR` |
+
+## volume (Block Storage) 흐름
+
+Cinder(volumev2) 명령군. instance 와 같은 Keystone 토큰을 발급해 region 별 block storage endpoint 로 호출한다 ([[adr-013]], [[adr-010]]).
+host 만 다르고 경로는 compute 처럼 **tenant segment 를 포함**한다(`/v2/{tenantId}/volumes`).
+
+```
+nhncloud volume list [options]                 # 볼륨 목록 (id·name·size·status)
+nhncloud volume get <id> [options]             # 단일 볼륨
+nhncloud volume create --size <GB> [options]   # 볼륨 발급 (쓰기 — --name/--description/--volume-type)
+```
+
+- `volume list`/`get` 은 읽기. `volume create` 는 실제 볼륨 발급(비용)이라 쓰기 — 정리(삭제)는 현재 콘솔 (volume delete 는 후속 ROADMAP).
+- `instance volume attach/detach`(쓰기)·`instance volumes`(읽기)는 Nova `os-volume_attachments`(compute endpoint)로 인스턴스↔볼륨 연결을 다룬다 (read-only GET 200 으로 지원 확정).
+- `volume list` 의 id 를 `instance volume attach --volume <id>` 에 넣어 연결한다.
+
+### volume 에러 경로
+
+| 상황 | exit code |
+|------|-----------|
+| `iaas` 자격증명 누락 / Keystone 발급 실패 | `EXIT_CONFIG_ERROR` 또는 `EXIT_AUTH_ERROR` |
+| `--size` 누락/형식 오류 | `EXIT_PARAM_ERROR` |
+| Cinder/Nova API 4xx · 5xx | `EXIT_API_ERROR` |

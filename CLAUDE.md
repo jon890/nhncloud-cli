@@ -5,7 +5,7 @@
 NHN Cloud 서비스를 AWS CLI 처럼 호출하는 통합 CLI.
 TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 
-## 지원 명령 (30개)
+## 지원 명령 (36개)
 
 - `configure` — 자격증명 설정 마법사 (대화형 + flag, UAK + 서비스별 키, 연결 테스트).
 - `logncrash search` — Log & Crash 로그 검색 (시간 범위는 90일 이내·31일 이하로 제한, 초과 시 입력 오류).
@@ -35,8 +35,14 @@ TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 - `instance resize <id> --flavor <flavorId>` — 인스턴스 타입(flavor) 변경 (Nova v2 표준 — VERIFY_RESIZE 후 confirm/revert 2단계). fire-and-return.
 - `instance resize-confirm <id>` — resize 확정 (VERIFY_RESIZE → ACTIVE, 새 flavor 고정).
 - `instance resize-revert <id>` — resize 롤백 (VERIFY_RESIZE → ACTIVE, 이전 flavor 복귀).
+- `instance volume attach <id> --volume <volumeId>` — 인스턴스에 볼륨 연결 (os-volume_attachments, 쓰기).
+- `instance volume detach <id> <volumeId>` — 인스턴스에서 볼륨 해제 (쓰기).
+- `instance volumes <id>` — 인스턴스에 연결된 볼륨 목록 조회.
 - `network list` — VPC 목록 조회 (`instance create --network <uuid>` 의 uuid = VPC id·실측 확정. id·name·cidrv4·state·external, 전체 필드는 `--json`).
 - `network subnet list` — 서브넷 목록 조회 (id·cidr·소속 VPC·gateway·가용 IP).
+- `volume list` — Block Storage 볼륨 목록 조회 (id·name·size·status, 전체 필드는 `--json`).
+- `volume get <id>` — 단일 볼륨 상태 조회.
+- `volume create --size <GB>` — 볼륨 발급 (Cinder volumev2, 쓰기. `--name`/`--description`/`--volume-type`).
 
 ## API 스펙 확인 절차
 
@@ -106,6 +112,7 @@ src/
 | Instance user_data 주입 (base64·65535 인코딩 후 한도) | ADR-012 |
 | Instance image endpoint 해석 (compute 외 type 확장) | ADR-013, ADR-005, ADR-010 |
 | Network(VPC) endpoint 해석 (compute·image 외 type 확장) | ADR-013, ADR-005, ADR-010 |
+| Block Storage(volume) endpoint 해석 (volumev2·tenant 포함 경로) | ADR-013, ADR-005, ADR-010 |
 | Log & Crash 로그 전송 (collector host·appkey-only 인증) | ADR-014 |
 | deploy 바이너리 전송 (multipart 업로드·봉투 우회 다운로드) | ADR-015, ADR-002, ADR-006 |
 

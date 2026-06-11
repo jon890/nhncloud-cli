@@ -16,6 +16,7 @@ import type {
   CreateKeypairParams,
   CreateKeypairResult,
   AvailabilityZone,
+  ServerVolumeAttachment,
 } from "./types.js";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -186,6 +187,34 @@ function isAvailabilityZonesResponse(
     Array.isArray(obj["availabilityZoneInfo"]) &&
     obj["availabilityZoneInfo"].every(isAvailabilityZone)
   );
+}
+
+// ── os-volume_attachments 타입 가드 (실측 확정 2026-06-11: 200 + camelCase 필드) ──
+
+function isServerVolumeAttachment(val: unknown): val is ServerVolumeAttachment {
+  if (typeof val !== "object" || val === null) return false;
+  const o = val as Record<string, unknown>;
+  return (
+    typeof o["id"] === "string" &&
+    typeof o["volumeId"] === "string" &&
+    typeof o["serverId"] === "string" &&
+    typeof o["device"] === "string"
+  );
+}
+
+function isVolumeAttachmentsResponse(
+  val: unknown,
+): val is { volumeAttachments: ServerVolumeAttachment[] } {
+  if (typeof val !== "object" || val === null) return false;
+  const arr = (val as Record<string, unknown>)["volumeAttachments"];
+  return Array.isArray(arr) && arr.every(isServerVolumeAttachment);
+}
+
+function isVolumeAttachmentResponse(
+  val: unknown,
+): val is { volumeAttachment: ServerVolumeAttachment } {
+  if (typeof val !== "object" || val === null) return false;
+  return isServerVolumeAttachment((val as Record<string, unknown>)["volumeAttachment"]);
 }
 
 // ── IP 주소 추출 helper ───────────────────────────────────────────────────────
@@ -608,6 +637,71 @@ export class InstanceClient {
         );
       }
       return { images: raw.images, next: raw.next };
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * 인스턴스에 연결된 볼륨 목록을 조회한다 (GET .../os-volume_attachments).
+   * Nova 표준 확장 — NHN Instance(Nova v2 호환, ADR-010). 실측 200 확인 (2026-06-11).
+   */
+  async listVolumeAttachments(serverId: string): Promise<ServerVolumeAttachment[]> {
+    const url = `${this.computeEndpoint}/servers/${encodeURIComponent(serverId)}/os-volume_attachments`;
+    try {
+      const raw = await ky
+        .get(url, { headers: this.authHeaders(), retry: 0, timeout: DEFAULT_TIMEOUT_MS })
+        .json();
+      if (!isVolumeAttachmentsResponse(raw)) {
+        throw new NhnCloudCliError(
+          "instance volumes 응답 형식이 올바르지 않습니다 — volumeAttachments 배열이 없습니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return raw.volumeAttachments;
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * 볼륨을 인스턴스에 연결한다 (POST .../os-volume_attachments).
+   * 요청 body: { volumeAttachment: { volumeId } }. 실제 연결은 수동 QA 확정 (1-26).
+   */
+  async attachVolume(serverId: string, volumeId: string): Promise<ServerVolumeAttachment> {
+    const url = `${this.computeEndpoint}/servers/${encodeURIComponent(serverId)}/os-volume_attachments`;
+    try {
+      const res = await ky.post(url, {
+        headers: this.authHeaders(),
+        json: { volumeAttachment: { volumeId } },
+        retry: 0,
+        timeout: DEFAULT_TIMEOUT_MS,
+      });
+      // 202 + 빈 본문으로 응답할 수 있어(ADR-011 선례) .json() 을 강제하지 않는다 — 빈 본문이면 입력으로 합성.
+      if (res.status === 202 || res.headers.get("content-length") === "0") {
+        return { id: volumeId, volumeId, serverId, device: "" };
+      }
+      const raw = await res.json();
+      if (!isVolumeAttachmentResponse(raw)) {
+        throw new NhnCloudCliError(
+          "instance volume attach 응답에 volumeAttachment 가 없습니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return raw.volumeAttachment;
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * 볼륨 연결을 해제한다 (DELETE .../os-volume_attachments/{volumeId}, 202 무응답).
+   * 실제 해제는 수동 QA 확정 (1-26).
+   */
+  async detachVolume(serverId: string, volumeId: string): Promise<void> {
+    const url = `${this.computeEndpoint}/servers/${encodeURIComponent(serverId)}/os-volume_attachments/${encodeURIComponent(volumeId)}`;
+    try {
+      await ky.delete(url, { headers: this.authHeaders(), retry: 0, timeout: DEFAULT_TIMEOUT_MS });
     } catch (err) {
       throw toNhnCloudCliError(err);
     }

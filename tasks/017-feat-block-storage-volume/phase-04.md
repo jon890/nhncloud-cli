@@ -17,14 +17,24 @@
 - block storage(volumev2)는 같은 결정의 **연장**이므로 새 ADR 이 아니라 ADR-013 본문에 한 항목을 더한다.
 - 보강 내용: host 맵에 `BLOCKSTORAGE_HOST` 추가 / 경로가 image(tenant 없음)와 달리 **compute 와 같은 tenant 포함**이라는 점 / 캐시에 `blockStorageEndpoint` 추가.
 
+## ⚠️ 소유권 분리 (common-pitfalls 1-24)
+
+아래 작업 1~4 (`docs/adr.md` ADR-013 보강 · `CLAUDE.md` · `docs/flow.md` · `docs/code-architecture.md`)는 **결정 docs 라 executor 가 phase 안에서 편집하지 않는다.** blockstorage host 가 phase-01 실측 확정값(첫 호출 200)에 의존하므로 **team-lead 가 phase-01~03(코드) 완료 후** docs-first 별도 commit 으로 작성한다. 아래 1~4 상세는 team-lead 작성 스펙. **executor 의 phase-04 범위는 작업 5(README)·6(SKILL)·7(완료 마킹) 뿐.**
+
+> **카운트**: base 30개 → volume list/get/create 3개 + (phase-03 미blocked 시) instance volume attach/detach/volumes 3개 = 최대 **36개** (phase-03 blocked 면 33개). team-lead 가 실제 등록 명령 수로 갱신.
+> **ADR-013 보강 (확정)**: base 최대 ADR 015. blockstorage 는 image·network 처럼 IaaS 멀티 endpoint 의 또 다른 사례 → **새 ADR 신설 안 함, ADR-013 보강**.
+
 ## 변경 파일
 
+**(team-lead docs-first — executor 범위 밖)**
 1. `docs/adr.md` — ADR-013 본문에 blockstorage host 항목 보강(신설 아님)
 2. `CLAUDE.md` — 지원 명령 카운트·목록 + ADR 참조 표 갱신
 3. `docs/flow.md` — volume 흐름 + instance volume 흐름 추가
-4. `docs/code-architecture.md` — services/blockstorage 디렉터리 + endpoints/keystone 의 blockstorage 확장 + ADR-013 역참조
-5. `README.md` — Block Storage 섹션 + instance volume 사용 예
-6. `skills/nhncloud-cli/SKILL.md` — volume 명령 표·예시
+4. `docs/code-architecture.md` — services/blockstorage + endpoints/keystone blockstorage 확장 + ADR-013 역참조
+
+**(executor phase-04)**
+5. `README.md` — Block Storage 섹션 + instance volume 사용 예 + intro "지원 명령" 문구
+6. `skills/nhncloud-cli/SKILL.md` — volume 명령 표·예시 + 프론트매터 description
 7. `tasks/017-feat-block-storage-volume/index.json` — status `completed`, phase status 갱신
 
 ## 회피 항목 (code-review-pitfalls 사전 확인)
