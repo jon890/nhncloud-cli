@@ -31,12 +31,11 @@ NHN Cloud Floating IP 의 연결 API(`PUT /v2.0/floatingips/{id}`)는
 
 ## 013 선행 의존 확인
 
-이 task 는 013(`013-feat-network-list`) 의 network endpoint 해석 위에 얹힌다.
-phase-01 시작 시 013 이 구현되어 있는지 먼저 확인한다(없으면 013 을 먼저 끝낸 뒤 진행 — blocked).
+이 task 는 013(network endpoint 해석) 위에 얹힌다. **013 은 이미 base 에 머지 완료**다 (검증: `grep -c networkEndpoint src/api/keystone.ts` ≥1, `src/services/network/`·`resolveNetworkClient` 존재). blocked hedge 불요.
 
-- `src/services/network/client.ts`(또는 동등 위치)와 `resolveNetworkClient`(또는 013 이 정한 helper 명) 존재 확인.
-- 013 의 `networkEndpoint`(catalog type `network`, host 패턴은 013 이 실측 확정)를 그대로 base 로 쓴다 — host/endpoint 를 새로 만들지 않는다.
+- 013 의 `networkEndpoint`(catalog type `network`, host 실측 확정)를 그대로 base 로 쓴다 — host/endpoint 를 새로 만들지 않는다.
 - floatingip 도 `/v2.0/...`(tenantId segment 없음) 경로 형태를 013 과 동일하게 따른다.
+- **phase-01 실측은 read-only**: `GET /v2.0/ports?device_id=<instance-id>` 는 읽기라 executor 가 직접 호출해 instance→port_id 매핑을 확인할 수 있다 (associate 의 쓰기 호출은 phase-02 가 아니라 수동 QA — 1-26).
 
 > 013 이 아직 phase 파일조차 없는 pending 상태이면(현 시점), 013 의 `index.json` description 에 적힌 구조(services/network client + resolveNetworkClient + networkEndpoint)를 기준으로 실측만 진행하고, 013 구현 완료를 phase-02 의 선행 조건으로 명시한다.
 

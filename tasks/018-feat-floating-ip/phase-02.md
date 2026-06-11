@@ -12,6 +12,9 @@
 
 근거: NHN Cloud Network(VPC) Floating IP public-api docs.
 
+> **⚠️ 1-26 (create/associate/delete = 쓰기)**: `floatingip create`(공인 IP 발급·비용)·`associate`(인스턴스 연결)·`delete`(IP 회수)는 **쓰기 작업**이라 executor 가 자율 호출하지 않는다 (코드만, 실제 호출은 수동 QA). `list` 와 phase-01 의 `GET /v2.0/ports`(읽기)만 executor 가 확인. create/associate 응답 형태는 docs 예제로 작성하되 수동 QA 첫 호출로 확정.
+> **결정 docs(CLAUDE/flow/code-architecture)는 phase-03 의 team-lead docs-first** — phase-02 는 코드만. 새 ADR 없음(013 network endpoint 재사용).
+
 - 목록: `GET /v2.0/floatingips` → `{ floatingips: [{ id, floating_ip_address, status, port_id, fixed_ip_address, floating_network_id, label }] }`.
   - status 는 `ACTIVE`/`DOWN`/`ERROR`.
 - 생성: `POST /v2.0/floatingips`, body `{ "floatingip": { "floating_network_id": "<external-vpc-id>" } }`(필수).

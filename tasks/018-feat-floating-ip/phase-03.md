@@ -7,13 +7,23 @@ associate 가 phase-01 실측 미통과로 보류됐으면 그 사실을 docs/bl
 
 이 phase 는 코드를 바꾸지 않는다 — docs 반영 + index.json 마킹만.
 
+## ⚠️ 소유권 분리 (common-pitfalls 1-24)
+
+작업 3·4·5 (`docs/flow.md` · `docs/code-architecture.md` · `CLAUDE.md`)는 **결정 docs 라 team-lead docs-first** (phase-01·02 코드 후 일괄). 아래 3~5 상세는 team-lead 작성 스펙. **executor 의 phase-03 범위는 작업 1(README)·2(SKILL)·6(완료 마킹) 뿐.**
+
+> **새 ADR 없음**: floatingip 은 013 의 network endpoint(ADR-013)를 재사용 — "상황별 ADR 필수 참조" 표에 행 추가 안 함.
+> **카운트**: base 36 → floatingip list/create/delete 3개 + (실측 통과 시) associate 1개 = **40개** (associate 보류 시 39개). team-lead 가 실제 등록 수로 갱신.
+
 ## 변경 파일
 
-1. `README.md` — floatingip 명령 사용 예 추가
-2. `skills/nhncloud-cli/SKILL.md` — floatingip 명령 추가(AI 에이전트용)
-3. `docs/flow.md` — floatingip 흐름 섹션 추가(create 의 외부 네트워크 자동 조회 + associate 의 instance→port_id 매핑)
-4. `docs/code-architecture.md` — `commands/floatingip` + `services/network` 의 floatingip 메서드 반영
-5. `CLAUDE.md` — "지원 명령" 개수 + floatingip 항목 추가
+**(team-lead docs-first — executor 범위 밖)**
+3. `docs/flow.md` — floatingip 흐름 (create 외부 네트워크 자동 조회 + associate instance→port_id)
+4. `docs/code-architecture.md` — `commands/floatingip` + `services/network` floatingip 메서드
+5. `CLAUDE.md` — "지원 명령" 개수 + floatingip 항목
+
+**(executor phase-03)**
+1. `README.md` — floatingip 명령 사용 예 + intro "지원 명령" 문구
+2. `skills/nhncloud-cli/SKILL.md` — floatingip 명령 + 프론트매터 description
 6. `tasks/018-feat-floating-ip/index.json` — `status: "completed"` + 각 phase completed
 
 ## 회피 항목
