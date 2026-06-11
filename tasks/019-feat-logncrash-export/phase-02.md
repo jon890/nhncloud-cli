@@ -80,7 +80,7 @@ nhncloud logncrash export --query 'logType:"ERROR"' --from 1h --to now \
 
 ### 4. `docs/flow.md`
 
-`## logncrash search 흐름` 섹션 **다음** 에 export 흐름 섹션을 추가:
+`## logncrash search 흐름` 섹션이 **끝난 뒤**(다음 `## logncrash send 흐름` 헤딩 **앞**)에 export 흐름 섹션을 삽입한다 — search 본문 중간(heading 직후)에 끼우지 말 것:
 
 ```
 ## logncrash export 흐름

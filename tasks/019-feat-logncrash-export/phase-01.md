@@ -21,6 +21,26 @@ search 는 한 페이지를 stdout 으로 보여주는 단발 조회이고, expo
 - 봉투: `unwrap(NhnEnvelope<T>)` 재사용 (resultCode 숫자, `isSuccessful` 로만 판정 — ADR-006).
 - 신규 인증/좌표/도메인이 없으므로 ADR 신설 불필요.
 
+### scroll API 응답 형태 (공식 docs 확정 — 추측 아님)
+
+NHN Cloud Log & Crash Search API 가이드의 scroll 응답 예제로 확정:
+
+```json
+{
+  "header": { "isSuccessful": true, "resultMessage": "success", "resultCode": 0 },
+  "body": {
+    "scrollKey": "<scroll-key>",
+    "totalItems": 60,
+    "pageSize": 10,
+    "data": [ { "logTime": 1609463102265, "logType": "NORMAL", "projectVersion": "1.0.0" } ]
+  }
+}
+```
+
+- 봉투 중첩: `{ header, body: { scrollKey, totalItems, pageSize, data } }` → `.json<NhnEnvelope<ScrollResult>>()` + `unwrap(res)`(= body 반환). search 와 동일 구조 — 봉투 helper 그대로.
+- **`pageSize` 범위는 10~100** (docs 명시). search 와 다르니 `--size` 검증·기본값을 10~100 으로 둔다(아래 4-4 정수 검증).
+- `scrollKey`·`totalItems`·`data` 필드명 docs 확정.
+
 ## 변경 파일 (5개)
 
 1. `src/services/logncrash/types.ts` — `ScrollStartParams` / `ScrollResult` 추가
@@ -51,7 +71,7 @@ export interface ScrollStartParams {
   query: string;
   from: string;
   to: string;
-  /** 한 번의 scroll 응답당 건수 (기본 1000). 전체 순회는 루프가 담당. */
+  /** 한 번의 scroll 응답당 건수 (docs 범위 10~100, 기본 100). 전체 순회는 루프가 담당. */
   pageSize?: number;
 }
 
@@ -71,10 +91,10 @@ export interface ScrollResult {
 
 ### 2. `src/services/logncrash/client.ts`
 
-(a) import 에 새 type 추가:
+(a) import 에 새 type 추가 — **기존 import 줄을 통째로 교체하지 말고 새 type 만 더한다**. 현재 client.ts:7 은 `import type { LogSearchParams, LogSearchResult, LogSendParams } from "./types.js";`(send 가 `LogSendParams` 사용) 이므로 `LogSendParams` 를 보존한 채 scroll type 을 추가:
 
 ```ts
-import type { LogSearchParams, LogSearchResult, ScrollStartParams, ScrollResult } from "./types.js";
+import type { LogSearchParams, LogSearchResult, LogSendParams, ScrollStartParams, ScrollResult } from "./types.js";
 ```
 
 (b) `search()` 메서드 **뒤** 에 두 메서드 추가. scroll URL 은 search 와 같은 `endpointFor("logncrash")` 기반:
@@ -99,7 +119,7 @@ import type { LogSearchParams, LogSearchResult, ScrollStartParams, ScrollResult 
             query: params.query,
             from: params.from,
             to: params.to,
-            pageSize: params.pageSize ?? 1000,
+            pageSize: params.pageSize ?? 100,
           },
         })
         .json<NhnEnvelope<ScrollResult>>();
@@ -144,7 +164,7 @@ import type { LogSearchParams, LogSearchResult, ScrollStartParams, ScrollResult 
 
 ```ts
 import { Command } from "commander";
-import { rename, writeFile } from "node:fs/promises";
+import { rename, writeFile, rm } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
 import { resolveTime, assertSearchRange } from "../../utils/time.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
@@ -173,7 +193,7 @@ export const exportCommand = new Command("export")
   .option("--to <time>", "검색 끝: ISO8601 또는 상대시간 (필수)")
   .option("--output <file>", "출력 파일 경로 (필수)")
   .option("--format <fmt>", "출력 형식: jsonl(기본, 한 줄당 한 로그) 또는 json(배열)", "jsonl")
-  .option("--size <n>", "scroll 페이지 크기 (기본 1000, 최대 1000)", "1000")
+  .option("--size <n>", "scroll 페이지 크기 (docs 범위 10~100, 기본 100)", "100")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (_opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<ExportGlobalOpts>();
@@ -197,9 +217,14 @@ export const exportCommand = new Command("export")
       throw new NhnCloudCliError("--format 은 jsonl 또는 json 이어야 합니다.", EXIT_PARAM_ERROR);
     }
 
-    const size = parseInt(opts.size ?? "1000", 10);
-    if (isNaN(size) || size < 1 || size > 1000) {
-      throw new NhnCloudCliError("--size 는 1~1000 사이 정수여야 합니다.", EXIT_PARAM_ERROR);
+    // 4-4: 정수 옵션은 bare Number/parseInt 대신 regex 로 형식부터 검증 (소수·공백·접미사 차단)
+    const sizeRaw = opts.size ?? "100";
+    if (!/^[1-9]\d*$/.test(sizeRaw)) {
+      throw new NhnCloudCliError("--size 는 양의 정수여야 합니다 (docs 범위 10~100).", EXIT_PARAM_ERROR);
+    }
+    const size = parseInt(sizeRaw, 10);
+    if (size < 10 || size > 100) {
+      throw new NhnCloudCliError("--size 는 10~100 사이여야 합니다 (Log & Crash scroll pageSize 한도).", EXIT_PARAM_ERROR);
     }
 
     // ── 2. 시간 정규화 + 범위 검증 (search 와 동일 — 90일/31일 제한 재사용) ──
@@ -225,21 +250,24 @@ export const exportCommand = new Command("export")
     const client = new LogncrashClient(cred.appkey, cred.secret);
 
     // ── 4. scroll 루프 (spinner 내부 try/catch — 루프 중 throw 해도 leak 없음) ──
-    startSpinner("로그 추출 중...");
+    // 진행 표시는 spinner.text 로 갱신한다 — 별도 process.stderr.write 면 ora 애니메이션과
+    // 같은 줄에서 뒤섞여 출력이 깨진다(Minor 회피).
+    const spinner = startSpinner("로그 추출 중...");
 
     const collected: Record<string, unknown>[] = [];
+    let total = 0;
     try {
       let res: ScrollResult = await client.scrollStart({ query: opts.query, from: fromIso, to: toIso, pageSize: size });
       collected.push(...res.data);
-      const total = res.totalItems;
-      process.stderr.write(`수집 ${collected.length}/${total}\n`);
+      total = res.totalItems;
+      spinner.text = `로그 추출 중... ${collected.length}/${total}`;
 
       // data 가 빌 때까지(또는 상한 도달까지) scrollKey 로 이어 호출.
       while (res.data.length > 0 && res.scrollKey && collected.length < Math.min(total, MAX_TOTAL)) {
         const key = res.scrollKey;
         res = await scrollNextOrExpire(client, key);
         collected.push(...res.data);
-        process.stderr.write(`수집 ${collected.length}/${total}\n`);
+        spinner.text = `로그 추출 중... ${collected.length}/${total}`;
       }
     } catch (err) {
       stopSpinner(false);
@@ -247,6 +275,13 @@ export const exportCommand = new Command("export")
     }
 
     stopSpinner(true, `${collected.length}건 추출 완료`);
+
+    // No-silent-caps: total 이 상한을 넘으면 잘렸음을 stderr 로 명시(조용한 절단 금지).
+    if (total > MAX_TOTAL) {
+      process.stderr.write(
+        `경고: 전체 ${total}건 중 상한 ${MAX_TOTAL}건까지만 추출했습니다. 검색 범위를 좁혀 나눠 추출하세요.\n`,
+      );
+    }
 
     // ── 5. 원자적 파일 쓰기 (temp + rename — 부분 파일 방지) ──
     const body =
@@ -259,6 +294,8 @@ export const exportCommand = new Command("export")
       await writeFile(tmp, body, { encoding: "utf-8" });
       await rename(tmp, opts.output);
     } catch (err) {
+      // 실패 시 temp 고아 파일을 남기지 않는다 (best-effort unlink — 정리 실패는 무시).
+      await rm(tmp, { force: true }).catch(() => {});
       const reason = (err as NodeJS.ErrnoException).code ?? (err instanceof Error ? err.message : String(err));
       throw new NhnCloudCliError(`출력 파일을 쓸 수 없습니다: ${opts.output} (${reason})`, EXIT_PARAM_ERROR);
     }
@@ -268,8 +305,9 @@ export const exportCommand = new Command("export")
   });
 
 /**
- * scrollNext 를 호출하되 scrollKey 만료(EXIT_API_ERROR)를 명확한 안내로 감싼다.
- * 데이터를 다 받기 전에 1분이 지나 scrollKey 가 무효화되면 여기서 잡힌다.
+ * scrollNext 를 호출하되 scrollKey 만료 가능성을 안내로 덧붙인다.
+ * EXIT_API_ERROR 는 만료뿐 아니라 일시적 5xx·네트워크 blip·빈 body 에서도 나므로,
+ * 만료라고 단정해 원본 진단을 폐기하지 않는다 — 원본 메시지를 보존하고 만료 힌트만 덧붙인다.
  */
 async function scrollNextOrExpire(client: LogncrashClient, scrollKey: string): Promise<ScrollResult> {
   try {
@@ -277,7 +315,7 @@ async function scrollNextOrExpire(client: LogncrashClient, scrollKey: string): P
   } catch (err) {
     if (err instanceof NhnCloudCliError && err.exitCode === EXIT_API_ERROR) {
       throw new NhnCloudCliError(
-        "scrollKey 가 만료되었습니다 (유효 1분). 검색 범위를 좁히거나 --size 를 키워 페이지 수를 줄인 뒤 다시 시도하세요.",
+        `scroll 다음 페이지 요청이 실패했습니다 (원인: ${err.message}). scrollKey 만료(유효 1분)일 수 있으니, 만료라면 검색 범위를 좁히거나 --size 를 키워 페이지 수를 줄인 뒤 다시 시도하세요.`,
         EXIT_API_ERROR,
       );
     }
@@ -354,6 +392,12 @@ node dist/index.js logncrash export --query 'logType:"NORMAL"' --from 1h --to no
 # 12. 범위 31일 초과 → EXIT_PARAM_ERROR(3) (search 와 동일 제한)
 node dist/index.js logncrash export --query a --from 40d --to now --output /tmp/x.jsonl; echo "exit=$?"
 # 기대: stderr 에 "검색 범위는 31일 이하", exit=3
+
+# 12b. --size 범위(10~100) 위반 → EXIT_PARAM_ERROR(3) (docs scroll pageSize 한도)
+node dist/index.js logncrash export --query a --from 1h --to now --output /tmp/x.jsonl --size 500; echo "exit=$?"
+# 기대: stderr 에 "10~100", exit=3
+node dist/index.js logncrash export --query a --from 1h --to now --output /tmp/x.jsonl --size 0; echo "exit=$?"
+# 기대: stderr 에 "양의 정수" 또는 "10~100", exit=3
 
 # 13. spinner-before-validation 회귀 없음 (1-2) — 검증/자격증명이 startSpinner 보다 앞
 awk '/\.action\(async/,/^  \}\)\;/' src/commands/logncrash/export.ts | grep -nE "(startSpinner|assertSearchRange|getServiceCredential)" | head -4
