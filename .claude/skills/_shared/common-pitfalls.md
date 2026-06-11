@@ -390,6 +390,8 @@ git stash; grep -c '<검증토큰>' <docs>; git stash pop   # baseline >0 이면
 
 **Self-check**: 이 task 의 핵심 위험(실측 확정 / 신규 docs 행 / 런타임 불변식)이 성공 기준의 자동 검사로 *실제로 막히는가*? 추정값·누락 상태로 성공 기준을 전부 통과시킬 수 있으면 게이트가 비어 있는 것.
 
+> **자기참조 grep 함정 (PR #19/plan014)**: 성공 기준이 `grep -c "<토큰>" 같은_파일.md` 형태인데 `<토큰>` 이 **그 grep 명령줄 자체에도 등장**하면 항상 ≥1 을 반환해 "기대 0" 을 절대 만족 못 한다(placeholder 완성 여부 검사에서 흔함). grep 을 절(`sed -n '/## 시작/,/## 끝/p' | grep`)로 한정하거나, 검사 대상이 사전 충전돼 의미 없으면 기준을 삭제한다.
+
 **Why**: PR #12 (plan010) critic 2 MAJOR — ① image endpoint 실측이 성공 기준에 없어 estimate 완료 가능, ② docs 검증이 `grep -c 'image'` 라 기존 `--image` 텍스트로 통과. 둘 다 성공 기준 문구를 forcing/변별 토큰으로 바꿔 해소. 외부 의존 실측·신규 docs 행이 있는 task 마다 재발 가능.
 
 ## 1-23. 새 endpoint (다른 host·인증) 의 응답 봉투 형태를 docs 대조 없이 "(확정)" 으로 단정
@@ -426,6 +428,16 @@ planning SKILL "갱신 시점 분리" 표는 이 6개를 **결정 docs = plannin
 **Self-check**: "이 list 의 id 를 다른 명령 인자로" 라는 주장이 있는가? 그 id 가 소비 명령에 실제 먹히는지(상위 vs 하위 리소스 id) 확인하는 단계가 실측·수동 QA 에 있는가? CLI `.description` 같은 바이너리 ship 텍스트의 단정도 확정에 맞췄는가?
 
 **Why**: PR #17 (plan013) critic MAJOR — `network list` 의 VPC id 가 `instance create --network` 에 먹히는지 미검증인 채 docs 단정. 실측(인스턴스 addresses=VPC name 1:1)으로 "VPC id = --network" 확정 후 반영. availability-zone·floating-ip 등 "조회→다른 명령 인자" 구조마다 재발 가능.
+
+## 1-26. 쓰기 작업(resize/attach/create/delete) plan — live 실측 자율 실행 대신 표준 설계 + 수동 QA + 정정 loop
+
+**증상**: 새 명령이 실제 클라우드 리소스를 변경(쓰기)하는데, phase-01 이 "실제 호출로 동작 확정(실측)" 을 executor 작업으로 둔다. executor 가 자율로 리소스를 생성/변경/삭제하면 비용·다운타임·되돌리기 어려움이 발생한다(사용자 자원).
+
+**Good**: 쓰기 plan 은 (a) **동작을 docs/표준으로 확정**한다(예: OpenStack Nova v2 resize 2단계는 표준 — VERIFY_RESIZE 후 confirm/revert, ADR-010 으로 NHN=Nova v2 확립). (b) **코드는 가능한 동작 분기 모두에 견고**하게 작성(예: fire-and-return + 사용자 `get` 확인 → 자동/수동 confirm 어느 쪽도 사용자를 가두지 않음). (c) **live 쓰기 실측은 수동 QA(사용자)** 로 남긴다 — executor 자율 실행 금지. (d) **QA contingency loop** 한 줄: "QA 가 표준 추론과 어긋나면 PR review-fix 로 명령 surface·카운트·docs 정정". build-with-teams 의 자동 성공 기준은 자격증명 없이 검증되는 부분(tsc/build/help/exit code)만 두고, live 부분은 "수동 QA" 절로 분리한다.
+
+**Self-check**: 이 명령이 쓰기 작업인가? phase-01 의 "실측" 이 executor 자율 live 호출을 요구하는가 → 수동 QA 로 바꾸고 동작은 docs/표준 근거로 확정했는가? 코드가 동작 분기 양쪽에 견고한가? 표준 추론이 틀릴 때의 정정 loop 가 문서화됐는가?
+
+**Why**: PR #19 (plan014) — `instance resize` 는 쓰기 작업이라 사용자 정책상 live 호출을 수동 QA 로 남기고, Nova v2 표준 + ADR-010 근거로 (B) 수동 confirm 확정, 코드는 (A)/(B) 양쪽 견고. plan017(volume attach/detach)·018(floating ip create/delete) 등 쓰기 plan 마다 재발.
 
 ## 섹션 1 소진 체크리스트
 
