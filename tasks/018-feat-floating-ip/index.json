@@ -2,18 +2,18 @@
   "name": "018-feat-floating-ip",
   "description": "floatingip list / create / associate / delete 명령 추가 — 인스턴스 공인 IP(Floating IP). NHN VPC Network public-api: GET /v2.0/floatingips (floatingips[].{id,floating_ip_address,status(ACTIVE/DOWN/ERROR),port_id,fixed_ip_address,floating_network_id,label}) / POST /v2.0/floatingips (body 필수 floating_network_id — 외부 네트워크 id 는 GET /v2.0/vpcs?router:external=true 로 조회, 013 재사용) / PUT /v2.0/floatingips/{id} (body {floatingip:{port_id:<port>}}, 해제는 port_id:null) / DELETE /v2.0/floatingips/{id}. catalog type 은 network — 013(013-feat-network-list) 의 network endpoint(host 맵 + networkEndpoint 해석)·resolveNetworkClient 를 그대로 재사용한다(동일 host/endpoint, 새 토큰·새 ADR 불필요 — ADR-013 network endpoint 해석 재사용). 013 선행 의존: services/network client + resolveNetworkClient 가 먼저 있어야 floatingip 메서드를 그 위에 얹는다. 인증은 기존 Keystone X-Auth-Token 재사용. **미확인(실측 필수)**: associate 는 instance id 가 아니라 port_id 를 요구한다. 인스턴스→port_id 매핑 경로(GET /v2.0/ports?device_id=<instance-id>)가 NHN VPC 가이드에 명시 안 됨 → 구현 전 실측으로 확인. 실측 미통과 시 associate 는 보류하고 list/create/delete 만 먼저 낸다(blocked 기록). phase 3분할 — phase-01(실측: instance→port_id 매핑 경로 확인 + associate 가능 여부 판정), phase-02(코드: services/network 에 floatingip 메서드 + commands/floatingip — list/create/delete 먼저, associate 는 실측 통과 시), phase-03(공개 docs(README/SKILL/flow/code-architecture/CLAUDE.md) + 완료 마킹, associate 미통과면 docs/blocked 로 남김).",
   "created_at": "2026-06-09T00:00:00Z",
-  "updated_at": "2026-06-09T00:00:00Z",
-  "status": "pending",
-  "current_phase": 1,
+  "updated_at": "2026-06-11T00:00:00Z",
+  "status": "completed",
+  "current_phase": 3,
   "total_phases": 3,
   "error_message": null,
-  "blocked_reason": null,
+  "blocked_reason": "associate: instance→port_id 매핑 경로(GET /v2.0/ports?device_id=<instance-id>) 실측에 필요한 instance id 부재로 보류 — list/create/delete 만 구현 완료. 실측 확정 후 후속 task 에서 추가한다.",
   "phases": [
     {
       "number": 1,
       "title": "실측 — instance→port_id 매핑 경로(GET /v2.0/ports?device_id) 확인 + associate 가능 여부 판정",
       "file": "phase-01.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     },
@@ -21,7 +21,7 @@
       "number": 2,
       "title": "코드 — services/network floatingip 메서드 + commands/floatingip(list/create/delete 먼저, associate 는 실측 통과 시) + index 등록",
       "file": "phase-02.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     },
@@ -29,7 +29,7 @@
       "number": 3,
       "title": "공개 docs(README/SKILL/flow/code-architecture/CLAUDE.md) + 완료 마킹(associate 미통과면 blocked 기록)",
       "file": "phase-03.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     }

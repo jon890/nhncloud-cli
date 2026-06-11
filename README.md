@@ -385,6 +385,26 @@ nhncloud instance volume detach <instance-id> <volume-id>
 
 지원 region: `kr1` / `kr2` / `kr3` / `jp1` (`--region` 으로 override 가능).
 
+### 공인 IP (Floating IP)
+
+Floating IP 를 발급해 인스턴스에 부여하는 공인 IP 를 관리한다.
+`floatingip` 명령군은 `network` 와 같은 `iaas` 자격증명·Keystone 토큰을 공유한다.
+
+```bash
+# Floating IP 목록
+nhncloud floatingip list
+
+# Floating IP 발급 (--network 미지정 시 외부 VPC 자동 조회)
+nhncloud floatingip create
+nhncloud floatingip create --network <network-uuid>
+
+# 삭제
+nhncloud floatingip delete <floatingip-id> --yes
+```
+
+> **associate**: `floatingip associate <floatingip-id> <instance-id>` 는 instance→port_id 매핑 경로 미확정으로 보류 중.
+> 실측으로 경로가 확정되면 후속 task 에서 추가한다.
+
 ## 개발
 
 ```bash
