@@ -5,6 +5,7 @@ import { NhnCloudCliError } from "./utils/errors.js";
 import { configureCommand } from "./commands/configure.js";
 import { searchCommand } from "./commands/logncrash/search.js";
 import { sendCommand } from "./commands/logncrash/send.js";
+import { exportCommand } from "./commands/logncrash/export.js";
 import { runCommand } from "./commands/deploy/run.js";
 import { artifactsCommand } from "./commands/deploy/artifacts.js";
 import { serverGroupsCommand } from "./commands/deploy/server-groups.js";
@@ -63,6 +64,7 @@ program.addCommand(configureCommand);
 const logncrashCommand = new Command("logncrash").description("Log & Crash 관련 명령");
 logncrashCommand.addCommand(searchCommand);
 logncrashCommand.addCommand(sendCommand);
+logncrashCommand.addCommand(exportCommand);
 
 program.addCommand(logncrashCommand);
 
