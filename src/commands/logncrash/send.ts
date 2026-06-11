@@ -5,6 +5,7 @@ import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR, EXIT_CONFIG_ERROR } from "../../utils/exit-codes.js";
 import { resolveProfileName, getServiceCredential } from "../../config/credentials.js";
 import { LogncrashClient } from "../../services/logncrash/client.js";
+import type { OutputOptions } from "../../formatters/table.js";
 import type { LogLevel } from "../../services/logncrash/types.js";
 
 /** 단일 로그(JSON) 한도 — collector 스펙 8MB (원본 byte 기준, 인코딩 없음). */
@@ -12,7 +13,7 @@ const MAX_LOG_BYTES = 8 * 1024 * 1024;
 
 const VALID_LEVELS: readonly LogLevel[] = ["DEBUG", "INFO", "WARN", "ERROR", "FATAL"];
 
-interface SendGlobalOpts {
+interface SendGlobalOpts extends OutputOptions {
   body?: string;
   file?: string;
   level?: string;
@@ -106,8 +107,8 @@ export const sendCommand = new Command("send")
         EXIT_CONFIG_ERROR,
       );
     }
-    // collector 는 secret 을 쓰지 않으므로 두 번째 인자에 빈 문자열을 넘긴다 — send() 가 secret 을 읽지 않는다.
-    const client = new LogncrashClient(cred.appkey, "");
+    // collector send 는 secret 을 쓰지 않는다 (ADR-014). 생성자 secret 옵셔널 — 생략한다.
+    const client = new LogncrashClient(cred.appkey);
 
     // ── 4. 전송 (spinner 내부, try/catch + leak 방지) ──
     startSpinner("로그 전송 중...");
@@ -125,4 +126,11 @@ export const sendCommand = new Command("send")
       throw err;
     }
     stopSpinner(true, "로그를 전송했습니다.");
+
+    // 부수효과 명령 — 성공은 stderr(spinner). --json 일 때만 stdout 에 최소 페이로드를 emit 해
+    // 자동화가 성공/메타를 stdout 으로 판정할 수 있게 한다. --quiet 면 stdout 은 비운다.
+    // appkey 는 페이로드에 넣지 않는다 — stdout/CI 로그에 식별자가 남지 않도록 (개인 식별 정보 정책).
+    if (opts.json) {
+      process.stdout.write(JSON.stringify({ ok: true, bytes }) + "\n");
+    }
   });
