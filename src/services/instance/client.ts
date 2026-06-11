@@ -195,9 +195,16 @@ function isServerVolumeAttachment(val: unknown): val is ServerVolumeAttachment {
   if (typeof val !== "object" || val === null) return false;
   const o = val as Record<string, unknown>;
   // volumeId(camel) / volume_id(snake) 혼재 가능 — 양쪽 수용 (1-27).
-  // 실측 GET 200 응답에서 volumeId(camelCase) 확인 완료.
+  // serverId(camel) / server_id(snake) 도 양쪽 수용.
+  // 실측 GET 200 응답에서 volumeId/serverId/device(camelCase) 확인 완료.
   const volId = o["volumeId"] ?? o["volume_id"];
-  return typeof o["id"] === "string" && typeof volId === "string";
+  const srvId = o["serverId"] ?? o["server_id"];
+  return (
+    typeof o["id"] === "string" &&
+    typeof volId === "string" &&
+    typeof srvId === "string" &&
+    typeof o["device"] === "string"
+  );
 }
 
 function isVolumeAttachmentsResponse(

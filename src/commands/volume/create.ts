@@ -29,14 +29,15 @@ export const createCommand = new Command("create")
   .action(async (_opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<CreateGlobalOpts>();
 
-    // ── 1. --size 형식 검증 (존재는 requiredOption 이 보장 — 양의 정수 여부만 확인) ──
-    const sizeNum = Number(opts.size);
-    if (!Number.isInteger(sizeNum) || sizeNum <= 0) {
+    // ── 1. --size 형식 검증 (존재는 requiredOption 이 보장 — regex 로 양의 정수 확인)
+    //    bare Number() 는 "1e2" → 100 으로 통과시키므로 regex 사전 검증 필수 (pitfall 4-4).
+    if (!/^[1-9]\d*$/.test(opts.size)) {
       throw new NhnCloudCliError(
-        `--size 는 양의 정수(GB)여야 합니다: "${opts.size}"`,
+        `--size 는 양의 정수(GB)여야 합니다: ${JSON.stringify(opts.size)}`,
         EXIT_PARAM_ERROR,
       );
     }
+    const sizeNum = Number(opts.size);
 
     // ── 2. 자격증명 + token 획득 (spinner 시작 전) ──
     const { client } = await resolveVolumeClient(opts);
