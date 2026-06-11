@@ -99,6 +99,7 @@ logncrash appkey 와 secret 은 콘솔 → Log & Crash Search → 프로젝트 �
 | 시간 범위 지정 검색 | `nhncloud logncrash search --query '*' --from 2024-01-01T00:00:00+09:00 --to 2024-01-01T12:00:00+09:00` |
 | 페이지네이션 | `nhncloud logncrash search --query '*' --from 1h --to now --page 1 --size 50` |
 | 다른 profile 사용 | `nhncloud logncrash search --query '*' --from 1h --to now --profile staging` |
+| 로그 대량 추출 (파일로) | `nhncloud logncrash export --query '<lucene>' --from 1h --to now --output logs.jsonl` |
 | Log & Crash 로그 전송 | `nhncloud logncrash send --body "<메시지>" --level INFO` |
 
 ## logncrash search 옵션
@@ -148,6 +149,16 @@ nhncloud logncrash search \
 | 인증 실패 (401/403) | 2 (AUTH_ERROR) |
 | API 오류 / 봉투 isSuccessful:false | 1 (API_ERROR) |
 | 시간 범위 초과·필수 옵션 누락 | 3 (PARAM_ERROR) |
+
+### logncrash export (대량 추출)
+
+- `nhncloud logncrash export` — 검색 결과 전체를 파일로 내보낸다.
+  단발 검색(search)이 한 페이지만 보여주는 것과 달리, scroll 로 전체(최대 10만 건)를 순회한다.
+- `--output <file>` 필수. 기본은 JSON Lines(한 줄당 한 로그), `--format json` 이면 JSON 배열. 기존 파일은 기본 거부 — 덮어쓰려면 `--force`.
+- 진행 상황은 stderr, 데이터는 파일에만 쓴다(stdout 비움).
+- scrollKey 는 1분 만료 — 데이터가 많아 1분을 넘기면 만료 에러가 난다.
+  이때는 검색 범위를 좁히거나 `--size`(범위 10~100, 기본 100)를 키워 페이지 수를 줄인 뒤 다시 시도한다.
+- 시간 범위 제한은 search 와 동일(90일 이내·31일 이하).
 
 ### logncrash send 전송
 

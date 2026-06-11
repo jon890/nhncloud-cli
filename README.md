@@ -121,6 +121,38 @@ nhncloud logncrash search \
 시간은 상대시간 (`1h` / `30m` / `2d` / `now`) 또는 ISO8601 (`2026-05-01T00:00:00+09:00`) 로 입력한다.
 API 제약상 검색 시작은 최근 90일 이내, 검색 범위는 31일 이하여야 한다 (초과 시 입력 오류로 거절).
 
+### 로그 대량 추출 (export)
+
+```bash
+# 검색 결과 전체를 파일로 추출 (JSON Lines, scroll 순회)
+nhncloud logncrash export \
+  --query 'logType:"ERROR"' \
+  --from 1h --to now \
+  --output errors.jsonl
+
+# JSON 배열 형식으로 추출
+nhncloud logncrash export --query 'logType:"ERROR"' --from 1h --to now \
+  --output errors.json --format json
+```
+
+단발 검색(`search`)과 달리 scroll API 로 전체 결과(최대 10만 건)를 순회해 파일로 저장한다.
+진행 상황은 stderr, 데이터는 파일에만 기록된다(stdout 비움).
+scrollKey 유효기간은 1분이므로 데이터가 많을 때는 `--size` 를 키워 페이지 수를 줄이는 것을 권장한다.
+시간 범위 제한은 search 와 동일(90일 이내·31일 이하).
+
+#### export 옵션
+
+| 옵션 | 필수 | 설명 |
+|------|:---:|------|
+| `--query <lucene>` | 예 | Lucene 질의 문자열 |
+| `--from <time>` | 예 | 검색 시작 (ISO8601 또는 상대시간 `1h`/`30m`/`2d`/`now`) |
+| `--to <time>` | 예 | 검색 끝 |
+| `--output <file>` | 예 | 출력 파일 경로 |
+| `--format <fmt>` | 아니오 | `jsonl`(기본, 한 줄당 한 로그) 또는 `json`(배열) |
+| `--size <n>` | 아니오 | scroll pageSize — 범위 10~100, 기본 100 |
+| `--force` | 아니오 | 출력 파일이 있으면 덮어쓴다 (기본 거부) |
+| `--profile <name>` | 아니오 | 사용할 profile 이름 |
+
 ### 로그 전송
 
 ```bash

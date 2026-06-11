@@ -27,8 +27,8 @@ src/
     token-store.ts          # ~/.nhncloud/cache/ token + endpoint 읽기·쓰기 (mode 0600)
   services/
     logncrash/
-      client.ts             # LogncrashClient — search() / send() (send 는 collector host + appkey-only, adr-014)
-      types.ts              # LogSearchParams/Result / LogSendParams / LogLevel
+      client.ts             # LogncrashClient — search / send / scrollStart / scrollNext (send 는 collector host + appkey-only, adr-014)
+      types.ts              # LogSearchParams/Result / LogSendParams / LogLevel / ScrollStartParams / ScrollResult
     deploy/
       client.ts             # DeployClient — run / artifacts / serverGroups / histories / binaryGroups / binaries / uploadBinary(multipart) / downloadBinary(봉투 우회, adr-015)
       types.ts              # DeployRunParams / BinaryGroup / Binary / BinaryListParams
@@ -52,6 +52,7 @@ src/
     configure.ts            # nhncloud configure (대화형 + flag, 연결 테스트, adr-009)
     logncrash/
       search.ts             # nhncloud logncrash search
+      export.ts             # nhncloud logncrash export (scroll 대량 추출 → 파일, search host·인증 재사용)
       send.ts               # nhncloud logncrash send (--body/--file/stdin, 8MB 한도, adr-014)
     deploy/
       run.ts                # nhncloud deploy run <target>

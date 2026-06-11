@@ -4,7 +4,7 @@ import { unwrap, unwrapHeader, type NhnEnvelope } from "../../api/envelope.js";
 import { toNhnCloudCliError } from "../../api/httpError.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_CONFIG_ERROR } from "../../utils/exit-codes.js";
-import type { LogSearchParams, LogSearchResult, LogSendParams } from "./types.js";
+import type { LogSearchParams, LogSearchResult, LogSendParams, ScrollStartParams, ScrollResult } from "./types.js";
 
 export class LogncrashClient {
   private readonly appkey: string;
@@ -42,6 +42,73 @@ export class LogncrashClient {
           },
         })
         .json<NhnEnvelope<LogSearchResult>>();
+
+      return unwrap(res);
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * scroll 검색을 시작한다. POST /api/v2/search/scroll/{appkey}.
+   * body 는 search 와 동일(query/from/to/pageSize). 응답 scrollKey 로 scrollNext 를 이어 호출한다.
+   */
+  async scrollStart(params: ScrollStartParams): Promise<ScrollResult> {
+    if (!this.secret) {
+      throw new NhnCloudCliError(
+        "logncrash scroll 에는 secret 이 필요합니다. configure 로 logncrash secret 을 설정하세요.",
+        EXIT_CONFIG_ERROR,
+      );
+    }
+    const endpoint = endpointFor("logncrash");
+    const url = `${endpoint}/api/v2/search/scroll/${encodeURIComponent(this.appkey)}`;
+
+    try {
+      const res = await ky
+        .post(url, {
+          headers: {
+            "X-LNCS-SECRET": this.secret,
+            "Content-Type": "application/json",
+          },
+          json: {
+            query: params.query,
+            from: params.from,
+            to: params.to,
+            pageSize: params.pageSize ?? 100,
+          },
+        })
+        .json<NhnEnvelope<ScrollResult>>();
+
+      return unwrap(res);
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * scroll 다음 페이지를 가져온다. POST /api/v2/search/scroll/{appkey}/{scrollKey}.
+   * body 는 보내지 않는다(scrollKey 가 좌표). scrollKey 만료 시 API 가 실패 봉투를 주며,
+   * unwrap 이 EXIT_API_ERROR 로 변환한다 — 호출부에서 만료 안내 메시지로 감싼다.
+   */
+  async scrollNext(scrollKey: string): Promise<ScrollResult> {
+    if (!this.secret) {
+      throw new NhnCloudCliError(
+        "logncrash scroll 에는 secret 이 필요합니다. configure 로 logncrash secret 을 설정하세요.",
+        EXIT_CONFIG_ERROR,
+      );
+    }
+    const endpoint = endpointFor("logncrash");
+    const url = `${endpoint}/api/v2/search/scroll/${encodeURIComponent(this.appkey)}/${encodeURIComponent(scrollKey)}`;
+
+    try {
+      const res = await ky
+        .post(url, {
+          headers: {
+            "X-LNCS-SECRET": this.secret,
+            "Content-Type": "application/json",
+          },
+        })
+        .json<NhnEnvelope<ScrollResult>>();
 
       return unwrap(res);
     } catch (err) {

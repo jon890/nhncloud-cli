@@ -88,6 +88,30 @@ nhncloud logncrash search [options]
 | 봉투 `isSuccessful: false` / 기타 4xx·5xx | `EXIT_API_ERROR` |
 | 시간 범위 초과 등 입력 오류 | `EXIT_PARAM_ERROR` |
 
+## logncrash export 흐름
+
+검색 결과 전체를 scroll API 로 순회해 파일로 추출한다 (search 단발 조회와 별도 명령).
+search 와 같은 host(`api-lncs-search`)·인증(`X-LNCS-SECRET`)·봉투 helper 를 재사용한다 — 새 endpoint·인증·ADR 없음.
+
+### scroll 순회
+
+1. `POST /api/v2/search/scroll/{appkey}` 로 시작한다 (body 는 search 와 동일: query/from/to/pageSize). 응답 `body` 에 `scrollKey`·`totalItems`·`data` 가 온다 (`NhnEnvelope` + `unwrap`).
+2. `data` 가 비지 않고 `scrollKey` 가 있으면 `POST /api/v2/search/scroll/{appkey}/{scrollKey}` (body 없음) 로 다음 페이지를 이어 받는다.
+3. `data` 가 빌 때까지 (또는 안전 상한 10만 건까지) 반복한다. 상한을 넘으면 잘렸음을 stderr 로 경고한다.
+
+`pageSize` 는 docs 한도 10~100 이며 `--size` 로 조정한다.
+
+### scrollKey 만료
+
+scrollKey 유효기간은 1분이다. 한 페이지 처리 후 1분 안에 다음 호출을 못 하면 키가 무효화되어 `EXIT_API_ERROR` 가 난다.
+다음 페이지 실패 시 만료라고 단정하지 않고 원본 오류 메시지를 보존한 채 만료 가능성을 안내한다 (5xx·네트워크 일시 오류도 같은 코드라 진단 정보를 잃지 않기 위함). 만료면 검색 범위를 좁히거나 `--size` 를 키워 페이지 수를 줄인 뒤 다시 시도한다.
+
+### 출력
+
+- `--output <file>` 필수. 기본 JSON Lines (한 줄당 한 로그), `--format json` 이면 JSON 배열. 기존 파일은 기본 거부 — `--force` 로만 덮어쓴다 (deploy download 와 동일 정책).
+- 진행 상황(수집/전체 건수)은 spinner(stderr), 데이터는 파일에만 쓴다. 페이지 수신 즉시 temp 파일에 스트리밍 append (전량 메모리 적재 회피) 후 원자적으로 교체한다 (중단 시 부분 파일 방지, 실패 시 temp 정리).
+- 시간 범위 제한은 search 와 동일 (90일 이내·31일 이하).
+
 ## logncrash send 흐름
 
 검색의 대칭 쓰기. 검색과 **다른 collector host(`api-logncrash`) + appkey-only 인증(secret 불요)** 을 쓴다 ([[adr-014]]).
