@@ -260,8 +260,8 @@ export class DeployClient {
    */
   async uploadBinary(params: UploadBinaryParams): Promise<UploadBinaryResult> {
     const url =
-      `${this.baseUrl}/api/v2.1/projects/${params.appKey}` +
-      `/artifacts/${params.artifactId}/binary-group/${params.binaryGroupKey}`;
+      `${this.baseUrl}/api/v2.1/projects/${encodeURIComponent(params.appKey)}` +
+      `/artifacts/${encodeURIComponent(params.artifactId)}/binary-group/${params.binaryGroupKey}`;
 
     const form = new FormData();
     // Buffer → Uint8Array → Blob (Node 18+ 전역 Blob/FormData 사용; Buffer 직접 전달 시 타입 불일치)
@@ -284,14 +284,15 @@ export class DeployClient {
 
       const body = unwrap(res);
       // binaryKey 는 number|string 모두 수용 (기존 isBinary 와 동일 — Deploy 는 resultCode 도 문자열, 실측 전 타입 미확정).
-      const keyType = typeof body.binaryKey;
-      if (typeof body.downloadUrl !== "string" || (keyType !== "number" && keyType !== "string")) {
+      // 단 Number() 정규화 결과가 NaN 이면 "NaN" 이 stdout·download 입력으로 새므로 isFinite 로 차단.
+      const normalizedKey = Number(body.binaryKey);
+      if (typeof body.downloadUrl !== "string" || !Number.isFinite(normalizedKey)) {
         throw new NhnCloudCliError(
-          "upload 응답 형식이 올바르지 않습니다 — downloadUrl/binaryKey 누락.",
+          "upload 응답 형식이 올바르지 않습니다 — downloadUrl/binaryKey 누락 또는 비숫자.",
           EXIT_API_ERROR,
         );
       }
-      return { downloadUrl: body.downloadUrl, binaryKey: Number(body.binaryKey) };
+      return { downloadUrl: body.downloadUrl, binaryKey: normalizedKey };
     } catch (err) {
       throw toNhnCloudCliError(err);
     }
@@ -316,8 +317,8 @@ export class DeployClient {
     binaryKey: number,
   ): Promise<Buffer> {
     const url =
-      `${this.baseUrl}/api/v2.1/projects/${appKey}` +
-      `/artifacts/${artifactId}/binary-group/${binaryGroupKey}/binaries/${binaryKey}`;
+      `${this.baseUrl}/api/v2.1/projects/${encodeURIComponent(appKey)}` +
+      `/artifacts/${encodeURIComponent(artifactId)}/binary-group/${binaryGroupKey}/binaries/${binaryKey}`;
 
     try {
       const ab = await ky

@@ -14,7 +14,8 @@ const MAX_UPLOAD_BYTES = 512 * 1024 * 1024;
 interface UploadGlobalOpts extends OutputOptions {
   file?: string;
   binaryGroup?: string;
-  applicationType?: string;
+  /** Commander `.option(..., "server")` 가 기본값을 보장 — 항상 존재(SSOT). */
+  applicationType: string;
   description?: string;
   appKey?: string;
   artifactId?: string;
@@ -100,7 +101,7 @@ export const uploadCommand = new Command("upload")
         binaryGroupKey,
         fileBuffer,
         fileName,
-        applicationType: opts.applicationType ?? "server",
+        applicationType: opts.applicationType, // Commander 옵션 기본값 "server" 가 SSOT — dead fallback 제거
         description: opts.description,
       });
     } catch (err) {
