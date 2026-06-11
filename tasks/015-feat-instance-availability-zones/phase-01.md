@@ -52,10 +52,11 @@ export interface AvailabilityZone {
 
 ### 2. `src/services/instance/client.ts`
 
-(a) import 에 새 type 추가 (기존 type import 줄에 더한다):
+(a) import 에 새 type 추가 — `client.ts` 의 기존 type import 는 **multi-line** 이다(Server/CreateServerParams/Flavor/.../Image*/Keypair*/CreateKeypair* 포함). 그 블록에 **`AvailabilityZone` 한 줄만 추가**한다 (아래 단일 줄 snippet 을 literal 로 덮어쓰지 말 것 — 기존 type 누락 시 tsc 깨짐):
 
 ```ts
-import type { Server, CreateServerParams, Flavor, FlavorDetail, FlavorListParams, AvailabilityZone } from "./types.js";
+  // ... 기존 multi-line import 블록 안에 추가:
+  AvailabilityZone,
 ```
 
 (b) 응답 타입 가드 추가 (기존 flavor 가드 근처). `available` 은 `zoneState` 하위 boolean 이므로 **중첩을 한 단계 들어가** 검증한다:

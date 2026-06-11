@@ -113,6 +113,8 @@ phase-01·02 완료 후:
 
 ## 성공 기준 (검증 명령 + 기대값)
 
+> **순서 주의**: #3·#5·#6 은 `CLAUDE.md`/`docs/flow.md`/`docs/code-architecture.md`(= team-lead docs-first commit 범위)를 검사한다. 이 기준들은 **team-lead 가 결정 docs 를 commit 한 뒤** 통과한다 — executor 의 phase-02(README/SKILL/index.json) 산출물만으로는 통과하지 않는다. 실행 순서: phase-01(코드) → team-lead 결정 docs commit → executor phase-02.
+
 ```bash
 # cwd: <repo root 또는 worktree>
 
