@@ -296,4 +296,41 @@ export class DeployClient {
       throw toNhnCloudCliError(err);
     }
   }
+
+  /**
+   * 바이너리를 다운로드해 내용(Buffer)을 반환한다.
+   *
+   * 신규 수신 경로 — 응답이 봉투 JSON 이 아니라 파일 바이너리 스트림이다 (ADR-015).
+   * 다른 메서드처럼 .json()/unwrap 을 쓰면 바이너리를 JSON 으로 파싱하다 깨진다 —
+   * 반드시 .arrayBuffer() 로 받는다. 성공/실패는 HTTP status(ky throwHttpErrors)로만 판정.
+   * 파일 쓰기는 command 가 담당한다 (client 는 내용만 반환 — 테스트 용이).
+   *
+   * ⚠️ 실측 pending — 수동 QA round-trip 으로 확정 필요:
+   *   - endpoint 단/복수(`binary-group` vs `binary-groups`) — 404 시 복수형으로 교체.
+   *   - 응답이 raw 바이너리인지 downloadUrl JSON 인지 — QA step 5 diff 로 확인.
+   */
+  async downloadBinary(
+    appKey: string,
+    artifactId: string,
+    binaryGroupKey: number,
+    binaryKey: number,
+  ): Promise<Buffer> {
+    const url =
+      `${this.baseUrl}/api/v2.1/projects/${appKey}` +
+      `/artifacts/${artifactId}/binary-group/${binaryGroupKey}/binaries/${binaryKey}`;
+
+    try {
+      const ab = await ky
+        .get(url, {
+          headers: this.authHeaders(),
+          retry: 0,
+          timeout: SYNC_TIMEOUT_MS, // 큰 파일 다운로드 — 긴 timeout
+        })
+        .arrayBuffer();
+
+      return Buffer.from(ab);
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
 }
