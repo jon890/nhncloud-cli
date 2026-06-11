@@ -12,10 +12,14 @@
 따라서 `src/services/instance/client.ts`(`InstanceClient`, computeEndpoint)에 메서드를 추가하고,
 새 명령은 `src/commands/instance/` 에 둔다(volume 그룹이 아니라 instance 그룹의 하위).
 
-## ⚠️ 구현 전 필수 실측 — Nova os-volume_attachments NHN 지원 여부
+## ⚠️ os-volume_attachments — Nova 표준으로 설계, 쓰기 실측은 수동 QA (1-26)
 
-NHN Instance public-api 가이드에 `os-volume_attachments` 확장 지원이 **명확히 기재되지 않았다**.
-**코드를 작성하기 전에 실제 호출로 지원 여부와 응답 형태를 확정**한다(추측 구현 금지 — CLAUDE.md API 스펙 확인 절차).
+`os-volume_attachments` 는 **OpenStack Nova 표준 확장**이고 NHN Instance 는 Nova v2 호환([[adr-010]])이라 **지원을 기본 전제**로 설계한다. 단 attach(POST)·detach(DELETE)는 **실제 인스턴스에 볼륨을 붙이고 떼는 쓰기 작업**이라 executor 가 자율 호출하지 않는다 (사용자 정책: 코드만, 실제 attach/detach 는 수동 QA — 1-26).
+
+- **executor 가 할 수 있는 read-only 확인**: 기존 인스턴스에 `GET .../os-volume_attachments`(연결 목록) 1회 호출로 **endpoint 지원 여부(200 vs 404/501)와 응답 필드명**을 확인한다 (읽기 전용 — 안전). 200 이면 지원 확정·필드명 1:1 반영.
+- **쓰기(attach/detach) 실측 = 수동 QA**: 실제 attach/detach round-trip 은 사용자가 테스트 인스턴스+볼륨으로 확인한다 (아래 "수동 확인" 절).
+- **필드명 견고성 (1-27)**: 응답 필드는 Nova 표준 `volumeAttachment.{id, serverId, volumeId, device}` 로 가정하되, `volumeId`/`volume_id` 혼재 가능성에 가드를 양쪽 수용하게 한다.
+- **read-only GET 가 404/501 (genuinely 미지원)**: phase 를 `blocked` 로 두고 사용자 보고 (attach/detach 제외하고 list/get/create 만, 또는 Block Storage 별도 attach API 재조사).
 
 ```bash
 # 실측 (자격증명 필요). placeholder 치환:
@@ -43,12 +47,14 @@ curl -s -o /dev/null -w "%{http_code}\n" -X DELETE \
 # 기대: 202 (무응답 본문)
 ```
 
-### 실측 결과 분기
+> 위 curl 중 **(a) GET 은 read-only 라 executor 가 실행해 지원 여부 확인 가능**. **(b) POST attach·(c) DELETE detach 는 쓰기라 수동 QA** (사용자가 테스트 인스턴스+볼륨으로). executor 는 (a)만 한다.
 
-- **지원(200/202)**: 아래 작업 상세대로 구현. 요청 body 키(`volumeId`)·응답 필드명(`device`/`id`/`serverId`/`volumeId`)을 실측 JSON 과 1:1 로 맞춘다.
-- **미지원(404/501) 또는 동작 다름**: phase 를 멈추고 `index.json` 의 `status` 를 `blocked`, `blocked_reason` 에 실측 결과를 기록한 뒤 사용자에게 보고한다.
-  - 대안(보고만, 임의 구현 금지): Block Storage 의 attach API 가 따로 있는지 재조사 / attach 기능을 본 task 에서 제외하고 list·create 만 완료.
-- list/get/create(phase-02, Block Storage)는 실측과 무관하게 확정 — phase-03 가 blocked 여도 phase-02 까지는 완료 가능.
+### 결과 분기
+
+- **(a) GET 200**: 지원 확정. Nova 표준 응답 필드명(`device`/`id`/`serverId`/`volumeId`)을 GET 응답 JSON 과 1:1 로 맞추고 구현. attach/detach 의 실제 동작은 수동 QA 로 확정.
+- **(a) GET 404/501 (미지원)**: phase 를 멈추고 `index.json` 의 `status` 를 `blocked`, `blocked_reason` 에 기록 후 사용자 보고 (attach 제외, list·create 만 / Block Storage attach API 재조사).
+- list/get/create(phase-02)는 실측과 무관하게 확정 — phase-03 blocked 여도 phase-02 까지 완료 가능.
+- **egress 막혀 GET 도 불가**: Nova 표준 전제로 코드는 작성하되(지원 가정), 지원 여부 확정은 수동 QA 로 미루고 그 사실을 보고한다.
 
 ## API 스펙 (실측으로 확정 대상)
 

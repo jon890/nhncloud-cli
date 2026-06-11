@@ -11,6 +11,9 @@ Block Storage 볼륨 조회·발급 명령을 추가한다.
 새 서비스이므로 **새 디렉터리** `src/services/blockstorage/` + `src/commands/volume/` 를 만든다.
 endpoint 해석은 phase-01 의 `blockStorageEndpoint` 를 쓰고, 인증은 기존 Keystone `X-Auth-Token` 재사용.
 
+> **⚠️ 1-26 (volume create = 쓰기)**: `volume create` 는 실제 볼륨을 발급하는 **쓰기 작업**(비용 발생)이라 executor 가 자율 호출하지 않는다 (코드만, 실제 발급은 수동 QA). list/get(읽기)는 executor 가 확인 가능. create 응답 축약형 여부는 수동 QA 첫 호출로 확정하되, 코드는 Cinder 표준 `{volume:{id,status,...}}` 가정으로 작성한다.
+> **결정 docs(adr/CLAUDE/flow/code-architecture)는 phase-04 의 team-lead docs-first** — phase-02 는 코드만.
+
 ## 선행 의존
 
 - **phase-01 완료** — `getIaasToken` 이 `blockStorageEndpoint` 를 반환하고 캐시에 보관하는 상태.
