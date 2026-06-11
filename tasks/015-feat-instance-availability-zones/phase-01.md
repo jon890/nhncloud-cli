@@ -6,7 +6,7 @@
 
 - `GET /os-availability-zone` → `availabilityZoneInfo[].{ zoneName, zoneState: { available } }`
 - 표 컬럼 2개: `zoneName`·`available` (`instance list` 와 동일하게 가장 단순한 조회)
-- 용도: `instance create` 의 `--availability-zone` 에 넣을 후보 영역을 고르는 단계.
+- 용도: 가용성 영역(영역명·가용 여부)을 조회한다. **주의 (1-25)**: 현재 `instance create` 에는 `--availability-zone` 옵션이 **없다**(grep 확인). 따라서 docs·`.description` 에서 "create 의 --availability-zone 후보" 라고 **단정하지 않는다** — "가용성 영역 조회 (인스턴스 발급 영역 참고용)" 수준으로 둔다. (향후 create 에 `--availability-zone` 이 추가되면 그때 연계 문구를 넣는다.)
 
 근거: NHN Cloud Instance public-api docs 의 os-availability-zone 응답 구조(확정).
 - `GET /v2/{tenantId}/os-availability-zone` 응답: `{ availabilityZoneInfo: [{ zoneName, zoneState: { available } }] }`
@@ -84,7 +84,7 @@ function isAvailabilityZonesResponse(val: unknown): val is { availabilityZoneInf
 ```ts
   /**
    * 가용성 영역(availability zone) 목록을 조회한다 (GET /os-availability-zone).
-   * create 의 --availability-zone 후보를 고를 때 쓴다. 페이지네이션·필터 없음.
+   * 가용성 영역(영역명·가용 여부)을 조회한다. 페이지네이션·필터 없음.
    */
   async listAvailabilityZones(): Promise<AvailabilityZone[]> {
     const url = `${this.computeEndpoint}/os-availability-zone`;
@@ -127,7 +127,7 @@ interface AvailabilityZonesGlobalOpts extends OutputOptions {
 }
 
 export const availabilityZonesCommand = new Command("availability-zones")
-  .description("가용성 영역(availability zone) 목록을 조회한다 (create 의 --availability-zone 후보)")
+  .description("가용성 영역(availability zone) 목록을 조회한다 (zoneName·available)")
   .option("--region <region>", "region override (기본: iaas 자격증명의 region)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (_opts: unknown, cmd: Command) => {

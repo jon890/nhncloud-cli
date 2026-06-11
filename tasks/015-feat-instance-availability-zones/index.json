@@ -14,15 +14,29 @@
       "title": "코드 — types AvailabilityZone / client listAvailabilityZones() + 가드 / availability-zones command / index 등록",
       "file": "phase-01.md",
       "status": "pending",
-      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "allowedTools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep"
+      ],
       "model": "sonnet"
     },
     {
       "number": 2,
-      "title": "공개 docs (README + SKILL) 사용 예 반영 + 내부 docs(CLAUDE.md 명령 수·flow.md·code-architecture.md) 갱신 + index.json 완료 마킹",
+      "title": "공개 docs(README/SKILL) + 완료 마킹 (결정 docs 는 team-lead docs-first)",
       "file": "phase-02.md",
       "status": "pending",
-      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "allowedTools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep"
+      ],
       "model": "sonnet"
     }
   ]
