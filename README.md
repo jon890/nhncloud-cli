@@ -140,6 +140,18 @@ nhncloud logncrash export --query 'logType:"ERROR"' --from 1h --to now \
 scrollKey 유효기간은 1분이므로 데이터가 많을 때는 `--size` 를 키워 페이지 수를 줄이는 것을 권장한다.
 시간 범위 제한은 search 와 동일(90일 이내·31일 이하).
 
+#### export 옵션
+
+| 옵션 | 필수 | 설명 |
+|------|:---:|------|
+| `--query <lucene>` | 예 | Lucene 질의 문자열 |
+| `--from <time>` | 예 | 검색 시작 (ISO8601 또는 상대시간 `1h`/`30m`/`2d`/`now`) |
+| `--to <time>` | 예 | 검색 끝 |
+| `--output <file>` | 예 | 출력 파일 경로 |
+| `--format <fmt>` | 아니오 | `jsonl`(기본, 한 줄당 한 로그) 또는 `json`(배열) |
+| `--size <n>` | 아니오 | scroll pageSize — 범위 10~100, 기본 100 |
+| `--profile <name>` | 아니오 | 사용할 profile 이름 |
+
 ### 로그 전송
 
 ```bash
