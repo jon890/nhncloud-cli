@@ -386,7 +386,7 @@ nhncloud volume create --size <GB> [options]   # 볼륨 발급 (쓰기 — --nam
 Floating IP 명령군. network(VPC) 와 같은 catalog type `network` 라 [[adr-013]] 의 `networkEndpoint`(host·`/v2.0` 경로, tenant segment 없음)를 그대로 재사용한다 — 새 host·새 endpoint·새 ADR 없음.
 
 ```
-nhncloud floatingip list [options]               # Floating IP 목록 (id·공인 IP·status·port_id)
+nhncloud floatingip list [options]               # Floating IP 목록 (id·공인 IP·status·port_id·fixed_ip_address)
 nhncloud floatingip create [options]             # 발급 (쓰기 — --network 미지정 시 외부 VPC 자동 조회)
 nhncloud floatingip delete <id> [options]        # 삭제 (쓰기 — 기본 confirm, --yes 즉시)
 ```
