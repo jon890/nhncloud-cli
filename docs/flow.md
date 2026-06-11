@@ -380,3 +380,26 @@ nhncloud volume create --size <GB> [options]   # 볼륨 발급 (쓰기 — --nam
 | `iaas` 자격증명 누락 / Keystone 발급 실패 | `EXIT_CONFIG_ERROR` 또는 `EXIT_AUTH_ERROR` |
 | `--size` 누락/형식 오류 | `EXIT_PARAM_ERROR` |
 | Cinder/Nova API 4xx · 5xx | `EXIT_API_ERROR` |
+
+## floatingip (공인 IP) 흐름
+
+Floating IP 명령군. network(VPC) 와 같은 catalog type `network` 라 [[adr-013]] 의 `networkEndpoint`(host·`/v2.0` 경로, tenant segment 없음)를 그대로 재사용한다 — 새 host·새 endpoint·새 ADR 없음.
+
+```
+nhncloud floatingip list [options]               # Floating IP 목록 (id·공인 IP·status·port_id·fixed_ip_address)
+nhncloud floatingip create [options]             # 발급 (쓰기 — --network 미지정 시 외부 VPC 자동 조회)
+nhncloud floatingip delete <id> [options]        # 삭제 (쓰기 — 기본 confirm, --yes 즉시)
+```
+
+두 가지 비자명한 흐름:
+
+- **create 의 외부 네트워크 자동 조회**: `--network` 미지정 시 `GET /v2.0/vpcs?router:external=true` 로 외부 VPC id 를 찾아 `floating_network_id` 로 쓴다. `router:external` 은 콜론 포함 리터럴 키라 bracket 접근. 외부 VPC 가 없으면 `--network` 직접 지정을 요구한다(`EXIT_PARAM_ERROR`). external VPC 가 둘 이상이면 첫 매칭을 쓰고, 선택된 id 를 발급 spinner 에 노출한다.
+- **associate 보류**: 연결 API(`PUT /v2.0/floatingips/{id}`)는 인스턴스 id 가 아니라 port_id 를 요구하는데, instance→port_id 매핑 경로(`GET /v2.0/ports?device_id`)를 실측할 instance id 가 없어 보류했다. 실측 확정 후 후속 task 에서 `floatingip associate` 를 추가한다.
+
+### floatingip 에러 경로
+
+| 상황 | exit code |
+|------|-----------|
+| `iaas` 자격증명 누락 / Keystone 발급 실패 | `EXIT_CONFIG_ERROR` 또는 `EXIT_AUTH_ERROR` |
+| 외부 네트워크 미발견(create `--network` 미지정) / 비대화형 delete `--yes` 누락 | `EXIT_PARAM_ERROR` |
+| Floating IP API 4xx · 5xx | `EXIT_API_ERROR` |

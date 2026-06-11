@@ -36,8 +36,8 @@ src/
       client.ts             # InstanceClient — list / get / create / delete / listFlavors / listAvailabilityZones / start / stop / reboot / resize / confirmResize / revertResize / listKeypairs / getKeypair / createKeypair / deleteKeypair / listImages / listVolumeAttachments / attachVolume / detachVolume + waitForActive (전원 제어·resize 는 공용 serverAction 경유)
       types.ts              # Server / CreateServerParams / Flavor / FlavorDetail / AvailabilityZone / Keypair / KeypairDetail / CreateKeypair* / Image (NHN 확장 필드 포함)
     network/
-      client.ts             # NetworkClient — listVpcs / listSubnets (instance 와 Keystone 토큰 공유, [[adr-013]])
-      types.ts              # Vpc / VpcSubnet ("router:external" 콜론 키)
+      client.ts             # NetworkClient — listVpcs / listSubnets / listFloatingIps / createFloatingIp / deleteFloatingIp / findExternalNetworkId (instance 와 Keystone 토큰 공유, [[adr-013]])
+      types.ts              # Vpc / VpcSubnet / FloatingIp / CreateFloatingIpParams ("router:external" 콜론 키)
     blockstorage/
       client.ts             # BlockStorageClient — list / get / create (volume, Cinder volumev2, [[adr-013]])
       types.ts              # Volume (name·volume_type nullable) / VolumeAttachment / CreateVolumeParams
@@ -80,6 +80,10 @@ src/
       list.ts               # nhncloud network list (VPC, create --network 소스 = VPC id)
       subnet.ts             # nhncloud network subnet list
       helpers.ts            # resolveNetworkClient (Keystone 토큰 공유, [[adr-013]])
+    floatingip/
+      list.ts               # nhncloud floatingip list (공인 IP 목록)
+      create.ts             # nhncloud floatingip create (쓰기, 외부 VPC 자동 조회, network endpoint 재사용 [[adr-013]])
+      delete.ts             # nhncloud floatingip delete <id> (쓰기, confirm·--yes)
     volume/
       list.ts               # nhncloud volume list (Block Storage)
       get.ts                # nhncloud volume get <id>

@@ -5,7 +5,7 @@
 NHN Cloud 서비스를 AWS CLI 처럼 호출하는 통합 CLI.
 TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 
-## 지원 명령 (36개)
+## 지원 명령 (39개)
 
 - `configure` — 자격증명 설정 마법사 (대화형 + flag, UAK + 서비스별 키, 연결 테스트).
 - `logncrash search` — Log & Crash 로그 검색 (시간 범위는 90일 이내·31일 이하로 제한, 초과 시 입력 오류).
@@ -43,6 +43,9 @@ TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 - `volume list` — Block Storage 볼륨 목록 조회 (id·name·size·status, 전체 필드는 `--json`).
 - `volume get <id>` — 단일 볼륨 상태 조회.
 - `volume create --size <GB>` — 볼륨 발급 (Cinder volumev2, 쓰기. `--name`/`--description`/`--volume-type`).
+- `floatingip list` — Floating IP(공인 IP) 목록 조회 (id·floating_ip_address·status·port_id·fixed_ip_address, 전체 필드는 `--json`).
+- `floatingip create` — Floating IP 발급 (network endpoint 재사용·쓰기. `--network` 미지정 시 `router:external=true` VPC 자동 조회).
+- `floatingip delete <id>` — Floating IP 삭제 (기본 confirm, `--yes` 즉시·쓰기). associate(인스턴스 연결)는 instance→port_id 매핑 실측 미확정으로 보류.
 
 ## API 스펙 확인 절차
 

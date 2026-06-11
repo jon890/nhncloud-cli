@@ -1,12 +1,12 @@
 ---
 name: nhncloud-cli
-description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색·전송(logncrash search/send), Deploy 배포 실행·바이너리 그룹·바이너리 목록 조회·업로드·다운로드(deploy upload/download), Compute 인스턴스 관리(instance — 목록·발급·전원 제어·타입 변경(resize/resize-confirm/resize-revert)·키페어·이미지·가용성 영역 조회·볼륨 연결(instance volume attach/detach, instance volumes)), VPC·서브넷 조회(network list/subnet list), Block Storage 볼륨 관리(volume list/get/create) 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
+description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색·전송(logncrash search/send), Deploy 배포 실행·바이너리 그룹·바이너리 목록 조회·업로드·다운로드(deploy upload/download), Compute 인스턴스 관리(instance — 목록·발급·전원 제어·타입 변경(resize/resize-confirm/resize-revert)·키페어·이미지·가용성 영역 조회·볼륨 연결(instance volume attach/detach, instance volumes)), VPC·서브넷 조회(network list/subnet list), Block Storage 볼륨 관리(volume list/get/create), Floating IP 관리(floatingip list/create/delete) 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
 ---
 
 # nhncloud-cli
 
 NHN Cloud PaaS 서비스를 AWS CLI 방식으로 호출하는 TypeScript CLI.
-`configure`, `logncrash search/send`, `deploy`, `instance` (전원 제어·keypair·볼륨 연결 포함), `network` (VPC·서브넷 조회), `volume` (Block Storage 볼륨 목록·조회·생성) 명령을 지원한다.
+`configure`, `logncrash search/send`, `deploy`, `instance` (전원 제어·keypair·볼륨 연결 포함), `network` (VPC·서브넷 조회), `volume` (Block Storage 볼륨 목록·조회·생성), `floatingip` (공인 IP 관리) 명령을 지원한다.
 
 ## 설치
 
@@ -565,3 +565,51 @@ nhncloud instance create \
 | Keystone 인증 실패 (401/403) | 2 (AUTH_ERROR) |
 | 미등록 region / 필수 옵션 누락 | 3 (PARAM_ERROR) |
 | Block Storage API 오류 | 1 (API_ERROR) |
+
+---
+
+## floatingip — 공인 IP(Floating IP) 관리
+
+인스턴스에 공인 IP 를 부여하거나 회수한다.
+`floatingip` 명령군은 `network` 와 같은 `iaas` 자격증명·Keystone 토큰을 공유한다.
+
+> **쓰기 작업 주의**: `floatingip create`(공인 IP 발급·비용)·`floatingip delete`(IP 회수)는 쓰기 작업이다.
+> 실행 전 환경을 확인한다(수동 QA 필수).
+
+### 의도 → 커맨드 매핑
+
+| 의도 | 커맨드 |
+|------|--------|
+| Floating IP 목록 조회 | `nhncloud floatingip list` |
+| Floating IP 발급 (외부 VPC 자동) | `nhncloud floatingip create` |
+| 특정 외부 VPC 로 발급 | `nhncloud floatingip create --network <network-uuid>` |
+| Floating IP 삭제 (⚠️ 쓰기) | `nhncloud floatingip delete <floatingip-id> --yes` |
+
+> **associate 보류**: `floatingip associate` (인스턴스 연결) 는 instance→port_id 매핑 경로 미확정으로 보류 중.
+> 후속 task 에서 실측 확정 후 추가한다.
+
+### 체이닝 예시
+
+```bash
+# Floating IP 목록 (id·공인 IP·상태·연결 port 확인)
+nhncloud floatingip list
+
+# 발급 후 id 추출
+nhncloud floatingip create --quiet
+
+# JSON 으로 발급 정보 확인
+nhncloud floatingip create --json | jq '{id, floating_ip_address, status}'
+
+# 삭제 (비대화형 환경)
+nhncloud floatingip delete <floatingip-id> --yes
+```
+
+### floatingip 에러 코드
+
+| 상황 | exit code |
+|------|-----------|
+| iaas 자격증명 누락·불완전 | 4 (CONFIG_ERROR) |
+| Keystone 인증 실패 (401/403) | 2 (AUTH_ERROR) |
+| 외부 네트워크 미발견 (create --network 미지정) | 3 (PARAM_ERROR) |
+| 비대화형 delete --yes 누락 | 3 (PARAM_ERROR) |
+| Floating IP API 오류 | 1 (API_ERROR) |

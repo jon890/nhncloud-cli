@@ -31,3 +31,26 @@ export interface VpcSubnet {
   /** 사용 가능한 IP 수 */
   available_ip_count: number;
 }
+
+/**
+ * Floating IP 요약 — `GET /v2.0/floatingips` (NHN VPC).
+ * status: ACTIVE(연결됨) / DOWN(미연결) / ERROR.
+ * port_id·fixed_ip_address 는 미연결 시 null.
+ * label 은 응답에서 누락될 수 있어 optional.
+ */
+export interface FloatingIp {
+  id: string;
+  floating_ip_address: string;
+  status: string;
+  /** 연결된 port id (미연결이면 null) */
+  port_id: string | null;
+  /** 연결 port 의 사설 IP (미연결이면 null) */
+  fixed_ip_address: string | null;
+  floating_network_id: string;
+  label?: string;
+}
+
+/** Floating IP 발급 파라미터 — floating_network_id 만 필수. */
+export interface CreateFloatingIpParams {
+  floating_network_id: string;
+}
