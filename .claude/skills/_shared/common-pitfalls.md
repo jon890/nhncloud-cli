@@ -439,6 +439,8 @@ planning SKILL "갱신 시점 분리" 표는 이 6개를 **결정 docs = plannin
 
 **Why**: PR #19 (plan014) — `instance resize` 는 쓰기 작업이라 사용자 정책상 live 호출을 수동 QA 로 남기고, Nova v2 표준 + ADR-010 근거로 (B) 수동 confirm 확정, 코드는 (A)/(B) 양쪽 견고. plan017(volume attach/detach)·018(floating ip create/delete) 등 쓰기 plan 마다 재발.
 
+> **변형 (backlog "선행 의존" hedge stale)**: 백로그 plan 의 phase 가 "선행 task X 폴더가 아직 없으니 먼저 만들라/사용자 확인하라" 같은 hedge 를 담는데, 실행 시점엔 X 가 **이미 머지돼 base 에 존재**하는 경우. executor 가 그 hedge 를 보고 halt 하거나 엉뚱하게 선행 폴더 신설을 시도할 위험. team-lead 가 실행 전 grep 으로 선행이 base 에 있는지 확인하고 hedge 를 "이미 머지 완료 — 검증: grep ≥1" 로 교체한다. PR #22(plan017) — phase-01 이 013(network)을 "아직 없음" 으로 기술했으나 이미 머지됨.
+
 ## 1-27. "기존 X 패턴과 동일" 이라 적고 코드 블록은 **수정 전 옛 버전**을 보여줌 + bot 차단 docs 를 "확정" 으로 단언
 
 **증상 A (stale code in reuse-claim)**: plan 이 `(011 의 parsePositiveInt 패턴과 동일)` 처럼 기존 helper 재사용을 주장하면서, 보여준 코드 블록은 그 helper 가 **이미 고친 옛 버전**(예: regex 대신 `Number()`)이다. executor 가 literal 복사하면 이전에 잡았던 결함(4-4 등)이 재도입된다 — 주장↔코드 모순.

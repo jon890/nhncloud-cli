@@ -302,8 +302,8 @@ grep -nE "if \(!opts\.[a-zA-Z]+\)" src/commands/   # 위 requiredOption 목록�
 grep -nE "Number\([a-z]" src/commands/   # 옵션 파싱에서 regex 없이 Number 만 쓰는 곳
 ```
 
-**Why**: PR #13 (plan011) — `parsePositiveInt` 가 `1e2` 를 100 으로 통과시키고 빈 문자열 메시지가 빈 괄호.
-**Self-check**: 양의 정수 옵션 파서가 regex 표기 검증 후 Number 하는가? 에러 메시지가 빈 입력에도 명확한가?
+**Why**: PR #13 (plan011) — `parsePositiveInt` 가 `1e2` 를 100 으로 통과시키고 빈 문자열 메시지가 빈 괄호. **⚠️ 최다 재발 패턴**: PR #21(plan016 — 옛 약화 버전 복붙), PR #22(plan017 — `volume create --size` 가 bare `Number()` → `--size 1e2` 가 100GB 발급) 까지 **3회 재발**. 새 명령에 양의 정수 옵션을 추가할 때마다 executor 가 regex 없이 `Number()` 로 새로 작성한다.
+**Self-check (executor 코드 작성 직전 필수 grep)**: `grep -rnE "Number\(opts\." src/commands/` 결과의 각 줄 **바로 앞에 `/^[1-9]\\d*$/.test(...)` regex 가드가 있는지** 확인. 없으면 4-4 위반. 새 `--size`/`--limit`/`--offset` 등 정수 옵션은 예외 없이 regex 선검증.
 
 ## 4-5. Commander 예약 플래그와 충돌하는 옵션명 (`--version` / `--help`)
 
@@ -464,8 +464,8 @@ grep -rnE "as \w+\[\] \| \w+\[\]" src/   # union 배열 단언 반환 의심
 grep -nE "typeof obj\[\"[a-z_]+\"\] === \"string\"" src/services/
 ```
 
-**Why**: PR #12 (plan010) — Glance `image.name` 이 nullable 인데 string-only 가드라 name=null private 이미지 하나가 페이지 전체 리스팅을 끊음.
-**Self-check**: 목록 응답 요소 가드의 각 필드가 외부 스펙상 nullable/optional 인지 확인했는가? string-only 가 과잉 거부를 일으키지 않는가?
+**Why**: PR #12 (plan010) — Glance `image.name` 이 nullable 인데 string-only 가드라 name=null private 이미지 하나가 페이지 전체 리스팅을 끊음. **재발**: PR #22(plan017) — `isVolume` 가 `name` 을 string-only 로 요구(Cinder 는 `--name` 미지정 시 `name: null`) → 같은 코드베이스에 이미 `isImage` 선례가 있는데 새 서비스 가드가 답습 안 함. critic 이 잡음.
+**Self-check**: 목록 응답 요소 가드의 각 필드가 외부 스펙상 nullable/optional 인지 확인했는가? string-only 가 과잉 거부를 일으키지 않는가? **새 서비스 가드를 쓸 때 같은 repo 의 기존 가드(`isImage`/`isBinary`)가 이미 학습한 nullable·number|string 관용을 답습했는가** — 새 가드가 기존보다 엄격하면 의심.
 
 # 6. API/HTTP 패턴
 
