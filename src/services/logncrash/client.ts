@@ -1,21 +1,28 @@
 import ky from "ky";
 import { endpointFor } from "../../api/endpoints.js";
-import { unwrap, type NhnEnvelope } from "../../api/envelope.js";
+import { unwrap, unwrapHeader, type NhnEnvelope } from "../../api/envelope.js";
 import { toNhnCloudCliError } from "../../api/httpError.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
-import { EXIT_API_ERROR } from "../../utils/exit-codes.js";
+import { EXIT_CONFIG_ERROR } from "../../utils/exit-codes.js";
 import type { LogSearchParams, LogSearchResult, LogSendParams } from "./types.js";
 
 export class LogncrashClient {
   private readonly appkey: string;
-  private readonly secret: string;
+  /** 검색(X-LNCS-SECRET)에만 필요. collector send 는 secret 을 쓰지 않으므로 옵셔널 (ADR-014). */
+  private readonly secret: string | undefined;
 
-  constructor(appkey: string, secret: string) {
+  constructor(appkey: string, secret?: string) {
     this.appkey = appkey;
     this.secret = secret;
   }
 
   async search(params: LogSearchParams): Promise<LogSearchResult> {
+    if (!this.secret) {
+      throw new NhnCloudCliError(
+        "logncrash search 에는 secret 이 필요합니다. configure 로 logncrash secret 을 설정하세요.",
+        EXIT_CONFIG_ERROR,
+      );
+    }
     const endpoint = endpointFor("logncrash");
     const url = `${endpoint}/api/v2/search/${encodeURIComponent(this.appkey)}`;
 
@@ -71,10 +78,8 @@ export class LogncrashClient {
         })
         .json<NhnEnvelope<unknown>>();
 
-      // resultCode 는 숫자지만 isSuccessful 로만 판정 (ADR-006). body 가 없을 수 있어 반환값을 쓰지 않는다.
-      if (!res.header.isSuccessful) {
-        throw new NhnCloudCliError(`API 오류: ${res.header.resultMessage}`, EXIT_API_ERROR);
-      }
+      // collector 는 body 없이 header 만 올 수 있어 unwrapHeader 로 성공만 판정 (ADR-006 단일 소스).
+      unwrapHeader(res);
     } catch (err) {
       throw toNhnCloudCliError(err);
     }

@@ -392,6 +392,41 @@ git stash; grep -c '<검증토큰>' <docs>; git stash pop   # baseline >0 이면
 
 **Why**: PR #12 (plan010) critic 2 MAJOR — ① image endpoint 실측이 성공 기준에 없어 estimate 완료 가능, ② docs 검증이 `grep -c 'image'` 라 기존 `--image` 텍스트로 통과. 둘 다 성공 기준 문구를 forcing/변별 토큰으로 바꿔 해소. 외부 의존 실측·신규 docs 행이 있는 task 마다 재발 가능.
 
+## 1-23. 새 endpoint (다른 host·인증) 의 응답 봉투 형태를 docs 대조 없이 "(확정)" 으로 단정
+
+**증상**: 기존 서비스와 host·인증이 다른 새 endpoint 를 추가하면서, 응답 봉투 형태(예: `header` 중첩 vs flat)를 기존 코드 패턴으로 가정하고 phase 본문에 "(확정)" 으로 적는다.
+host·인증이 다르면 응답 형태도 다를 개연성이 큰데, 코드가 `res.header.isSuccessful` 로 단정하면 실제가 flat 일 때 `header` undefined → TypeError → catch 로 빠져 **전송 성공인데도 "오류"로 보고**되는 묻혀버린 실패가 된다.
+
+**Good**: phase 작성 시 새 endpoint 의 응답 예제 JSON 을 **공식 docs 에서 인용**해 형태를 못박는다 (CLAUDE.md "API 스펙 확인 절차" — response body 구조도 docs 예제로 대조, 추측 머지 금지). docs 로도 불확정이면 (a) HTTP 2xx 를 성공으로 판정하고 body 는 방어적으로만 검사하거나 (b) 실측으로 확정한다. ADR 본문에도 응답 형태 확정 근거(어느 docs 예제)를 남긴다.
+
+**Self-check**: 새 endpoint 의 응답 판정 코드(`res.header...` 등)가 추측이 아니라 docs 예제 인용 또는 실측 근거를 갖는가? 자동 성공 기준이 실제 전송을 안 한다면 이 형태 오류는 수동 QA 에서만 드러난다 — 머지 전 수동 QA 를 성공 기준에 명시했는가?
+
+**Why**: PR #16 (plan012) critic MAJOR — logncrash collector 응답을 `header.isSuccessful` 로 단정("확정"). 실제로는 docs 가 검색과 동일한 중첩 봉투임을 확인해 통과했으나, 확인 전엔 flat 가정 리스크가 열려 있었다. 새 서비스·새 host endpoint 추가마다 재발 가능.
+
+## 1-24. backlog task 의 phase 가 결정 docs(adr/CLAUDE/flow/code-architecture) 편집을 묶음 → 갱신 시점 분리 위반
+
+**증상**: 미리 만들어 둔(backlog) task 의 phase-01 이 코드 + `docs/adr.md`(ADR 본문) + `CLAUDE.md`(카운트·표) + `docs/flow.md` + `docs/code-architecture.md` 편집을 한 phase 작업 목록에 묶어 executor 에게 지시한다.
+planning SKILL "갱신 시점 분리" 표는 이 6개를 **결정 docs = planning 단계 즉시 반영(team-lead docs-first)** 으로 규정하고, phase 안 편집을 critic REVISE / docs-verifier VIOLATION 사유로 본다. 묶으면 executor in-phase 편집 + team-lead out-of-loop 편집이 겹쳐 이중 편집·소유권 모호가 된다.
+
+**Good**: build-with-teams 로 backlog task 를 돌릴 때 **team-lead 가 실행 전에 결정 docs 를 phase 에서 떼어내 docs-first commit 으로 분리**하고, phase 변경 파일을 코드(+ 마지막 phase 의 README/SKILL)만 남긴다. 신규 ADR 동반 task 는 거의 항상 이 분리가 필요하다 — backlog 라 회고 이전 작성이면 phase 본문이 옛 구조(docs 묶음)일 수 있으니 plan{N} 마다 선제 확인한다.
+
+**Self-check**: phase 변경 파일에 adr.md/CLAUDE.md/flow.md/code-architecture.md 가 있는가? 있으면 team-lead docs-first 로 이관하고 phase 는 코드 전용으로 줄였는가? 성공 기준의 결정-docs grep(ADR grep·카운트 grep)도 phase 에서 빼 docs-verifier 로 이관했는가?
+
+**Why**: PR #16 (plan012) critic MAJOR — phase-01 이 ADR-014 + CLAUDE.md + flow + code-architecture 편집을 묶어 pitfall 1-18·갱신 시점 분리와 충돌. team-lead docs-first 분리로 해소. plan012~019 처럼 일괄 생성된 backlog task 군은 모두 같은 구조라 매 plan 재발 가능 — 실행 전 선제 분리.
+
+> **변형 (실측 의존 결정 docs)**: 결정 docs 내용이 phase 의 **실측 확정값**(예: endpoint host, API 가 받는 id 종류)에 의존하면, team-lead 가 docs-first 를 코드 phase **이전**이 아니라 **이후**(실측값 반영 후) 별도 commit 으로 작성한다. 소유권(team-lead)은 유지, 타이밍만 코드 뒤로. commit 순서: feat(코드) → docs(결정) → docs(공개). repo 의 ADR-013(image)·ADR-013 보강(network)이 실측 후 작성된 선례 — PR #17(plan013).
+
+## 1-25. source-feeding 명령의 round-trip 미검증 — list 가 내놓는 id 가 소비 명령에 실제 먹히는지 안 봄
+
+**증상**: 새 "조회/목록" 명령의 존재 이유가 다른 명령의 인자 소스("이 `list` 의 id 를 `create --X` 에 넣어라")인데, 실측·docs 가 **목록 API 가 200 인지**만 확인하고 **그 id 가 소비 명령에 실제 round-trip 되는지**는 확인 안 한다.
+공개 docs(README/SKILL)·CLI help(`.description`)에 "이 id 를 --X 에 그대로" 단정을 ship 하는데, 실제로는 다른 id(상위/하위 리소스 id)를 요구하면 사용자가 발급 실패하고 원인을 못 찾는다.
+
+**Good**: source-feeding 명령은 **round-trip 을 명시 검증**한다 — (a) 소비 명령(`create` 등)의 해당 인자 docs 예제로 어느 id 인지 확인, (b) read-only 로 기존 리소스의 첨부 정보(`get`/`list --json`)에서 그 id 가 어느 목록의 id 와 일치하는지 대조, (c) 불확정이면 동의 하 1회 테스트로 확정. 확정 전엔 docs·`.description` 에서 "그대로 --X 에" 단정을 빼고 보수 표기. 확정 결과를 모든 docs(README/SKILL/flow/ADR/CLAUDE)+CLI help 에 일관 반영.
+
+**Self-check**: "이 list 의 id 를 다른 명령 인자로" 라는 주장이 있는가? 그 id 가 소비 명령에 실제 먹히는지(상위 vs 하위 리소스 id) 확인하는 단계가 실측·수동 QA 에 있는가? CLI `.description` 같은 바이너리 ship 텍스트의 단정도 확정에 맞췄는가?
+
+**Why**: PR #17 (plan013) critic MAJOR — `network list` 의 VPC id 가 `instance create --network` 에 먹히는지 미검증인 채 docs 단정. 실측(인스턴스 addresses=VPC name 1:1)으로 "VPC id = --network" 확정 후 반영. availability-zone·floating-ip 등 "조회→다른 명령 인자" 구조마다 재발 가능.
+
 ## 섹션 1 소진 체크리스트
 
 plan 제출 전 10개 패턴 모두 self-check:
