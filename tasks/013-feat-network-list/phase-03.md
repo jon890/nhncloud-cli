@@ -1,18 +1,27 @@
-# Phase 03 — ADR-013 보강(network host) + 공개 docs + 완료 마킹
+# Phase 03 — 공개 docs(README/SKILL) + 완료 마킹 (결정 docs 는 team-lead docs-first)
 
 ## 목표
 
 network endpoint 확장은 010 이 세운 **IaaS 멀티 서비스 endpoint 해석(ADR-013)의 연장**이다.
-별도 ADR 을 신설하지 않고 **ADR-013 을 network 까지 보강**하고, 공개 docs(README/SKILL/flow/code-architecture/CLAUDE.md)에 `network list`·`network subnet list` 를 반영한 뒤 task 를 완료 마킹한다.
+
+## ⚠️ 소유권 분리 (common-pitfalls 1-24 / 갱신 시점 분리)
+
+아래 작업 1~4 (`docs/adr.md` ADR-013 보강 · `CLAUDE.md` · `docs/flow.md` · `docs/code-architecture.md`) 는 **결정 docs 라 executor 가 phase 안에서 편집하지 않는다.**
+이 task 는 ADR-013 보강 내용이 phase-01 의 **실측 확정 host/경로**에 의존하므로, **team-lead 가 phase-02 완료 후** (실측값이 코드에 반영된 뒤) 아래 작업 1~4 의 스펙을 따라 **docs-first 성격의 별도 commit** 으로 작성한다. 아래 1~4 의 상세 작업은 그 team-lead 작성의 스펙으로 남겨둔다.
+
+**executor 의 phase-03 범위는 작업 5(README) · 6(SKILL) · 7(완료 마킹) 뿐이다.** 결정 docs(adr/CLAUDE/flow/code-architecture)는 절대 건드리지 않는다.
 
 ## 변경 파일
 
+**(team-lead, phase-02 후 docs-first commit — executor 범위 밖)**
 1. `docs/adr.md` — ADR-013 본문에 network host 보강 (새 ADR 신설 금지)
-2. `CLAUDE.md` — 지원 명령 카운트·목록 + 인증 모델/ADR 참조 표 갱신 (network 새 명령군)
+2. `CLAUDE.md` — 지원 명령 카운트·목록 + ADR 참조 표 갱신 (network 새 명령군)
 3. `docs/flow.md` — 새 network 흐름 섹션 추가
-4. `docs/code-architecture.md` — `services/network` + `commands/network` + api(endpoints/keystone/token-store) network 확장 + ADR-013 역참조
+4. `docs/code-architecture.md` — `services/network` + `commands/network` + api network 확장 + ADR-013 역참조
+
+**(executor phase-03)**
 5. `README.md` — 네트워크 사용 예 섹션
-6. `skills/nhncloud-cli/SKILL.md` — network 명령 표·예시
+6. `skills/nhncloud-cli/SKILL.md` — network 명령 표·예시 + 프론트매터 description
 7. `tasks/013-feat-network-list/index.json` — status `completed`, phase status 갱신
 
 ## 회피 항목
@@ -185,11 +194,11 @@ network 는 instance 와 같은 `iaas` 자격증명·Keystone 토큰을 쓰므�
 ```bash
 # cwd: <repo root 또는 worktree>
 
-# 1. ADR-013 이 network 까지 보강됨 (새 ADR 신설 안 함 — ADR-014 없음)
+# 1. ADR-013 이 network 까지 보강됨 (새 ADR 신설 안 함 — base 의 ADR-014(plan012)는 무관, 신규 ADR-015 없음)
 grep -c "network" docs/adr.md
 # 기대: 1 이상
-grep -c "ADR-014" docs/adr.md
-# 기대: 0 (별도 ADR 신설 금지)
+grep -c "ADR-015" docs/adr.md
+# 기대: 0 (별도 ADR 신설 금지 — network 는 ADR-013 보강. ADR-014 는 plan012(logncrash send)가 추가한 것이라 무관)
 
 # 2. ADR-013 역참조가 CLAUDE.md 표에 network 로 존재 (양방향)
 grep -nE "ADR-013.*Network|Network.*ADR-013" CLAUDE.md | wc -l

@@ -14,7 +14,14 @@
       "title": "network endpoint 해석 확장 — NETWORK host 맵 + networkEndpoint(010 패턴 위) + 실측",
       "file": "phase-01.md",
       "status": "pending",
-      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "allowedTools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep"
+      ],
       "model": "sonnet"
     },
     {
@@ -22,15 +29,29 @@
       "title": "network/subnet 명령 — services/network(client+types) / listVpcs·listSubnets / commands network list·subnet list / index 등록",
       "file": "phase-02.md",
       "status": "pending",
-      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "allowedTools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep"
+      ],
       "model": "sonnet"
     },
     {
       "number": 3,
-      "title": "ADR-013 보강(network host) + 공개 docs(README/SKILL/flow/code-architecture/CLAUDE.md) + 완료 마킹",
+      "title": "공개 docs(README/SKILL) + 완료 마킹 (결정 docs 는 team-lead docs-first)",
       "file": "phase-03.md",
       "status": "pending",
-      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "allowedTools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep"
+      ],
       "model": "sonnet"
     }
   ]
