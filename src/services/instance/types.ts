@@ -121,6 +121,17 @@ export interface CreateKeypairResult extends Keypair {
   private_key?: string;
 }
 
+/**
+ * 가용성 영역(availability zone) — `GET /os-availability-zone`.
+ * `available` 은 zoneState 하위의 boolean 이다 (한 단계 중첩).
+ */
+export interface AvailabilityZone {
+  zoneName: string;
+  zoneState: {
+    available: boolean;
+  };
+}
+
 /** `POST /servers` 요청 파라미터 */
 export interface CreateServerParams {
   name: string;

@@ -15,6 +15,7 @@ import type {
   KeypairDetail,
   CreateKeypairParams,
   CreateKeypairResult,
+  AvailabilityZone,
 } from "./types.js";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -161,6 +162,30 @@ function isKeypairDetail(val: unknown): val is KeypairDetail {
 function isKeypairDetailResponse(val: unknown): val is { keypair: KeypairDetail } {
   if (typeof val !== "object" || val === null) return false;
   return isKeypairDetail((val as Record<string, unknown>)["keypair"]);
+}
+
+// ── 가용성 영역 타입 가드 ─────────────────────────────────────────────────────
+
+function isAvailabilityZone(val: unknown): val is AvailabilityZone {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  const state = obj["zoneState"];
+  if (typeof state !== "object" || state === null) return false;
+  return (
+    typeof obj["zoneName"] === "string" &&
+    typeof (state as Record<string, unknown>)["available"] === "boolean"
+  );
+}
+
+function isAvailabilityZonesResponse(
+  val: unknown,
+): val is { availabilityZoneInfo: AvailabilityZone[] } {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  return (
+    Array.isArray(obj["availabilityZoneInfo"]) &&
+    obj["availabilityZoneInfo"].every(isAvailabilityZone)
+  );
 }
 
 // ── IP 주소 추출 helper ───────────────────────────────────────────────────────
@@ -427,6 +452,33 @@ export class InstanceClient {
         );
       }
       return raw.flavors;
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * 가용성 영역(availability zone) 목록을 조회한다 (GET /os-availability-zone).
+   * 가용성 영역(영역명·가용 여부)을 조회한다. 페이지네이션·필터 없음.
+   */
+  async listAvailabilityZones(): Promise<AvailabilityZone[]> {
+    const url = `${this.computeEndpoint}/os-availability-zone`;
+    try {
+      const raw = await ky
+        .get(url, {
+          headers: this.authHeaders(),
+          retry: 0,
+          timeout: DEFAULT_TIMEOUT_MS,
+        })
+        .json();
+
+      if (!isAvailabilityZonesResponse(raw)) {
+        throw new NhnCloudCliError(
+          "instance availability-zones 응답 형식이 올바르지 않습니다 — availabilityZoneInfo 배열이 없습니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return raw.availabilityZoneInfo;
     } catch (err) {
       throw toNhnCloudCliError(err);
     }
