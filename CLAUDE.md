@@ -5,7 +5,7 @@
 NHN Cloud 서비스를 AWS CLI 처럼 호출하는 통합 CLI.
 TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 
-## 지원 명령 (24개)
+## 지원 명령 (27개)
 
 - `configure` — 자격증명 설정 마법사 (대화형 + flag, UAK + 서비스별 키, 연결 테스트).
 - `logncrash search` — Log & Crash 로그 검색 (시간 범위는 90일 이내·31일 이하로 제한, 초과 시 입력 오류).
@@ -29,6 +29,9 @@ TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 - `instance keypair create <name>` — 키페어 생성. `--public-key` 미지정 시 NHN 이 키쌍 생성 — private_key 1회성 반환, `--output <keyfile>` 로 0600 저장.
 - `instance keypair delete <name>` — 키페어 삭제.
 - `instance images` — 이미지 목록 조회 (`create --image <id>` 소스, `--visibility`/`--name`/`--owner`/`--status` 필터, marker 페이지네이션, 전체 필드는 `--json`).
+- `instance resize <id> --flavor <flavorId>` — 인스턴스 타입(flavor) 변경 (Nova v2 표준 — VERIFY_RESIZE 후 confirm/revert 2단계). fire-and-return.
+- `instance resize-confirm <id>` — resize 확정 (VERIFY_RESIZE → ACTIVE, 새 flavor 고정).
+- `instance resize-revert <id>` — resize 롤백 (VERIFY_RESIZE → ACTIVE, 이전 flavor 복귀).
 - `network list` — VPC 목록 조회 (`instance create --network <uuid>` 의 uuid = VPC id·실측 확정. id·name·cidrv4·state·external, 전체 필드는 `--json`).
 - `network subnet list` — 서브넷 목록 조회 (id·cidr·소속 VPC·gateway·가용 IP).
 

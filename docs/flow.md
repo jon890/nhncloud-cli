@@ -214,6 +214,9 @@ nhncloud instance delete <id> [options]         # 인스턴스 삭제
 nhncloud instance start <id> [options]          # 인스턴스 시작
 nhncloud instance stop <id> [options]           # 인스턴스 정지
 nhncloud instance reboot <id> [options]         # 인스턴스 재부팅 (--hard 로 HARD)
+nhncloud instance resize <id> --flavor <id>     # 타입(flavor) 변경 (VERIFY_RESIZE 후 confirm/revert)
+nhncloud instance resize-confirm <id>           # resize 확정
+nhncloud instance resize-revert <id>            # resize 롤백
 nhncloud instance keypairs [options]            # 키페어 목록
 nhncloud instance keypair get <name> [options]  # 단일 키페어 조회
 nhncloud instance keypair create <name> [opts]  # 키페어 생성 (private_key 1회성)
@@ -287,6 +290,14 @@ nhncloud instance keypair delete <name> [opts]  # 키페어 삭제
   client 의 공용 `serverAction(id, payload)` 가 action body(`os-start`/`os-stop`/`reboot.type`)만 달리해 호출한다.
   조회가 아니라 동작이라 출력은 성공 메시지(stderr)뿐이고 stdout 은 비운다 (delete 와 동일).
   상태 전이 확인은 후속 `instance get <id>` 로 한다.
+
+### resize (타입 변경 — 2단계)
+
+- `instance resize <id> --flavor <flavorId>` 는 같은 `serverAction` 경로로 `{ "resize": { "flavorRef": "..." } }` 를 보낸다 (응답 202 무본문, fire-and-return).
+- OpenStack Nova v2 표준상 resize 는 **2단계**다 ([[adr-010]]). resize 호출 → 서버가 `VERIFY_RESIZE` 로 전이 → 사용자가 확정/롤백을 별도 호출해야 `ACTIVE` 가 된다.
+  - `instance resize-confirm <id>` — `{ "confirmResize": null }` (새 flavor 고정).
+  - `instance resize-revert <id>` — `{ "revertResize": null }` (이전 flavor 복귀).
+- resize 후 `instance get <id>` 로 `VERIFY_RESIZE` 를 확인한 뒤 confirm/revert 한다. (NHN 이 자동 confirm 하면 바로 `ACTIVE` — 그 경우 confirm/revert 가 불필요할 뿐 명령은 에러 없이 무해.) `--flavor` 후보 id 는 `instance flavors` 로 조회한다.
 
 ### delete 안전 정책
 
