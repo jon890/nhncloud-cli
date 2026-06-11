@@ -32,9 +32,13 @@ NHN Cloud Compute Instance public-api docs 에서 server action 의 resize 절�
 - docs 가 봇 차단으로 `WebFetch` 안 되면 `WebSearch` 또는 cmux-browser 로 우회 (CLAUDE.md API 스펙 확인 절차).
 - docs 에 "자동 confirm" 또는 "VERIFY_RESIZE 확정 필요" 가 명시돼 있으면 그 문장을 본 phase 의 "실측 결과" 절에 인용하고 실측 호출은 생략 가능.
 
-### 2. 실측 (docs 로 확정 안 되면 필수)
+### 2. 실측 — 쓰기 작업이라 자율 실행 금지 (사용자 정책: 코드만, 실제 호출은 수동 QA)
 
-자격증명이 설정된 profile 로 **삭제해도 되는 테스트 인스턴스** 1개에 resize 를 실제로 호출하고 상태를 관찰한다.
+> **resize 는 실제 인스턴스를 변경하는 쓰기 작업**이라 build-with-teams executor 가 자율로 호출하지 않는다 (사용자 결정). 동작은 아래 "실측 결과(표준 근거 확정)" 로 못박고, 실제 resize 상태 전이 관찰은 **수동 QA(사용자)** 로 남긴다.
+>
+> 코드는 **(A)/(B) 양쪽 동작에 모두 견고**하게 작성한다 — `resize` 후 status 를 폴링해 `ACTIVE`(자동 confirm 케이스)면 완료, `VERIFY_RESIZE`(수동 케이스)면 `resize-confirm`/`resize-revert` 로 마무리. 따라서 실제 동작이 (A)든 (B)든 코드가 사용자를 가두지 않는다.
+
+아래는 **수동 QA 절차**다 (executor 가 아니라 사용자/QA 가 삭제해도 되는 테스트 인스턴스로 수행):
 
 사전 준비:
 
@@ -79,12 +83,12 @@ node dist/index.js instance get <instance-id>   # status 반복 확인
 > `--wait` 자동 confirm 은 phase-02 에서 선택 옵션으로만** 검토한다 (사용자가 의도적으로 확정을 미룰 수 있어야 함).
 > 명령 개수가 갈리므로 index.json 의 total_phases 는 3 으로 유지하되, phase-03 의 CLAUDE.md 명령 카운트는 실측 결과(+1 또는 +3)에 맞춰 기록한다.
 
-## 실측 결과 (이 절을 실측 후 채운다)
+## 실측 결과 (표준 근거로 확정 — 사용자 정책상 live 쓰기 실측은 수동 QA)
 
-- docs 명시 여부: (채울 것)
-- 관찰된 상태 전이: (채울 것 — 예: `ACTIVE → RESIZE → VERIFY_RESIZE` 또는 `ACTIVE → RESIZE → ACTIVE`)
-- 확정: (A) 자동 confirm / (B) 수동 confirm 필요 — (채울 것)
-- phase-02 범위: (채울 것 — resize 단일 / resize + confirm/revert)
+- **docs/표준 근거**: NHN Cloud Instance 는 OpenStack Nova v2 호환([[adr-010]]). Nova 표준 resize 는 2단계 — `resize` → `VERIFY_RESIZE` → 사용자가 `confirmResize`/`revertResize` 별도 호출. NHN docs 에 "자동 confirm" 명시 없음 → 표준(수동 confirm)을 따른다고 본다. (OpenStack 공식: resize 후 VERIFY_RESIZE 에서 confirm/revert 대기 — docs.openstack.org/nova resize 가이드.)
+- **확정: (B) 수동 confirm 필요** (VERIFY_RESIZE 정지, confirmResize/revertResize 로 마무리). 단 코드는 (A) 자동 confirm 케이스(VERIFY_RESIZE 없이 ACTIVE 복귀)도 깨지지 않게 폴링으로 흡수한다.
+- **phase-02 범위**: resize + confirm + revert (3 명령) — `instance resize` + `instance resize-confirm` + `instance resize-revert`. serverAction(008) 1곳 경유.
+- **live 검증**: 실제 NHN 의 정확한 전이((A) vs (B))는 **수동 QA** 로 확인한다 (사용자가 테스트 인스턴스로). 코드는 양쪽에 견고하므로 어느 쪽이어도 동작. 명령 카운트는 +3 (24→27).
 
 ## 회피 항목 (code-review-pitfalls 사전 확인 — phase-02 로 전달)
 

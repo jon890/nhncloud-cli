@@ -5,19 +5,24 @@
 phase-02 의 실제 명령 인자/동작에 맞춰 내부 docs 와 공개 docs 에 `instance resize` 를 반영한다.
 docs 는 코드 산출물(실제 옵션·동작)에 의존하므로 **마지막 phase 에서** 갱신한다 (planning 의 SKILL 갱신 시점 분리 원칙).
 
-이 task 는 백로그라 명령 카운트·flow.md·code-architecture.md 갱신을 **이 phase 안에서** 한다 (미리 박지 않는다).
+## ⚠️ 소유권 분리 (common-pitfalls 1-24 / 갱신 시점 분리)
 
-> **명령 개수가 실측 결과에 따라 갈린다** (phase-01).
-> (A) 자동 confirm → `resize` 1개. (B) 수동 confirm → `resize` + `resize-confirm` + `resize-revert` 3개.
-> 아래 docs 갱신은 실제 등록된 명령에만 맞춰 한다. (A) 면 confirm/revert 행을 추가하지 않는다.
+아래 작업 1~3 (`CLAUDE.md` · `docs/flow.md` · `docs/code-architecture.md`) 는 **결정 docs 라 executor 가 phase 안에서 편집하지 않는다.** team-lead 가 phase-02 완료 후 (실제 등록된 명령에 맞춰) docs-first 성격의 별도 commit 으로 작성한다. 아래 1~3 상세는 그 team-lead 작성 스펙으로 남겨둔다.
 
-## 변경 파일 (6개)
+**executor 의 phase-03 범위는 작업 4(README) · 5(SKILL) · 6(완료 마킹) 뿐이다.**
 
-1. `CLAUDE.md` — "지원 명령 (N개)" 카운트 +1 또는 +3, instance 명령 목록에 행 추가
-2. `docs/flow.md` — instance 명령 시그니처 블록에 resize(+confirm/revert) 줄 추가 + resize 흐름 설명
-3. `docs/code-architecture.md` — InstanceClient 메서드 목록에 resize(+confirm/revert) 추가, resize.ts 행 추가
-4. `README.md` — instance 사용 예 블록에 resize 예시 추가
-5. `skills/nhncloud-cli/SKILL.md` — 빠른 참조 표 + resize 안내 문단 (flavors 연계 명시)
+> **명령 개수 확정 (phase-01)**: (B) 수동 confirm — `resize` + `resize-confirm` + `resize-revert` **3개** (24→27). 코드는 (A) 자동 confirm 케이스도 폴링으로 흡수하지만 명령은 3개 등록.
+
+## 변경 파일
+
+**(team-lead, phase-02 후 docs-first commit — executor 범위 밖)**
+1. `CLAUDE.md` — "지원 명령 (N개)" 카운트 +3 (24→27), instance 명령 목록에 resize/resize-confirm/resize-revert 행 추가 (ADR 표는 무변경 — 신규 ADR 없음)
+2. `docs/flow.md` — instance 명령 시그니처 블록에 resize/confirm/revert 줄 + resize 흐름(VERIFY_RESIZE 2단계) 설명
+3. `docs/code-architecture.md` — InstanceClient 메서드 목록에 resize/confirmResize/revertResize 추가, resize.ts 행 추가
+
+**(executor phase-03)**
+4. `README.md` — instance 사용 예 블록에 resize 예시 추가 + intro "지원 명령" 문구
+5. `skills/nhncloud-cli/SKILL.md` — 빠른 참조 표 + resize 안내 문단 (flavors 연계) + 프론트매터 description
 6. `tasks/014-feat-instance-resize/index.json` — status `completed` + current_phase + phases status 갱신
 
 ## 작업 상세

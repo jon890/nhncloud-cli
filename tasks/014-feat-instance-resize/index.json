@@ -11,10 +11,17 @@
   "phases": [
     {
       "number": 1,
-      "title": "실측 — resize 후 VERIFY_RESIZE/자동 confirm 여부 확인 + confirm/revert 설계 확정 (blocked 가능 지점)",
+      "title": "설계 확정 (docs/OpenStack 표준 — resize→VERIFY_RESIZE 2단계 수동 confirm, live 는 수동 QA)",
       "file": "phase-01.md",
       "status": "pending",
-      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "allowedTools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep"
+      ],
       "model": "sonnet"
     },
     {
@@ -22,15 +29,29 @@
       "title": "코드 — serverAction 재사용 resize 메서드 (+ 실측 결과 따라 confirm/revert), command, index 등록",
       "file": "phase-02.md",
       "status": "pending",
-      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "allowedTools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep"
+      ],
       "model": "sonnet"
     },
     {
       "number": 3,
-      "title": "내부/공개 docs 반영 (CLAUDE.md·flow.md·code-architecture.md + README + SKILL) + index.json 완료 마킹",
+      "title": "공개 docs(README/SKILL) + 완료 마킹 (결정 docs 는 team-lead)",
       "file": "phase-03.md",
       "status": "pending",
-      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "allowedTools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep"
+      ],
       "model": "sonnet"
     }
   ]
