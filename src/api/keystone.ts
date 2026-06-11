@@ -1,6 +1,6 @@
 import ky from "ky";
 import { readIaasToken, writeIaasToken } from "../cache/token-store.js";
-import { keystoneIdentityUrl, instanceHost, imageHost } from "./endpoints.js";
+import { keystoneIdentityUrl, instanceHost, imageHost, networkHost } from "./endpoints.js";
 import { toNhnCloudCliError } from "./httpError.js";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_API_ERROR } from "../utils/exit-codes.js";
@@ -39,7 +39,7 @@ export async function getIaasToken(
   profile: string,
   iaas: IaasCredential,
   forceRefresh = false,
-): Promise<{ tokenId: string; computeEndpoint: string; imageEndpoint: string }> {
+): Promise<{ tokenId: string; computeEndpoint: string; imageEndpoint: string; networkEndpoint: string }> {
   // 캐시 확인 (forceRefresh 시 건너뜀)
   if (!forceRefresh) {
     const cached = await readIaasToken(profile, iaas.region);
@@ -48,6 +48,7 @@ export async function getIaasToken(
         tokenId: cached.tokenId,
         computeEndpoint: cached.computeEndpoint,
         imageEndpoint: cached.imageEndpoint,
+        networkEndpoint: cached.networkEndpoint,
       };
     }
   }
@@ -59,6 +60,10 @@ export async function getIaasToken(
   // image(Glance v2): 같은 토큰 재사용, host 만 다르다.
   // 실측 확정 (2026-06-09): tenant segment 없음 — GET /v2/images → 200, /v2/{tenantId}/images → 404.
   const imageEndpoint = `https://${imageHost(iaas.region)}/v2`;
+
+  // network(NHN VPC): 같은 토큰 재사용, host 만 다르다.
+  // 실측 확정 (2026-06-11): tenant segment 없음 — GET /v2.0/vpcs → 200 (serviceCatalog neutron 확인).
+  const networkEndpoint = `https://${networkHost(iaas.region)}/v2.0`;
 
   // Keystone v2 토큰 발급
   let raw: unknown;
@@ -93,8 +98,8 @@ export async function getIaasToken(
 
   // forceRefresh 시 캐시에 저장하지 않음 (임시 검증 용도)
   if (!forceRefresh) {
-    await writeIaasToken(profile, iaas.region, { tokenId, expiresAt, computeEndpoint, imageEndpoint });
+    await writeIaasToken(profile, iaas.region, { tokenId, expiresAt, computeEndpoint, imageEndpoint, networkEndpoint });
   }
 
-  return { tokenId, computeEndpoint, imageEndpoint };
+  return { tokenId, computeEndpoint, imageEndpoint, networkEndpoint };
 }

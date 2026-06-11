@@ -16,9 +16,10 @@ interface IaasTokenCache {
   expiresAt: string; // ISO 8601
   computeEndpoint: string;
   imageEndpoint: string;
+  networkEndpoint: string;
 }
 
-// 하위호환: 구버전 캐시는 imageEndpoint 가 없어 가드 실패 → readIaasToken 이 null 반환 → 토큰 재발급으로 자연 복구.
+// 하위호환: 구버전 캐시는 imageEndpoint/networkEndpoint 가 없어 가드 실패 → readIaasToken 이 null 반환 → 토큰 재발급으로 자연 복구.
 function isIaasTokenCache(val: unknown): val is IaasTokenCache {
   if (typeof val !== "object" || val === null) return false;
   const obj = val as Record<string, unknown>;
@@ -26,7 +27,8 @@ function isIaasTokenCache(val: unknown): val is IaasTokenCache {
     typeof obj["tokenId"] === "string" &&
     typeof obj["expiresAt"] === "string" &&
     typeof obj["computeEndpoint"] === "string" &&
-    typeof obj["imageEndpoint"] === "string"
+    typeof obj["imageEndpoint"] === "string" &&
+    typeof obj["networkEndpoint"] === "string"
   );
 }
 
@@ -37,7 +39,7 @@ function isIaasTokenCache(val: unknown): val is IaasTokenCache {
 export async function readIaasToken(
   profile: string,
   region: string,
-): Promise<{ tokenId: string; expiresAt: string; computeEndpoint: string; imageEndpoint: string } | null> {
+): Promise<{ tokenId: string; expiresAt: string; computeEndpoint: string; imageEndpoint: string; networkEndpoint: string } | null> {
   const filePath = iaasCachePath(profile, region);
   try {
     const raw = await readFile(filePath, "utf-8");
@@ -53,6 +55,7 @@ export async function readIaasToken(
       expiresAt: parsed.expiresAt,
       computeEndpoint: parsed.computeEndpoint,
       imageEndpoint: parsed.imageEndpoint,
+      networkEndpoint: parsed.networkEndpoint,
     };
   } catch {
     return null;
@@ -65,7 +68,7 @@ export async function readIaasToken(
 export async function writeIaasToken(
   profile: string,
   region: string,
-  data: { tokenId: string; expiresAt: string; computeEndpoint: string; imageEndpoint: string },
+  data: { tokenId: string; expiresAt: string; computeEndpoint: string; imageEndpoint: string; networkEndpoint: string },
 ): Promise<void> {
   const filePath = iaasCachePath(profile, region);
   await mkdir(dirname(filePath), { recursive: true });
@@ -75,6 +78,7 @@ export async function writeIaasToken(
     expiresAt: data.expiresAt,
     computeEndpoint: data.computeEndpoint,
     imageEndpoint: data.imageEndpoint,
+    networkEndpoint: data.networkEndpoint,
   };
 
   const tmp = filePath + "." + randomBytes(4).toString("hex") + ".tmp";
