@@ -11,7 +11,7 @@ docs 는 코드 산출물(실제 옵션·동작)에 의존하므로 **마지막 
 
 **executor 의 phase-03 범위는 작업 4(README) · 5(SKILL) · 6(완료 마킹) 뿐이다.**
 
-> **명령 개수 확정 (phase-01)**: (B) 수동 confirm — `resize` + `resize-confirm` + `resize-revert` **3개** (24→27). 코드는 (A) 자동 confirm 케이스도 폴링으로 흡수하지만 명령은 3개 등록.
+> **명령 개수 확정 (phase-01)**: (B) 수동 confirm — `resize` + `resize-confirm` + `resize-revert` **3개** (24→27). resize 는 fire-and-return(폴링 없음) — (A) 자동 confirm 케이스면 confirm/revert 가 불필요할 뿐, 명령은 3개 등록.
 
 ## 변경 파일
 
