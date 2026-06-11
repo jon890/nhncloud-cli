@@ -80,7 +80,7 @@ const NETWORK_HOST: Record<string, string> = {
  * region → Block Storage(Cinder volumev2) API host 맵 (ADR-013, ADR-005 연장).
  * block storage 는 compute 와 다른 host 지만 같은 Keystone 토큰을 재사용한다.
  * 경로는 compute 와 동일하게 /v2/{tenantId}/... 형태(tenant 포함) — image(Glance)와 다르다.
- * docs 확정, 첫 호출 200 으로 확인 예정 (1-27): host 패턴은 NHN Cloud docs 기준 추론.
+ * host 패턴은 NHN Cloud docs 기준 **추론**(serviceCatalog publicURL 실측 미완) — 첫 호출 200 으로 확인 예정 (1-27). image/network 의 실측 확정과 톤 구분.
  * region key 집합은 INSTANCE_HOST(및 IMAGE/NETWORK_HOST)와 일치해야 한다 (모두 IaaS region).
  */
 const BLOCKSTORAGE_HOST: Record<string, string> = {
