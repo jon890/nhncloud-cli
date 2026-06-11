@@ -1,6 +1,6 @@
 ---
 name: nhncloud-cli
-description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색·전송(logncrash search/send), Deploy 배포 실행·바이너리 그룹·바이너리 목록 조회, Compute 인스턴스 관리(instance — 목록·발급·전원 제어·타입 변경(resize/resize-confirm/resize-revert)·키페어·이미지), VPC·서브넷 조회(network list/subnet list) 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
+description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색·전송(logncrash search/send), Deploy 배포 실행·바이너리 그룹·바이너리 목록 조회, Compute 인스턴스 관리(instance — 목록·발급·전원 제어·타입 변경(resize/resize-confirm/resize-revert)·키페어·이미지·가용성 영역 조회), VPC·서브넷 조회(network list/subnet list) 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
 ---
 
 # nhncloud-cli
@@ -331,6 +331,7 @@ NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
 | 이미지 목록 조회 | `nhncloud instance images` (create --image 소스, 전체 필드는 `--json`) |
 | 특정 노출 범위 이미지 | `nhncloud instance images --visibility public` |
 | 인스턴스 타입(flavor) 목록 | `nhncloud instance flavors` |
+| 가용성 영역 목록 | `nhncloud instance availability-zones` |
 | 인스턴스 타입 상세 (스펙 포함) | `nhncloud instance flavors --detail` (전체 필드는 `--json`) |
 | 키페어 목록 | `nhncloud instance keypairs` |
 | 키페어 생성 (키 저장) | `nhncloud instance keypair create <keypair-name> -o ./key.pem` |
@@ -379,6 +380,12 @@ NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
 - `--detail` 로 vcpus·ram(MB)·disk(GB) 스펙을 확인한다.
   테이블은 핵심 5컬럼이며, is_public·extra_specs 등 나머지 필드는 `--json` 으로 확인한다.
 - `--min-disk <gb>` / `--min-ram <mb>` 로 조건에 맞는 타입만 필터한다.
+
+### instance availability-zones 조회
+
+- `nhncloud instance availability-zones` — 가용성 영역 목록(zoneName·available). 인스턴스 발급 가능한 영역을 확인할 때. (현재 `instance create` 에는 `--availability-zone` 옵션이 없다 — 영역 정보 참고용.)
+- `available` 이 false 인 영역은 신규 발급이 막혀 있으니 true 인 영역을 참고한다.
+- 전체 응답(zoneState 등)은 `--json` 으로 확인한다.
 
 ### instance create 옵션
 
