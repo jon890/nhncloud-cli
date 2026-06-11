@@ -18,6 +18,7 @@
   3. 그래도 불확정이면 수동 QA 로 테스트 인스턴스 1회 발급(쓰기 작업 — 사용자 동의 하)으로 round-trip 확정.
 - **docs 반영 규칙 (phase-03)**: 확정되기 전에는 README/SKILL/flow 에서 "`network list` id 를 `--network` 에 그대로" 라는 **단정을 쓰지 않는다.** 확정된 id 종류(VPC 또는 subnet)를 명시하거나, 미확정이면 "VPC·서브넷 id 를 확인해 `--network` 에 사용 (어느 id 인지는 콘솔/ docs 로 확인)" 수준으로 보수적으로 적는다.
 - 이 확정 결과는 team-lead 가 phase-03 결정 docs(flow.md create 소스 문구) 와 executor 의 README/SKILL 에 반영한다.
+- **보수화 대상 spot (확정 전 단정 금지)**: README/SKILL/flow 뿐 아니라 **`list.ts` 의 `.description("VPC 목록을 조회한다 (create --network <uuid> 소스, ...)")` 도 CLI help 로 바이너리에 ship 된다.** id 가 subnet 으로 판명되면 틀린 help 가 된다 — 확정 전엔 description 에서 "create --network 소스" 단정을 빼거나 "VPC 목록 조회 (전체 필드는 --json)" 수준으로 둔다. flow.md `--quiet 직파이프` 문구, CLAUDE.md `network UUID 소스` 문구도 team-lead 가 같은 규칙으로 보수화한다.
 
 근거: NHN Cloud VPC public-api docs (NHN 고유 `/v2.0/vpcs`·`/v2.0/vpcsubnets` — raw Neutron `/v2.0/networks` 아님).
 - VPC 응답: `{ vpcs: [{ id, name, cidrv4, state, "router:external", ... }] }`

@@ -89,7 +89,7 @@ export function networkHost(region: string): string {
   const host = NETWORK_HOST[region];
   if (!host) {
     throw new NhnCloudCliError(
-      `지원하지 않는 region 입니다: "${region}". 사용 가능한 region: ${IAAS_REGIONS.join(", ")}`,
+      `지원하지 않는 region 입니다: "${region}". 사용 가능한 region: ${IAAS_REGIONS}`,
       EXIT_PARAM_ERROR,
     );
   }
@@ -97,7 +97,7 @@ export function networkHost(region: string): string {
 }
 ```
 
-> **minor 1 (일관성)**: 에러 메시지의 region 목록은 `instanceHost`·`imageHost` 와 동일하게 **공유 상수 `IAAS_REGIONS`** 를 쓴다 (`Object.keys(NETWORK_HOST)` 아님). 실제 `endpoints.ts` 의 기존 두 host helper 가 `IAAS_REGIONS` 를 쓰는지 먼저 확인하고 같은 모양으로 맞춘다.
+> **minor 1 (일관성)**: 에러 메시지의 region 목록은 `instanceHost`·`imageHost` 와 동일하게 **공유 상수 `IAAS_REGIONS`** 를 쓴다 (`Object.keys(NETWORK_HOST)` 아님). 주의: `endpoints.ts` 의 `IAAS_REGIONS` 는 **이미 `.join(", ")` 된 string** 이다 — `${IAAS_REGIONS}` bare 로 쓴다 (`.join()` 추가 호출 금지 — string 에 `.join` 없어 tsc 실패). instanceHost/imageHost 가 쓰는 정확한 형태를 복사한다.
 > **minor 2 (stale 주석)**: `endpoints.ts` 에 "두 IaaS host 맵(compute·image)" 류의 주석이 있으면 `NETWORK_HOST` 추가로 **세 맵**이 되므로 그 주석도 "compute·image·network 세 맵" 으로 갱신한다 (작업 항목에 포함).
 
 ### 2. `src/api/keystone.ts`
