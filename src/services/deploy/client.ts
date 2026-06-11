@@ -58,9 +58,9 @@ export class DeployClient {
    */
   async run(params: DeployRunParams): Promise<Record<string, unknown>> {
     const url =
-      `${this.baseUrl}/api/v2.1/projects/${params.appKey}` +
-      `/artifacts/${params.artifactId}` +
-      `/server-group/${params.serverGroupId}/deploy`;
+      `${this.baseUrl}/api/v2.1/projects/${encodeURIComponent(params.appKey)}` +
+      `/artifacts/${encodeURIComponent(params.artifactId)}` +
+      `/server-group/${encodeURIComponent(params.serverGroupId)}/deploy`;
 
     const isAsync = params.async ?? false;
 
@@ -100,7 +100,7 @@ export class DeployClient {
    * 아티팩트 목록을 조회한다.
    */
   async artifacts(appKey: string): Promise<Record<string, unknown>> {
-    const url = `${this.baseUrl}/api/v2.1/projects/${appKey}/artifacts`;
+    const url = `${this.baseUrl}/api/v2.1/projects/${encodeURIComponent(appKey)}/artifacts`;
 
     try {
       const res = await ky
@@ -122,8 +122,8 @@ export class DeployClient {
    */
   async serverGroups(appKey: string, artifactId: string): Promise<Record<string, unknown>> {
     const url =
-      `${this.baseUrl}/api/v2.1/projects/${appKey}` +
-      `/artifacts/${artifactId}/server-groups`;
+      `${this.baseUrl}/api/v2.1/projects/${encodeURIComponent(appKey)}` +
+      `/artifacts/${encodeURIComponent(artifactId)}/server-groups`;
 
     try {
       const res = await ky
@@ -145,8 +145,8 @@ export class DeployClient {
    */
   async histories(appKey: string, artifactId: string): Promise<Record<string, unknown>> {
     const url =
-      `${this.baseUrl}/api/v2.1/projects/${appKey}` +
-      `/artifacts/${artifactId}/deploy-histories`;
+      `${this.baseUrl}/api/v2.1/projects/${encodeURIComponent(appKey)}` +
+      `/artifacts/${encodeURIComponent(artifactId)}/deploy-histories`;
 
     try {
       const res = await ky
