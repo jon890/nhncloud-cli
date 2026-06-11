@@ -459,7 +459,7 @@ export class InstanceClient {
 
   /**
    * 가용성 영역(availability zone) 목록을 조회한다 (GET /os-availability-zone).
-   * 가용성 영역(영역명·가용 여부)을 조회한다. 페이지네이션·필터 없음.
+   * zoneName·가용 여부(available)를 반환하며 페이지네이션·필터 없음.
    */
   async listAvailabilityZones(): Promise<AvailabilityZone[]> {
     const url = `${this.computeEndpoint}/os-availability-zone`;
