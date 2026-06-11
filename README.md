@@ -1,7 +1,7 @@
 # nhncloud-cli
 
 NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 통합 CLI.
-현재 `configure`, `logncrash search/send` (Log & Crash 로그 검색·전송), `deploy` (배포·바이너리 조회·업로드·다운로드), `instance` (Compute 인스턴스 목록·발급·전원 제어·타입 변경·키페어 관리·이미지·가용성 영역 조회 포함), `network` (VPC·서브넷 목록 조회) 명령을 지원한다.
+현재 `configure`, `logncrash search/send` (Log & Crash 로그 검색·전송), `deploy` (배포·바이너리 조회·업로드·다운로드), `instance` (Compute 인스턴스 목록·발급·전원 제어·타입 변경·키페어 관리·이미지·가용성 영역 조회·볼륨 연결 포함), `network` (VPC·서브넷 목록 조회), `volume` (Block Storage 볼륨 목록·조회·생성) 명령을 지원한다.
 
 ## 설치
 
@@ -343,6 +343,47 @@ nhncloud instance create \
 
 > **`--network` 가 받는 id**: `network list` 의 VPC id 를 그대로 `--network` 에 사용한다.
 > subnet id 가 아니다 — `instance list --json` 의 addresses 키와 VPC name 이 1:1 대응함을 실측으로 확인.
+
+### Block Storage (Volume)
+
+독립 블록 스토리지 볼륨을 관리한다.
+`volume` 명령군은 `instance`·`network` 와 같은 `iaas` 자격증명·Keystone 토큰을 공유한다 — 별도 설정이 필요 없다.
+
+**볼륨 생성(`volume create`)·인스턴스 연결(`instance volume attach`)·연결 해제(`instance volume detach`)는 쓰기 작업이므로 실행 전 환경을 확인한다(수동 QA 필수).**
+
+```bash
+# 볼륨 목록 조회
+nhncloud volume list
+
+# 정렬·페이지네이션
+nhncloud volume list --sort created_at:desc --limit 20
+
+# 단일 볼륨 조회
+nhncloud volume get <volume-id>
+
+# 전체 필드 JSON
+nhncloud volume get <volume-id> --json
+
+# 볼륨 생성 — ⚠️ 쓰기 작업, 실행 전 환경 확인 필수
+nhncloud volume create --size 10
+
+# 이름·타입 지정
+nhncloud volume create --size 50 --name my-volume --volume-type "General SSD"
+
+# 인스턴스에 연결된 볼륨 목록 조회
+nhncloud instance volumes <instance-id>
+
+# 볼륨 연결 — ⚠️ 쓰기 작업 (--volume 플래그로 볼륨 ID 지정)
+nhncloud instance volume attach <instance-id> --volume <volume-id>
+
+# 볼륨 연결 해제 — ⚠️ 쓰기 작업 (인스턴스 ID + 볼륨 ID 위치 인수)
+nhncloud instance volume detach <instance-id> <volume-id>
+```
+
+> **UX 비대칭**: `attach` 는 `--volume <id>` 플래그로 볼륨을 지정하고,
+> `detach` 는 `<instanceId> <volumeId>` 위치 인수 두 개로 지정한다.
+
+지원 region: `kr1` / `kr2` / `kr3` / `jp1` (`--region` 으로 override 가능).
 
 ## 개발
 
