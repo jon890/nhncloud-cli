@@ -35,7 +35,9 @@ export const resizeCommand = new Command("resize")
     stopSpinner(true);
 
     process.stderr.write(
-      chalk.green(`✓ 인스턴스 "${id}" 타입 변경(flavor: ${opts.flavor}) 을 요청했습니다.\n`),
+      chalk.green(
+        `✓ 인스턴스 "${id}" 타입 변경(flavor: ${opts.flavor}) 을 요청했습니다 (→ VERIFY_RESIZE, instance get 으로 확인 후 resize-confirm/resize-revert).\n`,
+      ),
     );
   });
 
