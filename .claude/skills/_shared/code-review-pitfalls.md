@@ -305,6 +305,22 @@ grep -nE "Number\([a-z]" src/commands/   # 옵션 파싱에서 regex 없이 Numb
 **Why**: PR #13 (plan011) — `parsePositiveInt` 가 `1e2` 를 100 으로 통과시키고 빈 문자열 메시지가 빈 괄호.
 **Self-check**: 양의 정수 옵션 파서가 regex 표기 검증 후 Number 하는가? 에러 메시지가 빈 입력에도 명확한가?
 
+## 4-5. Commander 예약 플래그와 충돌하는 옵션명 (`--version` / `--help`)
+
+**증상**: 서브커맨드에 `--version <ver>` 같은 옵션을 정의한다. root 프로그램이 `.version("x.y.z")` 를 호출하면 Commander 가 `--version`(및 `-V`)을 **버전 출력 플래그로 예약**해, 서브커맨드의 `--version <ver>` 가 값으로 파싱되지 않고 CLI 버전을 출력하고 종료한다. (`--help`/`-h` 도 동일하게 예약.)
+사용자/스크립트가 `send --version 2.3.0` 을 주면 projectVersion 이 전달되는 대신 `0.3.0` 만 찍히는 묻혀버린 오작동.
+
+**Good**: 예약 플래그와 겹치는 옵션명을 피한다. projectVersion 은 `--app-version`, 그 외도 `--xxx-version` 등으로 명명. rename 시 코드(`opts.appVersion` 등 camelCase 매핑)·docs(flow/README/SKILL)·phase 예시를 모두 동기화한다.
+
+```bash
+# root .version() 가 있는데 서브커맨드 옵션에 --version/--help 정의가 있는지
+grep -rnE "\.option\(\"--(version|help)" src/commands/
+```
+
+**검증**: `echo hi | node dist/index.js <cmd> --version 9.9.9 ...` 가 CLI 버전("x.y.z")을 출력하지 않고 옵션 값으로 파싱되어 후속 로직에 도달하는지 확인. 버전만 찍고 종료하면 가로채진 것.
+
+**Why**: PR #16 (plan012) — `logncrash send --version <ver>` 가 root `.version("0.3.0")` 에 가로채여 `--app-version` 으로 rename. 새 명령에 버전·도움말류 옵션을 둘 때마다 재발 가능.
+
 # 5. 타입 안전성
 
 ## 5-1. Map.has → get()! non-null assertion
