@@ -7,11 +7,20 @@ README/SKILL 은 코드 산출물(실제 옵션/출력)에 의존하므로 마�
 
 핵심 메시지: "011 의 `binary-groups`/`binaries` 로 key 를 확인 → `upload --binary-group <key>` 로 올리고 / `download --binary-group <key> --binary-key <key> -o <file>` 로 받는다" 는 연쇄 사용법.
 
-## 변경 파일 (4개)
+## ⚠️ 소유권 분리 (1-24)
 
-1. `docs/adr.md` — ADR-015 본문 + Index 행 추가.
-2. `README.md` — deploy 사용 예에 upload / download 추가.
-3. `skills/nhncloud-cli/SKILL.md` — 빠른 참조 표 + 사용 안내.
+`docs/adr.md`(ADR-015)는 **결정 docs 라 team-lead docs-first** (CLAUDE/flow/code-architecture 와 함께 phase-02 후 일괄 작성). 아래 작업 1(ADR-015 본문)은 team-lead 작성 스펙. **executor 의 phase-03 범위는 작업 2(README)·3(SKILL)·4(완료 마킹) 뿐.**
+
+> ADR-015 번호 확인: base(feat/015) 최대 ADR = **014**. 따라서 신규 = **ADR-015** 확정 (013·014 이미 머지됨).
+
+## 변경 파일
+
+**(team-lead docs-first — executor 범위 밖)**
+1. `docs/adr.md` — ADR-015 본문 + Index 행 추가 (multipart 전송 + 봉투 우회 파일 스트림).
+
+**(executor phase-03)**
+2. `README.md` — deploy 사용 예에 upload / download 추가 + intro "지원 명령" 문구.
+3. `skills/nhncloud-cli/SKILL.md` — 빠른 참조 표 + 사용 안내 + 프론트매터 description.
 4. `tasks/016-feat-deploy-binary-transfer/index.json` — 완료 마킹.
 
 ## 작업 상세

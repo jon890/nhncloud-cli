@@ -36,13 +36,19 @@
 - **파일 입력 가드 (code-review-pitfalls 9-1 파일 입력)**: `--file <path>` 를 `readFileSync` 로 바로 읽지 않는다. 읽기 전 `statSync` 한 번으로 errno 노출(ENOENT/EACCES/EISDIR 구분) + `isFile()` (디렉터리 차단) + size 가드를 끝낸다. `instance/create.ts` 의 `--user-data` 블록이 1:1 reference. errno 는 `(e as NodeJS.ErrnoException).code` 로 노출, 실패 시 `EXIT_PARAM_ERROR`.
   - **크기 한도**: user-data 처럼 인코딩 후 역산하는 한도는 없다 — 바이너리 원본을 그대로 보낸다. 다만 무제한 read 로 인한 메모리 폭발을 막기 위해 보수적 상한(예 `512 MB`)을 둔다. 상한 초과 시 `EXIT_PARAM_ERROR` + "너무 큽니다" 안내. 상수로 `MAX_UPLOAD_BYTES` 선언(매직 넘버 회피).
 
-## 변경 파일 (5개)
+## ⚠️ 소유권 분리 + 쓰기 작업 정책 (1-24 / 1-26)
+
+- **1-24**: 결정 docs(`CLAUDE.md` 카운트·`docs/flow.md`·`docs/code-architecture.md`·`docs/adr.md` ADR-015)는 executor 가 phase 안에서 편집하지 않는다. **team-lead 가 phase-01·02(코드) 완료 후 docs-first commit 으로 일괄 작성**한다 (아래 "내부 docs 반영" 절은 team-lead 작성 스펙). executor 의 phase-01 범위는 **코드 4파일(아래 1~4)** 뿐.
+- **1-26 (쓰기 작업)**: `deploy upload` 는 실제 바이너리를 업로드하는 **쓰기 작업**이라 executor 가 자율 호출하지 않는다 (사용자 정책: 코드만, 실제 upload 는 수동 QA). multipart 코드는 작성·빌드·정적 검증(tsc/help)까지만, 실제 업로드 호출은 phase-03 의 수동 QA 절로 남긴다.
+
+## 변경 파일 (executor — 코드 4개)
 
 1. `src/services/deploy/types.ts` — `UploadBinaryParams` / `UploadBinaryResult` 추가.
 2. `src/services/deploy/client.ts` — `uploadBinary()` 메서드 추가 (multipart 전송 경로 — 신규).
 3. `src/commands/deploy/upload.ts` — 신규 명령 (파일 가드 + 옵션).
 4. `src/index.ts` — `deployCommand.addCommand(uploadCommand)` 등록.
-5. 내부 docs 4곳 (아래 "내부 docs 반영" 절).
+
+> (내부 docs 4곳 = team-lead docs-first. 아래 "내부 docs 반영" 절은 team-lead 작성 스펙 — executor 는 손대지 않는다.)
 
 ## 작업 상세
 

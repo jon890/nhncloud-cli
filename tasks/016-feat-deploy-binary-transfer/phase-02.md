@@ -30,12 +30,17 @@ download 응답은 **봉투 JSON 이 아니라 파일 바이너리 스트림**�
 - **download 저장 시 기존 파일 덮어쓰기 정책**: `-o <file>` 대상이 이미 존재하면 기본은 거부(`EXIT_PARAM_ERROR` + "이미 존재 — --force 로 덮어쓰기"), `--force` 일 때만 덮어쓴다. 무인 자동화에서 의도치 않은 덮어쓰기를 막는다. 존재 검사는 `statSync` 의 ENOENT 를 "없음=정상" 으로, 그 외 errno 는 그대로 노출.
 - **봉투 우회 인지 (5-3 의도 변형)**: download 는 `unwrap` 을 **쓰지 않는다**. 다른 메서드처럼 `.json<NhnEnvelope<...>>()` 를 호출하면 바이너리를 JSON 으로 파싱하다 깨진다. `.arrayBuffer()` 로 받는다는 것을 client 주석에 명시(미래 AI 가 unwrap 으로 "통일"하지 않도록).
 
-## 변경 파일 (4개)
+## ⚠️ 소유권 분리 (1-24)
+
+내부 결정 docs(CLAUDE 카운트·flow·code-architecture)는 **team-lead docs-first** (phase-01·02 코드 후 일괄). executor 의 phase-02 범위는 **코드 3파일(아래 1~3)** 뿐. (download 는 GET 으로 클라우드 바이너리를 읽어 로컬 파일로 저장 — 실제 다운로드는 수동 QA.)
+
+## 변경 파일 (executor — 코드 3개)
 
 1. `src/services/deploy/client.ts` — `downloadBinary()` 메서드 추가 (파일 스트림 수신 경로 — 신규, unwrap 우회).
 2. `src/commands/deploy/download.ts` — 신규 명령 (덮어쓰기 정책 + 파일 쓰기).
 3. `src/index.ts` — `deployCommand.addCommand(downloadCommand)` 등록.
-4. 내부 docs 3곳 (아래 절).
+
+> (내부 docs 3곳 = team-lead docs-first. 아래 절은 team-lead 작성 스펙 — executor 미접촉.)
 
 ## 작업 상세
 
