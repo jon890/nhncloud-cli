@@ -31,7 +31,6 @@ export const createCommand = new Command("create")
       try {
         const found = await client.findExternalNetworkId();
         if (found === null) {
-          stopSpinner(false);
           throw new NhnCloudCliError(
             "외부 네트워크(router:external=true)를 찾지 못했습니다. --network <id> 로 직접 지정하세요.",
             EXIT_PARAM_ERROR,

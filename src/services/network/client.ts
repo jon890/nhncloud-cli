@@ -52,7 +52,10 @@ function isFloatingIp(val: unknown): val is FloatingIp {
   return (
     typeof obj["id"] === "string" &&
     typeof obj["floating_ip_address"] === "string" &&
-    typeof obj["status"] === "string"
+    typeof obj["status"] === "string" &&
+    typeof obj["floating_network_id"] === "string" &&
+    (obj["port_id"] === null || typeof obj["port_id"] === "string") &&
+    (obj["fixed_ip_address"] === null || typeof obj["fixed_ip_address"] === "string")
   );
 }
 
