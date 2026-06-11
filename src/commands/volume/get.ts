@@ -37,7 +37,7 @@ export const getCommand = new Command("get")
     // attachments 는 연결된 server_id 목록 요약으로 표시 (배열 가드 후 join)
     const attachmentSummary = Array.isArray(volume.attachments)
       ? volume.attachments
-          .filter((a): a is typeof a => typeof a === "object" && a !== null)
+          .filter((a) => typeof a === "object" && a !== null)
           .map((a) => String(a.server_id))
           .join(", ")
       : "";

@@ -194,15 +194,10 @@ function isAvailabilityZonesResponse(
 function isServerVolumeAttachment(val: unknown): val is ServerVolumeAttachment {
   if (typeof val !== "object" || val === null) return false;
   const o = val as Record<string, unknown>;
-  // volumeId(camel) / volume_id(snake) 혼재 가능 — 양쪽 수용 (1-27).
-  // serverId(camel) / server_id(snake) 도 양쪽 수용.
-  // 실측 GET 200 응답에서 volumeId/serverId/device(camelCase) 확인 완료.
-  const volId = o["volumeId"] ?? o["volume_id"];
-  const srvId = o["serverId"] ?? o["server_id"];
   return (
     typeof o["id"] === "string" &&
-    typeof volId === "string" &&
-    typeof srvId === "string" &&
+    typeof o["volumeId"] === "string" &&
+    typeof o["serverId"] === "string" &&
     typeof o["device"] === "string"
   );
 }
@@ -676,14 +671,17 @@ export class InstanceClient {
   async attachVolume(serverId: string, volumeId: string): Promise<ServerVolumeAttachment> {
     const url = `${this.computeEndpoint}/servers/${encodeURIComponent(serverId)}/os-volume_attachments`;
     try {
-      const raw = await ky
-        .post(url, {
-          headers: this.authHeaders(),
-          json: { volumeAttachment: { volumeId } },
-          retry: 0,
-          timeout: DEFAULT_TIMEOUT_MS,
-        })
-        .json();
+      const res = await ky.post(url, {
+        headers: this.authHeaders(),
+        json: { volumeAttachment: { volumeId } },
+        retry: 0,
+        timeout: DEFAULT_TIMEOUT_MS,
+      });
+      // 202 + 빈 본문으로 응답할 수 있어(ADR-011 선례) .json() 을 강제하지 않는다 — 빈 본문이면 입력으로 합성.
+      if (res.status === 202 || res.headers.get("content-length") === "0") {
+        return { id: volumeId, volumeId, serverId, device: "" };
+      }
+      const raw = await res.json();
       if (!isVolumeAttachmentResponse(raw)) {
         throw new NhnCloudCliError(
           "instance volume attach 응답에 volumeAttachment 가 없습니다.",
