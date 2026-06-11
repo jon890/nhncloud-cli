@@ -138,7 +138,7 @@ function isFloatingIpResponse(val: unknown): val is { floatingip: FloatingIp } {
 ```ts
   /** Floating IP 목록을 조회한다 (GET /v2.0/floatingips). */
   async listFloatingIps(): Promise<FloatingIp[]> {
-    const url = `${this.networkEndpoint}/v2.0/floatingips`;
+    const url = `${this.networkEndpoint}/floatingips`;
     try {
       const raw = await ky
         .get(url, { headers: this.authHeaders(), retry: 0, timeout: DEFAULT_TIMEOUT_MS })
@@ -157,7 +157,7 @@ function isFloatingIpResponse(val: unknown): val is { floatingip: FloatingIp } {
 
   /** Floating IP 를 발급한다 (POST /v2.0/floatingips). */
   async createFloatingIp(params: CreateFloatingIpParams): Promise<FloatingIp> {
-    const url = `${this.networkEndpoint}/v2.0/floatingips`;
+    const url = `${this.networkEndpoint}/floatingips`;
     try {
       const raw = await ky
         .post(url, {
@@ -181,7 +181,7 @@ function isFloatingIpResponse(val: unknown): val is { floatingip: FloatingIp } {
 
   /** Floating IP 를 삭제한다 (DELETE /v2.0/floatingips/{id}, 무본문). */
   async deleteFloatingIp(id: string): Promise<void> {
-    const url = `${this.networkEndpoint}/v2.0/floatingips/${encodeURIComponent(id)}`;
+    const url = `${this.networkEndpoint}/floatingips/${encodeURIComponent(id)}`;
     try {
       await ky.delete(url, { headers: this.authHeaders(), retry: 0, timeout: DEFAULT_TIMEOUT_MS });
     } catch (err) {
@@ -192,9 +192,11 @@ function isFloatingIpResponse(val: unknown): val is { floatingip: FloatingIp } {
   /**
    * 외부(external) VPC 의 id 를 찾는다 — create 의 floating_network_id 기본 소스.
    * router:external 은 콜론 포함 리터럴 키 — bracket 접근 필수.
+   * region 에 external VPC 가 둘 이상이면 첫 매칭을 반환한다 (조용한 임의 선택 회피용:
+   * 사용자는 `--network <id>` 로 명시 지정 가능 — create 의 stderr 안내에 그 사실을 노출).
    */
   async findExternalNetworkId(): Promise<string | null> {
-    const url = `${this.networkEndpoint}/v2.0/vpcs`;
+    const url = `${this.networkEndpoint}/vpcs`;
     try {
       const raw = await ky
         .get(url, {
@@ -229,7 +231,7 @@ associate **포함** 시 추가:
    * 경로·쿼리·응답 필드명은 phase-01 실측으로 확정한 값을 반영한다.
    */
   async findPortByInstance(instanceId: string): Promise<string | null> {
-    const url = `${this.networkEndpoint}/v2.0/ports`;
+    const url = `${this.networkEndpoint}/ports`;
     try {
       const raw = await ky
         .get(url, {
@@ -256,7 +258,7 @@ associate **포함** 시 추가:
    * port 가 null 이면 해제(disassociate).
    */
   async associateFloatingIp(id: string, portId: string | null): Promise<void> {
-    const url = `${this.networkEndpoint}/v2.0/floatingips/${encodeURIComponent(id)}`;
+    const url = `${this.networkEndpoint}/floatingips/${encodeURIComponent(id)}`;
     try {
       await ky.put(url, {
         headers: this.authHeaders(),

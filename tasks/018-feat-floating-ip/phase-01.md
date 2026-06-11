@@ -74,6 +74,15 @@ grep -rn "resolveNetworkClient" src/commands/network/ src/commands/instance/ 2>/
 #   <instance-id>: 실제 인스턴스 id
 #   <floatingip-id> / <port-id>: 실측 중 얻는 값
 
+# (0) floatingips 경로명·응답형 읽기 실측 (READ-ONLY — phase-02 types/guard 작성 전 확정)
+#     NHN VPC 는 raw Neutron 이 아니라 고유 리소스명(/vpcs·/vpcsubnets)을 쓴다 → /floatingips 경로명 자체를 GET 으로 검증.
+curl -s -H "X-Auth-Token: <token>" \
+  "https://<network-host>/v2.0/floatingips" | head -c 800
+# 기대: {"floatingips":[{"id":...,"floating_ip_address":...,"status":...,"port_id":<null|"...">,"fixed_ip_address":<null|"...">,"floating_network_id":...,"label":...}]}
+# 확인: (a) 경로명 /v2.0/floatingips 가 200 (404 면 NHN 고유 경로 docs 재확인)
+#       (b) port_id·fixed_ip_address·label 의 null 여부 → phase-02 types 의 `| null`/optional 확정
+# 200 이 아니거나 다른 경로면 → phase-02 의 floatingips URL·types 를 실측값으로 정정 후 진행
+
 # (1) instance → port_id 매핑 경로 (추정 — 200 + ports[].id 면 확정)
 curl -s -H "X-Auth-Token: <token>" \
   "https://<network-host>/v2.0/ports?device_id=<instance-id>" | head -c 800
