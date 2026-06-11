@@ -2,9 +2,9 @@
   "name": "019-feat-logncrash-export",
   "description": "logncrash export 명령 추가 — scroll 기반 대량 로그 추출. 검색과 동일 host(api-lncs-search)·동일 인증(X-LNCS-SECRET)을 재사용하되, 단발 검색(search)과 달리 scroll API 로 전체 결과(최대 10만 건)를 순회해 파일로 내보낸다. scroll 시작 POST /api/v2/search/scroll/{appkey}(body=query/from/to/pageSize), 계속 POST /api/v2/search/scroll/{appkey}/{scrollKey}(body 불필요). scrollKey 유효기간은 1분 — 다음 페이지 요청은 즉시 이어가야 하며, 만료(데이터 소진 전 scrollKey 무효) 시 명확한 안내 에러로 차단한다. 출력은 --output <file> 로 JSON Lines(기본) 또는 --format json 배열, 진행 상황은 stderr. 시간 범위 검증(90일 이내·31일 이하)은 search 의 assertSearchRange/resolveTime 을 그대로 재사용. 별도 export 명령으로 둔다(루프·파일 출력이 search 단발 조회와 성격이 다름). 파일은 원자적으로 쓴다(temp 파일 + rename). ADR 미동반(기존 search host·인증·봉투 helper 재사용, 표준 Nova 패턴 아님이지만 신규 인증/좌표 없음).",
   "created_at": "2026-06-09T00:00:00Z",
-  "updated_at": "2026-06-09T00:00:00Z",
-  "status": "pending",
-  "current_phase": 0,
+  "updated_at": "2026-06-11T00:00:00Z",
+  "status": "completed",
+  "current_phase": 2,
   "total_phases": 2,
   "error_message": null,
   "blocked_reason": null,
@@ -13,7 +13,7 @@
       "number": 1,
       "title": "코드 — client scrollStart()/scrollNext() + export 명령(시간범위 검증 재사용·scroll 루프·원자적 파일 쓰기·진행 상황 stderr)",
       "file": "phase-01.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     },
@@ -21,7 +21,7 @@
       "number": 2,
       "title": "공개 docs (README + SKILL + flow.md + code-architecture.md + CLAUDE.md) 반영 + index.json 완료 마킹",
       "file": "phase-02.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     }
