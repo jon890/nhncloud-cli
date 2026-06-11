@@ -1,6 +1,6 @@
 ---
 name: nhncloud-cli
-description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색·전송(logncrash search/send), Deploy 배포 실행·바이너리 그룹·바이너리 목록 조회, Compute 인스턴스 관리(instance — 목록·발급·전원 제어·키페어·이미지), VPC·서브넷 조회(network list/subnet list) 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
+description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색·전송(logncrash search/send), Deploy 배포 실행·바이너리 그룹·바이너리 목록 조회, Compute 인스턴스 관리(instance — 목록·발급·전원 제어·타입 변경(resize/resize-confirm/resize-revert)·키페어·이미지), VPC·서브넷 조회(network list/subnet list) 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
 ---
 
 # nhncloud-cli
@@ -343,6 +343,9 @@ NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
 | 인스턴스 시작 | `nhncloud instance start <id>` |
 | 인스턴스 정지 | `nhncloud instance stop <id>` |
 | 인스턴스 재부팅 | `nhncloud instance reboot <id>` (`--hard` 로 HARD) |
+| 인스턴스 타입 변경 | `nhncloud instance resize <id> --flavor <flavor-id>` |
+| resize 확정 | `nhncloud instance resize-confirm <id>` |
+| resize 롤백 | `nhncloud instance resize-revert <id>` |
 | 다른 region 사용 | `nhncloud instance list --region kr2` |
 | 다른 profile 사용 | `nhncloud instance list --profile staging` |
 
@@ -352,6 +355,13 @@ NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
 - `nhncloud instance stop <id>` — 동작 중인(ACTIVE) 인스턴스를 끈다 (→ SHUTOFF).
 - `nhncloud instance reboot <id>` — 재부팅한다. 기본은 SOFT(OS graceful), `--hard` 는 강제 전원 cycle.
 - 세 명령 모두 요청만 보내고(202 무본문) 상태 전이는 비동기다. 전이 확인은 `nhncloud instance get <id>` 로 한다.
+
+### instance 타입 변경 (resize)
+
+- `nhncloud instance resize <id> --flavor <flavor-id>` — 인스턴스 타입(flavor)을 바꾼다. 사전 상태는 ACTIVE 또는 SHUTOFF.
+- 변경할 `<flavor-id>` 는 `nhncloud instance flavors --detail` 로 후보를 조회해 고른다 (vcpus·ram·disk 비교).
+- resize 후 인스턴스는 VERIFY_RESIZE 에서 멈춘다. `resize-confirm <id>` 로 새 flavor 를 고정하거나 `resize-revert <id>` 로 롤백한다.
+- 상태 전이는 비동기다 — `nhncloud instance get <id>` 로 status 를 확인한다.
 
 ### instance keypair 관리
 

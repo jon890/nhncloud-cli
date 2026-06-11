@@ -362,6 +362,25 @@ export class InstanceClient {
   }
 
   /**
+   * 인스턴스 타입(flavor)을 변경한다 (resize action).
+   * POST /servers/{id}/action body { "resize": { "flavorRef": "<flavor-id>" } }, 202 무본문.
+   * 사전 상태는 ACTIVE 또는 SHUTOFF (ACTIVE 면 NHN 측에서 중지 후 재시작).
+   */
+  async resize(id: string, flavorRef: string): Promise<void> {
+    return this.serverAction(id, { resize: { flavorRef } });
+  }
+
+  /** resize 를 확정한다 (VERIFY_RESIZE → ACTIVE, 새 flavor 로 고정). */
+  async confirmResize(id: string): Promise<void> {
+    return this.serverAction(id, { confirmResize: null });
+  }
+
+  /** resize 를 롤백한다 (VERIFY_RESIZE → ACTIVE, 이전 flavor 로 복귀). */
+  async revertResize(id: string): Promise<void> {
+    return this.serverAction(id, { revertResize: null });
+  }
+
+  /**
    * 인스턴스 타입(flavor)을 조회한다.
    * - 기본: GET /flavors (id·name·links 요약)
    * - detail: GET /flavors/detail (vcpus·ram·disk 등 스펙 포함)
