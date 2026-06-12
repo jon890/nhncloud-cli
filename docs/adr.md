@@ -288,6 +288,7 @@
   - `project` = 레지스트리 이름(Management API `registry.name`).
   - 인증: **UAK id/secret 을 Basic Auth** (Username=UAK id, Password=UAK secret) — docker login 자격과 동일. Management API 의 X-TC 정적 헤더와 다른 모델. Bearer 토큰 교환 불요.
   - 응답은 NHN 봉투가 **아니다** — Harbor 표준 평면 JSON 배열. `unwrap`/`unwrapHeader` 미적용([[adr-006]] 미적용·[[adr-015]] download 와 같은 봉투 우회 결). 성공/실패는 HTTP status(ky `throwHttpErrors`)로 판정하고 `toNhnCloudCliError` 로 매핑.
+  - pagination: `?page=N&page_size=100`(Harbor 최대 100) + 응답 `Link: <...page=N+1...>; rel=\"next\"` 헤더. repository·artifact 목록은 커질 수 있어(실측: 한 repo 에 artifact 60개·`x-total-count` 헤더) `rel=\"next\"` 가 없을 때까지 전 페이지를 누적한다 — 기본 page_size 단일 호출은 앞부분만 와 묻혀버린 절단(silent truncation)이 된다.
 - **맥락**: 당초 task 022 초안은 Docker Registry HTTP API v2(`/v2/_catalog`, `/v2/{repo}/tags/list`)를 우회로 가정했으나, 2026-06-12 실측에서 `/v2/_catalog` 는 Harbor 시스템 admin 전용이라 일반 UAK 토큰으로 **401**(catalog scope Bearer 토큰을 발급받아도 권한 없음). 반면 Harbor REST `/api/v2.0/projects/{project}/repositories` 와 `/artifacts` 는 UAK Basic Auth 로 **200**. Docker v2 의 Bearer 토큰 교환(`/service/token`)보다 단순하고 권한도 통과한다.
 - **대안 기각**:
   - Docker Registry v2 `/v2/_catalog` — admin 전용 401. repository 열거 우회 불가(실측 확정).
