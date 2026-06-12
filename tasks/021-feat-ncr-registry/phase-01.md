@@ -81,6 +81,7 @@ export class NcrClient {
 }
 ```
 
+- `DEFAULT_TIMEOUT_MS` 는 deploy/instance/blockstorage 처럼 **export 가 아니라 각 client 모듈 로컬 const** 다(`grep -n "DEFAULT_TIMEOUT_MS" src/services/deploy/client.ts` 로 확인). ncr client.ts 안에 `const DEFAULT_TIMEOUT_MS = 30_000;` 를 로컬 정의한다 — import 시도하면 빌드 실패.
 - 호출: `ky.get(url, { headers: this.authHeaders(), retry: 0, timeout: DEFAULT_TIMEOUT_MS }).json<NhnEnvelope<...>>()` → `unwrap(res)`. try/catch → `toNhnCloudCliError(err)`.
 - path 세그먼트 `encodeURIComponent(appKey)` / `encodeURIComponent(registry)` (경로 주입·인코딩 — deploy 선례 ADR-015 round, path-traversal 방지).
 - 봉투 body 형태가 배열인지 `{ registries }` 객체인지는 실측 확정. **5-3 회피**: optional body 를 `as T` 로 반환하지 말고 unwrap 의 undefined guard 를 통과시킨 뒤 가드로 좁힌다.
@@ -115,7 +116,7 @@ deploy/instance 명령 패턴 답습. **spinner 순서(1-1/1-2 회피)**:
 5. `output(opts, { headers, rows, raw, ids })`.
 
 - `list`: headers `["name", "repo_count", "uri"]`, ids = `registries.map(r => r.name)`. `repo_count` 등 수치는 `String(r.repo_count ?? "")`.
-- `get <registry>`: 단일 레지스트리. argument `<registry>`(이름 또는 id).
+- `get <registry>`: 단일 레지스트리. argument `<registry>`(이름 또는 id). **CLI15 — argument 가 공백/빈문자열이면 spinner 전에 EXIT_PARAM_ERROR + 안내**(`encodeURIComponent` 는 경로 주입만 막지 빈값은 안 막아 `/registries/` trailing 으로 목록 endpoint 와 혼동될 수 있음). `registry.trim()` 비어있으면 거절.
 - 옵션: `--region <region>`, `--app-key <key>`, `--profile <name>`. `--region` 은 자유 문자열(미등록 시 `ncrHost` 가 EXIT_PARAM_ERROR) — region enum 을 명령에 또 정의하지 않는다(4-2).
 - **9-1 회피**: exit code 는 `EXIT_*` 상수 import, 숫자 리터럴 금지.
 
@@ -134,6 +135,18 @@ program.addCommand(ncrCommand);
 - `configure.ts`: 대화형에 `confirm("ncr 자격증명도 설정하시겠습니까?")` → `input("ncr appkey")`. 비대화형 `--ncr-appkey <key>`. 저장은 `setServiceCredential(profile, "ncr", { appkey })`.
 - `configure-verify.ts`: `verifyNcr(uak, appkey, region="kr1")` — `NcrClient.listRegistries(appkey)` 1회 호출, 401/403(EXIT_AUTH_ERROR) → false, 그 외 통과. **인증 secret 은 공통 UAK 이므로 verify 시 UAK 도 함께 넘긴다**.
 - configure 의 ncr 입력은 **region 을 묻지 않는다**(명령 `--region` 으로 충분 + 4-2 enum 중복 회피).
+
+#### configure.ts 통합 표면 wiring — 5곳 동시 수정 (pitfall 1-14 직격, 누락 시 기능 버그)
+
+`--ncr-appkey` 옵션 하나를 추가하면 아래 5곳을 **함께** 손대야 한다. 한 곳이라도 빠지면 ncr 관련 호출이 조용히 오작동한다. 작성 직전 `grep -nE "hasFlag|saveAndVerify|runNonInteractive|!uak|!logncrash|!iaas" src/commands/configure.ts` 로 현재 line 을 재확인(아래 번호는 참고값):
+
+1. **옵션 정의** — `ConfigureOptions` 타입에 `ncrAppkey?: string` + Commander `.option("--ncr-appkey <key>", "NCR appkey")` 추가.
+2. **runNonInteractive 파싱**(현 line 187~) — uak/logncrash/iaas 옆에 `const ncr = opts.ncrAppkey ? { appkey: opts.ncrAppkey } : undefined;` 추가.
+3. **nonInteractive 빈-가드**(현 line 213 `if (!uak && !logncrash && !iaas)`) — `&& !ncr` 추가. 누락 시 `--ncr-appkey` 단독 호출이 "설정할 항목 없음" 오류로 잘못 빠진다.
+4. **hasFlag OR-체인**(현 line 246~253) — `|| opts.ncrAppkey` 추가. 누락 시 `configure --ncr-appkey X` 가 비대화형이 아닌 **대화형으로 빠진다**(스크립트·AI 호출 차단).
+5. **saveAndVerify 시그니처 + 호출처 4곳** — 현 line 31 정의는 **고정 위치인자** `(profileName, uak, logncrash, iaas, doVerify)`. ncr 파라미터를 추가하면 시그니처와 호출처 4곳(interactive line 165/177/183 + nonInteractive line 227)을 **전부** 수정한다(위치인자라 한 곳만 빠뜨려도 인자가 밀려 타입 에러 또는 잘못된 값 전달).
+
+self-check: 위 5곳을 `grep` 으로 다시 훑어 `ncr`/`ncrAppkey` 가 모두 등장하는지 확인. interactive 경고 mismatch(추가한 옵션이 한 분기에만 있고 다른 분기엔 없음) 0건.
 
 ### 8. 단위테스트 (020 패턴 답습)
 
