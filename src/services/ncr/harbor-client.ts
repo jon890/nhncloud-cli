@@ -10,6 +10,9 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 /** Harbor 최대 page_size (100) — 모듈 로컬 const (export 아님) */
 const PAGE_SIZE = 100;
 
+/** pagination 무한루프 안전망 — Harbor 버그·프록시 변조로 rel="next" 가 영구 유지될 때 차단 */
+const MAX_PAGES = 1000;
+
 /**
  * Harbor REST API v2.0 클라이언트 (ADR-017).
  *
@@ -63,6 +66,13 @@ export class HarborClient {
         const link = res.headers.get("link");
         if (!link || !link.includes('rel="next"')) break;
         page++;
+        if (page > MAX_PAGES) {
+          // Harbor 버그·프록시 변조로 rel="next" 가 영구 유지되는 비정상 상황 차단.
+          throw new NhnCloudCliError(
+            `Harbor pagination 최대 페이지(${MAX_PAGES}) 초과 — 비정상 응답으로 중단합니다.`,
+            EXIT_API_ERROR,
+          );
+        }
       }
     } catch (err) {
       if (err instanceof NhnCloudCliError) throw err;
