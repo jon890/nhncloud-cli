@@ -1,6 +1,6 @@
 import ky from "ky";
 import { ncrHost } from "../../api/endpoints.js";
-import { unwrap, type NhnEnvelope } from "../../api/envelope.js";
+import { unwrapHeader, type NhnEnvelope } from "../../api/envelope.js";
 import { toNhnCloudCliError } from "../../api/httpError.js";
 import { isRegistry, type Registry } from "./types.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
@@ -10,9 +10,21 @@ import { EXIT_API_ERROR } from "../../utils/exit-codes.js";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 /**
+ * NCR Management API 응답 봉투 (실측 확정 — ADR-016).
+ * 표준 NHN 봉투의 `body` 가 아니라 `header` 와 나란히 named 필드로 온다:
+ * 목록은 `registries`, 단건은 `registry`. 따라서 unwrap(body 필수) 대신
+ * unwrapHeader(header 검사) 후 named 필드를 직접 읽는다.
+ */
+interface NcrListResponse extends NhnEnvelope<unknown> {
+  registries?: Registry[];
+}
+interface NcrGetResponse extends NhnEnvelope<unknown> {
+  registry?: Registry;
+}
+
+/**
  * NCR Management API 클라이언트 (ADR-016).
  * 공통 UAK 를 정적 헤더(X-TC-AUTHENTICATION-ID/SECRET)로 직접 전송 — OAuth 교환 없음.
- * 실측 pending: 헤더 표기 대소문자/하이픈 — 401 이면 교정.
  */
 export class NcrClient {
   private readonly uakId: string;
@@ -35,7 +47,7 @@ export class NcrClient {
   /**
    * 레지스트리 목록을 반환한다.
    * GET /ncr/v2.0/appkeys/{appKey}/registries
-   * 실측 pending: 응답 봉투 body 가 배열인지 { registries: [...] } 객체인지.
+   * 응답: { header, registries: [...] } — body 가 아니라 named 필드.
    */
   async listRegistries(appKey: string): Promise<Registry[]> {
     const url = `${this.baseUrl}/ncr/v2.0/appkeys/${encodeURIComponent(appKey)}/registries`;
@@ -46,27 +58,18 @@ export class NcrClient {
           retry: 0,
           timeout: DEFAULT_TIMEOUT_MS,
         })
-        .json<NhnEnvelope<unknown>>();
+        .json<NcrListResponse>();
 
-      const body = unwrap(res);
-
-      // 실측 pending: body 가 배열 또는 { registries: [...] } 객체일 수 있음
-      if (Array.isArray(body)) {
-        return body.filter(isRegistry);
+      unwrapHeader(res);
+      if (!Array.isArray(res.registries)) {
+        // 누락은 빈 목록, 비배열(키 형태 변경)은 명확한 형식 오류 — getRegistry 와 같은 결.
+        if (res.registries === undefined) return [];
+        throw new NhnCloudCliError(
+          "NCR API 응답 형식 오류: registries 가 배열이 아닙니다.",
+          EXIT_API_ERROR,
+        );
       }
-
-      if (typeof body === "object" && body !== null) {
-        const obj = body as Record<string, unknown>;
-        const arr = obj["registries"];
-        if (Array.isArray(arr)) {
-          return arr.filter(isRegistry);
-        }
-      }
-
-      throw new NhnCloudCliError(
-        "NCR API 응답 형식 오류: registries 배열을 찾을 수 없습니다.",
-        EXIT_API_ERROR,
-      );
+      return res.registries.filter(isRegistry);
     } catch (err) {
       if (err instanceof NhnCloudCliError) throw err;
       throw toNhnCloudCliError(err);
@@ -76,6 +79,7 @@ export class NcrClient {
   /**
    * 단일 레지스트리를 반환한다.
    * GET /ncr/v2.0/appkeys/{appKey}/registries/{registryNameOrId}
+   * 응답: { header, registry: {...} } — body 가 아니라 named 필드.
    */
   async getRegistry(appKey: string, registry: string): Promise<Registry> {
     const url = `${this.baseUrl}/ncr/v2.0/appkeys/${encodeURIComponent(appKey)}/registries/${encodeURIComponent(registry)}`;
@@ -86,21 +90,11 @@ export class NcrClient {
           retry: 0,
           timeout: DEFAULT_TIMEOUT_MS,
         })
-        .json<NhnEnvelope<unknown>>();
+        .json<NcrGetResponse>();
 
-      const body = unwrap(res);
-
-      // body 가 Registry 직접 또는 { registry: {...} } 객체일 수 있음
-      if (isRegistry(body)) {
-        return body;
-      }
-
-      if (typeof body === "object" && body !== null) {
-        const obj = body as Record<string, unknown>;
-        const reg = obj["registry"];
-        if (isRegistry(reg)) {
-          return reg;
-        }
+      unwrapHeader(res);
+      if (res.registry && isRegistry(res.registry)) {
+        return res.registry;
       }
 
       throw new NhnCloudCliError(

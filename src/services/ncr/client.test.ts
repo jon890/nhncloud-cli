@@ -9,31 +9,15 @@ vi.mock("ky");
 describe("NcrClient.listRegistries", () => {
   beforeEach(() => vi.resetAllMocks());
 
-  it("봉투 unwrap 후 Registry[] 반환 — body 가 배열 형태", async () => {
+  it("{ header, registries: [...] } 에서 Registry[] 반환 (nullable uri·string repo_count 수용)", async () => {
+    // 실측 확정: body 가 아니라 header 와 나란히 registries named 필드로 온다.
     vi.mocked(ky.get).mockReturnValue({
       json: async () => ({
         header: { isSuccessful: true, resultCode: 0, resultMessage: "OK" },
-        body: [{ name: "my-registry", repo_count: 3, uri: "kr1-ncr.example.com/my-registry" }],
-      }),
-    } as never);
-
-    const client = new NcrClient("uak-id", "uak-secret", "kr1");
-    const result = await client.listRegistries("test-appkey");
-    expect(result).toHaveLength(1);
-    expect(result[0].name).toBe("my-registry");
-    expect(result[0].repo_count).toBe(3);
-  });
-
-  it("봉투 unwrap 후 Registry[] 반환 — body 가 { registries: [...] } 형태", async () => {
-    vi.mocked(ky.get).mockReturnValue({
-      json: async () => ({
-        header: { isSuccessful: true, resultCode: 0, resultMessage: "OK" },
-        body: {
-          registries: [
-            { name: "registry-a", repo_count: 1, uri: null },
-            { name: "registry-b", repo_count: "0", uri: "example.com/b", private_uri: null },
-          ],
-        },
+        registries: [
+          { name: "registry-a", repo_count: 3, uri: "example.com/registry-a", private_uri: null },
+          { name: "registry-b", repo_count: "0", uri: null },
+        ],
       }),
     } as never);
 
@@ -42,12 +26,38 @@ describe("NcrClient.listRegistries", () => {
     expect(result).toHaveLength(2);
     expect(result[0].name).toBe("registry-a");
     // 5-6 검증: uri 가 null 이어도 거르지 않는다
-    expect(result[0].uri).toBeNull();
+    expect(result[1].uri).toBeNull();
     // 6-2 검증: repo_count 가 string 이어도 수용
     expect(result[1].repo_count).toBe("0");
   });
 
-  it("isSuccessful=false 면 throw", async () => {
+  it("registries 누락 시 빈 배열 반환 (방어)", async () => {
+    vi.mocked(ky.get).mockReturnValue({
+      json: async () => ({
+        header: { isSuccessful: true, resultCode: 0, resultMessage: "OK" },
+      }),
+    } as never);
+
+    const client = new NcrClient("uak-id", "uak-secret", "kr1");
+    const result = await client.listRegistries("test-appkey");
+    expect(result).toEqual([]);
+  });
+
+  it("registries 가 비배열(키 형태 변경)이면 형식 오류 throw — .filter TypeError 방지", async () => {
+    vi.mocked(ky.get).mockReturnValue({
+      json: async () => ({
+        header: { isSuccessful: true, resultCode: 0, resultMessage: "OK" },
+        registries: { unexpected: "object" },
+      }),
+    } as never);
+
+    const client = new NcrClient("uak-id", "uak-secret", "kr1");
+    await expect(client.listRegistries("test-appkey")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+
+  it("isSuccessful=false 면 throw (EXIT_API_ERROR)", async () => {
     vi.mocked(ky.get).mockReturnValue({
       json: async () => ({
         header: { isSuccessful: false, resultCode: 401, resultMessage: "Unauthorized" },
@@ -55,7 +65,9 @@ describe("NcrClient.listRegistries", () => {
     } as never);
 
     const client = new NcrClient("uak-id", "uak-secret", "kr1");
-    await expect(client.listRegistries("test-appkey")).rejects.toBeInstanceOf(NhnCloudCliError);
+    await expect(client.listRegistries("test-appkey")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
   });
 
   it("HTTP 401 → EXIT_AUTH_ERROR (toNhnCloudCliError 매핑 흉내)", async () => {
@@ -86,11 +98,11 @@ describe("NcrClient.listRegistries", () => {
     });
   });
 
-  it("region host 해석: kr1 → kr1-ncr.api.nhncloudservice.com 호출", async () => {
+  it("region host 해석 + 정적 UAK 헤더: kr1-ncr.api.nhncloudservice.com + X-TC-AUTHENTICATION-ID/SECRET", async () => {
     vi.mocked(ky.get).mockReturnValue({
       json: async () => ({
         header: { isSuccessful: true, resultCode: 0, resultMessage: "OK" },
-        body: [],
+        registries: [],
       }),
     } as never);
 
@@ -99,7 +111,12 @@ describe("NcrClient.listRegistries", () => {
 
     expect(ky.get).toHaveBeenCalledWith(
       expect.stringContaining("kr1-ncr.api.nhncloudservice.com"),
-      expect.any(Object),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          "X-TC-AUTHENTICATION-ID": "id",
+          "X-TC-AUTHENTICATION-SECRET": "secret",
+        }),
+      }),
     );
   });
 
@@ -113,11 +130,11 @@ describe("NcrClient.listRegistries", () => {
 describe("NcrClient.getRegistry", () => {
   beforeEach(() => vi.resetAllMocks());
 
-  it("단일 레지스트리 반환 — body 가 Registry 직접", async () => {
+  it("{ header, registry: {...} } 에서 단일 Registry 반환", async () => {
     vi.mocked(ky.get).mockReturnValue({
       json: async () => ({
         header: { isSuccessful: true, resultCode: 0, resultMessage: "OK" },
-        body: { name: "my-registry", repo_count: 5, uri: "example.com/my-registry", private_uri: null },
+        registry: { name: "my-registry", repo_count: 5, uri: "example.com/my-registry", private_uri: null },
       }),
     } as never);
 
@@ -127,19 +144,17 @@ describe("NcrClient.getRegistry", () => {
     expect(result.private_uri).toBeNull();
   });
 
-  it("단일 레지스트리 반환 — body 가 { registry: {...} } 형태", async () => {
+  it("registry 필드 누락 시 형식 오류 throw (EXIT_API_ERROR)", async () => {
     vi.mocked(ky.get).mockReturnValue({
       json: async () => ({
         header: { isSuccessful: true, resultCode: 0, resultMessage: "OK" },
-        body: {
-          registry: { name: "wrapped-registry", repo_count: "2", uri: null },
-        },
       }),
     } as never);
 
     const client = new NcrClient("uak-id", "uak-secret", "kr1");
-    const result = await client.getRegistry("test-appkey", "wrapped-registry");
-    expect(result.name).toBe("wrapped-registry");
+    await expect(client.getRegistry("test-appkey", "my-registry")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
   });
 
   it("HTTP 401 → EXIT_AUTH_ERROR (toNhnCloudCliError 매핑 흉내)", async () => {
