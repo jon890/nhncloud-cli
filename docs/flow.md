@@ -435,8 +435,10 @@ nhncloud floatingip delete <id> [options]        # 삭제 (쓰기 — 기본 con
 레지스트리 조회 명령군. NCR Management API 는 공통 UAK 를 정적 헤더(`X-TC-AUTHENTICATION-ID/SECRET`)로 받고 region 별 host 를 쓴다([[adr-016]]) — deploy 의 OAuth 토큰 교환이 없다.
 
 ```
-nhncloud ncr list [options]                      # 레지스트리 목록 (name·repo_count·uri)
-nhncloud ncr get <registry> [options]            # 단일 레지스트리 조회 (이름 또는 id)
+nhncloud ncr list [options]                          # 레지스트리 목록 (name·repo_count·uri)
+nhncloud ncr get <registry> [options]                # 단일 레지스트리 조회 (이름 또는 id)
+nhncloud ncr images <registry> [options]             # 이미지(repository) 목록 (Harbor REST, [[adr-017]])
+nhncloud ncr tags <registry> <repository> [options]  # 특정 이미지의 태그 목록 (artifact tags flatten)
 ```
 
 | 옵션 | 설명 |
@@ -448,7 +450,9 @@ nhncloud ncr get <registry> [options]            # 단일 레지스트리 조회
 두 가지 비자명한 흐름:
 
 - **appKey 해석 순서**: `--app-key` 옵션 > profile 의 `ncr` 블록(`{ appkey }`). 둘 다 없으면 설정 안내와 함께 `EXIT_CONFIG_ERROR`. 인증 비밀은 공통 UAK secret 을 재사용하므로 ncr 블록에 secret 을 따로 두지 않는다.
-- **이미지/태그 조회 부재**: NCR public API 에는 이미지·태그 목록 조회 endpoint 가 없다(콘솔 UI 전용). Docker Registry HTTP API v2(`/v2/_catalog`·`/v2/{repo}/tags/list`) 우회는 실측 확정 후 후속 task 022 에서 `ncr images`·`ncr tags` 로 도입한다.
+- **이미지/태그 조회 경로**: NCR Management API 에는 이미지·태그 목록 endpoint 가 없어, 레지스트리 데이터플레인 host 의 **Harbor REST `/api/v2.0`** 을 직접 호출한다([[adr-017]]). host 는 `ncr get` 의 `registry.uri` 에서 추출, 인증은 UAK `Basic Auth`(Management API 의 X-TC 헤더와 다른 모델), 응답은 NHN 봉투가 아닌 Harbor 평면 JSON. 당초 가정한 Docker Registry v2 `/v2/_catalog` 는 admin 전용 401 이라 기각했다(실측).
+  - `ncr images <registry>`: `/api/v2.0/projects/{registry}/repositories` → repository 목록(name·artifact_count·pull_count).
+  - `ncr tags <registry> <repository>`: `/api/v2.0/projects/{registry}/repositories/{repo}/artifacts` → 각 artifact 의 `tags` 를 flatten(tag·push_time·size).
 
 ### ncr 에러 경로
 

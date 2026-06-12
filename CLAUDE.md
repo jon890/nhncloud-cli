@@ -5,7 +5,7 @@
 NHN Cloud 서비스를 AWS CLI 처럼 호출하는 통합 CLI.
 TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 
-## 지원 명령 (42개)
+## 지원 명령 (44개)
 
 - `configure` — 자격증명 설정 마법사 (대화형 + flag, UAK + 서비스별 키, 연결 테스트).
 - `logncrash search` — Log & Crash 로그 검색 (시간 범위는 90일 이내·31일 이하로 제한, 초과 시 입력 오류).
@@ -48,7 +48,9 @@ TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 - `floatingip create` — Floating IP 발급 (network endpoint 재사용·쓰기. `--network` 미지정 시 `router:external=true` VPC 자동 조회).
 - `floatingip delete <id>` — Floating IP 삭제 (기본 confirm, `--yes` 즉시·쓰기). associate(인스턴스 연결)는 instance→port_id 매핑 실측 미확정으로 보류.
 - `ncr list` — NHN Container Registry 레지스트리 목록 조회 (공통 UAK 정적 헤더 인증·ADR-016, `--region` 기본 kr1, `--app-key` 또는 ncr 자격증명). Harbor 파생 필드 name·repo_count·uri.
-- `ncr get <registry>` — 단일 레지스트리 조회 (이름 또는 id). 이미지/태그 목록은 공식 public API 부재로 Docker Registry v2 우회 — 후속 task 022 에서 실측 후 도입.
+- `ncr get <registry>` — 단일 레지스트리 조회 (이름 또는 id).
+- `ncr images <registry>` — 레지스트리의 이미지(repository) 목록 조회 (Harbor REST `/api/v2.0` 우회·UAK Basic Auth·ADR-017, name·artifact_count·pull_count).
+- `ncr tags <registry> <repository>` — 특정 이미지의 태그 목록 조회 (artifact 의 tags flatten·ADR-017, tag·push_time·size).
 
 ## API 스펙 확인 절차
 
@@ -122,6 +124,7 @@ src/
 | Log & Crash 로그 전송 (collector host·appkey-only 인증) | ADR-014 |
 | deploy 바이너리 전송 (multipart 업로드·봉투 우회 다운로드) | ADR-015, ADR-002, ADR-006 |
 | NCR(Container Registry) 레지스트리 조회 (공통 UAK 정적 헤더·region host) | ADR-016, ADR-004, ADR-005, ADR-006 |
+| NCR 이미지/태그 조회 (Harbor REST /api/v2.0 우회·UAK Basic Auth·봉투 미적용) | ADR-017, ADR-016, ADR-006 |
 
 신규 ADR 추가 시 본 표에 행 추가.
 
@@ -134,6 +137,7 @@ src/
 | Deploy v2.1 | UAK(id+secret) | `X-NHN-AUTHORIZATION: Bearer <token>` |
 | Instance (OpenStack Nova v2) | tenantId + username + API 비밀번호 | `X-Auth-Token: <tokenId>` (Keystone v2 발급, ADR-010) |
 | NCR (Container Registry, Harbor 기반) | 공통 UAK(id+secret) + NCR appkey | `X-TC-AUTHENTICATION-ID` + `X-TC-AUTHENTICATION-SECRET` (정적, 토큰 교환 없음·ADR-016) |
+| NCR 이미지/태그 (Harbor REST 데이터플레인) | 공통 UAK(id+secret) | HTTP Basic Auth (`Authorization: Basic base64(uak-id:uak-secret)`, 봉투 미적용·ADR-017) |
 
 - Deploy 토큰은 정적이 아니라 OAuth `client_credentials` 로 교환한 단기 토큰 (ADR-007).
   - OAuth: `oauth.api.nhncloudservice.com/oauth2/token/create`

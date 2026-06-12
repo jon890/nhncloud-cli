@@ -42,8 +42,9 @@ src/
       client.ts             # BlockStorageClient — list / get / create (volume, Cinder volumev2, [[adr-013]])
       types.ts              # Volume (name·volume_type nullable) / VolumeAttachment / CreateVolumeParams
     ncr/
-      client.ts             # NcrClient — listRegistries / getRegistry (공통 UAK 정적 헤더 X-TC-AUTHENTICATION-*, region 별 host, [[adr-016]])
-      types.ts              # Registry (Harbor 파생 snake_case — name·project_id·repo_count·uri) / RegistryListParams
+      client.ts             # NcrClient — listRegistries / getRegistry (Management API, 공통 UAK 정적 헤더 X-TC-AUTHENTICATION-*, region 별 host, [[adr-016]])
+      harbor-client.ts      # HarborClient — listRepositories / listArtifacts (데이터플레인 Harbor REST /api/v2.0, UAK Basic Auth, 봉투 미적용, [[adr-017]])
+      types.ts              # Registry / Repository / Artifact (Harbor 파생 snake_case) / RegistryListParams
   utils/
     errors.ts               # NhnCloudCliError(message, exitCode)
     exit-codes.ts           # EXIT_* 상수
@@ -96,6 +97,8 @@ src/
     ncr/
       list.ts               # nhncloud ncr list (레지스트리 목록, --region/--app-key)
       get.ts                # nhncloud ncr get <registry> (단일 레지스트리 조회)
+      images.ts             # nhncloud ncr images <registry> (이미지/repository 목록, Harbor REST, [[adr-017]])
+      tags.ts               # nhncloud ncr tags <registry> <repository> (태그 목록, artifact tags flatten, [[adr-017]])
       helpers.ts            # createNcrClient (공통 UAK 정적 헤더 + appKey/region 해석, [[adr-016]])
 ```
 
@@ -131,6 +134,7 @@ dooray-cli 는 단일 `config + client` 로 충분했지만, NHN Cloud 는 서�
   - instance: `X-Auth-Token: <tokenId>` + region 별 compute endpoint
   - network: `X-Auth-Token: <tokenId>` + region 별 network endpoint (instance 와 토큰 공유, [[adr-013]])
   - ncr: `X-TC-AUTHENTICATION-ID/SECRET` 공통 UAK 정적 헤더 + region 별 ncr host (토큰 교환 없음, [[adr-016]])
+  - ncr 이미지/태그: 데이터플레인 host 에 UAK `Basic Auth` + Harbor REST `/api/v2.0` (봉투 미적용, [[adr-017]])
 
 ## 커맨드 실행 흐름 (예: `nhncloud logncrash search`)
 
