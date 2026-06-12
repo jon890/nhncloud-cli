@@ -1,7 +1,7 @@
 # nhncloud-cli
 
 NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 통합 CLI.
-현재 `configure`, `logncrash search/send` (Log & Crash 로그 검색·전송), `deploy` (배포·바이너리 조회·업로드·다운로드), `instance` (Compute 인스턴스 목록·발급·전원 제어·타입 변경·키페어 관리·이미지·가용성 영역 조회·볼륨 연결 포함), `network` (VPC·서브넷 목록 조회), `volume` (Block Storage 볼륨 목록·조회·생성), `ncr` (NHN Container Registry 레지스트리 목록·조회) 명령을 지원한다.
+현재 `configure`, `logncrash search/send` (Log & Crash 로그 검색·전송), `deploy` (배포·바이너리 조회·업로드·다운로드), `instance` (Compute 인스턴스 목록·발급·전원 제어·타입 변경·키페어 관리·이미지·가용성 영역 조회·볼륨 연결 포함), `network` (VPC·서브넷 목록 조회), `volume` (Block Storage 볼륨 목록·조회·생성), `ncr` (NHN Container Registry 레지스트리 목록·조회·이미지 목록·태그 목록) 명령을 지원한다.
 
 ## 설치
 
@@ -469,8 +469,25 @@ nhncloud ncr list
 nhncloud ncr get <registry-name>
 ```
 
-> **이미지·태그 목록**: `ncr images` / `ncr tags` 는 후속 task 022 에서 Docker Registry v2 우회 실측 후 추가 예정이다.
-> 현재는 레지스트리(프로젝트) 목록·조회만 지원한다.
+이미지(repository)·태그는 레지스트리 데이터플레인 Harbor REST API 를 직접 호출한다.
+UAK 를 Basic Auth 로 사용하며 추가 설정은 없다.
+
+```bash
+# 이미지(repository) 목록 조회
+nhncloud ncr images <registry>
+
+# region 지정
+nhncloud ncr images <registry> --region kr2
+
+# JSON 출력
+nhncloud ncr images <registry> --json
+
+# 특정 이미지의 태그 목록 조회
+nhncloud ncr tags <registry> <repository>
+
+# JSON 출력 (태그·push_time·size)
+nhncloud ncr tags <registry> <repository> --json
+```
 
 ## 개발
 

@@ -267,7 +267,7 @@
   - host: region 별 `{region}-ncr.api.nhncloudservice.com` 정적 맵(`NCR_HOST`, [[adr-005]]·[[adr-013]] 의 region 맵 패턴 답습). IaaS region 과 별개 축이라 `--region` 옵션으로 받고 기본 `kr1`.
   - 경로: `GET /ncr/v2.0/appkeys/{appKey}/registries`(목록) / `.../registries/{registryNameOrId}`(조회). `appKey` 는 NCR 서비스 appkey — profile 의 `ncr` 블록(`{ appkey }`, [[adr-004]]) 또는 `--app-key` 옵션.
   - 응답: `header`(`isSuccessful`+숫자 `resultCode`, [[adr-006]])와 **나란히 named 필드**로 결과가 온다 — 목록은 `registries: [...]`, 단건은 `registry: {...}`. 표준 봉투의 `body` 가 **아니므로** `unwrap`(body 필수)이 아니라 `unwrapHeader`(헤더만 검사)를 쓰고 named 필드를 직접 읽는다. 레지스트리 필드는 Harbor 파생 snake_case(`name`·`project_id`·`repo_count`·`uri`·`private_uri`·`registry_id` 등).
-- **맥락**: NCR 은 CNCF Harbor 를 NHN 이 래핑한 서비스다. public Management API 는 레지스트리(프로젝트)·정책(보호/정리/웹훅) 관리만 제공하고 **이미지/태그(artifact) 목록 조회 endpoint 가 없다**(콘솔 UI 전용). 이미지/태그는 별도 데이터플레인 API 우회가 필요해 범위를 분리한다(task 022 에서 실측 후 ADR-017 신설 예정 — 실측 결과 Docker Registry v2 `_catalog` 는 admin 전용 401 이라 Harbor REST `/api/v2.0` 경로를 쓴다).
+- **맥락**: NCR 은 CNCF Harbor 를 NHN 이 래핑한 서비스다. public Management API 는 레지스트리(프로젝트)·정책(보호/정리/웹훅) 관리만 제공하고 **이미지/태그(artifact) 목록 조회 endpoint 가 없다**(콘솔 UI 전용). 이미지/태그는 별도 데이터플레인 API 우회가 필요해 범위를 분리한다([[adr-017]] 참조 — 실측 결과 Docker Registry v2 `_catalog` 는 admin 전용 401 이라 Harbor REST `/api/v2.0` 경로를 채택).
 - **실측 확정 (2026-06-12, playground 자격증명 실호출)**: 당초 봇차단으로 pending 이던 항목을 실호출로 확정.
   - 인증 헤더 `X-TC-AUTHENTICATION-ID/SECRET` 표기 그대로 200 — 교정 불요.
   - host `kr1-ncr.api.nhncloudservice.com` 200 확인.
@@ -288,6 +288,7 @@
   - `project` = 레지스트리 이름(Management API `registry.name`).
   - 인증: **UAK id/secret 을 Basic Auth** (Username=UAK id, Password=UAK secret) — docker login 자격과 동일. Management API 의 X-TC 정적 헤더와 다른 모델. Bearer 토큰 교환 불요.
   - 응답은 NHN 봉투가 **아니다** — Harbor 표준 평면 JSON 배열. `unwrap`/`unwrapHeader` 미적용([[adr-006]] 미적용·[[adr-015]] download 와 같은 봉투 우회 결). 성공/실패는 HTTP status(ky `throwHttpErrors`)로 판정하고 `toNhnCloudCliError` 로 매핑.
+  - pagination: `?page=N&page_size=100`(Harbor 최대 100) + 응답 `Link: <...page=N+1...>; rel=\"next\"` 헤더. repository·artifact 목록은 커질 수 있어(실측: 한 repo 에 artifact 60개·`x-total-count` 헤더) `rel=\"next\"` 가 없을 때까지 전 페이지를 누적한다 — 기본 page_size 단일 호출은 앞부분만 와 묻혀버린 절단(silent truncation)이 된다.
 - **맥락**: 당초 task 022 초안은 Docker Registry HTTP API v2(`/v2/_catalog`, `/v2/{repo}/tags/list`)를 우회로 가정했으나, 2026-06-12 실측에서 `/v2/_catalog` 는 Harbor 시스템 admin 전용이라 일반 UAK 토큰으로 **401**(catalog scope Bearer 토큰을 발급받아도 권한 없음). 반면 Harbor REST `/api/v2.0/projects/{project}/repositories` 와 `/artifacts` 는 UAK Basic Auth 로 **200**. Docker v2 의 Bearer 토큰 교환(`/service/token`)보다 단순하고 권한도 통과한다.
 - **대안 기각**:
   - Docker Registry v2 `/v2/_catalog` — admin 전용 401. repository 열거 우회 불가(실측 확정).

@@ -62,14 +62,37 @@ export class HarborClient {
 }
 ```
 
-- `DEFAULT_TIMEOUT_MS` 는 모듈 로컬 const(`const DEFAULT_TIMEOUT_MS = 30_000;`, export 아님 — deploy/ncr client 패턴).
-- 호출: `ky.get(url, { headers: this.basicAuthHeaders(), retry: 0, timeout: DEFAULT_TIMEOUT_MS }).json<unknown>()`.
-  - **봉투 미적용(ADR-017)**: Harbor 응답은 평면 배열이다. `unwrap`/`unwrapHeader` 를 호출하지 않는다. `const data = await ...json<unknown>();` 후 `Array.isArray(data)` 가드 → 비배열이면 `NhnCloudCliError("... 응답 형식 오류 ...", EXIT_API_ERROR)`, 배열이면 `.filter(isRepository)`/`.filter(isArtifact)`.
-  - HTTP 4xx/5xx 는 ky 기본 `throwHttpErrors` 로 throw → `catch { if (err instanceof NhnCloudCliError) throw err; throw toNhnCloudCliError(err); }` (401/403→AUTH, 그 외→API).
-- URL:
-  - repositories: `https://${host}/api/v2.0/projects/${encodeURIComponent(project)}/repositories`
-  - artifacts: `https://${host}/api/v2.0/projects/${encodeURIComponent(project)}/repositories/${encodeURIComponent(repository)}/artifacts`
-  - **path-traversal 방지**: project·repository 모두 `encodeURIComponent`(repo 의 `/` 도 `%2F` 로).
+- `DEFAULT_TIMEOUT_MS`(`30_000`) + `PAGE_SIZE`(`100`) 는 모듈 로컬 const(export 아님 — deploy/ncr client 패턴). Harbor 최대 page_size 가 100.
+- **pagination 전수 수집 (필수 — 실측: 한 repo 에 artifact 60개, Harbor 기본 page_size 로 앞부분만 와 silent truncation)**: Harbor REST `/repositories`·`/artifacts` 는 `?page=N&page_size=100` + 응답 `Link: <...?page=N+1...>; rel="next"` 헤더로 페이지네이션한다(2026-06-12 실측 확정 — `x-total-count: 60`, `Link ... rel="next"`). private helper 로 전 페이지를 누적한다:
+  ```ts
+  private async getAllPages(path: string): Promise<unknown[]> {
+    const acc: unknown[] = [];
+    let page = 1;
+    try {
+      for (;;) {
+        const url = `https://${this.host}${path}?page=${page}&page_size=${PAGE_SIZE}`;
+        const res = await ky.get(url, { headers: this.basicAuthHeaders(), retry: 0, timeout: DEFAULT_TIMEOUT_MS });
+        const data = await res.json<unknown>();
+        if (!Array.isArray(data)) {
+          throw new NhnCloudCliError("Harbor REST 응답 형식 오류: 배열이 아닙니다.", EXIT_API_ERROR);
+        }
+        acc.push(...data);
+        const link = res.headers.get("link");
+        if (!link || !link.includes('rel="next"')) break;   // 다음 페이지 없으면 종료
+        page++;
+      }
+    } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
+      throw toNhnCloudCliError(err);                          // 401/403→AUTH, 그 외→API
+    }
+    return acc;
+  }
+  ```
+  - `ky.get(...)` 는 Response 를 반환하므로 `.json()` 과 `.headers.get("link")` 를 **함께** 쓴다(기존 ncr client 의 `.json<T>()` 체이닝과 다름 — 페이지네이션 Link 헤더 접근이 필요). 기존 client 처럼 `.json<NhnEnvelope>()` 체이닝하면 헤더를 못 본다.
+  - **봉투 미적용(ADR-017)**: Harbor 응답은 평면 배열이라 `unwrap`/`unwrapHeader` 를 호출하지 않는다. `Array.isArray` 가드만 둔다.
+- `listRepositories(project)`: `getAllPages("/api/v2.0/projects/{enc}/repositories")` → `.filter(isRepository)`.
+- `listArtifacts(project, repository)`: `getAllPages("/api/v2.0/projects/{enc}/repositories/{enc}/artifacts")` → `.filter(isArtifact)`.
+- **path-traversal 방지**: project·repository 모두 `encodeURIComponent`(repo 의 `/` 도 `%2F` 로).
 
 ### 3. `src/commands/ncr/helpers.ts` — host 해석 추가 (ncr get 재사용)
 
@@ -89,7 +112,8 @@ export async function createHarborClient(opts: { profile?: string; region?: stri
 }
 
 // uri "{host}/{registryName}" (scheme 유무 무관) → host 부분만.
-function parseHarborHost(uri?: string | null): string {
+// 단위테스트 대상이라 export 한다(§6).
+export function parseHarborHost(uri?: string | null): string {
   if (!uri) throw new NhnCloudCliError("레지스트리 uri 가 없어 이미지 host 를 해석할 수 없습니다.", EXIT_API_ERROR);
   const noScheme = uri.replace(/^https?:\/\//, "");
   const host = noScheme.split("/")[0];
@@ -114,27 +138,50 @@ function parseHarborHost(uri?: string | null): string {
 - `tags <registry> <repository>`:
   - registry·repository 빈값은 spinner 전 EXIT_PARAM_ERROR.
   - `const { harbor, project } = await createHarborClient(opts, registry);`
-  - `const artifacts = await harbor.listArtifacts(project, repository);`
+  - **repository 인자 정규화(critic MINOR)**: 사용자가 `ncr images` 의 짧은 이름 대신 full `{project}/{repo}` 를 복사해 넣어도 동작하게, project 접두가 있으면 떼어낸다 — `const repo = repository.startsWith(project + "/") ? repository.slice(project.length + 1) : repository;`. 안 떼면 `encodeURIComponent` 가 prefix 의 `/` 까지 인코딩해 404.
+  - `const artifacts = await harbor.listArtifacts(project, repo);`
   - flatten: `artifacts.flatMap(a => (a.tags ?? []).map(t => ({ tag: t.name, push_time: t.push_time ?? a.push_time, size: a.size })))` — tags=null dangling artifact 는 자동 제외.
   - headers `["tag", "push_time", "size"]`, rows 의 size 는 `String(... ?? "")`, ids = tag 목록.
 - 옵션: `--region`, `--app-key`, `--profile`(images·tags 공통). 9-1: exit code 는 `EXIT_*` 상수, 숫자 리터럴 금지.
 
-### 5. `src/index.ts` — images/tags 등록
+### 5. `src/index.ts` — images/tags 등록 (**import alias 필수**)
+
+`src/index.ts:33` 에 이미 `import { imagesCommand } from "./commands/instance/images.js"` 가 있다(instance images). ncr 쪽을 bare `imagesCommand` 로 import 하면 **duplicate identifier → tsc 실패**. ncr list/get 과 같은 alias 컨벤션을 따른다:
 
 ```ts
-ncrCommand.addCommand(imagesCommand);
-ncrCommand.addCommand(tagsCommand);
+import { imagesCommand as ncrImagesCommand } from "./commands/ncr/images.js";
+import { tagsCommand as ncrTagsCommand } from "./commands/ncr/tags.js";
+// ...
+ncrCommand.addCommand(ncrImagesCommand);
+ncrCommand.addCommand(ncrTagsCommand);
 ```
+
+(ncr images.ts/tags.ts 내부 export 이름은 `imagesCommand`/`tagsCommand` 로 두되 import 시 alias.)
 
 ### 6. 단위테스트 `src/services/ncr/harbor-client.test.ts` (020 패턴)
 
-`vi.mock("ky")`:
-- `listRepositories` 가 평면 배열을 반환(mock `.json()` 에 배열 주입) → Repository[] (name·artifact_count 수용, string/number).
-- `listArtifacts` 가 평면 배열 반환, tags=null artifact 포함 → flatten 시 제외 확인은 command 레벨이라 client 는 배열 그대로 반환.
-- **Basic Auth 헤더 단언**: `ky.get` 호출 인자에 `Authorization: Basic <base64>` 가 들어가는지(`expect.objectContaining`). `Buffer.from("id:secret").toString("base64")` 와 일치.
-- URL 단언: `/api/v2.0/projects/{project}/repositories` host 포함.
-- 비배열 응답 → 형식 오류 throw(EXIT_API_ERROR).
-- 4xx mock(2-3): reject value 는 `toNhnCloudCliError` 매핑(401→AUTH, 404→API) 흉내.
+**`src/services/ncr/harbor-client.test.ts`** — `vi.mock("ky")`. pagination 때문에 mock 은 `.json()` 체이닝이 아니라 **Response 객체(`json` + `headers.get`)** 를 반환한다:
+```ts
+function page(data: unknown, hasNext: boolean) {
+  return {
+    json: async () => data,
+    headers: { get: (k: string) => (k === "link" && hasNext ? '<...>; rel="next"' : null) },
+  } as never;
+}
+```
+- `listRepositories`: 단일 페이지(`page([...], false)`) → Repository[] 반환. name·artifact_count(string/number 6-2) 수용.
+- **pagination 전수 수집(silent truncation 회귀 가드 — 핵심)**: `vi.mocked(ky.get).mockResolvedValueOnce(page([r1], true)).mockResolvedValueOnce(page([r2], false))` 로 2페이지 → 결과 길이 2, `ky.get` **2회** 호출(`page=1`·`page=2`) 단언. Link 에 rel="next" 가 없을 때 멈추는지 확인.
+- `listArtifacts`: 평면 배열, tags=null artifact 포함 → 그대로 반환(flatten 은 command 레벨).
+- **Basic Auth 헤더 단언**: `ky.get` 호출 인자에 `Authorization: Basic ${Buffer.from("id:secret").toString("base64")}` 가 들어가는지(`expect.objectContaining`).
+- URL 단언: `/api/v2.0/projects/{project}/repositories` host 포함 + `page_size=100`.
+- 비배열 응답(`page({}, false)`) → 형식 오류 throw(EXIT_API_ERROR).
+- 4xx mock(2-3): `ky.get` 이 reject → `toNhnCloudCliError` 매핑(401→AUTH, 404→API). `vi.mock(ky)` 가 HTTPError instanceof 를 깨므로 `NhnCloudCliError` 직접 throw 로 흉내(021 `client.test.ts` 선례).
+
+**`src/commands/ncr/helpers.test.ts`** — `parseHarborHost`(export) 순수 함수:
+- `"host.example.com/myreg"` → `"host.example.com"`.
+- `"https://host.example.com/myreg"` → scheme 제거 후 host.
+- `undefined`/`null`/`""` → EXIT_API_ERROR throw.
+- 중첩 경로 `"host.example.com/a/b"` → `"host.example.com"`(첫 `/` 앞).
 
 ## 회피 항목 (executor self-check — 작성 직전 grep)
 
@@ -144,6 +191,8 @@ ncrCommand.addCommand(tagsCommand);
 - **nullable tags(5-6)**: `a.tags ?? []` flatten. tags=null 거르지 않고 빈 처리.
 - **수치 string/number(6-2)**: artifact_count·pull_count·size 를 number-only 가정 금지.
 - **비배열 가드**: `Array.isArray` 후 filter — `.filter is not a function` 방지(021 hotfix PR #27 교훈).
+- **pagination 전수 수집**: `getAllPages` 가 `Link: rel="next"` 가 없을 때까지 누적하는가? `grep -nE "rel=.next.|page_size" src/services/ncr/harbor-client.ts` — 실측상 한 repo 에 60개라 단일 호출이면 truncation.
+- **import alias**: `grep -nE "imagesCommand|tagsCommand" src/index.ts` — ncr 쪽이 `as ncrImagesCommand`/`as ncrTagsCommand` 인가(instance imagesCommand 와 충돌 금지).
 - **9-1 exit code 리터럴**: `grep -rnE "NhnCloudCliError\([^,]+,\s*[0-9]+" src/commands/ncr/ src/services/ncr/` → 0건.
 - **spinner 순서(1-1/1-2)**: host 해석(createHarborClient)·registry 빈값 검증이 startSpinner 앞.
 
