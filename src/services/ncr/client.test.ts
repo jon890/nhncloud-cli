@@ -43,6 +43,20 @@ describe("NcrClient.listRegistries", () => {
     expect(result).toEqual([]);
   });
 
+  it("registries 가 비배열(키 형태 변경)이면 형식 오류 throw — .filter TypeError 방지", async () => {
+    vi.mocked(ky.get).mockReturnValue({
+      json: async () => ({
+        header: { isSuccessful: true, resultCode: 0, resultMessage: "OK" },
+        registries: { unexpected: "object" },
+      }),
+    } as never);
+
+    const client = new NcrClient("uak-id", "uak-secret", "kr1");
+    await expect(client.listRegistries("test-appkey")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+
   it("isSuccessful=false 면 throw (EXIT_API_ERROR)", async () => {
     vi.mocked(ky.get).mockReturnValue({
       json: async () => ({

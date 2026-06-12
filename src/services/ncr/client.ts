@@ -61,7 +61,15 @@ export class NcrClient {
         .json<NcrListResponse>();
 
       unwrapHeader(res);
-      return (res.registries ?? []).filter(isRegistry);
+      if (!Array.isArray(res.registries)) {
+        // 누락은 빈 목록, 비배열(키 형태 변경)은 명확한 형식 오류 — getRegistry 와 같은 결.
+        if (res.registries === undefined) return [];
+        throw new NhnCloudCliError(
+          "NCR API 응답 형식 오류: registries 가 배열이 아닙니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return res.registries.filter(isRegistry);
     } catch (err) {
       if (err instanceof NhnCloudCliError) throw err;
       throw toNhnCloudCliError(err);
