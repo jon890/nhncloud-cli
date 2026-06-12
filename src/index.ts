@@ -37,6 +37,8 @@ import { volumeCommand as instanceVolumeCommand } from "./commands/instance/volu
 import { volumesCommand } from "./commands/instance/volumes.js";
 import { listCommand as ncrListCommand } from "./commands/ncr/list.js";
 import { getCommand as ncrGetCommand } from "./commands/ncr/get.js";
+import { imagesCommand as ncrImagesCommand } from "./commands/ncr/images.js";
+import { tagsCommand as ncrTagsCommand } from "./commands/ncr/tags.js";
 
 const program = new Command();
 
@@ -134,6 +136,8 @@ program.addCommand(floatingipCommand);
 const ncrCommand = new Command("ncr").description("NHN Container Registry 관련 명령");
 ncrCommand.addCommand(ncrListCommand);
 ncrCommand.addCommand(ncrGetCommand);
+ncrCommand.addCommand(ncrImagesCommand);
+ncrCommand.addCommand(ncrTagsCommand);
 
 program.addCommand(ncrCommand);
 
