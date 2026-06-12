@@ -42,13 +42,14 @@ export default defineConfig({
 
 ### 3. `src/api/httpError.test.ts` — toNhnCloudCliError 매핑
 
-ky `HTTPError` 를 mock 으로 구성(`new HTTPError(response, request, options)` 형태가 까다로우면 `{ response: { status } }` 형태를 충족하는 최소 객체 + `instanceof` 우회 불가 시 실제 `HTTPError` import). **실제 매핑이 곧 후속 테스트의 mock 기준이므로 정확히 고정한다**:
+ky `HTTPError` 를 **실제 인스턴스로** 구성한다 — `new HTTPError(new Response(null, { status }), new Request("https://example.com"), {} as never)`. `toNhnCloudCliError` 는 `err instanceof HTTPError` 로 분기하므로 `{ response: { status } }` 같은 평범한 객체는 분기를 타지 못하고 마지막 fallback(EXIT_API_ERROR)으로 빠진다 — 404/500 은 우연히 같은 값이라 **잘못된 이유로 green** 이 되니 반드시 실제 인스턴스를 쓴다. **실제 매핑이 곧 후속 테스트의 mock 기준이므로 정확히 고정한다**:
 
 - status 401 → `EXIT_AUTH_ERROR`
 - status 403 → `EXIT_AUTH_ERROR`
 - status 404 → `EXIT_API_ERROR`(404 가 AUTH 아님을 명시 — code-review-pitfalls 2-2 의 근거를 테스트로 박제)
 - status 500 → `EXIT_API_ERROR`
-- 비-HTTP `new Error("ECONNREFUSED")` → NhnCloudCliError 로 감싸지 않고 원형/일반 처리(현행 `toNhnCloudCliError` 동작을 먼저 코드로 확인 후 그 동작을 그대로 단언 — 테스트가 코드를 mirror, 코드를 테스트에 맞추지 말 것).
+- 비-HTTP `new Error("ECONNREFUSED")` → `NhnCloudCliError(err.message, EXIT_API_ERROR)` 로 **wrap**(httpError.ts:25-27 의 실제 동작 — HTTPError 가 아니므로 401/403 분기를 안 타 AUTH 아닌 API_ERROR). 원형 보존이 **아니다** — `instanceof NhnCloudCliError` 단언이 아니라 `exitCode === EXIT_API_ERROR` 단언으로 고정한다.
+- 입력이 이미 `NhnCloudCliError` 인스턴스이면 그대로 passthrough(httpError.ts:12-14) — 같은 객체를 반환하는지 1케이스 단언.
 
 > 작성 전 `src/api/httpError.ts` 를 읽어 실제 분기(어떤 status 가 어떤 exit code, raw Error 처리)를 확인하고 **코드의 실제 동작을 단언**한다. 추측으로 기대값을 쓰지 않는다.
 
