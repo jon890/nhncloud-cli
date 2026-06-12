@@ -427,3 +427,31 @@ nhncloud floatingip delete <id> [options]        # 삭제 (쓰기 — 기본 con
 | `iaas` 자격증명 누락 / Keystone 발급 실패 | `EXIT_CONFIG_ERROR` 또는 `EXIT_AUTH_ERROR` |
 | 외부 네트워크 미발견(create `--network` 미지정) / 비대화형 delete `--yes` 누락 | `EXIT_PARAM_ERROR` |
 | Floating IP API 4xx · 5xx | `EXIT_API_ERROR` |
+
+## ncr (NHN Container Registry) 흐름
+
+레지스트리 조회 명령군. NCR Management API 는 공통 UAK 를 정적 헤더(`X-TC-AUTHENTICATION-ID/SECRET`)로 받고 region 별 host 를 쓴다([[adr-016]]) — deploy 의 OAuth 토큰 교환이 없다.
+
+```
+nhncloud ncr list [options]                      # 레지스트리 목록 (name·repo_count·uri)
+nhncloud ncr get <registry> [options]            # 단일 레지스트리 조회 (이름 또는 id)
+```
+
+| 옵션 | 설명 |
+|------|------|
+| `--region <region>` | NCR region (기본 `kr1`. IaaS region 과 별개 축) |
+| `--app-key <key>` | NCR 서비스 appkey. 미지정 시 profile 의 `ncr.appkey` 사용 |
+| `--profile <name>` | 사용할 profile |
+
+두 가지 비자명한 흐름:
+
+- **appKey 해석 순서**: `--app-key` 옵션 > profile 의 `ncr` 블록(`{ appkey }`). 둘 다 없으면 설정 안내와 함께 `EXIT_CONFIG_ERROR`. 인증 비밀은 공통 UAK secret 을 재사용하므로 ncr 블록에 secret 을 따로 두지 않는다.
+- **이미지/태그 조회 부재**: NCR public API 에는 이미지·태그 목록 조회 endpoint 가 없다(콘솔 UI 전용). Docker Registry HTTP API v2(`/v2/_catalog`·`/v2/{repo}/tags/list`) 우회는 실측 확정 후 후속 task 022 에서 `ncr images`·`ncr tags` 로 도입한다.
+
+### ncr 에러 경로
+
+| 상황 | exit code |
+|------|-----------|
+| 공통 UAK 누락 / 인증 실패(401·403) | `EXIT_CONFIG_ERROR` 또는 `EXIT_AUTH_ERROR` |
+| appKey 미지정(옵션·자격증명 모두 없음) / 미등록 region | `EXIT_CONFIG_ERROR` / `EXIT_PARAM_ERROR` |
+| NCR API 4xx · 5xx | `EXIT_API_ERROR` |

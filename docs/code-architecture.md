@@ -18,7 +18,7 @@ src/
     credentials.ts          # ~/.nhncloud/ 로드 + 머지 쓰기, profile 해석
     types.ts                # Credentials(profile.userAccessKey + 서비스 블록) / Config 타입
   api/
-    endpoints.ts            # 서비스별 엔드포인트 맵 + image·network·blockstorage host 맵 + logncrash-collector 키 (adr-005, adr-013, adr-014)
+    endpoints.ts            # 서비스별 엔드포인트 맵 + image·network·blockstorage·ncr host 맵 + logncrash-collector 키 (adr-005, adr-013, adr-014, adr-016)
     envelope.ts             # NHN 공통 봉투 unwrap + 에러 매핑 (adr-006)
     httpError.ts            # ky HTTPError → NhnCloudCliError (status별 exit code)
     oauth.ts                # UAK → access_token 교환 + 캐시 (adr-007)
@@ -41,6 +41,9 @@ src/
     blockstorage/
       client.ts             # BlockStorageClient — list / get / create (volume, Cinder volumev2, [[adr-013]])
       types.ts              # Volume (name·volume_type nullable) / VolumeAttachment / CreateVolumeParams
+    ncr/
+      client.ts             # NcrClient — listRegistries / getRegistry (공통 UAK 정적 헤더 X-TC-AUTHENTICATION-*, region 별 host, [[adr-016]])
+      types.ts              # Registry (Harbor 파생 snake_case — name·project_id·repo_count·uri) / RegistryListParams
   utils/
     errors.ts               # NhnCloudCliError(message, exitCode)
     exit-codes.ts           # EXIT_* 상수
@@ -90,7 +93,19 @@ src/
       get.ts                # nhncloud volume get <id>
       create.ts             # nhncloud volume create --size <GB> (쓰기)
       helpers.ts            # resolveVolumeClient (Keystone 토큰 공유, [[adr-013]])
+    ncr/
+      list.ts               # nhncloud ncr list (레지스트리 목록, --region/--app-key)
+      get.ts                # nhncloud ncr get <registry> (단일 레지스트리 조회)
+      helpers.ts            # createNcrClient (공통 UAK 정적 헤더 + appKey/region 해석, [[adr-016]])
 ```
+
+## 단위 테스트 (vitest)
+
+순수 함수·타입 가드·client 봉투 처리를 ky mock 으로 검증한다(`pnpm test`).
+
+- 위치: 대상 파일 옆 `*.test.ts`(예: `src/api/envelope.test.ts`, `src/services/ncr/client.test.ts`).
+- ky mock: `vi.mock("ky")` 후 `.json()` 반환값을 봉투/배열로 주입. reject value 는 production 의 `toNhnCloudCliError` 매핑(`EXIT_API_ERROR` 404 / `EXIT_AUTH_ERROR` 401·403)을 그대로 흉내낸다.
+- 우선 대상: `api/envelope`(unwrap/unwrapHeader), `api/httpError`(status→exit code), 신규 service client 의 봉투·가드·region host 해석.
 
 ## 레이어 의존 방향
 
@@ -115,6 +130,7 @@ dooray-cli 는 단일 `config + client` 로 충분했지만, NHN Cloud 는 서�
   - deploy: `X-NHN-AUTHORIZATION: Bearer <token>` + config target 좌표 ([[adr-008]])
   - instance: `X-Auth-Token: <tokenId>` + region 별 compute endpoint
   - network: `X-Auth-Token: <tokenId>` + region 별 network endpoint (instance 와 토큰 공유, [[adr-013]])
+  - ncr: `X-TC-AUTHENTICATION-ID/SECRET` 공통 UAK 정적 헤더 + region 별 ncr host (토큰 교환 없음, [[adr-016]])
 
 ## 커맨드 실행 흐름 (예: `nhncloud logncrash search`)
 

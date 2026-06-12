@@ -17,6 +17,7 @@
 - [ADR-013](#adr-013): IaaS 멀티 서비스 endpoint 해석 — image·network·blockstorage catalog host 맵 추가 (정적 맵 유지)
 - [ADR-014](#adr-014): Log & Crash collector — 검색과 별도 host + appkey-only 인증(secret 불요)
 - [ADR-015](#adr-015): deploy 바이너리 전송 — ky multipart 업로드 + 봉투 우회 파일 스트림 다운로드
+- [ADR-016](#adr-016): NCR Management API — 공통 UAK 정적 헤더 인증 + region 별 host (OAuth 교환 불요)
 
 ---
 
@@ -253,3 +254,26 @@
   - 진짜 스트리밍(ReadableStream → 디스크 pipe) — MVP 는 `.arrayBuffer()`(메모리 적재)로 충분. 초대형 파일 메모리 압박 확인 시 stream pipe 로 후속 전환(upload 한도 `MAX_UPLOAD_BYTES`).
   - axios 등 multipart 라이브러리 도입 — ky 단일 의존(ADR-002)을 깨므로 기각. ky 도 `body: FormData` 로 multipart 지원.
 - **트레이드오프**: 두 경로 모두 파일을 메모리에 통째 적재. 단순·테스트 용이성을 얻는 대신 초대형 파일에서 메모리가 크기에 비례. 한도 가드(upload)와 후속 stream 전환 여지를 남긴다.
+
+---
+
+<a id="adr-016"></a>
+
+## ADR-016: NCR Management API — 공통 UAK 정적 헤더 인증 + region 별 host (OAuth 교환 불요)
+
+- **결정**: NCR(NHN Container Registry) Management API(레지스트리 조회)는 공통 UAK(`userAccessKey`)를 **정적 헤더로 직접 전송**한다. deploy 의 OAuth 토큰 교환([[adr-007]])을 쓰지 않으므로 토큰 캐시 계층이 없다.
+  - 인증 헤더: `X-TC-AUTHENTICATION-ID: <uak-id>` + `X-TC-AUTHENTICATION-SECRET: <uak-secret>` ([[adr-004]] 의 공통 UAK 재사용 — 별도 ncr 비밀 없음).
+  - host: region 별 `{region}-ncr.api.nhncloudservice.com` 정적 맵(`NCR_HOST`, [[adr-005]]·[[adr-013]] 의 region 맵 패턴 답습). IaaS region 과 별개 축이라 `--region` 옵션으로 받고 기본 `kr1`.
+  - 경로: `GET /ncr/v2.0/appkeys/{appKey}/registries`(목록) / `.../registries/{registryNameOrId}`(조회). `appKey` 는 NCR 서비스 appkey — profile 의 `ncr` 블록(`{ appkey }`, [[adr-004]]) 또는 `--app-key` 옵션.
+  - 응답: NHN 공통 봉투(`header.isSuccessful` + 숫자 `resultCode`, [[adr-006]] helper 재사용). 레지스트리 필드는 Harbor 파생 snake_case(`name`·`project_id`·`repo_count`·`uri`·`private_uri`).
+- **맥락**: NCR 은 CNCF Harbor 를 NHN 이 래핑한 서비스다. public API 는 레지스트리(프로젝트)·정책(보호/정리/웹훅) 관리만 제공하고 **이미지/태그(artifact) 목록 조회 endpoint 가 없다**(콘솔 UI 전용). 이미지/태그는 Docker Registry HTTP API v2 데이터플레인 우회가 필요해 범위를 분리한다(task 022 에서 실측 후 ADR-017 신설 예정).
+- **⚠️ 실측 pending(docs 봇차단 — 수동 QA 로 확정)**: 추측 머지 금지(CLAUDE.md). 조회 전용이라 첫 200 응답으로 함께 확정한다.
+  - 인증 헤더 정확한 표기(`X-TC-AUTHENTICATION-ID/SECRET` 의 대소문자·하이픈) — 401 이면 표기 교정.
+  - `{region}-ncr.api.nhncloudservice.com` host 패턴 — 첫 호출 DNS/200 으로 확인.
+  - `appKey` 의 정확한 의미(NCR 서비스 appkey vs 레지스트리 식별자).
+  - registries 응답이 봉투 `body` 안 배열인지 평면 배열인지 + 페이지네이션 파라미터 유무.
+- **대안 기각**:
+  - deploy OAuth 토큰 교환 재사용 — NCR 은 UAK 를 정적 헤더로 직접 받으므로 토큰 교환이 불필요한 복잡도. `x-nhn-authorization: Bearer` 도 지원하나 정적 헤더가 더 단순.
+  - IaaS Keystone 토큰([[adr-010]]) — NCR 은 OpenStack 이 아니라 Harbor 라 Keystone 무관.
+  - ncr 블록에 secret 저장 — 인증 비밀은 공통 UAK secret 이라 ncr 블록은 appkey 만 둔다(중복 비밀 방지).
+- **트레이드오프**: NCR region 축이 IaaS region 과 분리돼 region 맵이 하나 더 는다. host 가 실제로 다른 도메인이라 분리가 정직하다.
