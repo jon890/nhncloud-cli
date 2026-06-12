@@ -534,6 +534,30 @@ planning SKILL "갱신 시점 분리" 표는 이 6개를 **결정 docs = plannin
 
 **Why**: PR #26 (plan021) critic MAJOR — `--ncr-appkey` 추가를 "옵션 + verifyNcr" 로 압축했으나 configure.ts 의 hasFlag·빈가드·runNonInteractive·saveAndVerify(고정 위치인자 호출처 4곳)를 빠뜨림. 1-14(nonInteractive trigger 확장)의 인접 패턴이나 **고정 위치인자 헬퍼 시그니처+호출처 동시 수정** 측면이 별도. configure 에 새 서비스 자격증명을 추가하는 plan 마다 재발 가능.
 
+## 1-34. 새 목록 endpoint 의 pagination 미처리 → 기본 page_size 묻혀버린 절단
+
+**증상**: 새 목록 조회 endpoint 를 추가하면서 단일 호출로 전체를 받는다고 가정한다. 그러나 REST API(특히 Harbor·Kubernetes·GitHub 등 표준 구현)는 기본 page_size(보통 10~25)로 **앞부분만** 돌려주고 나머지는 `Link: rel="next"` 헤더나 `next` 토큰·`marker` 로 페이지네이션한다. plan 의 실측이 항목 적은 리소스로만 통과하면 큰 리소스에서 **조용히 앞 N개만** 반환 — 목록 명령의 정확성이 깨지는데 tsc·help·작은 실측은 못 잡는다.
+
+**Good**: 새 목록 endpoint 는 pagination 방식을 실측으로 확인하고(첫 응답의 `Link`/`x-total-count`/`next` 헤더·필드) 전수 수집한다.
+- `page_size` 를 API 최대값(예 Harbor 100)으로 두고 `Link: rel="next"` 가 없을 때까지(또는 marker 소진까지) 루프 누적.
+- ky 사용 시 `await ky.get(...)` Response 를 받아 `.json()` 과 `.headers.get("link")` 를 **함께** 쓴다(`.json<T>()` 체이닝하면 헤더를 못 봐 pagination 불가).
+- 무한루프 방어로 max-page cap 은 선택. 항목 많은 리소스로 실측해 2페이지 이상 수집을 단위테스트로 박제(`ky.get` 2회 호출 단언).
+- 이 프로젝트는 이미 `instance images`(marker)·`logncrash export`(scroll) 등에서 pagination 을 다룬다 — 새 목록도 같은 결로 맞춘다.
+
+**Self-check**: 새 목록 명령의 첫 응답에 pagination 헤더/필드가 있는가? 있으면 전수 수집하는가, 단일 호출인가? 항목 많은 리소스로 실측해 truncation 이 없는지 확인했는가?
+
+**Why**: PR #28 (plan022) critic MAJOR — `ncr images`/`ncr tags` 가 Harbor REST 를 단일 호출로 가정. 실측에서 한 repo 에 artifact 60·145개 + `Link: rel="next"`·`x-total-count: 60` 확인 — 기본 page_size 면 앞부분만. `getAllPages`(page_size=100·rel="next" 전수)로 정정, artifact 145개 repo 2페이지 수집을 실측·테스트로 박제. 새 목록 endpoint 추가마다 재발 가능.
+
+## 1-35. 여러 서비스에 같은 명령 이름(images/list/get) → index.ts import 식별자 충돌
+
+**증상**: `images`·`list`·`get`·`create` 처럼 흔한 서브명령을 새 서비스에 추가하면서 command 객체를 `imagesCommand` 같은 bare 이름으로 export·import 한다. 이미 다른 서비스(예: `instance/images.ts` 의 `imagesCommand`)가 같은 이름을 export 하고 index.ts 가 둘 다 import 하면 **duplicate identifier → tsc 실패**.
+
+**Good**: index.ts 에서 서비스별 서브명령을 import 할 때 **서비스 prefix alias** 를 쓴다 — `import { imagesCommand as ncrImagesCommand } from "./commands/ncr/images.js"`. 등록도 alias 로(`ncrCommand.addCommand(ncrImagesCommand)`). 기존 같은 서비스의 `listCommand as ncrListCommand` 컨벤션을 따른다. 새 서브명령 추가 phase 면 `grep -nE "<명령>Command" src/index.ts` 로 동명 import 가 이미 있는지 확인한다.
+
+**Self-check**: 새 서브명령 이름이 다른 서비스에 이미 있는가(`grep <명령>Command src/index.ts`)? 있으면 alias 로 import 했는가?
+
+**Why**: PR #28 (plan022) critic MAJOR — `ncr images` 를 bare `imagesCommand` 로 등록하려 했으나 `index.ts:33` 에 instance `imagesCommand` 가 이미 존재 → duplicate identifier. `ncrImagesCommand`/`ncrTagsCommand` alias 로 정정. images/list/get/create 등 공통 서브명령을 새 서비스에 추가할 때마다 재발 가능.
+
 ## 섹션 1 소진 체크리스트
 
 plan 제출 전 10개 패턴 모두 self-check:
