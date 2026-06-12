@@ -125,6 +125,7 @@ src/
 | deploy 바이너리 전송 (multipart 업로드·봉투 우회 다운로드) | ADR-015, ADR-002, ADR-006 |
 | NCR(Container Registry) 레지스트리 조회 (공통 UAK 정적 헤더·region host) | ADR-016, ADR-004, ADR-005, ADR-006 |
 | NCR 이미지/태그 조회 (Harbor REST /api/v2.0 우회·UAK Basic Auth·봉투 미적용) | ADR-017, ADR-016, ADR-006 |
+| 하네스 누적 docs 구조 (ADR·pitfalls 디렉터리화·INDEX 라우터) | ADR-018 |
 
 신규 ADR 추가 시 본 표에 행 추가.
 

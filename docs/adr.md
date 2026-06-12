@@ -19,6 +19,7 @@
 - [ADR-015](#adr-015): deploy 바이너리 전송 — ky multipart 업로드 + 봉투 우회 파일 스트림 다운로드
 - [ADR-016](#adr-016): NCR Management API — 공통 UAK 정적 헤더 인증 + region 별 host (OAuth 교환 불요)
 - [ADR-017](#adr-017): NCR 이미지/태그 조회 — Harbor REST /api/v2.0 우회 + UAK Basic Auth (Docker v2 _catalog 기각)
+- [ADR-018](#adr-018): 하네스 누적 docs 디렉터리 구조 — 단일 파일 → 파일 per 항목 + INDEX (ADR·pitfalls)
 
 ---
 
@@ -295,3 +296,18 @@
   - Docker v2 Bearer 토큰 flow(`/service/token` 교환 후 `/v2/{repo}/tags/list`) — 토큰 교환 단계가 추가되고 catalog 권한은 여전히 막혀 repository 열거가 안 돼 반쪽. tags 만 되고 images 가 안 됨.
   - Management API 확장 대기 — 공식 repository/artifact endpoint 부재로 불가.
 - **트레이드오프**: 데이터플레인 host(Management API 와 다른 도메인)에 별도 Basic Auth 로 호출하는 인증 모델이 하나 더 는다. 단 docker login 자격과 동일한 UAK 라 사용자 추가 설정은 없다. repository name 이 `{project}/{repo}` 합성이라 명령 인자(`<repository>`)는 project 를 제외한 짧은 이름으로 받고 내부에서 합성한다.
+
+## ADR-018: 하네스 누적 docs 디렉터리 구조 — 단일 파일 → 파일 per 항목 + INDEX
+
+- **결정**: 항목이 계속 append 되는 누적 docs 를 단일 파일이 아니라 **항목 1개 = 파일 1개 + INDEX 라우터**로 운영한다.
+  - ADR: `docs/adr.md` → `docs/adr/NNN-slug.md`(번호 유지 — 외부 참조 `ADR-NNN` 보존) + `docs/adr/INDEX.md`.
+  - 회피 패턴: `.claude/skills/_shared/common-pitfalls.md`·`code-review-pitfalls.md` → `_shared/pitfalls/{plan,code-review,team}/<slug>.md`(내용 기반 slug — 내부 참조라 번호 불요) + `pitfalls/INDEX.md` 라우터.
+  - 회고 절차: `_shared/retros/{critic,code-reviewer,docs-verifier}-retro.md` 로 역할별 분리(거울 구조 — 각 retro 가 해당 pitfalls 카테고리·planning 영향 표를 단일 소스로 가리킨다).
+- **맥락**: 단일 누적 파일은 세 가지 비용이 있다.
+  - 동시 진행 PR 이 같은 파일 끝에 append 하면 머지 충돌(이번 세션 ADR-016/017 동시 추가 충돌 위험 실측).
+  - 통째 로드라 토큰 낭비(pitfalls 987줄 + 676줄 통독 부담). INDEX 라우터로 변경 유형에 해당하는 파일만 읽으면 해소.
+  - 항목 번호 카운트·인덱스 줄을 양쪽 PR 이 갱신해 추가 충돌.
+- **대안 기각**:
+  - 단일 파일 유지 — 충돌·토큰 비용 그대로.
+  - 번호만 분리(ADR 식 `NNN-slug`)를 pitfalls 에도 — pitfalls 는 외부 참조가 없어 내용 slug 가 재번호 문제를 아예 없앤다(ADR 은 `ADR-NNN` 외부 참조가 많아 번호 유지).
+- **트레이드오프**: 파일 수가 늘지만 INDEX 가 통람을 대체한다. 소비는 "INDEX 라우터로 필요한 항목만 읽기"가 원칙(전체 통독 금지). 출처는 누적 파일 머지 충돌을 구조로 없애는 일반 패턴(파일 per 항목 + INDEX).
