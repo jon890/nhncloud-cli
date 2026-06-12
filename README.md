@@ -1,7 +1,7 @@
 # nhncloud-cli
 
 NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 통합 CLI.
-현재 `configure`, `logncrash search/send` (Log & Crash 로그 검색·전송), `deploy` (배포·바이너리 조회·업로드·다운로드), `instance` (Compute 인스턴스 목록·발급·전원 제어·타입 변경·키페어 관리·이미지·가용성 영역 조회·볼륨 연결 포함), `network` (VPC·서브넷 목록 조회), `volume` (Block Storage 볼륨 목록·조회·생성) 명령을 지원한다.
+현재 `configure`, `logncrash search/send` (Log & Crash 로그 검색·전송), `deploy` (배포·바이너리 조회·업로드·다운로드), `instance` (Compute 인스턴스 목록·발급·전원 제어·타입 변경·키페어 관리·이미지·가용성 영역 조회·볼륨 연결 포함), `network` (VPC·서브넷 목록 조회), `volume` (Block Storage 볼륨 목록·조회·생성), `ncr` (NHN Container Registry 레지스트리 목록·조회) 명령을 지원한다.
 
 ## 설치
 
@@ -17,7 +17,7 @@ npm install -g @bifos/nhncloud-cli
 nhncloud configure
 ```
 
-- profile → UAK(id/secret) → logncrash appkey/secret → iaas 자격증명 순으로 입력한다.
+- profile → UAK(id/secret) → logncrash appkey/secret → iaas 자격증명 → ncr appkey 순으로 입력한다.
 - 저장 전 연결 테스트를 자동으로 수행한다 (`--no-verify` 로 생략 가능).
 - CI/자동화는 flag 로 비대화형 설정이 가능하다.
 
@@ -437,6 +437,41 @@ nhncloud floatingip delete <floatingip-id> --yes
 > **associate**: `floatingip associate <floatingip-id> <instance-id>` 는 instance→port_id 매핑 경로 미확정으로 보류 중.
 > 실측으로 경로가 확정되면 후속 task 에서 추가한다.
 
+### NHN Container Registry (NCR)
+
+NCR Management API 로 레지스트리를 조회한다.
+인증은 공통 UAK(`X-TC-AUTHENTICATION-ID/SECRET` 정적 헤더)를 재사용하며 OAuth 토큰 교환이 없다.
+appKey 는 NHN Cloud 콘솔 → Container Registry 서비스에서 확인한다.
+
+```bash
+# ncr appkey 설정 (비대화형)
+nhncloud configure --ncr-appkey <appkey>
+
+# 레지스트리 목록 조회
+nhncloud ncr list --app-key <appkey>
+
+# region 지정 (기본: kr1)
+nhncloud ncr list --region kr2 --app-key <appkey>
+
+# JSON 출력
+nhncloud ncr list --app-key <appkey> --json
+
+# 단일 레지스트리 조회 (이름 또는 ID)
+nhncloud ncr get <registry-name> --app-key <appkey>
+```
+
+appKey 를 `nhncloud configure --ncr-appkey <appkey>` 로 저장해 두면 `--app-key` 없이도 호출할 수 있다.
+
+```bash
+# configure 로 저장 후 --app-key 생략
+nhncloud configure --ncr-appkey <appkey>
+nhncloud ncr list
+nhncloud ncr get <registry-name>
+```
+
+> **이미지·태그 목록**: `ncr images` / `ncr tags` 는 후속 task 022 에서 Docker Registry v2 우회 실측 후 추가 예정이다.
+> 현재는 레지스트리(프로젝트) 목록·조회만 지원한다.
+
 ## 개발
 
 ```bash
@@ -445,4 +480,5 @@ pnpm run build        # tsup 단일 번들 (dist/index.js)
 pnpm tsc --noEmit     # 타입 체크
 node dist/index.js instance --help
 node dist/index.js logncrash search --help
+node dist/index.js ncr --help
 ```
