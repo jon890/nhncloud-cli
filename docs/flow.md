@@ -13,7 +13,7 @@ nhncloud configure --profile playground
 
 1. profile 이름 (기본 `default`)
 2. 개인 UAK — id, secret (password 입력)
-3. 서비스별 자격증명 — logncrash appkey, secret (건너뛰기 가능)
+3. 서비스별 자격증명 — logncrash appkey·secret, ncr appkey (각 건너뛰기 가능)
 4. 연결 테스트 (UAK → OAuth 발급, logncrash → 최소 검색)
 5. 기존 값과 머지 저장 (`credentials.json` 0600, all-or-nothing)
 
@@ -25,7 +25,7 @@ flag 가 하나라도 있으면 비대화형으로 동작한다.
 nhncloud configure --profile playground \
   --uak-id <id> --uak-secret <secret> \
   --logncrash-appkey <k> --logncrash-secret <s> \
-  [--no-verify]
+  [--ncr-appkey <appkey>] [--no-verify]
 ```
 
 | 옵션 | 설명 |
@@ -33,6 +33,7 @@ nhncloud configure --profile playground \
 | `--profile <name>` | 대상 profile (기본 default) |
 | `--uak-id` / `--uak-secret` | 개인 UAK |
 | `--logncrash-appkey` / `--logncrash-secret` | logncrash 자격증명 |
+| `--ncr-appkey <key>` | NCR(Container Registry) appkey (인증 secret 은 공통 UAK 재사용) |
 | `--no-verify` | 연결 테스트 생략 |
 
 ### 연결 테스트
