@@ -1,6 +1,7 @@
 import { getAccessToken } from "../api/oauth.js";
 import { getIaasToken } from "../api/keystone.js";
 import { LogncrashClient } from "../services/logncrash/client.js";
+import { NcrClient } from "../services/ncr/client.js";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_AUTH_ERROR } from "../utils/exit-codes.js";
 import type { UserAccessKey, ServiceCredential, IaasCredential } from "../config/types.js";
@@ -41,6 +42,30 @@ export async function verifyUserAccessKey(uak: UserAccessKey): Promise<boolean> 
 export async function verifyIaas(iaas: IaasCredential): Promise<boolean> {
   try {
     await getIaasToken("__verify__", iaas, true);
+    return true;
+  } catch (err) {
+    if (err instanceof NhnCloudCliError && err.exitCode === EXIT_AUTH_ERROR) {
+      return false;
+    }
+    throw err;
+  }
+}
+
+/**
+ * NCR appkey 와 공통 UAK 로 레지스트리 목록 조회를 시도해 유효성을 검증한다.
+ *
+ * - 성공(0건 포함): true
+ * - 401/403 인증 실패: false
+ * - 그 외 에러: throw
+ *
+ * 인증 secret 은 공통 UAK 이므로 uak 를 함께 넘긴다(ADR-016).
+ */
+export async function verifyNcr(uak: UserAccessKey, appkey: string): Promise<boolean> {
+  if (!appkey) return false;
+
+  const client = new NcrClient(uak.id, uak.secret, "kr1");
+  try {
+    await client.listRegistries(appkey);
     return true;
   } catch (err) {
     if (err instanceof NhnCloudCliError && err.exitCode === EXIT_AUTH_ERROR) {

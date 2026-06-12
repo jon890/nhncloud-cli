@@ -35,6 +35,8 @@ import { keypairsCommand } from "./commands/instance/keypairs.js";
 import { keypairCommand } from "./commands/instance/keypair.js";
 import { volumeCommand as instanceVolumeCommand } from "./commands/instance/volume.js";
 import { volumesCommand } from "./commands/instance/volumes.js";
+import { listCommand as ncrListCommand } from "./commands/ncr/list.js";
+import { getCommand as ncrGetCommand } from "./commands/ncr/get.js";
 
 const program = new Command();
 
@@ -127,6 +129,13 @@ floatingipCommand.addCommand(fipCreateCommand);
 floatingipCommand.addCommand(fipDeleteCommand);
 
 program.addCommand(floatingipCommand);
+
+// ncr 커맨드 그룹
+const ncrCommand = new Command("ncr").description("NHN Container Registry 관련 명령");
+ncrCommand.addCommand(ncrListCommand);
+ncrCommand.addCommand(ncrGetCommand);
+
+program.addCommand(ncrCommand);
 
 program.parseAsync().catch((err: unknown) => {
   const message = err instanceof Error ? err.message : String(err);
