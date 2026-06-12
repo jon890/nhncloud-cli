@@ -28,19 +28,19 @@ export async function resolveAppKey(
 ): Promise<string> {
   if (appKeyOpt) return appKeyOpt;
 
-  // profile 의 ncr 블록에서 appkey 조회
-  let cred: { appkey?: string; secret?: string };
+  // profile 의 ncr 블록에서 appkey 조회.
+  // ncr 블록 부재(EXIT_CONFIG_ERROR)만 친절한 안내로 변환하고,
+  // profile 자체 부재·credentials.json 파싱 오류 등은 원인을 보존해 rethrow.
+  let cred: { appkey?: string; secret?: string } | undefined;
   try {
     cred = await getServiceCredential("ncr", profileName);
-  } catch {
-    throw new NhnCloudCliError(
-      "NCR appKey 가 없습니다. --app-key 옵션으로 지정하거나\n" +
-        "nhncloud configure --ncr-appkey <key> 를 실행해 설정하세요.",
-      EXIT_CONFIG_ERROR,
-    );
+  } catch (err) {
+    if (!(err instanceof NhnCloudCliError) || err.exitCode !== EXIT_CONFIG_ERROR) {
+      throw err;
+    }
   }
 
-  if (!cred.appkey) {
+  if (!cred?.appkey) {
     throw new NhnCloudCliError(
       "NCR appKey 가 없습니다. --app-key 옵션으로 지정하거나\n" +
         "nhncloud configure --ncr-appkey <key> 를 실행해 설정하세요.",

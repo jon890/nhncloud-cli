@@ -59,6 +59,10 @@ export async function verifyIaas(iaas: IaasCredential): Promise<boolean> {
  * - 그 외 에러: throw
  *
  * 인증 secret 은 공통 UAK 이므로 uak 를 함께 넘긴다(ADR-016).
+ *
+ * region 은 kr1 을 가정한다 — configure 에 ncr region 입력 통로가 없기 때문.
+ * kr2/kr3 의 NCR 만 쓰는 사용자는 이 검증이 의미 없으므로, 첫 `ncr list --region kr2`
+ * 호출이 사실상의 검증이 된다(flow.md 의 연결 테스트 한계 참조).
  */
 export async function verifyNcr(uak: UserAccessKey, appkey: string): Promise<boolean> {
   if (!appkey) return false;

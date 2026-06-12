@@ -40,6 +40,7 @@ nhncloud configure --profile playground \
 
 - UAK — OAuth `token/create` 호출 성공 여부로 검증
 - logncrash — 짧은 범위(예: 1분) 검색 호출로 인증(401/403) 검증
+- ncr — kr1 레지스트리 목록 조회로 검증. 인증 secret 이 공통 UAK 라 UAK 가 없으면 검증을 건너뛰고 경고만 출력한다. configure verify 는 **kr1 가정** — kr2/kr3 만 쓰는 경우 첫 `ncr list --region kr2` 호출이 사실상의 검증이 된다.
 - 실패 시 저장 여부를 다시 확인 (또는 비대화형은 비-0 종료)
 
 ## logncrash search 흐름

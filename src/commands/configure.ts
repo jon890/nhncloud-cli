@@ -75,15 +75,26 @@ async function saveAndVerify(
       }
     }
 
-    if (ncr && uak) {
-      const appkey = ncr.appkey ?? "";
-      const ok = await verifyNcr(uak, appkey);
-      if (ok) {
-        process.stderr.write(chalk.green("  ✓ ncr 연결 성공\n"));
+    if (ncr) {
+      // NCR 은 인증 secret 으로 공통 UAK 를 쓰므로(ADR-016) UAK 없이는 검증 불가.
+      // logncrash/iaas 와 달리 단독 검증이 안 되는 비대칭 — UAK 가 없으면 skip 을 명시 경고.
+      if (uak) {
+        const appkey = ncr.appkey ?? "";
+        const ok = await verifyNcr(uak, appkey);
+        if (ok) {
+          // verify 는 kr1 가정(verifyNcr) — 사용자가 region 을 인지하도록 표기.
+          process.stderr.write(chalk.green("  ✓ ncr 연결 성공 (kr1)\n"));
+        } else {
+          throw new NhnCloudCliError(
+            "ncr 인증 실패 — appkey 또는 UAK 를 확인하세요.",
+            EXIT_AUTH_ERROR,
+          );
+        }
       } else {
-        throw new NhnCloudCliError(
-          "ncr 인증 실패 — appkey 또는 UAK 를 확인하세요.",
-          EXIT_AUTH_ERROR,
+        process.stderr.write(
+          chalk.yellow(
+            "  ⚠ ncr verify 건너뜀 — 이번 설정에 UAK 가 없습니다. ncr 명령은 공통 UAK 가 필요하니 먼저 설정하세요.\n",
+          ),
         );
       }
     }
@@ -181,8 +192,11 @@ async function runInteractive(opts: ConfigureOptions): Promise<void> {
 
   if (setupNcr) {
     process.stderr.write(chalk.gray("\n— ncr (Container Registry) 자격증명 —\n"));
-    const ncrAppkey = await input({ message: "ncr appkey" });
-    ncr = { appkey: ncrAppkey };
+    const ncrAppkey = await input({
+      message: "ncr appkey",
+      validate: (v) => v.trim().length > 0 || "ncr appkey 를 입력하세요",
+    });
+    ncr = { appkey: ncrAppkey.trim() };
   }
 
   // 6. 연결 테스트 + 저장
@@ -241,8 +255,8 @@ async function runNonInteractive(opts: ConfigureOptions): Promise<void> {
         }
       : undefined;
 
-  const ncr: ServiceCredential | undefined = opts.ncrAppkey
-    ? { appkey: opts.ncrAppkey }
+  const ncr: ServiceCredential | undefined = opts.ncrAppkey?.trim()
+    ? { appkey: opts.ncrAppkey.trim() }
     : undefined;
 
   if (!uak && !logncrash && !iaas && !ncr) {
