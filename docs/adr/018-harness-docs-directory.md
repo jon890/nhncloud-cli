@@ -1,7 +1,7 @@
 # ADR-018: 하네스 누적 docs 디렉터리 구조 — 단일 파일 → 파일 per 항목 + INDEX
 
 - **결정**: 항목이 계속 append 되는 누적 docs 를 단일 파일이 아니라 **항목 1개 = 파일 1개 + INDEX 라우터**로 운영한다.
-  - ADR: `docs/adr.md` → `docs/adr/NNN-slug.md`(번호 유지 — 외부 참조 `ADR-NNN` 보존) + `docs/adr/INDEX.md`.
+  - ADR: `docs/adr/NNN-slug.md`(번호 유지 — 외부 참조 `ADR-NNN` 보존) + `docs/adr/INDEX.md` 라우터.
   - 회피 패턴: `.claude/skills/_shared/common-pitfalls.md`·`code-review-pitfalls.md` → `_shared/pitfalls/{plan,code-review,team}/<slug>.md`(내용 기반 slug — 내부 참조라 번호 불요) + `pitfalls/INDEX.md` 라우터.
   - 회고 절차: `_shared/retros/{critic,code-reviewer,docs-verifier}-retro.md` 로 역할별 분리(거울 구조 — 각 retro 가 해당 pitfalls 카테고리·planning 영향 표를 단일 소스로 가리킨다).
 - **맥락**: 단일 누적 파일은 세 가지 비용이 있다.
