@@ -1,12 +1,12 @@
 ---
 name: nhncloud-cli
-description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색·전송(logncrash search/send), Deploy 배포 실행·바이너리 그룹·바이너리 목록 조회·업로드·다운로드(deploy upload/download), Compute 인스턴스 관리(instance — 목록·발급·전원 제어·타입 변경(resize/resize-confirm/resize-revert)·키페어·이미지·가용성 영역 조회·볼륨 연결(instance volume attach/detach, instance volumes)), VPC·서브넷 조회(network list/subnet list), Block Storage 볼륨 관리(volume list/get/create), Floating IP 관리(floatingip list/create/delete) 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
+description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색·전송(logncrash search/send), Deploy 배포 실행·바이너리 그룹·바이너리 목록 조회·업로드·다운로드(deploy upload/download), Compute 인스턴스 관리(instance — 목록·발급·전원 제어·타입 변경(resize/resize-confirm/resize-revert)·키페어·이미지·가용성 영역 조회·볼륨 연결(instance volume attach/detach, instance volumes)), VPC·서브넷 조회(network list/subnet list), Block Storage 볼륨 관리(volume list/get/create), Floating IP 관리(floatingip list/create/delete), NHN Container Registry 레지스트리 조회(ncr list/get) 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
 ---
 
 # nhncloud-cli
 
 NHN Cloud PaaS 서비스를 AWS CLI 방식으로 호출하는 TypeScript CLI.
-`configure`, `logncrash search/send`, `deploy`, `instance` (전원 제어·keypair·볼륨 연결 포함), `network` (VPC·서브넷 조회), `volume` (Block Storage 볼륨 목록·조회·생성), `floatingip` (공인 IP 관리) 명령을 지원한다.
+`configure`, `logncrash search/send`, `deploy`, `instance` (전원 제어·keypair·볼륨 연결 포함), `network` (VPC·서브넷 조회), `volume` (Block Storage 볼륨 목록·조회·생성), `floatingip` (공인 IP 관리), `ncr` (NHN Container Registry 레지스트리 조회) 명령을 지원한다.
 
 ## 설치
 
@@ -42,6 +42,7 @@ nhncloud configure \
 | `--uak-secret <secret>` | 개인 UAK Secret |
 | `--logncrash-appkey <key>` | logncrash appkey |
 | `--logncrash-secret <secret>` | logncrash secret |
+| `--ncr-appkey <key>` | NCR(Container Registry) appkey |
 | `--no-verify` | 연결 테스트 생략 |
 
 저장 파일 구조 (`~/.nhncloud/credentials.json`, mode 0600):
@@ -101,6 +102,9 @@ logncrash appkey 와 secret 은 콘솔 → Log & Crash Search → 프로젝트 �
 | 다른 profile 사용 | `nhncloud logncrash search --query '*' --from 1h --to now --profile staging` |
 | 로그 대량 추출 (파일로) | `nhncloud logncrash export --query '<lucene>' --from 1h --to now --output logs.jsonl` |
 | Log & Crash 로그 전송 | `nhncloud logncrash send --body "<메시지>" --level INFO` |
+| NCR 레지스트리 목록 조회 | `nhncloud ncr list --app-key <appkey>` |
+| NCR 레지스트리 목록 (JSON 파싱용) | `nhncloud ncr list --app-key <appkey> --json` |
+| NCR 단일 레지스트리 조회 | `nhncloud ncr get <registry-name> --app-key <appkey>` |
 
 ## logncrash search 옵션
 
@@ -624,3 +628,54 @@ nhncloud floatingip delete <floatingip-id> --yes
 | 외부 네트워크 미발견 (create --network 미지정) | 3 (PARAM_ERROR) |
 | 비대화형 delete --yes 누락 | 3 (PARAM_ERROR) |
 | Floating IP API 오류 | 1 (API_ERROR) |
+
+## ncr — NHN Container Registry 레지스트리 조회
+
+NCR Management API 로 레지스트리(Harbor 프로젝트)를 조회한다.
+인증은 공통 UAK(`X-TC-AUTHENTICATION-ID/SECRET` 정적 헤더)를 재사용하며 OAuth 토큰 교환이 없다.
+appKey 는 `--app-key` 옵션 또는 `nhncloud configure --ncr-appkey <appkey>` 로 profile 에 저장한 값을 자동 사용한다.
+
+> **이미지·태그 목록**: `ncr images` / `ncr tags` 는 후속 task 022 에서 Docker Registry v2 우회 실측 후 추가 예정이다.
+> 현재는 레지스트리(프로젝트) 목록·조회만 지원한다.
+
+### 의도 → 커맨드 매핑
+
+| 의도 | 커맨드 |
+|------|--------|
+| 레지스트리 목록 조회 | `nhncloud ncr list --app-key <appkey>` |
+| 레지스트리 목록 (JSON) | `nhncloud ncr list --app-key <appkey> --json` |
+| 다른 region 조회 (기본 kr1) | `nhncloud ncr list --region kr2 --app-key <appkey>` |
+| 단일 레지스트리 조회 | `nhncloud ncr get <registry-name> --app-key <appkey>` |
+| appkey 저장 후 생략 | `nhncloud configure --ncr-appkey <appkey>` → `nhncloud ncr list` |
+
+### ncr list 옵션
+
+| 옵션 | 설명 |
+|------|------|
+| `--region <region>` | NCR region (기본: `kr1`). 지원: `kr1`, `kr2`, `kr3` |
+| `--app-key <key>` | NCR appKey (profile 의 `ncr.appkey` 보다 우선) |
+| `--profile <name>` | 사용할 profile 이름 |
+
+### 체이닝 예시
+
+```bash
+# 레지스트리 목록 (이름만 추출)
+nhncloud ncr list --app-key <appkey> --json | jq -r '.[].name'
+
+# 레지스트리 수 확인
+nhncloud ncr list --app-key <appkey> --json | jq length
+
+# 단일 레지스트리 상세 조회
+nhncloud ncr get <registry-name> --app-key <appkey> --json
+```
+
+### ncr 에러 코드
+
+| 상황 | exit code |
+|------|-----------|
+| UAK 누락·불완전 | 4 (CONFIG_ERROR) |
+| NCR appkey 미설정 (`--app-key` 미지정 + configure 미설정) | 4 (CONFIG_ERROR) |
+| 지원하지 않는 region | 3 (PARAM_ERROR) |
+| `ncr get` registry 인수 공백·빈값 | 3 (PARAM_ERROR) |
+| UAK 인증 실패 (401/403) | 2 (AUTH_ERROR) |
+| NCR API 오류 | 1 (API_ERROR) |

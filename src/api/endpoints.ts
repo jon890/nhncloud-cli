@@ -93,6 +93,35 @@ const BLOCKSTORAGE_HOST: Record<string, string> = {
 /** IaaS region 목록 — compute·image·network·blockstorage 공통. region 추가 시 네 host 맵을 함께 갱신한다. */
 const IAAS_REGIONS = Object.keys(INSTANCE_HOST).join(", ");
 
+// ── NCR (NHN Container Registry, Harbor 기반) ──────────────────────────────────
+
+/**
+ * region → NCR Management API host 맵 (ADR-016, ADR-005 연장).
+ * NCR region 은 IaaS region 과 별개 축 — 단일 소스 NCR_HOST.
+ * jp1 등은 host 패턴 실측 전까지 추가하지 않는다(kr1~kr3 만 검증).
+ * 실측 pending(ADR-016): host 패턴 첫 200 응답으로 확정.
+ */
+const NCR_HOST: Record<string, string> = {
+  kr1: "kr1-ncr.api.nhncloudservice.com",
+  kr2: "kr2-ncr.api.nhncloudservice.com",
+  kr3: "kr3-ncr.api.nhncloudservice.com",
+};
+
+/**
+ * region 에 해당하는 NCR Management API host 를 반환한다.
+ * 미등록 region 은 사용 가능한 region 목록 안내와 함께 EXIT_PARAM_ERROR 를 던진다.
+ */
+export function ncrHost(region: string): string {
+  const host = NCR_HOST[region];
+  if (!host) {
+    throw new NhnCloudCliError(
+      `지원하지 않는 NCR region 입니다: "${region}". 사용 가능한 region: ${Object.keys(NCR_HOST).join(", ")}`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+  return host;
+}
+
 /**
  * region 에 해당하는 instance API host 를 반환한다.
  * 미등록 region 은 사용 가능한 region 목록 안내와 함께 EXIT_PARAM_ERROR 를 던진다.

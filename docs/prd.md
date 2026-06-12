@@ -34,6 +34,7 @@ AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트�
   - `list` / `get <id>` / `delete <id>` — 조회·삭제 (`--yes` 로 즉시 삭제)
   - `flavors` — 인스턴스 타입(flavor) 목록·상세 조회 (`--detail`, `--min-disk`/`--min-ram` 필터)
   - GPU 인스턴스도 같은 명령으로 — GPU flavor id 를 `--flavor` 에 넘기면 된다 (NHN docs 가 API 호환성을 명시하진 않지만 동일 Nova v2 카탈로그를 공유)
+- `nhncloud ncr` — NHN Container Registry 레지스트리 조회 (목록·단일 조회, UAK 정적 헤더 인증, ADR-016)
 - profile 기반 자격증명 (`~/.nhncloud/credentials.json` + `~/.nhncloud/config.json`)
 - 출력 3모드 — 테이블 / `--json` / `--quiet`
 - `--profile` 로 profile 전환
