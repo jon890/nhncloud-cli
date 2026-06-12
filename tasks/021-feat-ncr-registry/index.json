@@ -1,0 +1,29 @@
+{
+  "name": "021-feat-ncr-registry",
+  "description": "NCR(NHN Container Registry) 레지스트리 조회 명령 추가 — ncr list / ncr get <registry>. NCR Management API 는 공통 UAK(userAccessKey)를 정적 헤더(X-TC-AUTHENTICATION-ID/SECRET)로 직접 전송한다(deploy OAuth 교환 불요·토큰 캐시 없음, ADR-016). host 는 region 별 {region}-ncr.api.nhncloudservice.com 정적 맵(NCR_HOST), 경로는 GET /ncr/v2.0/appkeys/{appKey}/registries(목록)·/registries/{registryNameOrId}(조회). appKey 는 --app-key 옵션 > profile 의 ncr 블록({appkey}) 순으로 해석(인증 secret 은 공통 UAK 재사용이라 ncr 블록에 secret 없음). 응답은 NHN 공통 봉투(isSuccessful + 숫자 resultCode, envelope helper 재사용), 레지스트리 필드는 Harbor 파생 snake_case(name·project_id·repo_count·uri·private_uri). region 은 --region 옵션 기본 kr1(IaaS region 과 별개 축). 020 의 ky mock 패턴으로 client 단위테스트(봉투 unwrap·가드·region host 해석·appKey 해석 순서). configure 에 ncr appkey 수집(대화형 confirm + --ncr-appkey flag) + verifyNcr 연결 테스트 추가. 실측 pending(ADR-016): UAK 헤더 정확한 표기·host 패턴·appKey 의미·registries 응답이 봉투 body 배열인지 평면인지 — 첫 200 응답으로 확정하고 어긋나면 review-fix. 이미지/태그 조회는 본 task 범위 외(task 022).",
+  "created_at": "2026-06-12T00:00:00Z",
+  "updated_at": "2026-06-12T00:00:00Z",
+  "status": "pending",
+  "current_phase": 0,
+  "total_phases": 2,
+  "error_message": null,
+  "blocked_reason": null,
+  "phases": [
+    {
+      "number": 1,
+      "title": "코드 — endpoints NCR_HOST/ncrManagementUrl + services/ncr(client·types) + commands/ncr(helpers·list·get) + index 등록 + configure ncr appkey/verifyNcr + 단위테스트",
+      "file": "phase-01.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    },
+    {
+      "number": 2,
+      "title": "공개 docs (README + skills/nhncloud-cli/SKILL.md) 반영 + index.json 완료 마킹",
+      "file": "phase-02.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    }
+  ]
+}

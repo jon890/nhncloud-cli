@@ -1,0 +1,29 @@
+{
+  "name": "022-feat-ncr-images",
+  "description": "NCR 이미지/태그 조회 — ncr images <registry> / ncr tags <registry> <repository>. NCR public Management API 에는 이미지(repository)·태그(artifact) 목록 조회 endpoint 가 없다(콘솔 UI 전용, ADR-016). 우회로 Docker Registry HTTP API v2 데이터플레인을 레지스트리 host 에 직접 호출한다: GET /v2/_catalog(repository 목록), GET /v2/{repository}/tags/list(태그 목록). 인증은 Management API(UAK 정적 헤더)와 다른 Basic Auth(Username=UAK id, Password=UAK secret — docker login 자격과 동일, 공식 확인). 응답은 NHN 봉투가 아니라 Docker/Harbor 표준 평면 JSON({repositories:[...]}, {tags:[...]}) — envelope unwrap 미적용. host 는 task 021 의 ncr get 으로 얻은 레지스트리 uri/private_uri 에서 해석. ⚠️ 본 task 는 실측 게이트 의존: /v2/_catalog 가 NCR 에서 실제 동작하는지가 미확정(문서 미명시)이라 phase-01 첫 단계에서 실측으로 동작 여부를 먼저 확인하고, 동작하면 client+명령+ADR-017 신설로 진행, 동작 안 하면(인증 방식 다름·endpoint 차단 등) task 를 blocked 로 표시하고 발견 사항을 기록한 뒤 대안(Bearer 토큰 교환 등)을 재설계한다. 020 ky mock 패턴으로 단위테스트. 021(ncr get host 해석) 선행 필요.",
+  "created_at": "2026-06-12T00:00:00Z",
+  "updated_at": "2026-06-12T00:00:00Z",
+  "status": "pending",
+  "current_phase": 0,
+  "total_phases": 2,
+  "error_message": null,
+  "blocked_reason": null,
+  "phases": [
+    {
+      "number": 1,
+      "title": "실측 게이트(/v2/_catalog 동작 확인) → Docker v2 client(Basic Auth·평면 JSON) + images/tags 명령 + ADR-017 + 단위테스트 (실패 시 blocked 기록)",
+      "file": "phase-01.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    },
+    {
+      "number": 2,
+      "title": "공개 docs (README + skills/nhncloud-cli/SKILL.md) 반영 + index.json 완료 마킹",
+      "file": "phase-02.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    }
+  ]
+}

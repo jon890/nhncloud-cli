@@ -1,0 +1,21 @@
+{
+  "name": "020-feat-test-infra",
+  "description": "단위 테스트 인프라 도입 — 기존 코드에 vitest 테스트가 0개라 NCR(021/022) 등 신규 기능을 검증할 기반이 없다. vitest.config.ts 를 추가하고(node 환경, src/**/*.test.ts include), 후속 task 가 답습할 ky mock 패턴을 시범 테스트로 확립한다. 첫 테스트 3종: (1) src/api/envelope.test.ts — unwrap/unwrapHeader 순수 함수(mock 불요): isSuccessful=true+body → body 반환, isSuccessful=false → NhnCloudCliError(EXIT_API_ERROR), body 누락 → throw. (2) src/api/httpError.test.ts — toNhnCloudCliError: ky HTTPError 401/403 → EXIT_AUTH_ERROR, 404/500 → EXIT_API_ERROR, 비-HTTP raw Error → 원형 보존(NhnCloudCliError 로 감싸지 않음). (3) src/services/deploy/client.test.ts — vi.mock('ky') 로 .json() 반환을 봉투로 주입해 DeployClient.artifacts() 가 unwrap 결과를 반환하고 isSuccessful=false 에 throw 하는지(=ky mock 기준 레시피). 개선 포인트(테스트 부재) 해소가 본 task 의 핵심 가치. ADR 미동반(테스트 도구는 ADR-001 스택에 이미 포함, 새 기술 결정 없음). package.json test 스크립트(vitest run)는 그대로 — passWithNoTests 는 유지하되 실제 테스트가 생기므로 실효.",
+  "created_at": "2026-06-12T00:00:00Z",
+  "updated_at": "2026-06-12T00:00:00Z",
+  "status": "pending",
+  "current_phase": 0,
+  "total_phases": 1,
+  "error_message": null,
+  "blocked_reason": null,
+  "phases": [
+    {
+      "number": 1,
+      "title": "vitest.config.ts + ky mock 패턴 시범 테스트(envelope·httpError 순수함수 + deploy client mock) → pnpm test 그린",
+      "file": "phase-01.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    }
+  ]
+}
