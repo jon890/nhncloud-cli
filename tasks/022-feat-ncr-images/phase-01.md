@@ -1,96 +1,156 @@
-# Phase 01 — 실측 게이트 → Docker Registry v2 이미지/태그 조회
+# Phase 01 — NCR 이미지/태그 조회 (Harbor REST 데이터플레인 client + 명령 + 테스트)
 
 ## 목표 (검증 가능)
 
-`nhncloud ncr images <registry>` / `nhncloud ncr tags <registry> <repository>` 가 레지스트리 host 의 Docker Registry HTTP API v2 를 Basic Auth 로 호출해 repository·tag 목록을 반환한다. **단, 이 기능이 NCR 에서 실제 가능한지가 미확정이라 실측이 선행 게이트다.**
+`nhncloud ncr images <registry>` / `nhncloud ncr tags <registry> <repository>` 가 레지스트리 데이터플레인 host 의 Harbor REST `/api/v2.0` 을 UAK Basic Auth 로 호출해 이미지(repository)·태그를 조회하고, client 단위테스트가 그린이다.
 
-## ⚠️ STEP 0 — 실측 게이트 (코드 작성 전 필수)
+- 검증: `pnpm tsc --noEmit` 0, `pnpm run build` 정상, `pnpm test` 신규 harbor 테스트 PASS(기존 스위트도 그린).
+- 실측(자격증명 있을 때): `node dist/index.js ncr images <registry>` 가 repository 목록 200 반환.
 
-다른 어떤 코드도 쓰기 전에 `/v2/_catalog` 가 NCR 에서 동작하는지 실측한다. **자격증명(공통 UAK)과 task 021 의 `ncr get` 으로 얻은 레지스트리 host 가 필요**하다.
+## 선행 — 단일 소스 ADR-017
 
-```bash
-# 1) task 021 로 레지스트리 host(uri/private_uri) 확보
-node dist/index.js ncr get <registry> --json   # uri / private_uri 필드 확인
+본 task 의 설계 결정은 **ADR-017 이 단일 소스**다. 코드는 ADR-017 과 1:1 이어야 한다. 작성 전 `docs/adr.md` 의 ADR-017 을 읽는다. planning 결정 docs(adr/code-architecture/CLAUDE.md/flow/prd)는 이미 선반영됨 — 본 phase 에서 **수정 금지**(코드↔docs mismatch 회피). README·공개 SKILL 만 phase-02.
 
-# 2) Docker Registry v2 카탈로그 실측 (Basic Auth = UAK id:secret)
-curl -s -u "<uak-id>:<uak-secret>" "https://<registry-uri>/v2/_catalog" -i
-# 3) 태그 목록 실측
-curl -s -u "<uak-id>:<uak-secret>" "https://<registry-uri>/v2/<repository>/tags/list" -i
-```
+실측(2026-06-12 playground 자격증명)으로 경로·인증·응답이 모두 확정됐다 — 추측 구현이 아니라 실측을 코드로 옮긴다:
+- repository 목록: `GET https://{host}/api/v2.0/projects/{project}/repositories` → 평면 배열 `[{ name, artifact_count, pull_count, update_time, ... }]`. `name` 은 `{project}/{repo}`.
+- artifact 목록: `GET https://{host}/api/v2.0/projects/{project}/repositories/{repo}/artifacts` → `[{ digest, size, push_time, tags: [{ name, push_time }] | null, ... }]`.
+- 인증: UAK id/secret 을 `Authorization: Basic base64(id:secret)`. 응답은 NHN 봉투가 아닌 Harbor 평면 JSON — `unwrap`/`unwrapHeader` **호출 금지**.
 
-판정:
+## 구현 항목
 
-- **200 + `{"repositories":[...]}` / `{"tags":[...]}`** → 게이트 통과. 아래 구현 진행. 확정된 host(uri vs private_uri)·인증·응답 형태를 ADR-017 에 기록.
-- **401 / 403** → Basic Auth(UAK) 가 데이터플레인에 안 통함. Bearer 토큰 챌린지(`Www-Authenticate` 헤더의 `realm`/`service`/`scope` 로 토큰 교환) 방식일 수 있음 — 헤더를 기록하고 **task 를 blocked** 로 표시(`index.json` blocked_reason 에 실측 결과 + Www-Authenticate 원문). Bearer 교환 재설계는 별도 결정.
-- **404 / 차단** → NCR 이 `_catalog` 를 노출하지 않음. blocked 표시 + 발견 기록. 대안(콘솔 전용이라 CLI 불가) 을 사용자에게 보고.
+### 1. `src/services/ncr/types.ts` — Repository / Artifact 추가
 
-> 추측으로 구현하지 않는다(CLAUDE.md). 게이트 미통과 시 코드를 쓰지 말고 blocked 로 남긴다 — 잘못된 가정의 client 를 머지하는 것보다 정직한 보류가 낫다.
-
-## STEP 1+ — 게이트 통과 시 구현
-
-### 1. `src/services/ncr/client.ts` 확장 — Docker v2 메서드
-
-Management API(021)와 **다른 인증·다른 봉투**다. 별도 메서드로 분리한다.
+기존 `Registry`/`isRegistry` 는 유지하고 아래를 추가:
 
 ```ts
-// Basic Auth 헤더 (Management 의 X-TC-* 와 다름)
-private basicAuthHeader(): Record<string, string> {
-  const token = Buffer.from(`${this.uakId}:${this.uakSecret}`).toString("base64");
-  return { Authorization: `Basic ${token}` };
+export interface Repository {
+  name: string;                       // "{project}/{repo}" 형태
+  artifact_count?: number | string;   // 6-2 — 수치 메타 string 가능
+  pull_count?: number | string;
+  update_time?: string | null;
+  [key: string]: unknown;
 }
 
-// Docker Registry v2 — 평면 JSON, envelope unwrap 미적용
-async listRepositories(registryUri: string): Promise<string[]> {
-  // GET https://{registryUri}/v2/_catalog → { repositories: string[] }
+export interface ArtifactTag {
+  name: string;
+  push_time?: string | null;
+  [key: string]: unknown;
 }
-async listTags(registryUri: string, repository: string): Promise<string[]> {
-  // GET https://{registryUri}/v2/{repository}/tags/list → { name, tags: string[] }
+
+export interface Artifact {
+  digest?: string;
+  size?: number | string;
+  push_time?: string | null;
+  tags?: ArtifactTag[] | null;        // 5-6 — dangling artifact 는 tags=null
+  [key: string]: unknown;
 }
 ```
 
-- **봉투 우회**(ADR-015 다운로드 선례): `.json<{ repositories: string[] }>()` 직접 파싱, `unwrap` 호출하지 않는다(Docker v2 는 NHN 봉투 아님). 가드로 `repositories`/`tags` 배열 존재 확인 후 반환.
-- repository path 는 `/` 포함 가능(`project/image`) — `encodeURIComponent` 하면 `%2F` 로 깨질 수 있으니 Docker v2 규약(slash 보존, 각 세그먼트만 인코딩) 확인. 실측으로 확정.
-- host 는 021 `ncr get` 의 `uri` 또는 `private_uri` — STEP 0 에서 확정한 쪽을 쓴다.
+- 가드 `isRepository`: `name` 만 `typeof === "string"` 요구(5-6, 나머지 optional/nullable). `isArtifact`: object·non-null 이면 통과(digest 등 전부 optional).
 
-### 2. registry host 해석
+### 2. `src/services/ncr/harbor-client.ts` — HarborClient (신규)
 
-`images`/`tags` 명령은 `<registry>` 이름을 받아 먼저 `getRegistry` 로 host(uri)를 얻고, 그 host 에 Docker v2 호출. 2단계 흐름이므로 **spinner 2단계 전환(1-2 회피)**: 첫 spinner("레지스트리 조회 중") stop 후 둘째 spinner("이미지 목록 조회 중") 시작.
+```ts
+export class HarborClient {
+  constructor(uakId: string, uakSecret: string, host: string) { ... }   // host = scheme 없는 데이터플레인 도메인
+  private basicAuthHeaders(): Record<string, string> {
+    const token = Buffer.from(`${this.uakId}:${this.uakSecret}`).toString("base64");
+    return { Authorization: `Basic ${token}` };
+  }
+  async listRepositories(project: string): Promise<Repository[]> { ... }
+  async listArtifacts(project: string, repository: string): Promise<Artifact[]> { ... }
+}
+```
 
-### 3. `src/commands/ncr/images.ts` / `tags.ts`
+- `DEFAULT_TIMEOUT_MS` 는 모듈 로컬 const(`const DEFAULT_TIMEOUT_MS = 30_000;`, export 아님 — deploy/ncr client 패턴).
+- 호출: `ky.get(url, { headers: this.basicAuthHeaders(), retry: 0, timeout: DEFAULT_TIMEOUT_MS }).json<unknown>()`.
+  - **봉투 미적용(ADR-017)**: Harbor 응답은 평면 배열이다. `unwrap`/`unwrapHeader` 를 호출하지 않는다. `const data = await ...json<unknown>();` 후 `Array.isArray(data)` 가드 → 비배열이면 `NhnCloudCliError("... 응답 형식 오류 ...", EXIT_API_ERROR)`, 배열이면 `.filter(isRepository)`/`.filter(isArtifact)`.
+  - HTTP 4xx/5xx 는 ky 기본 `throwHttpErrors` 로 throw → `catch { if (err instanceof NhnCloudCliError) throw err; throw toNhnCloudCliError(err); }` (401/403→AUTH, 그 외→API).
+- URL:
+  - repositories: `https://${host}/api/v2.0/projects/${encodeURIComponent(project)}/repositories`
+  - artifacts: `https://${host}/api/v2.0/projects/${encodeURIComponent(project)}/repositories/${encodeURIComponent(repository)}/artifacts`
+  - **path-traversal 방지**: project·repository 모두 `encodeURIComponent`(repo 의 `/` 도 `%2F` 로).
 
-- `ncr images <registry>` — repository 목록. headers `["repository"]`.
-- `ncr tags <registry> <repository>` — 태그 목록. headers `["tag"]`.
-- 옵션 `--region`/`--app-key`/`--profile` 은 021 helper 재사용.
-- `index.ts` 의 ncrCommand 에 두 명령 추가.
+### 3. `src/commands/ncr/helpers.ts` — host 해석 추가 (ncr get 재사용)
 
-### 4. ADR-017 신설 (게이트 통과 후 — adr.md)
+기존 `createNcrClient`/`resolveAppKey` 옆에 추가:
 
-ADR-016 과 별도. 구조:
+```ts
+// 데이터플레인 host 는 ncr get(Management API)으로 얻은 registry.uri 에서 추출한다.
+export async function createHarborClient(opts: { profile?: string; region?: string; appKey?: string }, registryArg: string):
+  Promise<{ harbor: HarborClient; project: string }> {
+  const { client: ncrClient, profileName } = await createNcrClient(opts);
+  const appKey = await resolveAppKey(profileName, opts.appKey);
+  const uak = await getUserAccessKey(profileName);
+  const reg = await ncrClient.getRegistry(appKey, registryArg);   // 021 재사용 — registry.uri/name 획득
+  const host = parseHarborHost(reg.uri);
+  const project = typeof reg.name === "string" ? reg.name : registryArg;
+  return { harbor: new HarborClient(uak.id, uak.secret, host), project };
+}
 
-- 결정: 이미지/태그는 Management API 부재로 Docker Registry HTTP API v2 데이터플레인을 Basic Auth(UAK id:secret)로 직접 호출. 봉투 우회(평면 JSON). host 는 ncr get 의 uri.
-- 맥락: NCR public Management API 에 image/tag 조회 endpoint 없음 — Harbor native(`/api/v2.0`)도 미노출.
-- 실측 확정 결과: STEP 0 의 200 응답 형태(host=uri/private_uri, repository path 인코딩 규약).
-- 대안 기각: Management API 확장 대기(콘솔 전용이라 불가) / Harbor native 경로(미노출 404).
-- adr.md ADR Index 에 한 줄 + CLAUDE.md ADR 참조 표·인증 모델 표(Docker v2 Basic Auth 행) 추가.
+// uri "{host}/{registryName}" (scheme 유무 무관) → host 부분만.
+function parseHarborHost(uri?: string | null): string {
+  if (!uri) throw new NhnCloudCliError("레지스트리 uri 가 없어 이미지 host 를 해석할 수 없습니다.", EXIT_API_ERROR);
+  const noScheme = uri.replace(/^https?:\/\//, "");
+  const host = noScheme.split("/")[0];
+  if (!host) throw new NhnCloudCliError("레지스트리 uri 형식 오류 — host 추출 실패.", EXIT_API_ERROR);
+  return host;
+}
+```
 
-> ADR-017 은 게이트 통과로 사실이 확정된 뒤에만 작성한다(planning 단계에서 미확정이라 task 로 미뤘음). 게이트 실패면 ADR 작성하지 않는다.
+- `getUserAccessKey`/`createNcrClient`/`resolveAppKey` 는 기존 export. 새 import 만 추가.
+- `EXIT_API_ERROR` 등 exit code 상수 import 확인.
 
-### 5. 단위테스트 (020 패턴)
+### 4. `src/commands/ncr/images.ts` / `tags.ts`
 
-- `listRepositories` — `vi.mock("ky")` 로 `{ repositories: ["a","b"] }` 주입 → `["a","b"]` 반환. 봉투가 **아닌** 평면 JSON 임을 테스트로 고정(unwrap 호출 안 함 검증).
-- `listTags` — `{ name: "repo", tags: ["v1","v2"] }` → `["v1","v2"]`.
-- 빈/누락 배열 가드: `{}` → 빈 배열 또는 명확한 에러(택1, 코드 동작과 일치).
-- Basic Auth 헤더가 `Basic base64(id:secret)` 인지 ky.get 호출 인자 단언.
+**spinner 순서(1-1/1-2)**: (spinner 전) registry 인자 빈값 검증 + host 해석 — `createHarborClient` 는 내부에서 ncr get 호출이라 spinner 앞. → `startSpinner` → try/catch(`stopSpinner(false); throw e`) → `stopSpinner(true)` → `output`.
 
-## 회피 항목 (executor self-check)
+- `images <registry>`:
+  - registry 빈값(`registry.trim()` 비어있음)은 spinner 전 EXIT_PARAM_ERROR(CLI15, get.ts 선례).
+  - `const { harbor, project } = await createHarborClient(opts, registry);`
+  - `const repos = await harbor.listRepositories(project);`
+  - 표시: repository name 은 `{project}/{repo}` 라 **project 접두를 떼어 짧은 이름**으로 보여 사용자가 그대로 `ncr tags` 인자로 쓰게 한다. `const short = r.name.startsWith(project + "/") ? r.name.slice(project.length + 1) : r.name;`
+  - headers `["repository", "artifact_count", "pull_count"]`, rows 는 short·`String(r.artifact_count ?? "")`·`String(r.pull_count ?? "")`, ids = short 목록.
+- `tags <registry> <repository>`:
+  - registry·repository 빈값은 spinner 전 EXIT_PARAM_ERROR.
+  - `const { harbor, project } = await createHarborClient(opts, registry);`
+  - `const artifacts = await harbor.listArtifacts(project, repository);`
+  - flatten: `artifacts.flatMap(a => (a.tags ?? []).map(t => ({ tag: t.name, push_time: t.push_time ?? a.push_time, size: a.size })))` — tags=null dangling artifact 는 자동 제외.
+  - headers `["tag", "push_time", "size"]`, rows 의 size 는 `String(... ?? "")`, ids = tag 목록.
+- 옵션: `--region`, `--app-key`, `--profile`(images·tags 공통). 9-1: exit code 는 `EXIT_*` 상수, 숫자 리터럴 금지.
 
-- **봉투 혼동**: Docker v2 응답에 `unwrap`(NHN 봉투)을 적용하지 않았는가? Management(021)와 데이터플레인(022)의 파싱을 섞지 않았는가?
-- **1-2 spinner 2단계**: registry 조회 → 이미지 조회 2단계에서 첫 spinner 를 stop 후 둘째 시작했는가?
-- **5-3 / 가드**: 평면 JSON 의 `repositories`/`tags` 를 `as string[]` 캐스트 없이 배열 가드 후 반환했는가?
-- **9-1 exit code 리터럴**: `EXIT_*` 상수 사용.
-- **추측 금지**: 게이트 미통과인데 "아마 되겠지" 로 코드를 머지하지 않았는가?
+### 5. `src/index.ts` — images/tags 등록
+
+```ts
+ncrCommand.addCommand(imagesCommand);
+ncrCommand.addCommand(tagsCommand);
+```
+
+### 6. 단위테스트 `src/services/ncr/harbor-client.test.ts` (020 패턴)
+
+`vi.mock("ky")`:
+- `listRepositories` 가 평면 배열을 반환(mock `.json()` 에 배열 주입) → Repository[] (name·artifact_count 수용, string/number).
+- `listArtifacts` 가 평면 배열 반환, tags=null artifact 포함 → flatten 시 제외 확인은 command 레벨이라 client 는 배열 그대로 반환.
+- **Basic Auth 헤더 단언**: `ky.get` 호출 인자에 `Authorization: Basic <base64>` 가 들어가는지(`expect.objectContaining`). `Buffer.from("id:secret").toString("base64")` 와 일치.
+- URL 단언: `/api/v2.0/projects/{project}/repositories` host 포함.
+- 비배열 응답 → 형식 오류 throw(EXIT_API_ERROR).
+- 4xx mock(2-3): reject value 는 `toNhnCloudCliError` 매핑(401→AUTH, 404→API) 흉내.
+
+## 회피 항목 (executor self-check — 작성 직전 grep)
+
+- **봉투 미적용**: `grep -nE "unwrap|unwrapHeader" src/services/ncr/harbor-client.ts` → 0건(Harbor 는 평면 JSON, ADR-017).
+- **Basic Auth**: `Authorization: Basic` + `Buffer...base64`. 정적 X-TC 헤더 재사용 금지.
+- **path-traversal**: project·repository 모두 `encodeURIComponent`. `grep -nE "encodeURIComponent" src/services/ncr/harbor-client.ts`.
+- **nullable tags(5-6)**: `a.tags ?? []` flatten. tags=null 거르지 않고 빈 처리.
+- **수치 string/number(6-2)**: artifact_count·pull_count·size 를 number-only 가정 금지.
+- **비배열 가드**: `Array.isArray` 후 filter — `.filter is not a function` 방지(021 hotfix PR #27 교훈).
+- **9-1 exit code 리터럴**: `grep -rnE "NhnCloudCliError\([^,]+,\s*[0-9]+" src/commands/ncr/ src/services/ncr/` → 0건.
+- **spinner 순서(1-1/1-2)**: host 해석(createHarborClient)·registry 빈값 검증이 startSpinner 앞.
 
 ## 완료 조건
 
-- **게이트 통과**: tsc 0 에러 + build 정상 + `pnpm test` PASS + 실측 200 + ADR-017 작성. index.json `current_phase: 1`.
-- **게이트 실패**: 코드 미작성. index.json `status: blocked`, `blocked_reason` 에 실측 결과(status·Www-Authenticate·응답 본문 요약) 기록. phase-02 로 진행하지 않고 사용자에게 대안 보고.
+1. `pnpm tsc --noEmit` 0.
+2. `pnpm run build` 정상 + `node dist/index.js ncr images --help` / `ncr tags --help` 노출.
+3. `pnpm test` — harbor client 테스트 PASS(기존 NCR·020 스위트 그린 유지).
+4. (자격증명 있으면) `ncr images <registry>` 200 실측 결과를 커밋 메시지에 기록.
+5. index.json `current_phase: 1`(phase-02 대기).
