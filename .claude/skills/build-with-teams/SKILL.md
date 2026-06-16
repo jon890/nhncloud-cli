@@ -96,7 +96,7 @@ critic / executor / code-reviewer / docs-verifier는 반드시 **TeamCreate로 �
 ```
 Agent({
   subagent_type: "oh-my-claudecode:critic",
-  team_name: "plan{N}",
+  team_name: "plan{NNN}",
   name: "critic",
   model: "opus",
   run_in_background: true,
@@ -109,7 +109,7 @@ executor 스폰 시 `nhncloud-cli-executor` custom agent 사용 (dooray-cli 도�
 ```
 Agent({
   subagent_type: "nhncloud-cli-executor",
-  team_name: "plan{N}",
+  team_name: "plan{NNN}",
   name: "executor",
   model: "sonnet",
   mode: "bypassPermissions",
@@ -120,6 +120,7 @@ Agent({
 
 - `team_name` + `name`을 반드시 지정 (`name`은 `critic`/`executor`/`code-reviewer`/`docs-verifier`로 통일)
 - `run_in_background: true`로 idle 대기 가능
+  (단 executor 는 4+ phase 에서 6.2 적용 — phase별 스폰·shutdown)
 - 이후 통신은 **모두 `SendMessage({to: "critic", message: "..."})`로만** 진행
 
 **SendMessage 회신 강제 (필수 — 텍스트 출력 누락 사고 방지)**:
@@ -143,14 +144,14 @@ team-lead 는 sub-agent 의 idle 알림만 **2회 이상 연속 수신** 하고 
 정식 멤버 등록 여부는 반드시 `team config.json` 으로 직접 확인한다.
 
 응답 형식 차이로도 1차 식별 가능:
-- ✅ 정식 멤버: `agent_id: critic@plan{N}` + `name: critic` + `team_name: plan{N}` 노출
+- ✅ 정식 멤버: `agent_id: critic@plan{NNN}` + `name: critic` + `team_name: plan{NNN}` 노출
 - ❌ 일회성 백그라운드: `agentId: <16자 UUID>` 만 노출 (이름·팀 정보 없음)
 
 후자가 보이면 **즉시 재스폰**. 전자라도 다음 grep 으로 한 번 더 확인:
 
 ```bash
 # cwd: 무관 (절대경로)
-python3 -c "import json; m=json.load(open('$HOME/.claude/teams/plan{N}/config.json'))['members']; print('\n'.join(f\"{x['name']}@{x['agentType']}\" for x in m))"
+python3 -c "import json; m=json.load(open('$HOME/.claude/teams/plan{NNN}/config.json'))['members']; print('\n'.join(f\"{x['name']}@{x['agentType']}\" for x in m))"
 # 기대: team-lead 외에 critic / executor / code-reviewer / docs-verifier 가 표시되어야 함
 # 보이지 않으면 일회성 agent — name 파라미터 추가하여 재스폰
 ```
@@ -213,7 +214,7 @@ task의 `index.json` + phase 파일을 읽고 규모를 판정하여 팀원 모�
 |---|---|
 | **소** | `total_phases: 1`, 버그 수정/UI 미세 조정/단순 설정 변경 |
 | **중** | `total_phases: 2~3`, 기존 기능 확장/리팩토링/스키마 단순 추가 |
-| **대** | `total_phases: 4+` 또는 아키텍처/신규 도메인/DB 스키마 대규모 변경 |
+| **대** | `total_phases: 4+` 또는 아키텍처/신규 도메인/DB 스키마 대규모 변경 — executor phase별 스폰·shutdown 적용 (→ 6.2) |
 
 ### 규모별 모델 표
 
@@ -242,7 +243,7 @@ team-lead는 한도 카운터를 메모리(`.omc/state/`)에 기록하여 재실
 ### 1. 팀 생성
 
 ```
-TeamCreate → team name: plan{N}
+TeamCreate → team name: plan{NNN}
 ```
 
 critic + docs-verifier를 `run_in_background: true`로 스폰. 대기 상태로 준비.
@@ -300,12 +301,14 @@ executor에게 전달할 정보:
 
 executor 규칙:
 - phase-{N}.md를 순서대로 읽고 실행
+  (4+ phase: 6.2 에 따라 team-lead 가 phase 하나씩 새 executor 로 진행 — 단일 executor 의 전 phase 순차 실행은 3 phase 이하)
 - 각 phase 완료 후 성공 기준 검증
 - **커밋은 하지 않음** — phase 별 commit 은 team-lead 가 수행 (아래 6.1 참조)
 - **마지막 phase 에서 `tasks/{NNN}-{task-name}/index.json` 의 다음 필드를 `completed` 로 업데이트**
   - `status` / `current_phase` / 각 phase `status`
   - 별도 phase 아닌 마지막 phase 작업 내 스텝으로 처리
 - phase 완료/실패 시 즉시 team-lead 에게 SendMessage 보고 → team-lead 가 그 phase 를 commit 한 후 다음 phase 진행 지시
+  (4+ phase: 해당 executor shutdown 후 새 executor 스폰 — 6.2 참조)
 
 ### 6.1 phase 별 atomic commit (필수)
 
@@ -336,6 +339,35 @@ git commit -m "<phase-NN.md 의 ## 커밋 섹션 메시지>"
 **push 주기**: 매 phase commit 후 즉시 push 하지 않고 task 종료 시 일괄 push (9단계).
 PR 생성 직전이라 commit 누적이 자연스러움.
 단 worktree 가 길어지면 (1시간 이상) 중간 push 1회 허용.
+
+### 6.2 phase별 spawn-shutdown 사이클 (대규모)
+
+**3 phase 이하는 6단계 단일 executor 모델 그대로**, 4+ phase 만 본 사이클 적용.
+critic / code-reviewer / docs-verifier 에는 영향 없음 — executor 만 해당.
+
+**적용 조건**: `total_phases` 4 이상("대" 규모 판정)일 때 phase 마다 새 executor 를 스폰하고 즉시 shutdown. 3 phase 이하는 스폰 오버헤드를 피하기 위해 단일 executor 가 전 phase 를 순차 처리한다(6단계 기본 모델 유지).
+
+**컨텍스트 격리**: phase 마다 새 컨텍스트로 시작해 토큰 누적을 끊는다. phase별 모델 정책을 독립적으로 적용할 수 있다.
+
+**즉시 shutdown**: team-lead 가 phase commit (6.1) 을 마치면 그 executor 에게 곧장 `shutdown_request` 를 보낸다. idle 잔존이 리소스를 점유하는 것을 막는다.
+
+**직전 phase 학습 인계**: 새 executor 스폰 프롬프트에 직전 phase 에서 확인한 도메인 발견(이동한 파일 경로·갱신한 import·확정된 타입 등)을 1~2줄로 요약해 넘긴다. 컨텍스트가 새로 시작돼도 domain 연속성이 유지된다.
+
+**스폰 패턴 (4+ phase 전용)**:
+```
+# phase-N 완료 + commit 후
+SendMessage({to: "executor", message: "shutdown_request"})
+# phase-(N+1) 시작 전
+Agent({
+  subagent_type: "nhncloud-cli-executor",
+  team_name: "plan{NNN}",
+  name: "executor",
+  model: "sonnet",
+  mode: "bypassPermissions",
+  run_in_background: true,
+  prompt: "직전 phase 발견: <1~2줄 요약>. 다음 phase 실행..."
+})
+```
 
 ### 7. 코드 품질 검사 (code-reviewer)
 
@@ -468,7 +500,10 @@ UPDATE_NEEDED 가 3곳 같이 잡혔는데 그중 1곳을 잘못 갱신했어도
    - critic → `_shared/retros/critic-retro.md`
    - code-reviewer → `_shared/retros/code-reviewer-retro.md`
    - docs-verifier → `_shared/retros/docs-verifier-retro.md`
-8. 팀 shutdown (SendMessage `shutdown_request`)
+8. **특이사항 집계 보고** — 각 phase executor 보고의 특이사항 4종(pre-existing / 신규 deprecation / 미검증 / 범위 외 발견)을 누적해 사용자에게 명시 보고.
+   - 4종 모두 "없음"이면 "특이사항 없음" 한 줄로 명시(침묵 금지 — 사용자 미인지 종료 방지).
+   - 특이사항 4종 정의는 executor agent 보고 형식이 단일 소스 — 이 항목은 집계·보고만 담당한다.
+9. 팀 shutdown (SendMessage `shutdown_request`)
 
 ## worktree 기반 격리 실행 (필수)
 

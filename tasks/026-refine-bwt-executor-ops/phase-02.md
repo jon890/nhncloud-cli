@@ -31,6 +31,7 @@ executor 가 phase 보고에 특이사항 4종을 적고, team-lead 가 종료 �
 build-with-teams/SKILL.md 9단계(완료 + PR 생성)에 항 추가:
 - team-lead 는 각 phase executor 보고의 특이사항 4종을 **누적**해, PR 생성 보고(또는 사용자 최종 보고)에 명시 표시한다.
 - 4종 모두 "없음"이면 "특이사항 없음" 한 줄로 명시(침묵 금지).
+- **삽입 위치·재번호 (CLAUDE.md rule 10 — `.5` 금지, 정수 재번호)**: 9단계는 현재 1~8 번호 목록(8 = 팀 shutdown)이다. 특이사항 누적 보고를 **새 8번**으로 삽입하고 기존 8번(팀 shutdown)을 **9번**으로 민다. `7.5` 류 소수 번호 금지.
 - `.agents/skills/build-with-teams/SKILL.md` 동일.
 
 ### 3. index.json 완료 마킹 (마지막 phase)
