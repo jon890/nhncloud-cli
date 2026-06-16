@@ -98,9 +98,10 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 
 ## 카테고리별 패턴 목록
 
-### [plan/](plan/) (39)
+### [plan/](plan/) (41)
 
 - [cache-bypass-in-verify-helper](plan/cache-bypass-in-verify-helper.md)
+- [carve-out-conflicting-prohibition](plan/carve-out-conflicting-prohibition.md)
 - [decision-docs-in-phase](plan/decision-docs-in-phase.md)
 - [endpoint-version-double-prefix](plan/endpoint-version-double-prefix.md)
 - [execution-context-ambiguous](plan/execution-context-ambiguous.md)
@@ -126,6 +127,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [path-migration-agents-missing](plan/path-migration-agents-missing.md)
 - [plan-and-build-commit-conflict](plan/plan-and-build-commit-conflict.md)
 - [prev-plan-interaction-missing](plan/prev-plan-interaction-missing.md)
+- [prose-migration-lossless-checklist](plan/prose-migration-lossless-checklist.md)
 - [punt-orphan-deliverable](plan/punt-orphan-deliverable.md)
 - [resolver-validation-policy-asymmetry](plan/resolver-validation-policy-asymmetry.md)
 - [revise-string-change-cascade-missing](plan/revise-string-change-cascade-missing.md)
