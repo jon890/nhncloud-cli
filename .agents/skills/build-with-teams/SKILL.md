@@ -499,7 +499,10 @@ UPDATE_NEEDED 가 3곳 같이 잡혔는데 그중 1곳을 잘못 갱신했어도
    - critic → `_shared/retros/critic-retro.md`
    - code-reviewer → `_shared/retros/code-reviewer-retro.md`
    - docs-verifier → `_shared/retros/docs-verifier-retro.md`
-8. 팀 shutdown (SendMessage `shutdown_request`)
+8. **특이사항 집계 보고** — 각 phase executor 보고의 특이사항 4종(pre-existing / 신규 deprecation / 미검증 / 범위 외 발견)을 누적해 사용자에게 명시 보고.
+   - 4종 모두 "없음"이면 "특이사항 없음" 한 줄로 명시(침묵 금지 — 사용자 미인지 종료 방지).
+   - 특이사항 4종 정의는 executor agent 보고 형식이 단일 소스 — 이 항목은 집계·보고만 담당한다.
+9. 팀 shutdown (SendMessage `shutdown_request`)
 
 ## worktree 기반 격리 실행 (필수)
 
