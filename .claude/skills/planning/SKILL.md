@@ -12,9 +12,9 @@ description: 새 기능/변경사항 구현 전 8단계 설계 워크플로우. 
 - **속도와 안정성의 트레이드오프**: 빠르게 MVP 를 출시하되 안정적인 서비스를 만든다
 - **모호함 제로**: 각 단계에서 조금이라도 모호하면 반드시 사용자와 논의.
   넘어가지 않는다
-- **review 반복 지적 사전 해소**: task 파일 작성 시 두 docs 의 패턴을 모두 self-check
-  - `common-pitfalls.md` (critic 회피)
-  - `code-review-pitfalls.md` (코드 작성 회피)
+- **review 반복 지적 사전 해소**: task 파일 작성 시 pitfalls INDEX 로 해당 카테고리 패턴을 self-check
+  - `pitfalls/plan/` — critic 회피 (plan 작성 시 라우터로 변경 유형 파일 선택)
+  - `pitfalls/code-review/` — 코드 작성 회피 (executor 코드 작성 시작 직전 self-check)
   - 매번 같은 지적이 반복되지 않도록 plan 단계에서 미리 해결
 - **선택지 제시는 AskUserQuestion 으로**:
   - 옵션 분기 / 결정 묻기 시 `AskUserQuestion` 사용
@@ -31,11 +31,11 @@ task 파일을 **사용자에게 제출하기 전**에 두 docs 를 모두 self-
 
 | docs | 회피 대상 | 호출 시점 |
 |---|---|---|
-| [`common-pitfalls.md`](../_shared/common-pitfalls.md) 섹션 1 + 4 | critic 의 plan 평가 지적 | task 파일 작성 직후 self-check |
-| [`code-review-pitfalls.md`](../_shared/code-review-pitfalls.md) 전체 | code-reviewer 의 코드 검사 지적 | phase 본문에 회피 항목 1줄 인용 + executor 코드 작성 시작 직전 self-check |
+| [`pitfalls/INDEX.md`](../_shared/pitfalls/INDEX.md) → `plan/` 카테고리 | critic 의 plan 평가 지적 | task 파일 작성 직후 라우터로 변경 유형 파일 선택·self-check |
+| [`pitfalls/INDEX.md`](../_shared/pitfalls/INDEX.md) → `code-review/` 카테고리 | code-reviewer 의 코드 검사 지적 | phase 본문에 회피 항목 1줄 인용 + executor 코드 작성 시작 직전 self-check |
 
-**축적 규칙**: critic / code-reviewer 가 **새로운 타입** 의 지적을 하면 build-with-teams 9단계 회고에서 해당 docs 에 패턴을 추가한다 (build-with-teams SKILL 9-7항 참조).
-두 파일은 시간이 지날수록 두꺼워지고, review 사이클에서 할 말은 줄어든다.
+**축적 규칙**: critic / code-reviewer 가 **새로운 타입** 의 지적을 하면 build-with-teams 9단계 회고에서 해당 카테고리에 slug 파일을 추가한다 (build-with-teams SKILL 9-7항 참조).
+`pitfalls/{category}/<slug>.md` 파일은 시간이 지날수록 쌓이고, review 사이클에서 할 말은 줄어든다.
 
 **docs-verifier 사전 해소은 별도 회고 docs 를 두지 않는다** — 아래 "거울 구조 원칙" 섹션 참조. docs-verifier 의 반복 지적은 본 SKILL 8단계 A항 docs 영향 표에 행 추가 / 보강 형태로 흡수된다.
 
