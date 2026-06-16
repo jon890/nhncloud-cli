@@ -480,54 +480,7 @@ ${ISSUE_URL}"
 reply 까지 완료되면 이번 PR 의 리뷰에서 **재발 가능 패턴**을 추출해 `_shared/pitfalls/{category}/<slug>.md` 신규 파일로 누적한다.
 같은 지적이 다음 PR 에서 반복되지 않도록 critic / 사전 self-check 양쪽에 학습.
 
-### 추출 기준 (✅ 누적 / ❌ 누적 금지)
-
-- ✅ 누적: **재현 가능한 패턴** — 같은 실수가 다른 코드에서도 발생할 가능성
-  - 구체적 명령으로 검출 가능
-  - 예: "ky retry 옵션 누락 — `retry: { limit: 0 }` 명시 권장 (ADR-002)"
-- ❌ 누적 금지: 1회성 오타 / 특정 plan 컨텍스트에서만 의미 있는 코멘트 / 칭찬 / 단순 확인 요청
-
-### 누적 위치 결정
-
-| 패턴 종류 | 위치 | 카테고리 |
-|---|---|---|
-| 라이브러리 / API / 타입 함정 (ky / vitest / commander 등) | `_shared/pitfalls/code-review/<slug>.md` | `code-review` |
-| 일반 critic 시드 패턴 (수치 추측 / cwd 모호 / 눈으로 확인 등) | `_shared/pitfalls/plan/<slug>.md` | `plan` |
-| 팀 운영 패턴 (팀원 스폰 / SendMessage / worktree 격리 등) | `_shared/pitfalls/team/<slug>.md` | `team` |
-| 도메인 의사결정 / ADR 가치 | `docs/adr/` | 신규 ADR 파일 `NNN-slug.md` (ADR 작성 전 점검 통과 후) |
-| 명령 동작 / 사용법 변경 | `CLAUDE.md` | 주의사항 표 |
-
-### 작성 형식 (slug 파일 신규 추가 예시)
-
-```markdown
----
-id: <kebab-slug = 파일명 stem>
-category: plan | team | code-review
-title: <한 줄 요약>
-triggers: [<변경 유형 키워드>, ...]
-tool_catchable: false
-source: [PR#NN]
-related: []
----
-
-**증상**: {증상 1줄}
-**왜**: {왜 발생하는지 / 검출 명령}
-
-**Good**: {해결책 1줄 + 코드 패턴}
-
-**Self-check**: {grep 또는 확인 명령}
-```
-
-파일 생성 후 `_shared/pitfalls/INDEX.md` 의 해당 카테고리 목록에 1줄 추가:
-```markdown
-- [<slug>](<category>/<slug>.md)
-```
-
-축적 통과 조건 (4조건 모두 충족 시에만 파일 추가):
-1. **재발성** — 2회 이상 재발했거나 다른 코드에서도 발생할 구조적 가능성
-2. **심각도** — 데이터 손상·문서 전체 실패·보안 등 영향이 큼
-3. **도구로 못 잡음** — `pnpm tsc --noEmit` / vitest 가 이미 잡는 것은 제외
-4. **추상화 가능** — 특정 인시던트 너머로 일반화된 커널
+추출 기준·누적 위치·작성 형식·판정 4조건은 `_shared/retros/code-reviewer-retro.md` 절차를 따른다.
 
 ### 누적 후 사용자 보고
 

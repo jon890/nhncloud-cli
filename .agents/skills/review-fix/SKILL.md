@@ -12,7 +12,7 @@ description: |
 
 ## 개요
 
-PR에 달린 코드 리뷰 댓글(주로 Codex bot의 🔴/🟡 구조화 리뷰)을 분석하고,
+PR에 달린 코드 리뷰 댓글(주로 claude bot의 🔴/🟡 구조화 리뷰)을 분석하고,
 필수 수정 → 권장 수정 순으로 코드를 반영한 뒤 commit & push한다.
 
 ## 프로젝트 컨벤션 (dooray-cli)
@@ -22,7 +22,7 @@ PR에 달린 코드 리뷰 댓글(주로 Codex bot의 🔴/🟡 구조화 리뷰
 - 테스트: `pnpm test` (vitest)
 - HTTP: `ky` 전용 (axios/node-fetch 금지)
 - 커밋/PR 메시지: **`type(scope): description`** (예: `fix(commands): ...`, `refactor(api): ...`). 이모지 prefix 금지.
-- ADR 게이트: 새 라이브러리 함정·정책 변경은 `docs/adr/` 에 신규 ADR 파일 추가 필요 (AGENTS.md 표 참조).
+- ADR 게이트: 새 라이브러리 함정·정책 변경은 `docs/adr/` 에 신규 ADR 파일 추가 필요 (CLAUDE.md 표 참조).
 
 ---
 
@@ -127,8 +127,8 @@ grep -nE "^(<<<<<<<|=======|>>>>>>>)" $(git diff --name-only --diff-filter=U)
 | 카테고리 | 예시 | 자동 처리 |
 |---|---|---|
 | **양쪽 추가** (서로 다른 항목 추가) | `code-architecture.md` 에 양쪽이 다른 resolver 항목 추가 | ✅ 둘 다 보존 |
-| **수치/카운트 갱신** | `AGENTS.md` "16개 → 17개" (다른 PR 머지로 수 증가) | ✅ 더 큰 수치 + 본 PR 변경 의미 합성 |
-| **same-line different-content** | 같은 함수 시그니처 양쪽 수정 | ⚠️ Codex 가 의도 추론 → **사용자 confirm 필수** |
+| **수치/카운트 갱신** | `CLAUDE.md` "16개 → 17개" (다른 PR 머지로 수 증가) | ✅ 더 큰 수치 + 본 PR 변경 의미 합성 |
+| **same-line different-content** | 같은 함수 시그니처 양쪽 수정 | ⚠️ claude 가 의도 추론 → **사용자 confirm 필수** |
 | **delete vs modify** | 한쪽이 파일/함수 제거, 한쪽은 수정 | 🛑 사용자 confirm 필수 (제거가 의도된 변경인지 확인) |
 | **slug 중복** | `pitfalls/code-review/<slug>.md` 가 이미 존재 (다른 PR 머지로 선점) | ✅ 더 구체적인 slug 로 변경 + INDEX 1줄 갱신. slug-only 구조라 번호 충돌 없음 |
 | **import 누락** | 한쪽이 모듈 import 제거 (refactor) + 다른 쪽이 그 모듈 사용 (신규) | ⚠️ import 재추가 — silent 회피. rebase 시 auto-merge 통과해도 NameError 잠재. 사고 사례: docu-parser plan011 `os.getenv → settings` 마이그레이션 + plan012 `os.environ` 사용 |
@@ -191,7 +191,7 @@ gh api repos/<owner>/<repo>/pulls/<N>/comments \
   --jq '[.[] | {id: .id, path: .path, line: .line, body: .body[0:500], author_login: .user.login}]'
 ```
 
-**중요**: 두 명령을 **반드시 모두 실행**한다. 인라인 댓글 API만 확인하면 일반 코멘트(Codex bot의 구조화 리뷰 포함)를 놓칠 수 있다.
+**중요**: 두 명령을 **반드시 모두 실행**한다. 인라인 댓글 API만 확인하면 일반 코멘트(claude bot의 구조화 리뷰 포함)를 놓칠 수 있다.
 두 종류의 댓글 ID는 서로 다른 API를 사용하므로 혼동하지 않도록 구분하여 관리한다.
 댓글이 없거나 봇 리뷰가 없으면 사용자에게 알리고 종료한다.
 
@@ -199,7 +199,7 @@ gh api repos/<owner>/<repo>/pulls/<N>/comments \
 
 ## 2단계: 리뷰 분류 및 우선순위 결정
 
-리뷰 댓글에서 항목을 파싱한다. 이 프로젝트에서는 Codex bot이 아래 형식으로 댓글을 남긴다:
+리뷰 댓글에서 항목을 파싱한다. 이 프로젝트에서는 claude bot이 아래 형식으로 댓글을 남긴다:
 
 ```
 🔴 필수 수정: ...
@@ -207,7 +207,7 @@ gh api repos/<owner>/<repo>/pulls/<N>/comments \
 🟢 잘 된 점: ...   ← 수정 불필요
 ```
 
-Codex bot 외에도 GitHub formal review, 인라인 코드 댓글(`gh api .../pulls/N/comments`), 일반 텍스트 코멘트도 확인한다.
+claude bot 외에도 GitHub formal review, 인라인 코드 댓글(`gh api .../pulls/N/comments`), 일반 텍스트 코멘트도 확인한다.
 **토큰 절약**: `diff_hunk`, `html_url`, `_links`, `user`, `reactions` 등 불필요한 필드는 항상 jq로 제외한다. body는 `.body[0:500]`으로 길이를 제한한다.
 구조화 마커가 없더라도 "수정 요청", "변경 필요", "이슈" 등 수정을 암시하는 표현을 추출한다.
 
@@ -254,7 +254,7 @@ Codex bot 외에도 GitHub formal review, 인라인 코드 댓글(`gh api .../pu
 
 1. 대상 파일을 **반드시 읽는다** — 리뷰 댓글의 라인 번호와 현재 파일이 다를 수 있다
 2. 변경 범위를 파악하고 최소한의 수정만 적용한다
-3. 리뷰가 제안하는 패턴이 프로젝트 컨벤션에 맞는지 확인한다 — `AGENTS.md` 의 컨벤션 표 + 상황별 ADR 필수 참조 표를 따른다
+3. 리뷰가 제안하는 패턴이 프로젝트 컨벤션에 맞는지 확인한다 — `CLAUDE.md` 의 컨벤션 표 + 상황별 ADR 필수 참조 표를 따른다
 4. ADR 개정이 필요한 결정 (예: ky 옵션 변경, 캐시 구조 변경) 은 코드 수정과 별개로 `docs/adr/NNN-slug.md` 해당 파일도 함께 갱신
 
 ---
@@ -297,7 +297,7 @@ fix(<scope>): <변경 내용 요약>
 
 <선택적 본문: 왜 이 변경이 필요한지>
 
-Co-Authored-By: Codex Sonnet 4.6 <noreply@anthropic.com>
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 ```
 
 `type` 선택:
@@ -355,17 +355,17 @@ gh pr view <N> --json mergeable,mergeStateStatus
 ### ⚠️ 자동 재트리거 토큰 금지 (CRITICAL)
 
 reply 본문에 다음 토큰을 **포함하면 안 된다**.
-`.github/workflows/Codex-review.yml` 의 `if:` 조건에 의해 자동 review 재실행 유발 또는 사용자가 봇 멘션으로 인지:
+`.github/workflows/claude-code-review.yml` 의 `if:` 조건에 의해 자동 review 재실행 유발 또는 사용자가 봇 멘션으로 인지:
 
 - `/review` — workflow 의 `contains(github.event.comment.body, '/review')` 트리거 (확정 재실행)
-- `@Codex` — 현재 workflow `if:` 절은 `@Codex` 를 트리거하지 않지만 사용자가 "봇 멘션" 으로 인지 + 향후 workflow 변경 시 위험
-  - 봇을 지칭해야 하면 `` `@Codex` `` 백틱 코드 fence 또는 평문 "Codex bot" 사용
+- `@claude` — 현재 workflow `if:` 절은 `@claude` 를 트리거하지 않지만 사용자가 "봇 멘션" 으로 인지 + 향후 workflow 변경 시 위험
+  - 봇을 지칭해야 하면 `` `@claude` `` 백틱 코드 fence 또는 평문 "Claude bot" 사용
 - `@github-actions`, `@dependabot` 등 다른 봇 멘션도 동일
 
 검증 grep (reply 등록 전):
 
 ```bash
-echo "$REPLY_BODY" | grep -nE "(^|[^\`])(/review|@Codex|@github-actions)\b"
+echo "$REPLY_BODY" | grep -nE "(^|[^\`])(/review|@claude|@github-actions)\b"
 # 결과 있으면 → 본문 수정 (백틱으로 감싸거나 평문으로)
 ```
 
@@ -389,10 +389,10 @@ echo "$REPLY_BODY" | grep -nE "(^|[^\`])#[0-9]+\b"
 
 ### 리뷰 형식 분기 (CRITICAL)
 
-Codex bot 의 리뷰는 두 형식 중 하나로 등록된다 — 형식에 따라 reply API 가 다르다:
+claude bot 의 리뷰는 두 형식 중 하나로 등록된다 — 형식에 따라 reply API 가 다르다:
 
 **A. 인라인 review 형식 (선호)**: bot 이 `gh api .../pulls/N/reviews` POST 로 file/line 단위 댓글 N건 + 일반 요약 1건.
-- `gh api repos/.../pulls/N/comments` 응답에 `in_reply_to_id: null` 인 Codex[bot] top-level 댓글 존재
+- `gh api repos/.../pulls/N/comments` 응답에 `in_reply_to_id: null` 인 claude[bot] top-level 댓글 존재
 - 1:1 reply 가능
 
 **B. 통합 댓글 형식 (fallback)**: bot 이 인라인 등록 실패 시 일반 PR 댓글 1건에 모든 발견사항 통합
@@ -417,7 +417,7 @@ fi
 ```bash
 # 인라인 댓글 ID + path + line 수집 (diff_hunk 제외 — 토큰 절약)
 gh api repos/<owner>/<repo>/pulls/<N>/comments \
-  --jq '[.[] | select(.in_reply_to_id == null) | select(.user.login == "Codex[bot]") | {id, path, line, body: .body[0:300]}]'
+  --jq '[.[] | select(.in_reply_to_id == null) | select(.user.login == "claude[bot]") | {id, path, line, body: .body[0:300]}]'
 
 # 각 처리한 인라인 댓글에 reply
 gh api repos/<owner>/<repo>/pulls/<N>/comments/<comment_id>/replies \
@@ -453,8 +453,8 @@ EOF
 
 본문 작성 원칙:
 - 봇 멘션 불필요 — PR 컨텍스트에 등록되므로 봇이 발견사항 작성자임이 자명
-- `@Codex` / `/review` 토큰 금지 (위 박스 참조)
-- 첫 줄에 멘션 시작 금지 (예: ❌ `@Codex 리뷰 반영 결과:` / ✅ `리뷰 반영 결과:`)
+- `@claude` / `/review` 토큰 금지 (위 박스 참조)
+- 첫 줄에 멘션 시작 금지 (예: ❌ `@claude 리뷰 반영 결과:` / ✅ `리뷰 반영 결과:`)
 
 ### 대범위 항목 — 이슈 등록 후 reply
 
@@ -480,54 +480,7 @@ ${ISSUE_URL}"
 reply 까지 완료되면 이번 PR 의 리뷰에서 **재발 가능 패턴**을 추출해 `_shared/pitfalls/{category}/<slug>.md` 신규 파일로 누적한다.
 같은 지적이 다음 PR 에서 반복되지 않도록 critic / 사전 self-check 양쪽에 학습.
 
-### 추출 기준 (✅ 누적 / ❌ 누적 금지)
-
-- ✅ 누적: **재현 가능한 패턴** — 같은 실수가 다른 코드에서도 발생할 가능성
-  - 구체적 명령으로 검출 가능
-  - 예: "ky retry 옵션 누락 — `retry: { limit: 0 }` 명시 권장 (ADR-002)"
-- ❌ 누적 금지: 1회성 오타 / 특정 plan 컨텍스트에서만 의미 있는 코멘트 / 칭찬 / 단순 확인 요청
-
-### 누적 위치 결정
-
-| 패턴 종류 | 위치 | 카테고리 |
-|---|---|---|
-| 라이브러리 / API / 타입 함정 (ky / vitest / commander 등) | `_shared/pitfalls/code-review/<slug>.md` | `code-review` |
-| 일반 critic 시드 패턴 (수치 추측 / cwd 모호 / 눈으로 확인 등) | `_shared/pitfalls/plan/<slug>.md` | `plan` |
-| 팀 운영 패턴 (팀원 스폰 / SendMessage / worktree 격리 등) | `_shared/pitfalls/team/<slug>.md` | `team` |
-| 도메인 의사결정 / ADR 가치 | `docs/adr/` | 신규 ADR 파일 `NNN-slug.md` (ADR 작성 전 점검 통과 후) |
-| 명령 동작 / 사용법 변경 | `AGENTS.md` | 주의사항 표 |
-
-### 작성 형식 (slug 파일 신규 추가 예시)
-
-```markdown
----
-id: <kebab-slug = 파일명 stem>
-category: plan | team | code-review
-title: <한 줄 요약>
-triggers: [<변경 유형 키워드>, ...]
-tool_catchable: false
-source: [PR#NN]
-related: []
----
-
-**증상**: {증상 1줄}
-**왜**: {왜 발생하는지 / 검출 명령}
-
-**Good**: {해결책 1줄 + 코드 패턴}
-
-**Self-check**: {grep 또는 확인 명령}
-```
-
-파일 생성 후 `_shared/pitfalls/INDEX.md` 의 해당 카테고리 목록에 1줄 추가:
-```markdown
-- [<slug>](<category>/<slug>.md)
-```
-
-축적 통과 조건 (4조건 모두 충족 시에만 파일 추가):
-1. **재발성** — 2회 이상 재발했거나 다른 코드에서도 발생할 구조적 가능성
-2. **심각도** — 데이터 손상·문서 전체 실패·보안 등 영향이 큼
-3. **도구로 못 잡음** — `pnpm tsc --noEmit` / vitest 가 이미 잡는 것은 제외
-4. **추상화 가능** — 특정 인시던트 너머로 일반화된 커널
+추출 기준·누적 위치·작성 형식·판정 4조건은 `_shared/retros/code-reviewer-retro.md` 절차를 따른다.
 
 ### 누적 후 사용자 보고
 
@@ -558,7 +511,7 @@ related: []
 # cwd: <repo root>, branch: main
 git switch main && git pull --ff-only
 # pitfalls slug 파일 신규 생성 + INDEX 갱신
-git add .Codex/skills/_shared/pitfalls/
+git add .claude/skills/_shared/pitfalls/
 git commit -m "docs(skill): accumulate review learnings from PR #<N>"
 git push origin main
 ```
@@ -613,5 +566,5 @@ git push origin main
 - **다양한 리뷰 형식**: 🔴/🟡 마커 외에도 파싱 대상
   - GitHub formal review (Request Changes / Comment)
   - 인라인 코드 댓글, 일반 텍스트 코멘트
-- **ADR 갱신 필요한 결정**: AGENTS.md 표에 명시된 영역이면 코드 수정과 함께 `docs/adr/NNN-slug.md` 해당 파일도 갱신
+- **ADR 갱신 필요한 결정**: CLAUDE.md 표에 명시된 영역이면 코드 수정과 함께 `docs/adr/NNN-slug.md` 해당 파일도 갱신
   - 라이브러리 옵션 변경, 캐시 정책 변경, resolver 룰 변경 등

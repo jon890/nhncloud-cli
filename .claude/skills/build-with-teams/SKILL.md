@@ -463,15 +463,11 @@ UPDATE_NEEDED 가 3곳 같이 잡혔는데 그중 1곳을 잘못 갱신했어도
    - **트리거 조건**: 이번 plan 에서 critic 의 **REVISE** 또는 code-reviewer 의 **FIX_NEEDED** 또는 docs-verifier 의 **UPDATE_NEEDED / VIOLATION** 이 1회 이상 발생한 경우
    - 1-shot APPROVE + PASS + PASS 로 진행된 plan 은 회고 단계 skip
 
-   회고가 트리거된 경우 team-lead 가 자문 후 필요 시 회고 commit (main 디렉터리에서):
-   - **critic** REVISE 지적 중 *반복 가능성* 있는 패턴 → `.claude/skills/_shared/pitfalls/plan/<slug>.md` 신규 파일(frontmatter) 생성 + INDEX 라우터 1줄 갱신
-   - **code-reviewer** FIX_NEEDED 지적 중 *반복 가능성* 있는 패턴 → `.claude/skills/_shared/pitfalls/code-review/<slug>.md` 신규 파일(frontmatter) 생성 + INDEX 라우터 1줄 갱신
-   - **docs-verifier** UPDATE_NEEDED / VIOLATION 지적 중 *반복 가능성* 있는 항목 → planning SKILL 8단계 A항 docs 영향 표에 행 추가 또는 기존 행 보강
-     - 별도 회고 docs 신설 금지 — 거울 구조 유지
-   - **반복 가능성 판정 기준**: 다른 plan 에서 같은 카테고리 (예: 헬퍼 추출 / 새 resolver / spinner UX) 작업 시 또 발생할 수 있는가?
-     - 1회성 typo / 명령 이름 오타 등은 제외
-   - 회고 commit 메시지 규약: `docs(skill): accumulate review learnings from PR #<N>`. PR 번호와 사고 plan 번호를 본문에 명시
-   - 트리거됐지만 추가할 패턴이 0개여도 **자문 자체는 수행**. "이번엔 신규 항목 없음" 결정 보고 후 다음 단계로
+   회고가 트리거된 경우 team-lead 가 자문 후 필요 시 회고 commit. 트리거됐지만 추가 패턴이 0개여도 자문 자체는 수행.
+   역할별 상세 절차(판정 기준·갱신 위치·형식·커밋 규약):
+   - critic → `_shared/retros/critic-retro.md`
+   - code-reviewer → `_shared/retros/code-reviewer-retro.md`
+   - docs-verifier → `_shared/retros/docs-verifier-retro.md`
 8. 팀 shutdown (SendMessage `shutdown_request`)
 
 ## worktree 기반 격리 실행 (필수)
@@ -556,7 +552,7 @@ executor가 phase 실패 보고 시:
     → [docs-verifier 검증 (문서 부패 포함)] ←─ VIOLATION/UPDATE_NEEDED면 재투입 (한도 2회) → 추가 fix commit
     → [team-lead 일괄 push]  ← PR 브랜치에 phase 별 atomic commit + 필요 시 fix commit 누적
     → [PR 생성]  ← main에 별도 커밋 금지
-    → [review 회고]  ← critic/code-reviewer/docs-verifier 반복 패턴 → pitfalls/{plan,code-review}/<slug>.md 신규 파일 + INDEX 갱신 / planning docs 영향 표 갱신
+    → [review 회고]  ← 역할별 `_shared/retros/{역할}-retro.md` 절차 참조
     → [worktree 정리 + 팀 shutdown]
 ```
 
