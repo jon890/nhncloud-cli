@@ -96,7 +96,7 @@ critic / executor / code-reviewer / docs-verifier는 반드시 **TeamCreate로 �
 ```
 Agent({
   subagent_type: "oh-my-claudecode:critic",
-  team_name: "plan{N}",
+  team_name: "plan{NNN}",
   name: "critic",
   model: "opus",
   run_in_background: true,
@@ -109,7 +109,7 @@ executor 스폰 시 `nhncloud-cli-executor` custom agent 사용 (dooray-cli 도�
 ```
 Agent({
   subagent_type: "nhncloud-cli-executor",
-  team_name: "plan{N}",
+  team_name: "plan{NNN}",
   name: "executor",
   model: "sonnet",
   mode: "bypassPermissions",
@@ -301,6 +301,7 @@ executor에게 전달할 정보:
 
 executor 규칙:
 - phase-{N}.md를 순서대로 읽고 실행
+  (4+ phase: 6.2 에 따라 team-lead 가 phase 하나씩 새 executor 로 진행 — 단일 executor 의 전 phase 순차 실행은 3 phase 이하)
 - 각 phase 완료 후 성공 기준 검증
 - **커밋은 하지 않음** — phase 별 commit 은 team-lead 가 수행 (아래 6.1 참조)
 - **마지막 phase 에서 `tasks/{NNN}-{task-name}/index.json` 의 다음 필드를 `completed` 로 업데이트**
@@ -359,7 +360,7 @@ SendMessage({to: "executor", message: "shutdown_request"})
 # phase-(N+1) 시작 전
 Agent({
   subagent_type: "nhncloud-cli-executor",
-  team_name: "plan{N}",
+  team_name: "plan{NNN}",
   name: "executor",
   model: "sonnet",
   mode: "bypassPermissions",
