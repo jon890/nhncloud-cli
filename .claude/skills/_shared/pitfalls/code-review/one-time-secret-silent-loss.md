@@ -27,5 +27,3 @@ grep -nE "savePrivateKey|saveSecret|1회만|1회성" src/commands/   # 1회성 �
 **Self-check**: 1회성 비밀을 반환하는 명령에서, 비밀이 조용히 사라지는 분기(저장 실패 / quiet+미저장)가 하나라도 있는가? 모든 분기에서 비밀이 stdout 또는 파일 중 한 곳에는 반드시 남는가?
 
 **Why**: plan009 (PR #11) critic REVISE — keypair create 의 NHN 생성 private_key 가 ① savePrivateKey 실패 시 fallback 없어 영구 유실, ② `--quiet`+미저장 시 무성 유실. (b) 저장 실패 stdout fallback + (c) quiet+미저장 사전 차단으로 해소. 비밀을 1회성으로 발급하는 API(토큰 발급 등)마다 재발 가능.
-
-# 9. 상수·주석 위생 (AI slop)

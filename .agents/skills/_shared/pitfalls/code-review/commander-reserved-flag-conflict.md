@@ -21,5 +21,3 @@ grep -rnE "\.option\(\"--(version|help)" src/commands/
 **검증**: `echo hi | node dist/index.js <cmd> --version 9.9.9 ...` 가 CLI 버전("x.y.z")을 출력하지 않고 옵션 값으로 파싱되어 후속 로직에 도달하는지 확인. 버전만 찍고 종료하면 가로채진 것.
 
 **Why**: PR #16 (plan012) — `logncrash send --version <ver>` 가 root `.version("0.3.0")` 에 가로채여 `--app-version` 으로 rename. 새 명령에 버전·도움말류 옵션을 둘 때마다 재발 가능.
-
-# 5. 타입 안전성

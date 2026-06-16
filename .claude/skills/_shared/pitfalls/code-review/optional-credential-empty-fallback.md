@@ -35,7 +35,3 @@ grep -rnE "\?\?\s*\"\"" src/commands/ src/services/   # 자격증명/필수값 �
 **Self-check**: client 에 넘기는 자격증명 필드가 type 상 optional 인데 `?? ""` 로 채우고 있는가? 그러면 미설정 시 인증 실패(AUTH)로만 드러나고 설정 오류(CONFIG)로 진단 못함 — 호출 전 존재 검증으로 교체.
 
 **Why**: PR #1 (plan001) — `cred.secret ?? ""` 가 secret 미설정 시 빈 헤더로 401 유발. code-reviewer 가 잡음. 서비스별 자격증명 필드가 optional 인 한 (Deploy token 등) 새 service client 마다 재발 가능.
-
-# 3. 매직 넘버·문자열 (예약)
-
-# 4. CLI 도메인 규칙 회귀

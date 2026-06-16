@@ -158,31 +158,31 @@ grep -nE "redirect.*manual|throwHttpErrors.*false" src/api/client.ts
 
 ### pitfalls/code-review — CLI 도메인 핵심 (재발 빈도 높음)
 
-**CLI1 exitCode 누락**: 모든 에러 경로는 `NhnCloudCliError` 또는 `process.exit(N)` — 0 으로 종료 금지.
+**exitcode-missing**: 모든 에러 경로는 `NhnCloudCliError` 또는 `process.exit(N)` — 0 으로 종료 금지.
 ```bash
 grep -nE "console\.error" src/commands/ | head -10
 # return 만 있고 throw / process.exit 없는 패턴 확인
 ```
 
-**CLI7 path-traversal (재발 빈도 높음 — PR #40 → PR #72 동일 버그 반복)**: 서버 응답 `fileName` 은 반드시 `basename(decodeURIComponent(fileName))` 후 `path.join`.
+**path-traversal-filename (재발 빈도 높음 — PR #40 → PR #72 동일 버그 반복)**: 서버 응답 `fileName` 은 반드시 `basename(decodeURIComponent(fileName))` 후 `path.join`.
 ```bash
 grep -rnE "join\([^)]*fileName" src/commands/
 # basename 미적용 라인 있으면 즉시 수정
 ```
 
-**CLI8 빈 결과를 stderr 출력**: 첨부 0개 / 댓글 0개 같은 정상 빈 상태는 stdout 출력 (또는 `--quiet` 시 무출력) — stderr 금지.
+**empty-result-stderr-wrong**: 첨부 0개 / 댓글 0개 같은 정상 빈 상태는 stdout 출력 (또는 `--quiet` 시 무출력) — stderr 금지.
 ```bash
 grep -rnE "stderr\.write.*없음|stderr\.write.*empty" src/commands/
 # 결과 0건 유지
 ```
 
-**CLI10 외부 문자열 무검증 출력**: 서버 응답 문자열을 그대로 stderr/stdout 출력 금지 — ANSI escape / control char 제거 후 출력.
+**external-string-unsanitized**: 서버 응답 문자열을 그대로 stderr/stdout 출력 금지 — ANSI escape / control char 제거 후 출력.
 ```bash
 grep -nE "(stderr|stdout)\.write\(.*\$\{[a-zA-Z]+\.(name|content|title|message)" src/
 # sanitize 거치지 않은 동적 출력 확인
 ```
 
-**CLI17 인접 명령 동일 패턴 누락**: 같은 도메인 신규 명령 작성 시 인접 파일의 defensive 패턴 (try-catch / enrich / dry-run / 출력 분기) 을 그대로 적용.
+**adjacent-command-pattern-missing**: 같은 도메인 신규 명령 작성 시 인접 파일의 defensive 패턴 (try-catch / enrich / dry-run / 출력 분기) 을 그대로 적용.
 ```bash
 grep -nE "try\s*\{|catch\s*\(|new Map" src/commands/<scope>/*.ts
 # 신규 명령에 인접 명령의 가드 패턴이 모두 있는지 확인

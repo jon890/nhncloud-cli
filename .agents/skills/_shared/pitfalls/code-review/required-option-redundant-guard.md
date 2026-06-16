@@ -21,6 +21,6 @@ grep -nE "requiredOption\(\"--" src/commands/
 grep -nE "if \(!opts\.[a-zA-Z]+\)" src/commands/   # 위 requiredOption 목록과 겹치면 dead code
 ```
 
-**Why**: PR #6 (plan004) 🟡 — create.ts 가 `--name/--flavor/--image` requiredOption 뒤에 동일 필드를 수동 검증. nonInteractive dead code (common-pitfalls [[noninteractive-trigger-dead-warning]]) 의 옵션 검증 변형.
+**Why**: PR #6 (plan004) 🟡 — create.ts 가 `--name/--flavor/--image` requiredOption 뒤에 동일 필드를 수동 검증. nonInteractive dead code ([[noninteractive-trigger-dead-warning]]) 의 옵션 검증 변형.
 
 **Self-check**: action 내부 `if(!opts.X)` 의 X 가 이미 `requiredOption` 인가? 그렇다면 제거했는가?

@@ -24,7 +24,3 @@ grep -B 5 "openInEditor\|readBodyInputOrNull" src/commands/ | grep -B 5 -A 1 "re
 add 명령군에서 특히 발생.
 
 **Self-check**: add / edit 명령 작성 시 resolver 호출 순서가 body 수집보다 앞인지 grep 으로 확인했는가?
-
----
-
-# 2. 에러 처리 일관성

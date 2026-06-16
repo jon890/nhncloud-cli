@@ -19,5 +19,3 @@ grep -nE "typeof obj\[\"[a-z_]+\"\] === \"string\"" src/services/
 
 **Why**: PR #12 (plan010) — Glance `image.name` 이 nullable 인데 string-only 가드라 name=null private 이미지 하나가 페이지 전체 리스팅을 끊음. **재발**: PR #22(plan017) — `isVolume` 가 `name` 을 string-only 로 요구(Cinder 는 `--name` 미지정 시 `name: null`) → 같은 코드베이스에 이미 `isImage` 선례가 있는데 새 서비스 가드가 답습 안 함. critic 이 잡음.
 **Self-check**: 목록 응답 요소 가드의 각 필드가 외부 스펙상 nullable/optional 인지 확인했는가? string-only 가 과잉 거부를 일으키지 않는가? **새 서비스 가드를 쓸 때 같은 repo 의 기존 가드(`isImage`/`isBinary`)가 이미 학습한 nullable·number|string 관용을 답습했는가** — 새 가드가 기존보다 엄격하면 의심.
-
-# 6. API/HTTP 패턴

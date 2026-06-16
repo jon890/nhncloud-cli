@@ -22,7 +22,3 @@ grep -nA1 "^\s*\*/$" src/**/*.ts | grep -B1 "^\S*-\s*/\*\*"
 **Self-check**: 함수 시그니처를 바꾼 파일에서 함수 직전에 JSDoc 블록이 2개 연속인 곳이 없는가?
 
 **Why**: PR #3 (plan003) code-reviewer LOW — `getAccessToken` 에 forceRefresh 추가하며 새 JSDoc 을 위에 붙이고 구 블록을 안 지움. 시그니처 변경 리팩토링마다 재발 가능.
-
----
-
-# 9. 파일 입력 처리
