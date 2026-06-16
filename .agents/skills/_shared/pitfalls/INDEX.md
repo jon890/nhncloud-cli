@@ -98,7 +98,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 
 ## 카테고리별 패턴 목록
 
-### [plan/](plan/) (36)
+### [plan/](plan/) (39)
 
 - [cache-bypass-in-verify-helper](plan/cache-bypass-in-verify-helper.md)
 - [decision-docs-in-phase](plan/decision-docs-in-phase.md)
@@ -129,8 +129,11 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [punt-orphan-deliverable](plan/punt-orphan-deliverable.md)
 - [resolver-validation-policy-asymmetry](plan/resolver-validation-policy-asymmetry.md)
 - [revise-string-change-cascade-missing](plan/revise-string-change-cascade-missing.md)
+- [router-index-count-mismatch](plan/router-index-count-mismatch.md)
+- [single-file-split-section-boundary-leak](plan/single-file-split-section-boundary-leak.md)
 - [source-feeding-roundtrip-unverified](plan/source-feeding-roundtrip-unverified.md)
 - [stale-code-in-reuse-claim](plan/stale-code-in-reuse-claim.md)
+- [structure-migration-frontmatter-placeholder](plan/structure-migration-frontmatter-placeholder.md)
 - [success-criterion-no-enforcement](plan/success-criterion-no-enforcement.md)
 - [test-expected-value-guessed](plan/test-expected-value-guessed.md)
 - [type-change-tsc-missing](plan/type-change-tsc-missing.md)
