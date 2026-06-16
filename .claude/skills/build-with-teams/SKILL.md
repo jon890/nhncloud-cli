@@ -415,7 +415,7 @@ executor 완료 후 team-lead → docs-verifier에게 검증 요청.
    - 출처: planning SKILL C항 "역참조 규칙"
 
 9. **갱신 시점 분리 위반 없는가**
-   - planning 결정 docs (`adr.md` / `code-architecture.md` / `CLAUDE.md` / `data-schema.md` / `flow.md` / `prd.md`) 를 phase 안에서 변경하면 VIOLATION
+   - planning 결정 docs (`docs/adr/` / `code-architecture.md` / `CLAUDE.md` / `data-schema.md` / `flow.md` / `prd.md`) 를 phase 안에서 변경하면 VIOLATION
    - 사용자 가이드 docs (`README.md` / `skills/nhncloud-cli/SKILL.md`) 는 phase 마지막에서만 변경 OK
 
 10. **`skills/nhncloud-cli/SKILL.md` (공개 스킬) dogfooding** — CLI 는 공개 스킬도 검증 대상

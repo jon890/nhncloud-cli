@@ -63,7 +63,7 @@ NHN Cloud 공식 docs 를 단일 소스로 삼는다 (<https://docs.nhncloud.com
 - docs 가 봇 차단으로 `WebFetch` 안 될 때는 `WebSearch` 또는 `cmux-browser` 로 우회.
 - docs 로도 확정 안 되는 부분 (필드 타입, boolean vs 0/1 등) 은 **실측 (실제 호출) 으로 검증** 후 확정한다. 추측한 채로 구현·머지하지 않는다.
 
-직관에 반하는 동작은 `docs/adr.md` 에 ADR 로 보존.
+직관에 반하는 동작은 `docs/adr/` 에 ADR 로 보존(번호별 파일·INDEX).
 
 ## 빌드 & 실행
 
