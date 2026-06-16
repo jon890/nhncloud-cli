@@ -144,14 +144,14 @@ team-lead 는 sub-agent 의 idle 알림만 **2회 이상 연속 수신** 하고 
 정식 멤버 등록 여부는 반드시 `team config.json` 으로 직접 확인한다.
 
 응답 형식 차이로도 1차 식별 가능:
-- ✅ 정식 멤버: `agent_id: critic@plan{N}` + `name: critic` + `team_name: plan{N}` 노출
+- ✅ 정식 멤버: `agent_id: critic@plan{NNN}` + `name: critic` + `team_name: plan{NNN}` 노출
 - ❌ 일회성 백그라운드: `agentId: <16자 UUID>` 만 노출 (이름·팀 정보 없음)
 
 후자가 보이면 **즉시 재스폰**. 전자라도 다음 grep 으로 한 번 더 확인:
 
 ```bash
 # cwd: 무관 (절대경로)
-python3 -c "import json; m=json.load(open('$HOME/.claude/teams/plan{N}/config.json'))['members']; print('\n'.join(f\"{x['name']}@{x['agentType']}\" for x in m))"
+python3 -c "import json; m=json.load(open('$HOME/.claude/teams/plan{NNN}/config.json'))['members']; print('\n'.join(f\"{x['name']}@{x['agentType']}\" for x in m))"
 # 기대: team-lead 외에 critic / executor / code-reviewer / docs-verifier 가 표시되어야 함
 # 보이지 않으면 일회성 agent — name 파라미터 추가하여 재스폰
 ```
@@ -243,7 +243,7 @@ team-lead는 한도 카운터를 메모리(`.omc/state/`)에 기록하여 재실
 ### 1. 팀 생성
 
 ```
-TeamCreate → team name: plan{N}
+TeamCreate → team name: plan{NNN}
 ```
 
 critic + docs-verifier를 `run_in_background: true`로 스폰. 대기 상태로 준비.
