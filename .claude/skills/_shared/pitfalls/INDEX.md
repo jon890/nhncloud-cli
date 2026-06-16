@@ -31,7 +31,7 @@ skills 가 공유하는 회피 패턴 모음. **모놀리식 문서가 아니라
 - **prune** — 가리키는 코드가 사라진 stale 파일 삭제 (`git rm`), 같은 커널 중복 파일 MERGE.
 - **automate** — 도구로 승격 가능한 패턴은 `pnpm tsc` / vitest / ast-grep 으로 옮기고 파일 삭제.
 
-회고 절차의 단일 소스는 `_shared/retros/{critic,code-reviewer,docs-verifier}-retro.md` (후속 task 025 에서 신설 예정 — 지금은 placeholder).
+회고 절차의 단일 소스는 `_shared/retros/{critic,code-reviewer,docs-verifier}-retro.md`. 각 retro 가 이 카테고리·planning 영향 표를 데이터 단일 소스로 가리킨다.
 
 ## 파일 형식
 
