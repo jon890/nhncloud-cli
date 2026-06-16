@@ -84,25 +84,122 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 
 | 변경 유형 | 카테고리 | 핵심 파일 |
 |---|---|---|
-| spinner·UX 순서 (validation 전 시작) | code-review | _(phase-02 이후 채움)_ |
-| 에러 처리 일관성 (exitCode·catch) | code-review | _(phase-02 이후 채움)_ |
-| 타입 안전성 (Map.get()! / 이중 단언) | code-review | _(phase-02 이후 채움)_ |
-| API/HTTP 패턴 (redirect·throwHttpErrors) | code-review | _(phase-02 이후 채움)_ |
-| exitCode 누락·mismatch | code-review | _(phase-02 이후 채움)_ |
-| path-traversal (fileName basename) | code-review | _(phase-02 이후 채움)_ |
-| interactive 경고 vs 실제 동작 | code-review | _(phase-02 이후 채움)_ |
-| plan 작성 (phase 항목·검증 명령·완료 조건) | plan | _(phase-02 이후 채움)_ |
-| 팀원 스폰·메시지 (build-with-teams) | team | _(phase-02 이후 채움)_ |
-| worktree·cwd 격리 | team | _(phase-02 이후 채움)_ |
-
+| spinner·UX 순서 (validation 전 시작) | code-review | [spinner-before-validation](code-review/spinner-before-validation.md), [spinner-no-try-catch](code-review/spinner-no-try-catch.md), [resolver-after-editor](code-review/resolver-after-editor.md) |
+| 에러 처리 일관성 (exitCode·catch) | code-review | [bare-await-promise-never](code-review/bare-await-promise-never.md), [exitcode-param-error-in-api-path](code-review/exitcode-param-error-in-api-path.md), [exitcode-missing](code-review/exitcode-missing.md) |
+| 타입 안전성 (Map.get()! / 이중 단언) | code-review | [map-get-nonnull-assertion](code-review/map-get-nonnull-assertion.md), [double-assertion-unknown](code-review/double-assertion-unknown.md), [double-assertion-union-type](code-review/double-assertion-union-type.md) |
+| API/HTTP 패턴 (redirect·throwHttpErrors) | code-review | [redirect-manual-status-missing](code-review/redirect-manual-status-missing.md), [numeric-response-string-number-mixed](code-review/numeric-response-string-number-mixed.md) |
+| exitCode 누락·mismatch | code-review | [exitcode-missing](code-review/exitcode-missing.md), [mock-reject-value-mismatch](code-review/mock-reject-value-mismatch.md), [exit-code-literal-no-constant](code-review/exit-code-literal-no-constant.md) |
+| path-traversal (fileName basename) | code-review | [path-traversal-filename](code-review/path-traversal-filename.md) |
+| interactive 경고 vs 실제 동작 | code-review | [interactive-warning-mismatch](code-review/interactive-warning-mismatch.md), [noninteractive-trigger-dead-warning](plan/noninteractive-trigger-dead-warning.md) |
+| plan 작성 (phase 항목·검증 명령·완료 조건) | plan | [numeric-estimation](plan/numeric-estimation.md), [manual-verification-criterion](plan/manual-verification-criterion.md), [last-phase-completed-marking](plan/last-phase-completed-marking.md) |
+| 팀원 스폰·메시지 (build-with-teams) | team | [sendmessage-reply-missing](team/sendmessage-reply-missing.md), [member-premature-execution](team/member-premature-execution.md), [executor-premature-execution](plan/executor-premature-execution.md) |
+| worktree·cwd 격리 | team | [executor-cwd-isolation](team/executor-cwd-isolation.md), [execution-context-ambiguous](plan/execution-context-ambiguous.md), [cwd-tracking-dual-status](team/cwd-tracking-dual-status.md) |
 표에 없으면 trigger grep, 그래도 애매하면 카테고리 디렉터리 통째로 읽는다.
 
 ## 카테고리별 패턴 목록
 
-_(phase-02 에서 slug 파일 분리 후 채움)_
-
 ### [plan/](plan/) (36)
+
+- [cache-bypass-in-verify-helper](plan/cache-bypass-in-verify-helper.md)
+- [decision-docs-in-phase](plan/decision-docs-in-phase.md)
+- [endpoint-version-double-prefix](plan/endpoint-version-double-prefix.md)
+- [execution-context-ambiguous](plan/execution-context-ambiguous.md)
+- [executor-premature-execution](plan/executor-premature-execution.md)
+- [external-state-gate-missing](plan/external-state-gate-missing.md)
+- [file-scope-inaccurate](plan/file-scope-inaccurate.md)
+- [filter-type-narrowing-lost](plan/filter-type-narrowing-lost.md)
+- [four-face-guard-missing](plan/four-face-guard-missing.md)
+- [function-signature-unverified](plan/function-signature-unverified.md)
+- [import-identifier-collision](plan/import-identifier-collision.md)
+- [integrated-command-partial-surface](plan/integrated-command-partial-surface.md)
+- [last-phase-completed-marking](plan/last-phase-completed-marking.md)
+- [list-endpoint-pagination-missing](plan/list-endpoint-pagination-missing.md)
+- [list-output-column-docs-mismatch](plan/list-output-column-docs-mismatch.md)
+- [macos-bsd-sed-word-boundary](plan/macos-bsd-sed-word-boundary.md)
+- [manual-verification-criterion](plan/manual-verification-criterion.md)
+- [new-endpoint-envelope-assumed](plan/new-endpoint-envelope-assumed.md)
+- [noninteractive-trigger-dead-warning](plan/noninteractive-trigger-dead-warning.md)
+- [numeric-estimation](plan/numeric-estimation.md)
+- [numeric-param-range-unverified](plan/numeric-param-range-unverified.md)
+- [on-disk-schema-multiple-options](plan/on-disk-schema-multiple-options.md)
+- [path-migration-agents-missing](plan/path-migration-agents-missing.md)
+- [prev-plan-interaction-missing](plan/prev-plan-interaction-missing.md)
+- [punt-orphan-deliverable](plan/punt-orphan-deliverable.md)
+- [resolver-validation-policy-asymmetry](plan/resolver-validation-policy-asymmetry.md)
+- [revise-string-change-cascade-missing](plan/revise-string-change-cascade-missing.md)
+- [source-feeding-roundtrip-unverified](plan/source-feeding-roundtrip-unverified.md)
+- [stale-code-in-reuse-claim](plan/stale-code-in-reuse-claim.md)
+- [success-criterion-no-enforcement](plan/success-criterion-no-enforcement.md)
+- [test-expected-value-guessed](plan/test-expected-value-guessed.md)
+- [type-change-tsc-missing](plan/type-change-tsc-missing.md)
+- [type-optional-cascade-grep-missing](plan/type-optional-cascade-grep-missing.md)
+- [write-command-executor-live-call](plan/write-command-executor-live-call.md)
 
 ### [team/](team/) (10)
 
+- [branch-check-before-commit](team/branch-check-before-commit.md)
+- [critic-stale-reread](team/critic-stale-reread.md)
+- [cwd-tracking-dual-status](team/cwd-tracking-dual-status.md)
+- [executor-cwd-isolation](team/executor-cwd-isolation.md)
+- [executor-scope-creep](team/executor-scope-creep.md)
+- [member-premature-execution](team/member-premature-execution.md)
+- [reviewer-no-plan-context](team/reviewer-no-plan-context.md)
+- [self-shutdown-pattern](team/self-shutdown-pattern.md)
+- [sendmessage-reply-missing](team/sendmessage-reply-missing.md)
+- [task-index-phase-count-mismatch](team/task-index-phase-count-mismatch.md)
+
 ### [code-review/](code-review/) (53)
+
+- [adjacent-command-pattern-missing](code-review/adjacent-command-pattern-missing.md)
+- [adr020-silent-fallback](code-review/adr020-silent-fallback.md)
+- [bare-await-promise-never](code-review/bare-await-promise-never.md)
+- [cache-consistency](code-review/cache-consistency.md)
+- [cache-non-atomic-write](code-review/cache-non-atomic-write.md)
+- [client-dep-in-utils](code-review/client-dep-in-utils.md)
+- [commander-reserved-flag-conflict](code-review/commander-reserved-flag-conflict.md)
+- [dead-field-function-name-mismatch](code-review/dead-field-function-name-mismatch.md)
+- [docs-regex-digit-range-mismatch](code-review/docs-regex-digit-range-mismatch.md)
+- [double-assertion-union-type](code-review/double-assertion-union-type.md)
+- [double-assertion-unknown](code-review/double-assertion-unknown.md)
+- [dry-run-location-asymmetry](code-review/dry-run-location-asymmetry.md)
+- [dry-run-noninteractive-missing](code-review/dry-run-noninteractive-missing.md)
+- [dry-run-output-mode-missing](code-review/dry-run-output-mode-missing.md)
+- [duplicate-map-block-no-helper](code-review/duplicate-map-block-no-helper.md)
+- [early-return-quiet-mode-missing](code-review/early-return-quiet-mode-missing.md)
+- [empty-result-stderr-wrong](code-review/empty-result-stderr-wrong.md)
+- [enum-dual-definition-unsync](code-review/enum-dual-definition-unsync.md)
+- [exit-code-literal-no-constant](code-review/exit-code-literal-no-constant.md)
+- [exitcode-missing](code-review/exitcode-missing.md)
+- [exitcode-param-error-in-api-path](code-review/exitcode-param-error-in-api-path.md)
+- [external-string-unsanitized](code-review/external-string-unsanitized.md)
+- [file-input-no-stat-guard](code-review/file-input-no-stat-guard.md)
+- [http-client-not-ky](code-review/http-client-not-ky.md)
+- [interactive-warning-mismatch](code-review/interactive-warning-mismatch.md)
+- [io-throw-bundled-untestable](code-review/io-throw-bundled-untestable.md)
+- [jsdoc-double-block-stale](code-review/jsdoc-double-block-stale.md)
+- [json-parse-as-cast](code-review/json-parse-as-cast.md)
+- [map-get-nonnull-assertion](code-review/map-get-nonnull-assertion.md)
+- [mock-reject-value-mismatch](code-review/mock-reject-value-mismatch.md)
+- [noninteractive-interactive-duplication](code-review/noninteractive-interactive-duplication.md)
+- [nullable-field-string-only-guard](code-review/nullable-field-string-only-guard.md)
+- [numeric-response-string-number-mixed](code-review/numeric-response-string-number-mixed.md)
+- [one-time-secret-silent-loss](code-review/one-time-secret-silent-loss.md)
+- [optional-credential-empty-fallback](code-review/optional-credential-empty-fallback.md)
+- [optional-field-as-cast-return](code-review/optional-field-as-cast-return.md)
+- [path-traversal-filename](code-review/path-traversal-filename.md)
+- [positive-int-number-only](code-review/positive-int-number-only.md)
+- [quiet-mode-identifier-missing](code-review/quiet-mode-identifier-missing.md)
+- [redirect-manual-status-missing](code-review/redirect-manual-status-missing.md)
+- [required-option-redundant-guard](code-review/required-option-redundant-guard.md)
+- [resolver-after-editor](code-review/resolver-after-editor.md)
+- [resolver-boundary-empty-id](code-review/resolver-boundary-empty-id.md)
+- [sensitive-file-mode-missing](code-review/sensitive-file-mode-missing.md)
+- [sequential-endpoint-partial-failure](code-review/sequential-endpoint-partial-failure.md)
+- [spinner-before-validation](code-review/spinner-before-validation.md)
+- [spinner-no-try-catch](code-review/spinner-no-try-catch.md)
+- [test-regex-dotall-missing](code-review/test-regex-dotall-missing.md)
+- [test-self-mock](code-review/test-self-mock.md)
+- [union-false-nullish-coalescing](code-review/union-false-nullish-coalescing.md)
+- [union-overload-common-guard-only](code-review/union-overload-common-guard-only.md)
+- [unknown-array-object-entries-no-guard](code-review/unknown-array-object-entries-no-guard.md)
+- [user-data-markdown-codeblock](code-review/user-data-markdown-codeblock.md)

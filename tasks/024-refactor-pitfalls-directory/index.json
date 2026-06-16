@@ -4,7 +4,7 @@
   "created_at": "2026-06-16T00:00:00Z",
   "updated_at": "2026-06-16T00:00:00Z",
   "status": "in_progress",
-  "current_phase": 1,
+  "current_phase": 2,
   "total_phases": 3,
   "error_message": null,
   "blocked_reason": null,
@@ -14,7 +14,14 @@
       "title": "_shared/pitfalls/{plan,code-review,team}/ 디렉터리 + INDEX.md 라우터(소비 3단계·축적 게이트 4조건·prune/automate·파일 형식) 골격 — docu-parser 거울",
       "file": "phase-01.md",
       "status": "pending",
-      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "allowedTools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep"
+      ],
       "model": "sonnet"
     },
     {
@@ -22,7 +29,14 @@
       "title": "common-pitfalls 4섹션 + code-review-pitfalls 27항목을 카테고리별 <slug>.md 로 무손실 분리(frontmatter 포함) — .claude/ + codex 미러 양쪽",
       "file": "phase-02.md",
       "status": "pending",
-      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "allowedTools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep"
+      ],
       "model": "sonnet"
     },
     {
@@ -30,7 +44,14 @@
       "title": "참조 전수 갱신(스킬 1-NN·섹션 참조→INDEX 라우터 + .claude/agents/ + codex 미러) + 단일 파일 제거 + index.json 완료 마킹",
       "file": "phase-03.md",
       "status": "pending",
-      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "allowedTools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep"
+      ],
       "model": "sonnet"
     }
   ]
