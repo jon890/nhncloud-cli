@@ -61,6 +61,7 @@ retro 에 회고 이력을 로그로 쌓으면 그 자체가 새 rot 소스(ADR-
 - **절차만**: retro 에 회고 이력 로그·실제 패턴 데이터를 넣지 않는다(데이터는 pitfalls/·영향 표).
 - **판정 4조건 재정의 금지**: `pitfalls/INDEX.md` 축적 규칙을 참조만(중복 정의는 drift 소스 — structure-migration 회고와 같은 거울 원칙).
 - **무손실**: 3곳 분산 절차의 의미가 retro 에 빠짐없이 이전(phase-02 축약의 전제).
+- **frontmatter 없는 절차 문서**: retro 는 pitfalls 패턴 파일과 달리 frontmatter 를 두지 않는다(절차 문서 — `structure-migration-frontmatter-placeholder` 오해 방지). 4섹션 markdown 본문만.
 - **codex 미러 동기**: `.agents/` 도 같이 신설, byte 동일.
 
 ## 완료 조건
