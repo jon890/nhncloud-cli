@@ -120,6 +120,7 @@ Agent({
 
 - `team_name` + `name`을 반드시 지정 (`name`은 `critic`/`executor`/`code-reviewer`/`docs-verifier`로 통일)
 - `run_in_background: true`로 idle 대기 가능
+  (단 executor 는 4+ phase 에서 6.2 적용 — phase별 스폰·shutdown)
 - 이후 통신은 **모두 `SendMessage({to: "critic", message: "..."})`로만** 진행
 
 **SendMessage 회신 강제 (필수 — 텍스트 출력 누락 사고 방지)**:
@@ -213,7 +214,7 @@ task의 `index.json` + phase 파일을 읽고 규모를 판정하여 팀원 모�
 |---|---|
 | **소** | `total_phases: 1`, 버그 수정/UI 미세 조정/단순 설정 변경 |
 | **중** | `total_phases: 2~3`, 기존 기능 확장/리팩토링/스키마 단순 추가 |
-| **대** | `total_phases: 4+` 또는 아키텍처/신규 도메인/DB 스키마 대규모 변경 |
+| **대** | `total_phases: 4+` 또는 아키텍처/신규 도메인/DB 스키마 대규모 변경 — executor phase별 스폰·shutdown 적용 (→ 6.2) |
 
 ### 규모별 모델 표
 
@@ -306,6 +307,7 @@ executor 규칙:
   - `status` / `current_phase` / 각 phase `status`
   - 별도 phase 아닌 마지막 phase 작업 내 스텝으로 처리
 - phase 완료/실패 시 즉시 team-lead 에게 SendMessage 보고 → team-lead 가 그 phase 를 commit 한 후 다음 phase 진행 지시
+  (4+ phase: 해당 executor shutdown 후 새 executor 스폰 — 6.2 참조)
 
 ### 6.1 phase 별 atomic commit (필수)
 
@@ -336,6 +338,35 @@ git commit -m "<phase-NN.md 의 ## 커밋 섹션 메시지>"
 **push 주기**: 매 phase commit 후 즉시 push 하지 않고 task 종료 시 일괄 push (9단계).
 PR 생성 직전이라 commit 누적이 자연스러움.
 단 worktree 가 길어지면 (1시간 이상) 중간 push 1회 허용.
+
+### 6.2 phase별 spawn-shutdown 사이클 (대규모)
+
+**3 phase 이하는 6단계 단일 executor 모델 그대로**, 4+ phase 만 본 사이클 적용.
+critic / code-reviewer / docs-verifier 에는 영향 없음 — executor 만 해당.
+
+**적용 조건**: `total_phases` 4 이상("대" 규모 판정)일 때 phase 마다 새 executor 를 스폰하고 즉시 shutdown. 3 phase 이하는 스폰 오버헤드를 피하기 위해 단일 executor 가 전 phase 를 순차 처리한다(6단계 기본 모델 유지).
+
+**컨텍스트 격리**: phase 마다 새 컨텍스트로 시작해 토큰 누적을 끊는다. phase별 모델 정책을 독립적으로 적용할 수 있다.
+
+**즉시 shutdown**: team-lead 가 phase commit (6.1) 을 마치면 그 executor 에게 곧장 `shutdown_request` 를 보낸다. idle 잔존이 리소스를 점유하는 것을 막는다.
+
+**직전 phase 학습 인계**: 새 executor 스폰 프롬프트에 직전 phase 에서 확인한 도메인 발견(이동한 파일 경로·갱신한 import·확정된 타입 등)을 1~2줄로 요약해 넘긴다. 컨텍스트가 새로 시작돼도 domain 연속성이 유지된다.
+
+**스폰 패턴 (4+ phase 전용)**:
+```
+# phase-N 완료 + commit 후
+SendMessage({to: "executor", message: "shutdown_request"})
+# phase-(N+1) 시작 전
+Agent({
+  subagent_type: "nhncloud-cli-executor",
+  team_name: "plan{N}",
+  name: "executor",
+  model: "sonnet",
+  mode: "bypassPermissions",
+  run_in_background: true,
+  prompt: "직전 phase 발견: <1~2줄 요약>. 다음 phase 실행..."
+})
+```
 
 ### 7. 코드 품질 검사 (code-reviewer)
 
