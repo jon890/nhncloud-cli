@@ -4,7 +4,7 @@ category: code-review
 title: JSON.parse 결과를 `as Type` 단언
 triggers: [JSON.parse, as cast, 타입 단언]
 tool_catchable: false
-source: [plan###]
+source: [PR36]
 related: []
 ---
 

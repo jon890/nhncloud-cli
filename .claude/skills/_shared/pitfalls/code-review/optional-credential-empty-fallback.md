@@ -4,7 +4,7 @@ category: code-review
 title: optional 자격증명 필드 빈문자열 fallback (`?? ""`) → 인증 실패를 설정 오류로 진단 못함
 triggers: [자격증명, optional, 빈 값]
 tool_catchable: false
-source: [PR###]
+source: [PR1]
 related: []
 ---
 

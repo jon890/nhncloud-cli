@@ -4,7 +4,7 @@ category: plan
 title: 새 endpoint (다른 host·인증) 의 응답 봉투 형태를 docs 대조 없이 "(확정)" 으로 단정
 triggers: [endpoint, 봉투, isSuccessful]
 tool_catchable: false
-source: [plan###]
+source: [PR16]
 related: []
 ---
 

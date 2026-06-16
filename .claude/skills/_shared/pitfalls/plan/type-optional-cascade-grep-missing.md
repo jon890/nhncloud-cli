@@ -4,7 +4,7 @@ category: plan
 title: type optional 완화 시 cascade 파일 grep 누락
 triggers: [optional, cascade, 타입 완화]
 tool_catchable: false
-source: [plan###]
+source: [PR67]
 related: []
 ---
 

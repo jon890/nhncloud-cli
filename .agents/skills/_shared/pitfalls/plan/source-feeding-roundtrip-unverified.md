@@ -4,7 +4,7 @@ category: plan
 title: source-feeding 명령의 round-trip 미검증 — list 가 내놓는 id 가 소비 명령에 실제 먹히는지 안 봄
 triggers: [source, roundtrip, 검증]
 tool_catchable: false
-source: [plan###]
+source: [PR20, PR17]
 related: []
 ---
 

@@ -4,7 +4,7 @@ category: code-review
 title: resolver 를 body 수집·editor open 보다 뒤에 호출 (resolver-before-editor)
 triggers: [resolver, editor, openInEditor]
 tool_catchable: false
-source: [PR###]
+source: [PR74, PR64]
 related: []
 ---
 

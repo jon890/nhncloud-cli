@@ -4,7 +4,7 @@ category: code-review
 title: 파일 옵션을 readFileSync 로 바로 읽음 (크기 가드·errno·파일유형 누락)
 triggers: [파일 입력, stat guard]
 tool_catchable: false
-source: [PR###]
+source: [PR8]
 related: []
 ---
 

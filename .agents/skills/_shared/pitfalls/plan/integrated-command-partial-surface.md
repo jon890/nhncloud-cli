@@ -4,7 +4,7 @@ category: plan
 title: 통합 명령(configure 등)에 신규 서비스 옵션 추가 시 통합 표면 일부만 수정
 triggers: [통합 명령, partial surface]
 tool_catchable: false
-source: [plan###]
+source: [PR26]
 related: []
 ---
 

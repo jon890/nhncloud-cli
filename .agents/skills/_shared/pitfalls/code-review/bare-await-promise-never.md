@@ -4,7 +4,7 @@ category: code-review
 title: `await fn()` 에서 `fn(): Promise<never>` 라도 catch 블록이 never-path 로 추론 안 됨 (TS2366)
 triggers: [Promise<never>, await, catch]
 tool_catchable: false
-source: [PR###]
+source: [PR48]
 related: []
 ---
 

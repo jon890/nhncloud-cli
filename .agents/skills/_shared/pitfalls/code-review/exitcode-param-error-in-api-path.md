@@ -4,7 +4,7 @@ category: code-review
 title: catch 의 `err.exitCode` 분기 시 `toNhnCloudCliError` 의 실제 매핑 미확인
 triggers: [exitCode, EXIT_PARAM_ERROR, API]
 tool_catchable: false
-source: [PR###]
+source: [PR63]
 related: []
 ---
 

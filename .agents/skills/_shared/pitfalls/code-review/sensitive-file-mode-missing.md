@@ -4,7 +4,7 @@ category: code-review
 title: `~/.nhncloud/` 민감 파일의 mode 미지정
 triggers: [파일 권한, 0600, credentials]
 tool_catchable: false
-source: [plan###]
+source: [PR36]
 related: []
 ---
 

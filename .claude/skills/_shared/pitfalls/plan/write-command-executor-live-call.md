@@ -4,7 +4,7 @@ category: plan
 title: 쓰기 작업(resize/attach/create/delete) plan — live 실측 자율 실행 대신 표준 설계 + 수동 QA + 정정 loop
 triggers: [write 명령, executor, live call]
 tool_catchable: false
-source: [plan###]
+source: [PR19, PR22]
 related: []
 ---
 

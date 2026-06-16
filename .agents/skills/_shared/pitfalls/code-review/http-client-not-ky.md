@@ -4,7 +4,7 @@ category: code-review
 title: ky 외 HTTP 클라이언트 사용
 triggers: [axios, fetch, ky, HTTP 클라이언트]
 tool_catchable: false
-source: [plan###]
+source: []
 related: []
 ---
 

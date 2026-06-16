@@ -4,7 +4,7 @@ category: team
 title: self-shutdown 패턴
 triggers: [self-shutdown, 팀원]
 tool_catchable: false
-source: [plan###]
+source: []
 related: []
 ---
 

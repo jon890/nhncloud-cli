@@ -4,7 +4,7 @@ category: code-review
 title: spinner 시작 후 try/catch 없이 API 호출 → 에러 시 spinner leak
 triggers: [spinner, try-catch]
 tool_catchable: false
-source: [PR###]
+source: [PR46, PR64, PR6]
 related: []
 ---
 

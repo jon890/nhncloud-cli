@@ -4,7 +4,7 @@ category: plan
 title: 파일 범위 부정확
 triggers: [파일 범위, scope, plan 작성]
 tool_catchable: false
-source: [plan###]
+source: [PR69]
 related: []
 ---
 

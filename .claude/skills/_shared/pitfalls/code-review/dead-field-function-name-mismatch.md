@@ -4,7 +4,7 @@ category: code-review
 title: dead 필드 접근 fix 후 함수명-동작 불일치
 triggers: [dead field, 함수명 불일치]
 tool_catchable: false
-source: [plan###]
+source: [PR52]
 related: []
 ---
 

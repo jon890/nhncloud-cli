@@ -4,7 +4,7 @@ category: plan
 title: 새 API 의 수치 파라미터 범위(pageSize/limit/maxResults)를 docs 확인 없이 추측 기본값·상한으로 박음
 triggers: [숫자 파라미터, 범위, 검증]
 tool_catchable: false
-source: [plan###]
+source: [PR24]
 related: []
 ---
 

@@ -4,7 +4,7 @@ category: code-review
 title: 같은 옵션을 두 명령에 추가할 때 dry-run 분기 위치 비대칭
 triggers: [dry-run, 위치 비대칭]
 tool_catchable: false
-source: [plan###]
+source: [PR55]
 related: []
 ---
 

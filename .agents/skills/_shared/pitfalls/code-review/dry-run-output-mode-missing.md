@@ -4,7 +4,7 @@ category: code-review
 title: `--dry-run` / 출력 분기에서 `--json` / `--quiet` 모드 누락
 triggers: [dry-run, 출력 모드]
 tool_catchable: false
-source: [plan###]
+source: [PR44]
 related: []
 ---
 

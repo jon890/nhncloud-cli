@@ -4,7 +4,7 @@ category: code-review
 title: 캐시 일관성
 triggers: [캐시, 일관성, 파일 분리]
 tool_catchable: false
-source: [plan###]
+source: []
 related: []
 ---
 

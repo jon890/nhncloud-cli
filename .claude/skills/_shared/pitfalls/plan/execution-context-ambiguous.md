@@ -4,7 +4,7 @@ category: plan
 title: 실행 컨텍스트 모호 (cwd / branch)
 triggers: [cwd, worktree, branch, 실행 컨텍스트]
 tool_catchable: false
-source: [plan###]
+source: []
 related: []
 ---
 

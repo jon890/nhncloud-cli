@@ -4,7 +4,7 @@ category: team
 title: executor cwd 격리 (main repo 오염 방지)
 triggers: [cwd, worktree, executor]
 tool_catchable: false
-source: [plan###]
+source: []
 related: []
 ---
 

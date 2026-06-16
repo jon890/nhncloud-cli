@@ -4,7 +4,7 @@ category: code-review
 title: "정상 빈 결과" 메시지를 stderr 로 출력
 triggers: [빈 결과, stderr, stdout]
 tool_catchable: false
-source: [plan###]
+source: [PR40]
 related: []
 ---
 

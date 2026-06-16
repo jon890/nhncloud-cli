@@ -4,7 +4,7 @@ category: plan
 title: "기존 X 패턴과 동일" 이라 적고 코드 블록은 **수정 전 옛 버전**을 보여줌 + bot 차단 docs 를 "확정" 으로 단언
 triggers: [stale code, 재사용, 코드]
 tool_catchable: false
-source: [plan###]
+source: [PR21]
 related: []
 ---
 

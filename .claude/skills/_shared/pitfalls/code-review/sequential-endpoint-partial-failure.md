@@ -4,7 +4,7 @@ category: code-review
 title: sequential endpoint 호출 — partial-failure stderr 안내 + spinner pair 누락
 triggers: [순차 endpoint, 부분 실패]
 tool_catchable: false
-source: [plan###]
+source: [PR62]
 related: []
 ---
 

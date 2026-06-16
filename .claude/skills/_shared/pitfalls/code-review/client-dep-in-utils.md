@@ -4,7 +4,7 @@ category: code-review
 title: client 의존 helper 를 `utils/` 에 두면 layer 위반
 triggers: [client, utils, 의존성]
 tool_catchable: false
-source: [plan###]
+source: [PR44]
 related: []
 ---
 

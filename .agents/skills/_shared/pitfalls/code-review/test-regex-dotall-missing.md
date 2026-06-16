@@ -4,7 +4,7 @@ category: code-review
 title: 테스트 정규식 — 에러 메시지 개행 시 dotAll (`s`) 플래그 필수
 triggers: [regex, dotAll, 테스트]
 tool_catchable: false
-source: [plan###]
+source: [plan039]
 related: []
 ---
 

@@ -4,7 +4,7 @@ category: plan
 title: backlog task 의 phase 가 결정 docs(adr/CLAUDE/flow/code-architecture) 편집을 묶음 → 갱신 시점 분리 위반
 triggers: [decision, docs, phase 본문]
 tool_catchable: false
-source: [plan###]
+source: [PR16, PR17]
 related: []
 ---
 

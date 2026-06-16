@@ -4,7 +4,7 @@ category: code-review
 title: I/O + throw 결정을 한 함수에 묶음 → 단위 테스트 불가
 triggers: [IO, throw, 테스트]
 tool_catchable: false
-source: [plan###]
+source: [PR43]
 related: []
 ---
 

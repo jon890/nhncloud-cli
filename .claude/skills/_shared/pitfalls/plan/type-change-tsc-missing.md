@@ -4,7 +4,7 @@ category: plan
 title: type 추가/삭제 phase 의 성공 기준에 `tsc --noEmit` 누락
 triggers: [tsc, 타입 변경, type, pnpm tsc]
 tool_catchable: false
-source: [plan###]
+source: []
 related: []
 ---
 

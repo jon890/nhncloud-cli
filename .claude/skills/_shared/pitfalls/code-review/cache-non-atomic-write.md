@@ -4,7 +4,7 @@ category: code-review
 title: 캐시 파일 비원자 쓰기 (`writeFile` 직접 호출)
 triggers: [캐시, atomic write]
 tool_catchable: false
-source: [PR###]
+source: [PR2]
 related: []
 ---
 

@@ -4,7 +4,7 @@ category: team
 title: critic v2 재평가 시 신 파일 미재읽기
 triggers: [critic, 재평가, stale]
 tool_catchable: false
-source: [plan###]
+source: []
 related: []
 ---
 

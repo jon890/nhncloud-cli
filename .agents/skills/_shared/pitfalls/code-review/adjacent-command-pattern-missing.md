@@ -4,7 +4,7 @@ category: code-review
 title: 같은 도메인 인접 명령의 defensive 패턴 동일 적용 누락
 triggers: [인접 명령, 패턴]
 tool_catchable: false
-source: [plan###]
+source: [PR46]
 related: []
 ---
 

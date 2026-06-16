@@ -4,7 +4,7 @@ category: code-review
 title: `--quiet` 모드에서 식별자 출력 누락
 triggers: [quiet, 식별자]
 tool_catchable: false
-source: [plan###]
+source: [PR40]
 related: []
 ---
 

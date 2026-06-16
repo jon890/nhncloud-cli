@@ -44,7 +44,7 @@ category: plan | team | code-review
 title: <한 줄 요약>
 triggers: [<변경 유형 키워드>, ...]   # 라우터가 이 값으로 매칭
 tool_catchable: <true|false>          # true 면 Why 에 그래도 유지하는 이유
-source: [plan###, ...]                # 출처 plan/PR
+source: [PR40, plan004, ...]          # 출처 PR#/plan### — 본문 Why 에서 backfill, 미상은 []
 related: [<다른 패턴 slug>, ...]      # 백링크
 ---
 ```

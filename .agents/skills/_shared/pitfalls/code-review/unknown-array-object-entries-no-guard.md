@@ -4,7 +4,7 @@ category: code-review
 title: `unknown[]` 배열 요소를 `Object.entries` 전에 타입 가드 없이 `as Record` 캐스트
 triggers: [unknown[], Object.entries, 가드]
 tool_catchable: false
-source: [PR###]
+source: [PR2]
 related: []
 ---
 

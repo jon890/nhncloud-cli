@@ -4,7 +4,7 @@ category: code-review
 title: 테스트 mock — self-mock (vi.mock("./same-file.js")) 금지
 triggers: [테스트, self mock, vitest]
 tool_catchable: false
-source: [plan###]
+source: [plan039]
 related: []
 ---
 

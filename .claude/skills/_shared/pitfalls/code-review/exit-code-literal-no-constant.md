@@ -4,7 +4,7 @@ category: code-review
 title: exit code 등 의미 상수를 리터럴 + 주석으로 사용
 triggers: [exitCode, 리터럴, 상수]
 tool_catchable: false
-source: [PR###]
+source: [PR3]
 related: []
 ---
 

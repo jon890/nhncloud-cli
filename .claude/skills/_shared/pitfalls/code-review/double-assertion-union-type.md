@@ -4,7 +4,7 @@ category: code-review
 title: `as unknown as X | Y` 이중 단언 — API client 반환 타입 union 으로 우회
 triggers: [이중 단언, union type]
 tool_catchable: false
-source: [plan###]
+source: [PR77]
 related: []
 ---
 

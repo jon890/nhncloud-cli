@@ -4,7 +4,7 @@ category: plan
 title: 파일 경로/구조 이전 시 참조 grep 범위에 `.claude/agents/` 누락 (custom agent 가 스킬 스크립트를 복제 보유)
 triggers: [경로 마이그레이션, .agents]
 tool_catchable: false
-source: [plan###]
+source: [PR29]
 related: []
 ---
 

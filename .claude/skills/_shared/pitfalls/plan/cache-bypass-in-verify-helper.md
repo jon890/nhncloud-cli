@@ -4,7 +4,7 @@ category: plan
 title: 검증 helper 가 캐시 우선(cache-first) 함수를 재사용 → false-positive
 triggers: [캐시, bypass, verify helper]
 tool_catchable: false
-source: [plan###]
+source: [PR3]
 related: []
 ---
 

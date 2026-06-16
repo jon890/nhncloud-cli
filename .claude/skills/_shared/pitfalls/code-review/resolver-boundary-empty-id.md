@@ -4,7 +4,7 @@ category: code-review
 title: resolver/parser boundary 검증 (빈/공백 식별자가 API URL path 로 흘러감)
 triggers: [resolver, 빈 ID, boundary]
 tool_catchable: false
-source: [plan###]
+source: [PR47]
 related: []
 ---
 

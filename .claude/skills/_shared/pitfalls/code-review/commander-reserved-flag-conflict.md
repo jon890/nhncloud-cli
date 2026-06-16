@@ -4,7 +4,7 @@ category: code-review
 title: Commander 예약 플래그와 충돌하는 옵션명 (`--version` / `--help`)
 triggers: [Commander, 예약 플래그, -v, -h]
 tool_catchable: false
-source: [PR###]
+source: [PR16]
 related: []
 ---
 

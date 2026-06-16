@@ -4,7 +4,7 @@ category: plan
 title: 수치 추측 (파일 수 / 줄 수)
 triggers: [수치 추측, 파일 수, 줄 수, plan 작성]
 tool_catchable: false
-source: [plan###]
+source: []
 related: []
 ---
 

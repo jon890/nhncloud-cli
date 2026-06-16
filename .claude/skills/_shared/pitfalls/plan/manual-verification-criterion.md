@@ -4,7 +4,7 @@ category: plan
 title: "눈으로 확인" 검증
 triggers: [검증 기준, 수동 확인, 성공 기준]
 tool_catchable: false
-source: [plan###]
+source: []
 related: []
 ---
 

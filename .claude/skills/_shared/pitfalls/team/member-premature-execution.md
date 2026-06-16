@@ -4,7 +4,7 @@ category: team
 title: 팀원 자발적 실행
 triggers: [팀원, premature, 대기]
 tool_catchable: false
-source: [plan###]
+source: []
 related: []
 ---
 

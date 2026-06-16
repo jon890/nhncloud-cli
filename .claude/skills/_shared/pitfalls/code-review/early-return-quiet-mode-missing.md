@@ -4,7 +4,7 @@ category: code-review
 title: 조기 반환 (early return) 에서 출력 모드 분기 누락
 triggers: [early return, quiet mode]
 tool_catchable: false
-source: [PR###]
+source: [plan040]
 related: []
 ---
 

@@ -4,7 +4,7 @@ category: code-review
 title: non-interactive / interactive 분기 동일 가드 inline 중복
 triggers: [nonInteractive, 중복, 옵션]
 tool_catchable: false
-source: [plan###]
+source: [PR43]
 related: []
 ---
 

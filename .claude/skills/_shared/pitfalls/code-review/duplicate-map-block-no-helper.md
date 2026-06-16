@@ -4,7 +4,7 @@ category: code-review
 title: 동일 변환 `.map` 블록이 N 파일에 복붙 → critic / planner 단계에서 헬퍼 추출 누락
 triggers: [Map, 중복 블록, helper]
 tool_catchable: false
-source: [plan###]
+source: [PR44]
 related: []
 ---
 

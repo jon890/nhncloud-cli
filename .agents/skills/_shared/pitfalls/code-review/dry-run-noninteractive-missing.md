@@ -4,7 +4,7 @@ category: code-review
 title: dry-run 실증 시나리오에서 non-interactive 진입 조건 누락
 triggers: [dry-run, nonInteractive]
 tool_catchable: false
-source: [plan###]
+source: [PR62]
 related: []
 ---
 

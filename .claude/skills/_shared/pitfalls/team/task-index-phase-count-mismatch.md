@@ -4,7 +4,7 @@ category: team
 title: task 재분할 시 index.json 갱신 누락
 triggers: [index.json, phase count, 불일치]
 tool_catchable: false
-source: [plan###]
+source: []
 related: []
 ---
 

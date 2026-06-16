@@ -4,7 +4,7 @@ category: plan
 title: executor 가 critic 평가 결과 대기 안 하고 자체 구현 진행
 triggers: [executor, critic, 대기, premature]
 tool_catchable: false
-source: [plan###]
+source: [PR64, PR67, PR68]
 related: []
 ---
 

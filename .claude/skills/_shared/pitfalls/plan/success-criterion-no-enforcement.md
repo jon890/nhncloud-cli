@@ -4,7 +4,7 @@ category: plan
 title: 성공 기준이 핵심 위험을 enforce 못함 (구조 검사만 / 변별력 없는 grep)
 triggers: [성공 기준, enforcement, 검증]
 tool_catchable: false
-source: [plan###]
+source: [PR10, PR19, PR12]
 related: []
 ---
 

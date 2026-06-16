@@ -4,7 +4,7 @@ category: plan
 title: 신규 명령 task 가 영향 표 필수 사용자 가이드 docs 를 "범위 외" 로 스킵
 triggers: [신규 명령, docs, CLAUDE.md]
 tool_catchable: false
-source: [plan###]
+source: [PR1, PR10, PR11, PR13]
 related: []
 ---
 

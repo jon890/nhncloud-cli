@@ -4,7 +4,7 @@ category: plan
 title: plan 의 REVISE/FIX 수정이 자기 plan 의 성공기준 grep 토큰·회피항목을 깨뜨림 (변경 전파 누락)
 triggers: [REVISE, 문자열 변경, cascade]
 tool_catchable: false
-source: [plan###]
+source: [PR24]
 related: []
 ---
 

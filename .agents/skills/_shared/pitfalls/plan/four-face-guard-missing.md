@@ -4,7 +4,7 @@ category: plan
 title: 새 불변식 도입 시 4면 가드 누락
 triggers: [4면 가드, 불변식, 캐시 스키마]
 tool_catchable: false
-source: [plan###]
+source: []
 related: []
 ---
 

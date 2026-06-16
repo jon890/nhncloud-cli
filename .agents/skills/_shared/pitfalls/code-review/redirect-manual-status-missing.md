@@ -4,7 +4,7 @@ category: code-review
 title: redirect manual + status code 분기 누락
 triggers: [redirect, manual, status 분기]
 tool_catchable: false
-source: [PR###]
+source: [PR72]
 related: []
 ---
 

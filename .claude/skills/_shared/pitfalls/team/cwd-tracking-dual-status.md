@@ -4,7 +4,7 @@ category: team
 title: cwd 추적 + 양쪽 git status 검증
 triggers: [cwd, git status, worktree]
 tool_catchable: false
-source: [plan###]
+source: []
 related: []
 ---
 

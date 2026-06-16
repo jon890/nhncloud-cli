@@ -4,7 +4,7 @@ category: team
 title: 팀원 SendMessage 회신 누락
 triggers: [SendMessage, reply, 팀원]
 tool_catchable: false
-source: [plan###]
+source: []
 related: []
 ---
 

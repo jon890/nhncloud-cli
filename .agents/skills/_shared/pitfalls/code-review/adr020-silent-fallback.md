@@ -4,7 +4,7 @@ category: code-review
 title: ADR-020 분기에서 silent fallback (`opts.X ?? positional`)
 triggers: [ADR, silent fallback]
 tool_catchable: false
-source: [plan###]
+source: [PR46]
 related: []
 ---
 

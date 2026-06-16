@@ -4,7 +4,7 @@ category: plan
 title: on-disk 구조에 대해 phase 가 복수 옵션 허용 → 단일 소스 docs 와 불일치
 triggers: [on-disk schema, 다중 옵션, 캐시 스키마]
 tool_catchable: false
-source: [plan###]
+source: [PR3]
 related: []
 ---
 

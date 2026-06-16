@@ -4,7 +4,7 @@ category: code-review
 title: 함수 시그니처 수정 시 구 JSDoc 블록 미삭제
 triggers: [JSDoc, 중복 블록, stale]
 tool_catchable: false
-source: [PR###]
+source: [PR3]
 related: []
 ---
 

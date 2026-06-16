@@ -4,7 +4,7 @@ category: code-review
 title: validation 전에 spinner 시작 (param 에러 시 spinner leak)
 triggers: [spinner, validation, UX 순서]
 tool_catchable: false
-source: [PR###]
+source: [PR47]
 related: []
 ---
 

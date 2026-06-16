@@ -4,7 +4,7 @@ category: code-review
 title: 외부 API nullable 필드를 string-only 가드로 검증 → null 항목 하나가 전체 응답 거부
 triggers: [nullable, string only, 가드]
 tool_catchable: false
-source: [PR###]
+source: [PR12, PR22]
 related: []
 ---
 

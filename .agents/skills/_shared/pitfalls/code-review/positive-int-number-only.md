@@ -4,7 +4,7 @@ category: code-review
 title: 양의 정수 옵션을 `Number()` 로만 검증 (지수·빈 문자열·공백 누수)
 triggers: [양수 정수, Number.isInteger]
 tool_catchable: false
-source: [PR###]
+source: [PR13, PR21, PR22]
 related: []
 ---
 

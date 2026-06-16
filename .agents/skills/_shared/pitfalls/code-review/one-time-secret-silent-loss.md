@@ -4,7 +4,7 @@ category: code-review
 title: 1회성 비밀(서버 생성 키·발급 토큰)을 조용히 잃는 경로
 triggers: [1회성 secret, silent loss]
 tool_catchable: false
-source: [PR###]
+source: [PR11]
 related: []
 ---
 

@@ -4,7 +4,7 @@ category: plan
 title: macOS BSD `sed` `\b` 미지원
 triggers: [sed, macOS, BSD, \b]
 tool_catchable: false
-source: [plan###]
+source: []
 related: []
 ---
 

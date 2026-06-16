@@ -4,7 +4,7 @@ category: plan
 title: resolver 의 검증 정책 일관성 — 신규 검증 helper 가 기존 정책 일부만 포함
 triggers: [resolver, 검증 정책, 비대칭]
 tool_catchable: false
-source: [plan###]
+source: [PR68]
 related: []
 ---
 

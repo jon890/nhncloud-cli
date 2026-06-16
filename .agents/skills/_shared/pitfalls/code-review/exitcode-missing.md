@@ -4,7 +4,7 @@ category: code-review
 title: exitCode 누락
 triggers: [exitCode, NhnCloudCliError, process.exit]
 tool_catchable: false
-source: [plan###]
+source: []
 related: []
 ---
 

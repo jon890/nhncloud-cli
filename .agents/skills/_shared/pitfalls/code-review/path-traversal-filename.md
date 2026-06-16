@@ -4,7 +4,7 @@ category: code-review
 title: 외부 응답의 fileName 으로 경로 조립 (path traversal)
 triggers: [path-traversal, basename, fileName]
 tool_catchable: false
-source: [plan###]
+source: [PR40, PR72]
 related: []
 ---
 

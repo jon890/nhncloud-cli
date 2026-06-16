@@ -4,7 +4,7 @@ category: code-review
 title: `as unknown as T` 이중 단언
 triggers: [as unknown as, 이중 단언]
 tool_catchable: false
-source: [PR###]
+source: [PR64]
 related: []
 ---
 

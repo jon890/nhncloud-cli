@@ -4,7 +4,7 @@ category: code-review
 title: 사용자 데이터를 markdown 코드 블록에 직접 삽입
 triggers: [user_data, 마크다운, 코드블록]
 tool_catchable: false
-source: [plan###]
+source: [PR36]
 related: []
 ---
 

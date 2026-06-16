@@ -4,7 +4,7 @@ category: plan
 title: 외부 상태 gate 부재
 triggers: [외부 상태, gate, PR, push]
 tool_catchable: false
-source: [plan###]
+source: []
 related: []
 ---
 

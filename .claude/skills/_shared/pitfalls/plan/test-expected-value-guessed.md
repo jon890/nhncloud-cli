@@ -4,7 +4,7 @@ category: plan
 title: 테스트 작성 phase 의 기대값(에러 wrap 여부·exit code·반환 형태)을 대상 함수 실제 동작 확인 없이 추측
 triggers: [테스트, 기댓값, 추측]
 tool_catchable: false
-source: [plan###]
+source: [PR25]
 related: []
 ---
 

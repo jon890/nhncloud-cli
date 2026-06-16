@@ -4,7 +4,7 @@ category: plan
 title: plan 본문이 기존 함수 시그니처 미검증 → executor 빌드 실패
 triggers: [함수 시그니처, 인자 수, plan 본문]
 tool_catchable: false
-source: [plan###]
+source: [PR64, PR46, PR48]
 related: []
 ---
 

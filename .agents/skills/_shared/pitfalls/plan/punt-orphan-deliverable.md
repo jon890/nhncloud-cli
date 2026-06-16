@@ -4,7 +4,7 @@ category: plan
 title: phase 간 punt 한 산출물이 받는 phase 에 작업항목으로 없음 (고아 참조)
 triggers: [orphan, deliverable, 산출물 누락]
 tool_catchable: false
-source: [plan###]
+source: [PR6]
 related: []
 ---
 

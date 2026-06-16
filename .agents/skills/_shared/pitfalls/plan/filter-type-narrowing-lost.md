@@ -4,7 +4,7 @@ category: plan
 title: `.filter()` 후 TypeScript 타입 자동 미좁힘
 triggers: [filter, narrowing, type predicate]
 tool_catchable: false
-source: [plan###]
+source: [PR67]
 related: []
 ---
 

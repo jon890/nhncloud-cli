@@ -4,7 +4,7 @@ category: plan
 title: 여러 서비스에 같은 명령 이름(images/list/get) → index.ts import 식별자 충돌
 triggers: [import, 식별자 충돌]
 tool_catchable: false
-source: [plan###]
+source: [PR28]
 related: []
 ---
 

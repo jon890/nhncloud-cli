@@ -4,7 +4,7 @@ category: plan
 title: 마지막 phase 에 index.json `completed` 마킹 지시 누락
 triggers: [마지막 phase, index.json, completed]
 tool_catchable: false
-source: [plan###]
+source: [PR62]
 related: []
 ---
 

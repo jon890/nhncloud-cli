@@ -4,7 +4,7 @@ category: plan
 title: nonInteractive trigger 확장 시 interactive 분기의 옵션 경고 정리 누락
 triggers: [nonInteractive, 경고, dead code]
 tool_catchable: false
-source: [plan###]
+source: [PR68]
 related: []
 ---
 

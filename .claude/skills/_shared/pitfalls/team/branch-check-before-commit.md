@@ -4,7 +4,7 @@ category: team
 title: 브랜치 확인 누락 commit 사고
 triggers: [branch, commit, 확인]
 tool_catchable: false
-source: [plan###]
+source: []
 related: []
 ---
 

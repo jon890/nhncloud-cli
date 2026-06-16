@@ -4,7 +4,7 @@ category: plan
 title: 새 목록 endpoint 의 pagination 미처리 → 기본 page_size 묻혀버린 절단
 triggers: [list endpoint, 페이지네이션]
 tool_catchable: false
-source: [plan###]
+source: [PR28]
 related: []
 ---
 

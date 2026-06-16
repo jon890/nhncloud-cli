@@ -4,7 +4,7 @@ category: code-review
 title: 수치 응답 필드의 string/number 타입 혼재 (resultCode 패턴 확산)
 triggers: [숫자 응답, string/number, 혼용]
 tool_catchable: false
-source: [PR###]
+source: [PR13]
 related: []
 ---
 

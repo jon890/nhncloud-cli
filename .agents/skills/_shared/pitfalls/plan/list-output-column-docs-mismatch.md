@@ -4,7 +4,7 @@ category: plan
 title: list/조회 명령의 출력 컬럼을 docs 에 적을 때 실제 `headers: [...]` 배열과 1:1 누락
 triggers: [list, 컬럼, docs 불일치]
 tool_catchable: false
-source: [plan###]
+source: [PR23, PR24]
 related: []
 ---
 

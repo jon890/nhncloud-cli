@@ -4,7 +4,7 @@ category: team
 title: code-reviewer 에 plan 비자명 설계 결정 미전달
 triggers: [reviewer, plan 컨텍스트]
 tool_catchable: false
-source: [plan###]
+source: []
 related: []
 ---
 

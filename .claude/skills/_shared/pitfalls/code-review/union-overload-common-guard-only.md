@@ -4,7 +4,7 @@ category: code-review
 title: union/오버로드 반환 + 타입 가드가 공통 필드만 검증 → 확장 분기 전용 필드 런타임 미검출
 triggers: [union, overload, 공통 가드]
 tool_catchable: false
-source: [PR###]
+source: [PR9]
 related: []
 ---
 

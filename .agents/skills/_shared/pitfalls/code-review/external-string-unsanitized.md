@@ -4,7 +4,7 @@ category: code-review
 title: 외부에서 받은 문자열을 sanitize 없이 stderr/stdout 출력
 triggers: [외부 문자열, sanitize, ANSI]
 tool_catchable: false
-source: [plan###]
+source: [PR43]
 related: []
 ---
 

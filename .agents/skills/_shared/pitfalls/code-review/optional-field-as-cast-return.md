@@ -4,7 +4,7 @@ category: code-review
 title: optional 필드를 `as T` 로 캐스트해 undefined 묵시 반환
 triggers: [optional 필드, as cast, 반환]
 tool_catchable: false
-source: [PR###]
+source: [PR1]
 related: []
 ---
 

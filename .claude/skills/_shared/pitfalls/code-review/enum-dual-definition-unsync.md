@@ -4,7 +4,7 @@ category: code-review
 title: 같은 enum/목록이 두 곳에 정의 → 동기화 누락
 triggers: [enum, 이중 정의, 동기화]
 tool_catchable: false
-source: [PR###]
+source: [PR6]
 related: []
 ---
 

@@ -4,7 +4,7 @@ category: code-review
 title: 테스트 mock 의 reject value 가 production path 를 mirror 안 함
 triggers: [mock, exitCode, mockRejectedValue]
 tool_catchable: false
-source: [PR###]
+source: [PR63]
 related: []
 ---
 

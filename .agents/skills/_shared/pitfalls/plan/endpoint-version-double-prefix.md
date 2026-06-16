@@ -4,7 +4,7 @@ category: plan
 title: 이미 버전 segment(`/v2.0`·`/v2`)를 포함한 endpoint base 에 경로를 붙이며 버전을 또 붙임 → 이중 prefix(404)
 triggers: [endpoint, 버전, double prefix]
 tool_catchable: false
-source: [plan###]
+source: [PR23]
 related: []
 ---
 

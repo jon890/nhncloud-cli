@@ -4,7 +4,7 @@ category: plan
 title: plan-and-build 표준 task 를 build-with-teams 로 실행 시 마지막 phase commit/push 책임 충돌
 triggers: [plan-and-build, build-with-teams, commit]
 tool_catchable: false
-source: [plan###]
+source: [PR1, PR2, PR9]
 related: []
 ---
 

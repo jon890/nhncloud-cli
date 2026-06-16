@@ -4,7 +4,7 @@ category: team
 title: executor scope 확장 자체 판단
 triggers: [scope, 범위 초과, executor]
 tool_catchable: false
-source: [plan###]
+source: []
 related: []
 ---
 

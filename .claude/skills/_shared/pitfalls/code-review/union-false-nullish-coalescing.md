@@ -4,7 +4,7 @@ category: code-review
 title: `T | false` union 반환 라이브러리에 `??` 사용 부적합
 triggers: [union, false, ??, nullish]
 tool_catchable: false
-source: [plan###]
+source: [PR53]
 related: []
 ---
 

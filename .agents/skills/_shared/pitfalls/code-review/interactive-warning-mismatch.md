@@ -4,7 +4,7 @@ category: code-review
 title: interactive 경고 vs 실제 동작 mismatch
 triggers: [interactive, 경고, nonInteractive]
 tool_catchable: false
-source: [PR###]
+source: [PR55]
 related: []
 ---
 

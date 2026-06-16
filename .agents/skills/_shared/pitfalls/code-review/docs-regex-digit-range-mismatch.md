@@ -4,7 +4,7 @@ category: code-review
 title: 문서 자리수/범위 표기와 코드 regex 불일치
 triggers: [docs, regex, 숫자 범위]
 tool_catchable: false
-source: [PR###]
+source: [plan039]
 related: []
 ---
 

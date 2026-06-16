@@ -4,7 +4,7 @@ category: plan
 title: 이전 plan / main 커밋과의 상호작용 누락
 triggers: [plan 상호작용, main 커밋, 충돌]
 tool_catchable: false
-source: [plan###]
+source: []
 related: []
 ---
 

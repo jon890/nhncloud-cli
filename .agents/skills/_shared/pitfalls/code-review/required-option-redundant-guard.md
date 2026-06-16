@@ -4,7 +4,7 @@ category: code-review
 title: `requiredOption` 뒤 action 내부 수동 존재 검증 (dead code)
 triggers: [required option, 중복 가드]
 tool_catchable: false
-source: [PR###]
+source: [PR6]
 related: []
 ---
 
