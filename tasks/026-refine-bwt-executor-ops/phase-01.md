@@ -27,6 +27,11 @@ build-with-teams/SKILL.md 의 `### 6.1 phase 별 atomic commit` 뒤에 `### 6.2 
 - 6.2 도입부에 "**3 phase 이하는 6단계 단일 executor 모델 그대로**, 4+ phase 만 본 사이클 적용"을 명시.
 - "정식 팀원 스폰 규칙"이 idle 반복 협업을 전제하는 critic/code-reviewer/docs-verifier 에는 영향 없음(executor 만 해당) — 1줄 명시.
 
+**원위치 carve-out (필수 — pitfalls/plan/carve-out-conflicting-prohibition)**: 6.2 안에만 주석을 두면 기존 무조건문이 latent drift 로 남는다. 6.2 와 충돌하는 SKILL 본문 2곳을 **그 위치에서** 좁힌다:
+- `build-with-teams/SKILL.md` 의 6.1 끝 "다음 phase 진행 지시"(현행 단일 executor 전제) 뒤 → `(4+ phase: 해당 executor shutdown 후 새 executor 스폰 — 6.2 참조)` 1절 추가.
+- `build-with-teams/SKILL.md` 의 "정식 팀원 스폰 규칙" executor `run_in_background: true`로 idle 대기 문장 → `(단 executor 는 4+ phase 에서 6.2 적용 — phase별 스폰·shutdown)` 1절 추가.
+- 두 곳 `.agents/` 미러 동시.
+
 ### 3. 규모 판정 표 연결
 
 `### 규모 판정 기준`(210 인근)의 "대(phase 4+)" 행에서 6.2 를 참조하도록 1줄 연결(별도 정의 신설 금지 — 표가 단일 소스).
@@ -41,8 +46,9 @@ build-with-teams/SKILL.md 의 `### 6.1 phase 별 atomic commit` 뒤에 `### 6.2 
 
 1. build-with-teams/SKILL.md 에 "6.2 phase별 spawn-shutdown 사이클" 존재(4요소 + 3 phase 이하 carve-out).
 2. 규모 판정 표 "대" 행에 6.2 참조 1줄.
-3. `.claude` ↔ `.agents` 미러 byte 동일.
-4. `pnpm run build` 정상(영향 없음 확인).
+3. **원위치 carve-out**: 충돌 2곳(6.1 끝 "다음 phase 진행 지시", "정식 팀원 스폰 규칙" executor idle 대기)에 4+ phase 조건 1절씩 추가.
+4. `.claude` ↔ `.agents` 미러 byte 동일.
+5. `pnpm run build` 정상(영향 없음 확인).
 
 ## 커밋
 
