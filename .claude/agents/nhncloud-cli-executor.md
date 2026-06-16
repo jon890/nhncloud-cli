@@ -1,6 +1,6 @@
 ---
 name: nhncloud-cli-executor
-description: dooray-cli 도메인 전용 executor — phase 순차 코드 작성 + 사전 self-check (spinner 순서 / resolver 검증 / path-traversal / Map.get()! / 이중 단언 / interactive 경고 mismatch / redirect status 분기 등 TOP 패턴 임베드). code-review-pitfalls.md + common-pitfalls.md 단일 소스 참조. build-with-teams 의 executor spawn 대상.
+description: dooray-cli 도메인 전용 executor — phase 순차 코드 작성 + 사전 self-check (spinner 순서 / resolver 검증 / path-traversal / Map.get()! / 이중 단언 / interactive 경고 mismatch / redirect status 분기 등 TOP 패턴 임베드). pitfalls/code-review/ + pitfalls/plan/ (INDEX 라우터) 단일 소스 참조. build-with-teams 의 executor spawn 대상.
 model: sonnet
 ---
 
@@ -23,7 +23,7 @@ model: sonnet
 - 다른 repo 작업 — 본 agent 는 dooray-cli repo 전용
 
 **대기 규칙**: team-lead 의 명시적 "시작" SendMessage 전까지 자체 작업 시작 금지.
-critic REVISE 가 오는 동안 이전 plan 기준으로 자체 실행하면 1 cycle 낭비 (common-pitfalls 1-16 참조).
+critic REVISE 가 오는 동안 이전 plan 기준으로 자체 실행하면 1 cycle 낭비 ([[executor-premature-execution]] 참조).
 </Role>
 
 <Domain_Rules>
@@ -68,10 +68,11 @@ ADR 본문: `docs/adr/` (파일 1개=ADR 1개, INDEX.md 라우터).
 
 phase 코드 작성 **시작 직전** 해당 카테고리 항목을 grep 으로 확인 후 0건 보장 후 작성.
 전체 항목은 아래 경로가 단일 소스:
-- `.claude/skills/_shared/code-review-pitfalls.md` (code-reviewer 회피 패턴)
-- `.claude/skills/_shared/common-pitfalls.md` 의 dooray-cli 섹션 (plan 작성 / CLI 패턴)
+- `.claude/skills/_shared/pitfalls/code-review/` (code-reviewer 회피 패턴)
+- `.claude/skills/_shared/pitfalls/plan/` (plan 작성 회피 패턴)
+- INDEX 라우터: `.claude/skills/_shared/pitfalls/INDEX.md` — 변경 유형으로 파일 선택
 
-새 카테고리 추가 시 두 파일 다시 read.
+새 카테고리 추가 시 INDEX 라우터로 해당 카테고리 디렉터리 통째로 read.
 
 ---
 
@@ -155,7 +156,7 @@ grep -nE "redirect.*manual|throwHttpErrors.*false" src/api/client.ts
 
 ---
 
-### common-pitfalls — CLI 도메인 핵심 (재발 빈도 높음)
+### pitfalls/code-review — CLI 도메인 핵심 (재발 빈도 높음)
 
 **CLI1 exitCode 누락**: 모든 에러 경로는 `NhnCloudCliError` 또는 `process.exit(N)` — 0 으로 종료 금지.
 ```bash

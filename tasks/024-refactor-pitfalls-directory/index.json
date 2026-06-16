@@ -3,8 +3,8 @@
   "description": "단일 _shared/common-pitfalls.md(섹션1 plan 36항목·섹션2 team 10·섹션3 PR review 빈 템플릿·섹션4 레포별 CLI 24+테스트 stray 2) + code-review-pitfalls.md(27항목)를 _shared/pitfalls/{plan,code-review,team}/<slug>.md 파일-per-패턴 + _shared/pitfalls/INDEX.md 라우터로 분리(ADR-018). slug only(내용 기반 kebab — 내부 참조라 번호 불요), 각 파일 frontmatter(id·category·title·triggers·tool_catchable·source·related). 매핑: 섹션1→plan/(36), 섹션2→team/(10), 섹션4(CLI+테스트 stray)+code-review-pitfalls→code-review/(53). 합 99. 섹션3 은 빈 템플릿이라 0파일. INDEX 는 docu-parser 거울(소비 3단계·라우터 표·축적 게이트 4조건·prune/automate·파일 형식). 참조 전수 갱신: 스킬(planning/build-with-teams/plan-and-build/review-fix)의 common-pitfalls/code-review-pitfalls 경로 + '1-NN'·'섹션 1+4' 번호 참조를 INDEX 라우터 방식으로, .claude/agents/ + codex 미러(.agents/skills/_shared/·AGENTS 하네스) 도 동일(1-36 회피). 단일 파일 제거. retros(task 025) 가 갱신 위치로 이 카테고리를 가리키므로 INDEX 에 retros 참조 placeholder. docu-parser _shared/pitfalls 거울. 코드 빌드/테스트 영향 없음(docs·skill 구조 변경).",
   "created_at": "2026-06-16T00:00:00Z",
   "updated_at": "2026-06-16T00:00:00Z",
-  "status": "in_progress",
-  "current_phase": 2,
+  "status": "completed",
+  "current_phase": 3,
   "total_phases": 3,
   "error_message": null,
   "blocked_reason": null,
@@ -13,7 +13,7 @@
       "number": 1,
       "title": "_shared/pitfalls/{plan,code-review,team}/ 디렉터리 + INDEX.md 라우터(소비 3단계·축적 게이트 4조건·prune/automate·파일 형식) 골격 — docu-parser 거울",
       "file": "phase-01.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": [
         "Read",
         "Write",
@@ -28,7 +28,7 @@
       "number": 2,
       "title": "common-pitfalls 4섹션 + code-review-pitfalls 27항목을 카테고리별 <slug>.md 로 무손실 분리(frontmatter 포함) — .claude/ + codex 미러 양쪽",
       "file": "phase-02.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": [
         "Read",
         "Write",
@@ -43,7 +43,7 @@
       "number": 3,
       "title": "참조 전수 갱신(스킬 1-NN·섹션 참조→INDEX 라우터 + .claude/agents/ + codex 미러) + 단일 파일 제거 + index.json 완료 마킹",
       "file": "phase-03.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": [
         "Read",
         "Write",
