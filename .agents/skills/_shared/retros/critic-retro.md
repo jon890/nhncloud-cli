@@ -20,12 +20,13 @@
 ## 작성 형식 + 커밋 규약
 
 - 형식: frontmatter + 본문(증상 / Good / Self-check / Why).
-- 메인 디렉터리 클린 사전 점검 필수:
+- 커밋 경로:
+  - plan 진행 중 → 작업 브랜치 PR 에 포함(사전 점검 불요).
+  - 사후 → main 직접. **이 경로일 때만** 메인 디렉터리 클린 사전 점검:
 
-  ```bash
-  [ "$(git status --short | wc -l | tr -d ' ')" = "0" ] && [ "$(git branch --show-current)" = "main" ] \
-    || { echo "🚫 main 직접 commit 차단 — 다른 변경 또는 다른 브랜치 체크아웃 상태."; exit 1; }
-  ```
+    ```bash
+    [ "$(git status --short | wc -l | tr -d ' ')" = "0" ] && [ "$(git branch --show-current)" = "main" ] \
+      || { echo "🚫 main 직접 commit 차단 — 다른 변경 또는 다른 브랜치 체크아웃 상태."; exit 1; }
+    ```
 
-- 커밋: `docs(skill): accumulate review learnings from PR #<N>` (PR 번호 + 사고 plan 번호 본문 명시).
-- 회고 commit 은 작업 브랜치 PR 에 포함하거나(plan 진행 중) main 직접(사후).
+- 커밋 메시지: `docs(skill): accumulate review learnings from PR #<N>` (PR 번호 + 사고 plan 번호 본문 명시).

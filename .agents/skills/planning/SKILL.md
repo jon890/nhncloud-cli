@@ -34,7 +34,7 @@ task 파일을 **사용자에게 제출하기 전**에 두 docs 를 모두 self-
 | [`pitfalls/INDEX.md`](../_shared/pitfalls/INDEX.md) → `plan/` 카테고리 | critic 의 plan 평가 지적 | task 파일 작성 직후 라우터로 변경 유형 파일 선택·self-check |
 | [`pitfalls/INDEX.md`](../_shared/pitfalls/INDEX.md) → `code-review/` 카테고리 | code-reviewer 의 코드 검사 지적 | phase 본문에 회피 항목 1줄 인용 + executor 코드 작성 시작 직전 self-check |
 
-**축적 규칙**: critic / code-reviewer 가 **새로운 타입** 의 지적을 하면 build-with-teams 9단계 회고에서 해당 카테고리에 slug 파일을 추가한다 (retros/{역할}-retro.md 절차 참조).
+**축적 규칙**: critic / code-reviewer 가 **새로운 타입** 의 지적을 하면 build-with-teams 9단계 회고에서 해당 카테고리에 slug 파일을 추가한다 (_shared/retros/{역할}-retro.md 절차 참조).
 `pitfalls/{category}/<slug>.md` 파일은 시간이 지날수록 쌓이고, review 사이클에서 할 말은 줄어든다.
 
 **docs-verifier 사전 해소은 별도 회고 docs 를 두지 않는다** — 아래 "거울 구조 원칙" 섹션 참조. docs-verifier 의 반복 지적은 본 SKILL 8단계 A항 docs 영향 표에 행 추가 / 보강 형태로 흡수된다.
@@ -49,8 +49,8 @@ build-with-teams 의 docs-verifier 검증 항목과 본 SKILL 의 docs 영향 �
 
 2. **거울**: `build-with-teams/SKILL.md` 의 docs-verifier 검증 항목 7~10 (planning docs 영향 표 100% 적용 / 역참조 / 갱신 시점 분리 / 공개 스킬 dogfooding) 은 위 표를 거울처럼 참조한다 — 별도 체크리스트 보유 금지. docs-verifier 가 *"별도 체크 항목 X 도 보겠다"* 며 자체 항목을 늘리면 거울이 깨진다.
 
-3. **별도 회고 *데이터* docs 신설 금지** — 절차 단일 소스는 `retros/docs-verifier-retro.md`, 데이터 단일 소스는 본 8단계 A항 표. retro 는 절차만 담고 데이터(표 행)는 여기 흡수.
-   - 절차는 `retros/docs-verifier-retro.md` 참조
+3. **별도 회고 *데이터* docs 신설 금지** — 절차 단일 소스는 `_shared/retros/docs-verifier-retro.md`, 데이터 단일 소스는 본 8단계 A항 표. retro 는 절차만 담고 데이터(표 행)는 여기 흡수.
+   - 절차는 `_shared/retros/docs-verifier-retro.md` 참조
    - critic / code-reviewer 와 처리 방식이 비대칭인 이유: 두 검증자는 *코드/계획 패턴* 회피라 별도 docs 가 자연스러움
    - 반면 docs-verifier 는 *docs 갱신 누락* 만 잡으므로 표 자체가 곧 회피 docs
 
