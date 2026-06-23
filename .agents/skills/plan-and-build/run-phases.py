@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Agent harness — Claude Code phase 순차 실행기.
+Agent harness — Codex/Claude phase 순차 실행기.
 
 Usage:
-  python .claude/skills/plan-and-build/run-phases.py <task-dir> [--from-phase N]
+  python .agents/skills/plan-and-build/run-phases.py <task-dir> [--from-phase N] [--agent codex|claude]
 
-  예: python .claude/skills/plan-and-build/run-phases.py tasks/implement-api-client
-      python .claude/skills/plan-and-build/run-phases.py tasks/implement-api-client --from-phase 3
+  예: python .agents/skills/plan-and-build/run-phases.py tasks/implement-api-client --agent codex
+      python .agents/skills/plan-and-build/run-phases.py tasks/implement-api-client --from-phase 3 --agent claude
 
 Exit codes:
   0  — 모든 phase 완료
@@ -119,7 +119,7 @@ def validate_task(task: dict, task_dir: Path) -> None:
         for e in errors:
             print(f"  - {e}", file=sys.stderr)
         print(
-            "\n  → .claude/skills/planning/task-create.md 참고\n",
+            "\n  → .agents/skills/planning/task-create.md 참고\n",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -146,29 +146,71 @@ def save_task(task: dict, index_path: Path) -> None:
 
 DEFAULT_TOOLS = "Read,Write,Edit,Bash,Glob,Grep"
 DEFAULT_PHASE_TIMEOUT = 600  # 기본 10분 (초)
+DEFAULT_AGENT = os.environ.get("NHNCLOUD_PHASE_AGENT", "codex")
 BLOCKED_MARKER = "PHASE_BLOCKED:"
 FAILED_MARKER = "PHASE_FAILED:"
+
+
+def find_repo_root(path: Path) -> Path:
+    result = subprocess.run(
+        ["git", "-C", str(path), "rev-parse", "--show-toplevel"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0 and result.stdout.strip():
+        return Path(result.stdout.strip())
+    return Path.cwd()
+
+
+def build_agent_command(
+    agent: str,
+    allowed_tools: list[str],
+    model: str | None,
+    repo_root: Path,
+) -> list[str]:
+    if agent == "claude":
+        tools = ",".join(allowed_tools) if allowed_tools else DEFAULT_TOOLS
+        cmd = ["claude", "--print", "--allowedTools", tools]
+        if model:
+            cmd.extend(["--model", model])
+        return cmd
+
+    if agent == "codex":
+        cmd = [
+            "codex",
+            "exec",
+            "-C",
+            str(repo_root),
+            "--sandbox",
+            "workspace-write",
+            "--ask-for-approval",
+            "never",
+        ]
+        if model:
+            cmd.extend(["--model", model])
+        cmd.append("-")
+        return cmd
+
+    raise ValueError(f"지원하지 않는 agent: {agent}")
 
 
 def run_phase(
     phase_file: Path,
     allowed_tools: list[str],
+    agent: str,
+    repo_root: Path,
     model: str | None = None,
     timeout: int = DEFAULT_PHASE_TIMEOUT,
 ) -> tuple[int, str, str]:
     """
-    phase 프롬프트를 Claude에 전달하고 (returncode, stdout, stderr) 반환.
+    phase 프롬프트를 선택한 agent에 전달하고 (returncode, stdout, stderr) 반환.
     stdout을 실시간 스트리밍하면서 동시에 캡처한다.
     timeout초 이내에 완료되지 않으면 프로세스를 kill하고 에러 반환.
     """
     with open(phase_file, encoding="utf-8") as f:
         prompt = f.read()
 
-    tools = ",".join(allowed_tools) if allowed_tools else DEFAULT_TOOLS
-
-    cmd = ["claude", "--print", "--allowedTools", tools]
-    if model:
-        cmd.extend(["--model", model])
+    cmd = build_agent_command(agent, allowed_tools, model, repo_root)
 
     proc = subprocess.Popen(
         cmd,
@@ -233,32 +275,66 @@ def fmt_elapsed(seconds: float) -> str:
 
 # ── 메인 ─────────────────────────────────────────────────────────────────────
 
-def main() -> None:
-    args = sys.argv[1:]
+def parse_args(args: list[str]) -> tuple[Path, int, str]:
     if not args:
         print(__doc__, file=sys.stderr)
         sys.exit(1)
 
-    task_dir = Path(args[0]).resolve()
+    task_dir_arg: str | None = None
+    from_phase = 1
+    agent = DEFAULT_AGENT.lower()
+
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if arg == "--from-phase":
+            try:
+                from_phase = int(args[i + 1])
+            except (IndexError, ValueError):
+                print("[error] --from-phase 뒤에 정수를 지정하세요", file=sys.stderr)
+                sys.exit(1)
+            i += 2
+            continue
+        if arg == "--agent":
+            try:
+                agent = args[i + 1].lower()
+            except IndexError:
+                print("[error] --agent 뒤에 codex 또는 claude 를 지정하세요", file=sys.stderr)
+                sys.exit(1)
+            i += 2
+            continue
+        if arg.startswith("--"):
+            print(f"[error] 알 수 없는 옵션: {arg}", file=sys.stderr)
+            sys.exit(1)
+        if task_dir_arg is not None:
+            print(f"[error] task 디렉터리는 하나만 지정하세요: {arg}", file=sys.stderr)
+            sys.exit(1)
+        task_dir_arg = arg
+        i += 1
+
+    if task_dir_arg is None:
+        print(__doc__, file=sys.stderr)
+        sys.exit(1)
+    if agent not in {"codex", "claude"}:
+        print("[error] --agent 는 codex 또는 claude 만 지원합니다", file=sys.stderr)
+        sys.exit(1)
+
+    return Path(task_dir_arg).resolve(), from_phase, agent
+
+
+def main() -> None:
+    task_dir, from_phase, agent = parse_args(sys.argv[1:])
     if not task_dir.is_dir():
         print(f"[error] task 디렉터리 없음: {task_dir}", file=sys.stderr)
         sys.exit(1)
 
-    from_phase = 1
-    if "--from-phase" in args:
-        idx = args.index("--from-phase")
-        try:
-            from_phase = int(args[idx + 1])
-        except (IndexError, ValueError):
-            print("[error] --from-phase 뒤에 정수를 지정하세요", file=sys.stderr)
-            sys.exit(1)
-
+    repo_root = find_repo_root(task_dir)
     task, index_path = load_task(task_dir)
     task_name = task["name"]
     phases = task["phases"]
     total = len(phases)
 
-    print(f"\n🚀  Task: {task_name}  ({total} phases)\n")
+    print(f"\n🚀  Task: {task_name}  ({total} phases, agent: {agent})\n")
 
     for phase in phases:
         phase_num = phase["number"]
@@ -299,7 +375,14 @@ def main() -> None:
         notify(f"▶️ Task **{task_name}** phase {phase_num}/{total} 시작: {phase_title}{model_label}")
 
         start_time = time.monotonic()
-        returncode, stdout, stderr = run_phase(phase_file, allowed_tools, model, timeout)
+        returncode, stdout, stderr = run_phase(
+            phase_file,
+            allowed_tools,
+            agent,
+            repo_root,
+            model,
+            timeout,
+        )
         elapsed = time.monotonic() - start_time
 
         print(f"  {'─' * 60}")

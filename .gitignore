@@ -4,6 +4,7 @@ dist/
 .DS_Store
 .omc/
 .claude/worktrees/
+.agents/worktrees/
 .claude/scheduled_tasks.lock
 
 # playwright MCP 임시 산출물

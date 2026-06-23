@@ -102,7 +102,7 @@ ADR이 "왜"를 담고 있는가. "결정 / 맥락 / 대안 기각" 구조가 �
 `AGENTS.md` "docs / ADR 작성 형식" 6가지 패턴 위반을 점검.
 정책 본문은 거기에 단일 소스 — 본 섹션은 검출 휴리스틱만.
 
-대상: `docs/*.md` / `AGENTS.md` / `README.md` / `skills/nhncloud-cli/SKILL.md` / `tasks/**/*.md` / `.Codex/skills/**/*.md`.
+대상: `docs/*.md` / `AGENTS.md` / `README.md` / `skills/nhncloud-cli/SKILL.md` / `tasks/**/*.md` / `.agents/skills/**/*.md`.
 코드 블록 / 표 / 디렉터리 트리는 미적용.
 
 검출 휴리스틱:
@@ -125,13 +125,13 @@ ADR이 "왜"를 담고 있는가. "결정 / 맥락 / 대안 기각" 구조가 �
 
 ### 0. 검증 위임 (필수 — 단일 소스)
 
-docs-check 의 6축 검증은 **반드시** custom agent `nhncloud-cli-docs-verifier` (`.Codex/agents/nhncloud-cli-docs-verifier.md`) 에 위임한다. agent 본문이 검증 항목·자동 grep 명령·도메인 지식의 단일 소스 — main session 이 직접 6축 grep 을 따라 적는 순간 정의 두 곳 동기화 부담 발생 (거울 구조 원칙 위반).
+docs-check 의 6축 검증은 **반드시** custom agent `nhncloud-cli-docs-verifier` (`.codex/agents/nhncloud-cli-docs-verifier.toml` 또는 `.claude/agents/nhncloud-cli-docs-verifier.md`) 에 위임한다. agent 본문이 검증 항목·자동 grep 명령·도메인 지식의 단일 출처이다. main session 이 직접 6축 grep 을 따라 적으면 같은 기준이 두 곳으로 나뉘어 동기화 부담이 생긴다.
 
 ```
 Agent({
   subagent_type: "nhncloud-cli-docs-verifier",
   description: "5-axis docs audit",
-  prompt: "전체 docs (docs/*.md + .Codex/skills/*/SKILL.md + _shared/*.md) 6축 점검. Critical / Warning / Safe 분류 보고."
+  prompt: "전체 docs (docs/*.md + .agents/skills/*/SKILL.md + _shared/*.md) 6축 점검. Critical / Warning / Safe 분류 보고."
 })
 ```
 
@@ -157,7 +157,7 @@ legacy 경로는 6축 grep 명령이 docs-check skill 본문에 명시되지 않
 
 ```bash
 # cwd: <repo root>
-ls docs/*.md .Codex/skills/*/SKILL.md .Codex/skills/_shared/*.md
+ls docs/*.md .agents/skills/*/SKILL.md .agents/skills/_shared/*.md
 ```
 
 ### 2. 각 문서에 6축 점검 수행
@@ -168,7 +168,7 @@ ls docs/*.md .Codex/skills/*/SKILL.md .Codex/skills/_shared/*.md
 - **code-architecture.md**: A (디렉터리 실재) + B (코드 스니펫) + D (AGENTS.md와 중복)
 - **prd.md**: D (flow.md와 중복) + C (기획 의도가 "왜")
 - **AGENTS.md**: "상황별 ADR 필수 참조" 표의 ADR 번호가 실제 존재하는지
-- **`.Codex/skills/*/SKILL.md`**: B (과대화) + C (추론성) + D (다른 스킬과 중복) + 자명성 변형 (아래)
+- **`.agents/skills/*/SKILL.md`**: B (과대화) + C (추론성) + D (다른 스킬과 중복) + 자명성 변형 (아래)
 
 ### 2-1. 스킬 SKILL.md 의 6축 적용 (특수 규칙)
 
@@ -178,7 +178,7 @@ ls docs/*.md .Codex/skills/*/SKILL.md .Codex/skills/_shared/*.md
 |---|---|
 | **B 과대화** | 사고 사례 길게 서술 (왜·언제 발생·증상) / 자명한 부연 / 다른 스킬과 중복되는 일반 원칙 모두 bloat. 핵심 지시 + 검증 명령 + 1줄 사유로 응축 |
 | **C 추론성** | 지시만 있고 "왜 이 가드가 필요한지" 추론할 단서 1줄이 없으면 미래의 에이전트가 가드를 우회할 위험 |
-| **D 중복** | 같은 가드 / 원칙이 여러 스킬에 반복되면 `.Codex/skills/_shared/` 로 추출 |
+| **D 중복** | 같은 가드 / 원칙이 여러 스킬에 반복되면 `.agents/skills/_shared/` 로 추출 |
 | **자명성 (E 변형)** | "AI 에이전트의 일반 행동 디폴트로 추론 가능"한 지시는 제거. 예: "tool 호출 결과 확인 후 다음 단계 진행" 같은 자명한 절차 |
 
 **검출 신호**:

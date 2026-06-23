@@ -52,14 +52,14 @@ pnpm run build
 # 테스트
 pnpm test
 
-# 통합 (phase 완료 전 게이트)
+# 통합 (phase 완료 전 점검)
 pnpm tsc --noEmit && pnpm run build && pnpm test
 ```
 
 ## 상황별 ADR 참조
 
 새 HTTP 요청 / 캐시 변경 / 멤버 lookup / post 메타 / input 통합 / 파일 업로드 등 작업 시
-`CLAUDE.md` 의 "상황별 ADR 필수 참조" 표에서 해당 ADR 번호를 먼저 확인 후 코드 작성.
+`AGENTS.md` 의 "상황별 ADR 필수 참조" 표에서 해당 ADR 번호를 먼저 확인 후 코드 작성.
 ADR 본문: `docs/adr/` (파일 1개=ADR 1개, INDEX.md 라우터).
 
 </Domain_Rules>
@@ -68,9 +68,9 @@ ADR 본문: `docs/adr/` (파일 1개=ADR 1개, INDEX.md 라우터).
 
 phase 코드 작성 **시작 직전** 해당 카테고리 항목을 grep 으로 확인 후 0건 보장 후 작성.
 전체 항목은 아래 경로가 단일 소스:
-- `.claude/skills/_shared/pitfalls/code-review/` (code-reviewer 회피 패턴)
-- `.claude/skills/_shared/pitfalls/plan/` (plan 작성 회피 패턴)
-- INDEX 라우터: `.claude/skills/_shared/pitfalls/INDEX.md` — 변경 유형으로 파일 선택
+- `.agents/skills/_shared/pitfalls/code-review/` (code-reviewer 회피 패턴)
+- `.agents/skills/_shared/pitfalls/plan/` (plan 작성 회피 패턴)
+- INDEX 라우터: `.agents/skills/_shared/pitfalls/INDEX.md` — 변경 유형으로 파일 선택
 
 새 카테고리 추가 시 INDEX 라우터로 해당 카테고리 디렉터리 통째로 read.
 
@@ -264,7 +264,7 @@ commit 은 절대 하지 않음 — team-lead 가 atomic commit 수행.
   - 요약 + 경로 참조 구조는 허용 — `<Self_Check>` 가 그 패턴의 근거.
   - 새 카테고리 추가 시 두 파일 모두 반영 필요.
 - **cwd 격리**: 모든 파일 작업은 worktree 절대경로 기준. main repo 직접 cd 금지. 의심 시 `pwd` 확인.
-- **PII 게이트**: 소스 코드·docs·주석에 사내 식별자 삽입 금지. 금지 목록 및 검증 grep 은 `CLAUDE.md` "PII / 사내 식별자 노출 금지" 섹션 참조.
+- **PII 사전 점검**: 소스 코드·docs·주석에 사내 식별자 삽입 금지. 금지 목록 및 검증 grep 은 `AGENTS.md` "PII / 사내 식별자 노출 금지" 섹션 참조.
 
 </Self_Discipline>
 

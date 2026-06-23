@@ -8,7 +8,7 @@
 tasks/
   {task-name}/
     index.json        # task 메타데이터 및 phase 목록
-    phase-01.md       # phase 1 프롬프트 (Claude에게 전달되는 실행 지시)
+    phase-01.md       # phase 1 프롬프트 (agent에게 전달되는 실행 지시)
     phase-02.md
     ...
 ```
@@ -80,7 +80,7 @@ index.json 작성 후 아래를 확인:
 
 ### 핵심 원칙
 
-1. **자기완결적** — 각 phase 프롬프트는 이전 대화 컨텍스트 없이 `claude --print`로 독립 실행된다. 필요한 모든 맥락을 프롬프트 안에 포함해야 한다.
+1. **자기완결적** — 각 phase 프롬프트는 이전 대화 컨텍스트 없이 `codex exec` 또는 `claude --print`로 독립 실행된다. 필요한 모든 맥락을 프롬프트 안에 포함해야 한다.
 2. **단일 책임** — 한 phase는 명확히 하나의 작업 단위를 담당한다.
 3. **검증 가능** — phase 마지막에 실행 가능한 성공 기준을 명시한다.
 4. **작업 항목 5개 이하** — 너무 많은 항목을 담으면 AI 에이전트가 뒤쪽 항목을 누락한다. 5개 초과 시 반드시 분리.
@@ -97,7 +97,7 @@ index.json 작성 후 아래를 확인:
 
 먼저 아래 문서들을 읽어라:
 
-- `CLAUDE.md` — 코딩 규칙
+- `AGENTS.md` — 코딩 규칙
 - `docs/...` — 관련 설계 문서 (구체적 경로)
 
 기존 코드 참조 (패턴 파악용):
@@ -124,7 +124,7 @@ index.json 작성 후 아래를 확인:
 
 ## 주의사항
 
-- `CLAUDE.md` 규칙 준수
+- `AGENTS.md` 규칙 준수
 - 하지 말아야 할 것 구체적으로
 
 ## Blocked 조건
@@ -141,7 +141,7 @@ PHASE_FAILED: {오류}     # 복구 불가능 → exit 1
 
 ### phase 작성 시 체크리스트
 
-- [ ] "먼저 읽을 문서" 섹션에 `CLAUDE.md` + 관련 docs 경로 명시했는가?
+- [ ] "먼저 읽을 문서" 섹션에 `AGENTS.md` + 관련 docs 경로 명시했는가?
 - [ ] "기존 코드 참조" 섹션에 패턴 파악용 파일 경로를 명시했는가?
 - [ ] 생성할 함수의 이름, 파라미터, 반환 타입이 구체적인가?
 - [ ] 이전 phase에서 생성된 파일을 참조하는 경우 경로를 명시했는가?
@@ -174,7 +174,7 @@ PHASE_FAILED: {오류}     # 복구 불가능 → exit 1
 
 **docs 갱신 시점 분리 (필수)** — planning SKILL 8단계 A항 docs 영향 표 그대로:
 
-- planning 결정 docs (`docs/adr/`/`code-architecture.md`/`CLAUDE.md`/`data-schema.md`/`flow.md`/`prd.md`) 는 **planning 단계에서 이미 commit 됐다고 가정** — phase 안에서 변경 금지 (변경하면 docs-verifier VIOLATION).
+- planning 결정 docs (`docs/adr/`/`code-architecture.md`/`AGENTS.md`/`data-schema.md`/`flow.md`/`prd.md`) 는 **planning 단계에서 이미 commit 됐다고 가정** — phase 안에서 변경 금지 (변경하면 docs-verifier VIOLATION).
 - 사용자 가이드 docs (`README.md`/`skills/nhncloud-cli/SKILL.md`) 만 phase N-1 에서 변경. 코드 산출물에 의존하므로 phase-1·2 후에야 정확히 작성 가능.
 
 **커밋 phase 규칙**:

@@ -1,11 +1,25 @@
 ---
 name: build-with-teams
-description: Claude Agent Teams 파이프라인 — team-lead·critic·executor·docs-verifier 4 에이전트가 가시적으로 협업. run-phases.py 백그라운드 실행 대신 사용. "/build-with-teams", "agent team 으로 빌드", "teams 로 phase 실행", "critic 평가", "docs-verifier 검증" 같은 요청 시 반드시 이 스킬 사용.
+description: Agent team 기반 구현 파이프라인 — team-lead·critic·executor·docs-verifier 역할이 협업해 task phase를 실행하고 검증한다. Codex native subagent, OMX team, Claude Teams 중 현재 런타임에서 가능한 adapter를 선택한다. run-phases.py 백그라운드 실행 대신 역할 분리와 독립 검증이 필요할 때 사용. "/build-with-teams", "agent team 으로 빌드", "teams 로 phase 실행", "critic 평가", "docs-verifier 검증" 같은 요청 시 반드시 이 스킬 사용.
 ---
 
 # build-with-teams
 
-task phase를 Claude Agent Teams 파이프라인으로 실행하는 시스템. `run-phases.py` 백그라운드 실행 대신 4-5명의 에이전트가 가시적으로 협업.
+task phase를 agent team 파이프라인으로 실행하는 시스템.
+`run-phases.py` 백그라운드 실행 대신 역할을 나누고, 독립 평가와 문서 검증을 거쳐 결과를 만든다.
+
+## 런타임 선택
+
+현재 실행 표면에서 가능한 adapter를 먼저 고른다.
+
+| 런타임 | 사용 조건 | 실행 방식 |
+|---|---|---|
+| **Codex native subagents** | Codex App / native Codex 표면에서 bounded subtask 위임이 가능 | leader가 `executor`, `critic`, `verifier` 역할 subagent를 순차 또는 병렬로 호출하고 결과를 통합 |
+| **OMX team** | attached tmux OMX CLI/runtime 사용 가능 | `$team` 또는 OMX team runtime으로 팀원을 만들고 역할별 task를 전달 |
+| **Claude Teams** | Claude Code Teams와 `SendMessage`가 사용 가능 | 아래 "Claude Teams adapter" 절차를 사용 |
+
+Codex App outside tmux 에서는 Claude Teams 전용 `SendMessage` 절차를 직접 실행하지 않는다.
+이 경우 leader가 Codex native subagent로 같은 역할 분리를 구현하고, Claude Teams adapter 섹션은 체크리스트로만 참조한다.
 
 ## 사전 검증 (실행 전 필수)
 
@@ -63,26 +77,42 @@ git log origin/main --oneline --grep "{NNN}\|{task-name}" | head -3
 
 **옵션 A 흐름**:
 1. **새 브랜치 만들지 말 것** — 기존 브랜치 그대로 사용
-2. worktree 체크아웃: `git worktree add .claude/worktrees/{plan} feat/{plan}` (`-b` 없음 → 기존 브랜치 사용)
+2. worktree 체크아웃: `git worktree add .agents/worktrees/{plan} feat/{plan}` (`-b` 없음 → 기존 브랜치 사용)
 3. phase 실행 → 결과물 commit → **같은 브랜치**에 push (PR 에 commits 추가됨)
 
 ## 핵심 원칙
 
 1. **docs-first**: docs 반영 + 커밋 → task 생성 → 실행. 순서 위반 금지
 2. **가시적 협업**: 백그라운드 스크립트 대신 에이전트 팀이 각 단계를 명시적으로 수행
-3. **평가 게이트**: critic 승인 없이 실행 불가. REVISE면 계획 수정 후 재평가
+3. **평가 통과 조건**: critic 승인 없이 실행 불가. REVISE면 계획 수정 후 재평가
 4. **docs 정합성**: 실행 완료 후 docs-verifier가 코드↔문서 일치 검증
 5. **재시도 한도**: 무한 루프 방지 (아래 "재시도 한도" 섹션 참조)
 
-## 팀 구성
+## 역할 구성
 
 | 역할 | 에이전트 타입 | 기본 모델 | 책임 |
 |---|---|---|---|
 | **team-lead** | main session | opus | 계획 수립, task 생성, 팀 조율, **phase 별 atomic commit (6.1)**, 최종 push/PR |
-| **critic** | `oh-my-claudecode:critic` | opus | 계획 평가 (APPROVE/REVISE), 실제 코드 대조 |
-| **executor** | `nhncloud-cli-executor` (custom, project-local at `.claude/agents/`) | sonnet | phase 순차 실행, 코드 수정 (커밋 제외), `bypassPermissions`. dooray-cli 도메인 self-check 임베드 (spinner 순서 / resolver 검증 / 타입 안전성 등 TOP 패턴) |
-| **code-reviewer** | `oh-my-claudecode:code-reviewer` | sonnet | 코드 품질 검사 (PASS/FIX_NEEDED), AI slop/금지사항 탐지 |
-| **docs-verifier** | `nhncloud-cli-docs-verifier` (custom, project-local at `.claude/agents/`) | sonnet | 코드↔docs 정합성 검증 (PASS/UPDATE_NEEDED/VIOLATION). dooray-cli 도메인 지식 (ADR-001~024 / docs 영향 표 / 캐시 규약 / 개인 식별 정보 사전 점검) 자동 적용 — 매번 검사 항목 길게 전달 불요 |
+| **critic** | runtime별 critic role | opus | 계획 평가 (APPROVE/REVISE), 실제 코드 대조 |
+| **executor** | `executor` 또는 `nhncloud-cli-executor` adapter | sonnet | phase 순차 실행, 코드 수정 (커밋 제외). nhncloud-cli 도메인 self-check 임베드 (spinner 순서 / resolver 검증 / 타입 안전성 등 TOP 패턴) |
+| **code-reviewer** | `code-reviewer` / `critic` / verifier role | sonnet | 코드 품질 검사 (PASS/FIX_NEEDED), AI slop/금지사항 탐지 |
+| **docs-verifier** | `nhncloud-cli-docs-verifier` adapter 또는 verifier role | sonnet | 코드↔docs 정합성 검증 (PASS/UPDATE_NEEDED/VIOLATION). nhncloud-cli 도메인 지식 (ADR-001~024 / docs 영향 표 / 캐시 규약 / 개인 식별 정보 사전 점검) 자동 적용 — 매번 검사 항목 길게 전달 불요 |
+
+## Codex native adapter
+
+Codex native subagent로 실행할 때는 leader가 다음 순서를 직접 조율한다.
+
+1. `critic` 역할 subagent에게 task plan과 관련 docs를 주고 APPROVE/REVISE 판정을 받는다.
+2. APPROVE 후 `executor` 역할 subagent에게 phase 범위를 넘긴다.
+3. executor 결과를 leader가 commit 전 확인한다.
+4. `code-reviewer` 또는 `critic` 역할 subagent에게 변경 diff 검사를 맡긴다.
+5. `verifier` 역할 subagent에게 docs 정합성 검사를 맡긴다.
+6. FIX/UPDATE가 있으면 leader가 수정 주체를 정하고 같은 역할에게 재검증을 맡긴다.
+
+Codex native adapter에서는 `SendMessage`를 쓰지 않는다.
+각 subagent 결과는 leader가 직접 읽고 다음 단계 입력으로 전달한다.
+
+## Claude Teams adapter
 
 ### 정식 팀원 스폰 규칙 (필수)
 
@@ -178,7 +208,7 @@ critic 은 응답 후 idle 유지에 성공하지만 검증 에이전트는 일�
 sub-agent는 main 워킹 디렉터리에서 실행될 수 있다.
 상대경로나 `tasks/{plan}/...` 형태로 지시하면 worktree 브랜치에 커밋된 최신 파일이 아니라 main 의 구버전 또는 미존재 파일을 읽어 오판 사고가 발생한다.
 
-- 파일 참조는 반드시 `/Users/.../.claude/worktrees/{plan이름}/tasks/{plan}/phase-XX.md` 형식의 절대경로
+- 파일 참조는 반드시 `/Users/.../.agents/worktrees/{plan이름}/tasks/{plan}/phase-XX.md` 형식의 절대경로
 - 팀원이 구버전을 본다고 의심되면 `grep`한 실제 파일 내용을 메시지에 붙여 넣고 절대경로 재확인 요청
 
 ### executor 완료 보고 직후 — worktree 반영 검증 (필수)
@@ -188,7 +218,7 @@ sub-agent는 main 워킹 디렉터리에서 실행될 수 있다.
 executor 가 phase 완료를 보고하면 team-lead 는 commit 전에 **worktree 에서 변경 실재를 확인**한다:
 
 ```bash
-# cwd: /Users/.../.claude/worktrees/{plan}
+# cwd: /Users/.../.agents/worktrees/{plan}
 git status --short    # executor 가 보고한 파일이 여기 보여야 한다
 ```
 
@@ -198,7 +228,7 @@ git status --short    # executor 가 보고한 파일이 여기 보여야 한다
 # main 디렉터리에서 executor 변경만 stash (untracked 포함)
 cd <repo root>; git stash push -u -- <executor 가 보고한 파일들>
 # worktree 로 옮겨 적용
-cd .claude/worktrees/{plan}; git stash apply
+cd .agents/worktrees/{plan}; git stash apply
 # 충돌(README/SKILL/index 등 base 차이)은 union 으로 해소 후 git add, stash drop
 ```
 
@@ -228,9 +258,9 @@ executor/code-reviewer는 모든 규모에서 sonnet 고정. 사용자가 명시
 
 ## 재시도 한도 (필수)
 
-무한 루프 방지를 위해 각 게이트에 한도 적용. 한도 초과 시 자동으로 `PHASE_BLOCKED` 처리하여 사용자(team-lead)에게 결정 위임.
+무한 루프 방지를 위해 각 점검 단계에 한도 적용. 한도 초과 시 자동으로 `PHASE_BLOCKED` 처리하여 사용자(team-lead)에게 결정 위임.
 
-| 게이트 | 한도 | 초과 시 동작 |
+| 점검 단계 | 한도 | 초과 시 동작 |
 |---|---|---|
 | **critic REVISE** | 3회 | `PHASE_BLOCKED: critic REVISE 한도 초과 — team-lead 결정 필요` |
 | **code-reviewer FIX_NEEDED** | 2회 | `PHASE_BLOCKED: code-reviewer FIX 한도 초과 — 수동 검토 필요` |
@@ -271,7 +301,7 @@ phase 프롬프트 규칙은 기존 `plan-and-build`와 동일:
 
 task 파일 생성 후 커밋.
 
-### 5. critic 평가 (게이트)
+### 5. critic 평가 (통과 조건)
 
 team-lead → critic에게 계획 전송 (SendMessage).
 
@@ -324,7 +354,7 @@ team-lead 가 자체 작성 금지 — phase 작성자가 의도한 단일 책�
 **중간 phase commit 패턴**:
 
 ```bash
-# cwd: /Users/.../.claude/worktrees/{plan}
+# cwd: /Users/.../.agents/worktrees/{plan}
 # branch: feat/{plan}
 git add <phase-NN.md 의 변경 파일 정확히>
 git commit -m "<phase-NN.md 의 ## 커밋 섹션 메시지>"
@@ -375,7 +405,7 @@ executor 완료 후 team-lead가 **code-reviewer 팀원에게 SendMessage로 검
 
 **code-reviewer 스폰 시점**: executor와 동시에 `run_in_background: true`로 스폰하되, executor 완료 후 SendMessage로 검사 시작 지시.
 
-**사전 해소 점검 (필수)**: code-reviewer 검사 시작 전에 `.claude/skills/_shared/pitfalls/code-review/` 카테고리의 관련 패턴이 코드에 적용됐는지 확인 (INDEX 라우터로 변경 유형 파일 선택).
+**사전 해소 점검 (필수)**: code-reviewer 검사 시작 전에 `.agents/skills/_shared/pitfalls/code-review/` 카테고리의 관련 패턴이 코드에 적용됐는지 확인 (INDEX 라우터로 변경 유형 파일 선택).
 적용 안 됐으면 그 자리에서 FIX_NEEDED 회신 (executor 재투입).
 `pitfalls/code-review/` 가 회피 패턴의 단일 소스 — 개별 slug 파일과 별도로 grep 점검.
 executor (`nhncloud-cli-executor`) 는 phase 시작 직전 TOP 패턴 self-check grep 을 자체 수행한다 — code-reviewer 점검과 이중 방어.
@@ -439,15 +469,15 @@ executor 완료 후 team-lead → docs-verifier에게 검증 요청.
 
 **dooray-cli 특화 docs-verifier 검사 항목 (CLI 변형 — 위 6 항목에 추가):**
 
-7. **planning docs 영향 표 100% 적용 검증** — `.claude/skills/planning/SKILL.md` 8단계 A항 "변경 유형별 docs 영향 표" 의 해당 행 식별 + 표시된 모든 docs 갱신 확인
+7. **planning docs 영향 표 100% 적용 검증** — `.agents/skills/planning/SKILL.md` 8단계 A항 "변경 유형별 docs 영향 표" 의 해당 행 식별 + 표시된 모든 docs 갱신 확인
    - 단일 항목 (✓ 표시) 이라도 누락이면 UPDATE_NEEDED
    - 이 표가 검증 항목의 단일 소스 — docs-verifier 는 **별도 체크리스트 보유 금지**, 표 거울만 본다
 
-8. **역참조 규칙 준수**: 새 ADR 추가 시 `docs/code-architecture.md` 또는 `CLAUDE.md` ADR 참조 표 둘 중 한 곳에 ADR-NNN 한 줄 추가 됐는가?
+8. **역참조 규칙 준수**: 새 ADR 추가 시 `docs/code-architecture.md` 또는 `AGENTS.md` ADR 참조 표 둘 중 한 곳에 ADR-NNN 한 줄 추가 됐는가?
    - 출처: planning SKILL C항 "역참조 규칙"
 
 9. **갱신 시점 분리 위반 없는가**
-   - planning 결정 docs (`docs/adr/` / `code-architecture.md` / `CLAUDE.md` / `data-schema.md` / `flow.md` / `prd.md`) 를 phase 안에서 변경하면 VIOLATION
+   - planning 결정 docs (`docs/adr/` / `code-architecture.md` / `AGENTS.md` / `data-schema.md` / `flow.md` / `prd.md`) 를 phase 안에서 변경하면 VIOLATION
    - 사용자 가이드 docs (`README.md` / `skills/nhncloud-cli/SKILL.md`) 는 phase 마지막에서만 변경 OK
 
 10. **`skills/nhncloud-cli/SKILL.md` (공개 스킬) dogfooding** — CLI 는 공개 스킬도 검증 대상
@@ -507,9 +537,9 @@ UPDATE_NEEDED 가 3곳 같이 잡혔는데 그중 1곳을 잘못 갱신했어도
 
 ## worktree 기반 격리 실행 (필수)
 
-작업 간 충돌을 방지하기 위해 반드시 **git worktree** 사용. worktree는 프로젝트 내부 `.claude/worktrees/` 하위에 생성 (프로젝트 부모 디렉터리 오염 방지).
+작업 간 충돌을 방지하기 위해 반드시 **git worktree** 사용. worktree는 프로젝트 내부 `.agents/worktrees/` 하위에 생성 (프로젝트 부모 디렉터리 오염 방지).
 
-**전제**: `.gitignore`에 `.claude/worktrees/`가 등록되어 있어야 한다.
+**전제**: `.gitignore`에 `.agents/worktrees/`가 등록되어 있어야 한다.
 
 ### 오타 worktree 잔재 자동 정리 (pre-flight + post-flight 모두 필수)
 
@@ -545,13 +575,13 @@ git log --oneline origin/main..main   # 결과가 있으면 로컬 main이 앞�
 ```bash
 # cwd: <repo root>
 git fetch origin
-mkdir -p .claude/worktrees
-git worktree add .claude/worktrees/{plan이름} -b feat/{plan이름} origin/main
-cd .claude/worktrees/{plan이름}
+mkdir -p .agents/worktrees
+git worktree add .agents/worktrees/{plan이름} -b feat/{plan이름} origin/main
+cd .agents/worktrees/{plan이름}
 pnpm install   # 레포별 변형 (의존성 설치 + 코드 생성 등)
 ```
 
-**worktree 정리**: 메인 워킹 디렉토리로 돌아가서 `git worktree remove .claude/worktrees/{plan이름}`
+**worktree 정리**: 메인 워킹 디렉토리로 돌아가서 `git worktree remove .agents/worktrees/{plan이름}`
 
 이렇게 하면 여러 plan을 **동시 병렬 실행**해도 서로 간섭하지 않는다.
 
@@ -563,7 +593,7 @@ pnpm install   # 레포별 변형 (의존성 설치 + 코드 생성 등)
 - 빌드/테스트/린트/포맷 명령
 - 마이그레이션 도구 + 비대화형 환경 함정
 - worktree 직후 필수 setup (의존성 설치, 코드 생성 등)
-- 코드 규칙 (`CLAUDE.md` 권위 명시)
+- 코드 규칙 (`AGENTS.md` 권위 명시)
 
 executor·code-reviewer에게 프롬프트 전달 시 이 섹션을 참조 또는 요약 인용.
 
@@ -595,8 +625,8 @@ executor가 phase 실패 보고 시:
 
 | | plan-and-build | build-with-teams |
 |---|---|---|
-| 실행 방식 | `run-phases.py` 백그라운드 | Claude Agent Teams 가시적 협업 |
-| 평가 단계 | 없음 | critic APPROVE 게이트 |
+| 실행 방식 | `run-phases.py` 백그라운드 | Agent team 기반 협업 |
+| 평가 단계 | 없음 | critic APPROVE 통과 조건 |
 | docs 검증 | 없음 | docs-verifier 자동 검증 |
 | 진행 상황 | 로그 파일 확인 | 에이전트 메시지로 실시간 확인 |
 | 실패 복구 | `--from-phase` 재시작 | team-lead 판단 → executor 재지시 |
@@ -612,7 +642,7 @@ executor / code-reviewer / docs-verifier 프롬프트에 아래 컨텍스트를 
 - **통합 검증 (`{{CI_CMD}}`)**: `pnpm run build && pnpm test` (테스트 없으면 `pnpm run build` 단독)
 - **마이그레이션 도구**: 없음 — `~/.nhncloud/cache/` 파일 기반 캐시. schema 변경은 코드(`src/cache/`)로 처리
 - **worktree 직후 setup**: `pnpm install`
-- **코드 규칙 권위**: 프로젝트 루트 `CLAUDE.md` (ky 강제 / stdout vs stderr / `NhnCloudCliError` / 캐시 디렉토리 규약)
-- **스킬 폴더 이원화**: `skills/` = 공개 사용자 가이드, `.claude/skills/` = 내부 개발 스킬
-  - 인사이트 이식·docs-verifier 모두 `.claude/skills/` 대상
+- **코드 규칙 권위**: 프로젝트 루트 `AGENTS.md` (ky 강제 / stdout vs stderr / `NhnCloudCliError` / 캐시 디렉토리 규약)
+- **스킬 폴더 구분**: `skills/` = 공개 사용자 가이드, `.agents/skills/` = 내부 개발 스킬 단일 원본
+  - 인사이트 이식·docs-verifier 모두 `.agents/skills/` 대상
   - 공개 스킬 정합성 검사 (dooray-cli docs-verifier 항목 10) 만 예외적으로 `skills/nhncloud-cli/SKILL.md` 참조

@@ -17,7 +17,7 @@ skills 가 공유하는 회피 패턴 모음. **모놀리식 문서가 아니라
 | team 운영 | `team/` | 팀원 스폰·메시지 작성 시 | build-with-teams |
 | code-review | `code-review/` | 코드 작성·리뷰 시 (diff 대상) | build-with-teams, review-fix |
 
-## 축적 규칙 (게이트 — 무분별한 성장 방지)
+## 축적 규칙 (무분별한 성장 방지)
 
 새 패턴은 **아래 4조건을 모두 통과할 때만** 파일로 추가한다. 1회성 지적은 PR reply 로 끝낸다.
 
@@ -75,9 +75,9 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 
    ```bash
    # 예: spinner 순서를 바꾸는 코드 작성
-   grep -rl "triggers:.*spinner" .claude/skills/_shared/pitfalls/code-review/
+   grep -rl "triggers:.*spinner" .agents/skills/_shared/pitfalls/code-review/
    # 예: 팀원 스폰·메시지 plan
-   grep -rl "triggers:.*\(팀원 스폰\|SendMessage\)" .claude/skills/_shared/pitfalls/team/
+   grep -rl "triggers:.*\(팀원 스폰\|SendMessage\)" .agents/skills/_shared/pitfalls/team/
    ```
 
 2. **자주 쓰는 변경 유형 → 파일** (큐레이션 — phase-02 분리 완료 후 slug 채움):

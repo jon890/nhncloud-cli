@@ -2,7 +2,7 @@
 id: carve-out-conflicting-prohibition
 category: plan
 title: 새 문서 유형 도입 시 기존 절대 금지 규칙과 충돌
-triggers: [신설, 구조 변환, 금지 규칙, carve-out, 거울 구조]
+triggers: [신설, 구조 변환, 금지 규칙, carve-out, 문서 단일 출처]
 tool_catchable: false
 source: [PR31, plan025, PR32, plan026]
 related: [structure-migration-frontmatter-placeholder, single-file-split-section-boundary-leak]

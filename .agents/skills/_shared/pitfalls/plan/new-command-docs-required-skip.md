@@ -2,17 +2,17 @@
 id: new-command-docs-required-skip
 category: plan
 title: 신규 명령 task 가 영향 표 필수 사용자 가이드 docs 를 "범위 외" 로 스킵
-triggers: [신규 명령, docs, CLAUDE.md]
+triggers: [신규 명령, docs, AGENTS.md]
 tool_catchable: false
 source: [PR1, PR10, PR11, PR13]
 related: []
 ---
 
 **증상**: 신규 CLI 명령 task 의 마지막 (사용자 가이드) phase 가 `skills/nhncloud-cli/SKILL.md` 만 작성하고 `README.md` 사용 예 섹션을 "PoC 범위 외" 로 명시 스킵.
-  planning SKILL 8단계 A항 "변경 유형별 docs 영향 표" 의 "신규 CLI 명령" 행은 README.md 사용 예 + CLAUDE.md "N개 명령 카운트" 를 **필수** (조건부 아님) 로 표시 → docs-verifier UPDATE_NEEDED.
+  planning SKILL 8단계 A항 "변경 유형별 docs 영향 표" 의 "신규 CLI 명령" 행은 README.md 사용 예 + AGENTS.md "N개 명령 카운트" 를 **필수** (조건부 아님) 로 표시 → docs-verifier UPDATE_NEEDED.
 
 **Good**: 신규 명령 task 의 phase 작성 시 영향 표 해당 행이 필수로 표시한 docs 를 모두 phase 작업 목록에 포함. "PoC 라서 생략" 판단으로 표의 필수 항목을 빼지 않는다 (표가 단일 소스).
-  CLAUDE.md 는 결정 doc 이라 phase 안에서 못 고치므로, team-lead 가 phase 루프 밖 별도 commit 으로 "N개 명령 카운트" 보완.
+  AGENTS.md 는 결정 doc 이라 phase 안에서 못 고치므로, team-lead 가 phase 루프 밖 별도 commit 으로 "N개 명령 카운트" 보완.
 
 **Self-check**: 신규 명령 phase 가 영향 표의 README/SKILL/CLAUDE 필수 항목을 모두 다루는가? "범위 외" 로 표의 필수 항목을 뺀 곳이 없는가?
 

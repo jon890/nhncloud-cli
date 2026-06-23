@@ -44,7 +44,7 @@ description: AI 에이전트 하네스 기반 대규모 구현 자동화. 논의
 
 ### 3. 구현 계획 초안
 
-`.Codex/skills/planning/task-create.md`를 정확히 숙지한 후 다음을 포함한 초안 작성:
+`.agents/skills/planning/task-create.md`를 정확히 숙지한 후 다음을 포함한 초안 작성:
 
 - phase별 분리 이유와 작업 목록
 - 성공 기준 (실행 가능한 명령어)
@@ -54,7 +54,7 @@ description: AI 에이전트 하네스 기반 대규모 구현 자동화. 논의
 
 ### 4. Task 생성
 
-`.Codex/skills/planning/task-create.md` 형식에 따라 task와 phase 파일을 생성:
+`.agents/skills/planning/task-create.md` 형식에 따라 task와 phase 파일을 생성:
 
 ```
 tasks/{NNN}-{task-name}/
@@ -81,10 +81,10 @@ tasks/{NNN}-{task-name}/
 ```bash
 # cwd: <repo root>
 # 전체 실행 (백그라운드)
-python3 .Codex/skills/plan-and-build/run-phases.py tasks/{NNN}-{task-name}
+python3 .agents/skills/plan-and-build/run-phases.py tasks/{NNN}-{task-name} --agent codex
 
 # 특정 phase부터 재개
-python3 .Codex/skills/plan-and-build/run-phases.py tasks/{NNN}-{task-name} --from-phase 3
+python3 .agents/skills/plan-and-build/run-phases.py tasks/{NNN}-{task-name} --from-phase 3 --agent codex
 ```
 
 **Task phase에서 파일 커밋 규칙**:
@@ -138,7 +138,7 @@ tasks/
     phase-02.md
     ...
 
-.Codex/skills/
+.agents/skills/
   plan-and-build/
     run-phases.py     # phase 순차 실행기 (실시간 스트리밍, --from-phase 지원)
   planning/
@@ -169,7 +169,7 @@ tasks/
 
 1. **원자적 단일 책임**: 성격이 다른 작업은 반드시 별도 phase로 분리
 2. **작업 항목 5개 이하**: 5개 초과 시 반드시 분리 (실증: 11개 항목 중 뒤 3개 누락)
-3. **자기완결적**: 이전 대화 컨텍스트 없이 `Codex --print`로 독립 실행
+3. **자기완결적**: 이전 대화 컨텍스트 없이 `codex exec` 또는 `claude --print`로 독립 실행
 4. **먼저 읽을 문서 명시**: 각 phase 상단에 반드시 참조할 파일 경로 나열
 5. **기존 코드 참조 섹션**: 패턴 파악용 기존 파일 경로 명시
 6. **구체적 시그니처**: 생성할 함수의 이름, 파라미터, 반환 타입 명시

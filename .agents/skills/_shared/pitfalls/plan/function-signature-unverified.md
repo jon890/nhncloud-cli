@@ -31,7 +31,7 @@ grep -nE "^\s*(export )?async function (validateMandatoryTags|resolveTags|toNhnC
 
 **Self-check**: type 추가·변경·삭제를 포함한 phase 의 성공 기준 점검:
 - `pnpm tsc --noEmit` 의 baseline 비교 명령이 있는가?
-- CI 가 tsc 게이트를 돌리는 경우라도 phase 가드는 별도로 명시
+- CI 가 tsc 검증을 돌리는 경우라도 phase 가드는 별도로 명시
 - CI 는 PR scope 외 회귀까지 잡아주지만, phase 자체 검증은 plan-local
 
 **Why**: PR #46 (post comment get) 가 `PostCommentDetailResponse` 를 사용했지만 import 누락.

@@ -22,7 +22,7 @@ PR에 달린 코드 리뷰 댓글(주로 claude bot의 🔴/🟡 구조화 리�
 - 테스트: `pnpm test` (vitest)
 - HTTP: `ky` 전용 (axios/node-fetch 금지)
 - 커밋/PR 메시지: **`type(scope): description`** (예: `fix(commands): ...`, `refactor(api): ...`). 이모지 prefix 금지.
-- ADR 게이트: 새 라이브러리 함정·정책 변경은 `docs/adr/` 에 신규 ADR 파일 추가 필요 (CLAUDE.md 표 참조).
+- ADR 사전 점검: 새 라이브러리 함정·정책 변경은 `docs/adr/` 에 신규 ADR 파일 추가 필요 (`AGENTS.md` 표 참조).
 
 ---
 
@@ -127,7 +127,7 @@ grep -nE "^(<<<<<<<|=======|>>>>>>>)" $(git diff --name-only --diff-filter=U)
 | 카테고리 | 예시 | 자동 처리 |
 |---|---|---|
 | **양쪽 추가** (서로 다른 항목 추가) | `code-architecture.md` 에 양쪽이 다른 resolver 항목 추가 | ✅ 둘 다 보존 |
-| **수치/카운트 갱신** | `CLAUDE.md` "16개 → 17개" (다른 PR 머지로 수 증가) | ✅ 더 큰 수치 + 본 PR 변경 의미 합성 |
+| **수치/카운트 갱신** | `AGENTS.md` "16개 → 17개" (다른 PR 머지로 수 증가) | ✅ 더 큰 수치 + 본 PR 변경 의미 합성 |
 | **same-line different-content** | 같은 함수 시그니처 양쪽 수정 | ⚠️ claude 가 의도 추론 → **사용자 confirm 필수** |
 | **delete vs modify** | 한쪽이 파일/함수 제거, 한쪽은 수정 | 🛑 사용자 confirm 필수 (제거가 의도된 변경인지 확인) |
 | **slug 중복** | `pitfalls/code-review/<slug>.md` 가 이미 존재 (다른 PR 머지로 선점) | ✅ 더 구체적인 slug 로 변경 + INDEX 1줄 갱신. slug-only 구조라 번호 충돌 없음 |
@@ -254,7 +254,7 @@ claude bot 외에도 GitHub formal review, 인라인 코드 댓글(`gh api .../p
 
 1. 대상 파일을 **반드시 읽는다** — 리뷰 댓글의 라인 번호와 현재 파일이 다를 수 있다
 2. 변경 범위를 파악하고 최소한의 수정만 적용한다
-3. 리뷰가 제안하는 패턴이 프로젝트 컨벤션에 맞는지 확인한다 — `CLAUDE.md` 의 컨벤션 표 + 상황별 ADR 필수 참조 표를 따른다
+3. 리뷰가 제안하는 패턴이 프로젝트 컨벤션에 맞는지 확인한다 — `AGENTS.md` 의 컨벤션 표 + 상황별 ADR 필수 참조 표를 따른다
 4. ADR 개정이 필요한 결정 (예: ky 옵션 변경, 캐시 구조 변경) 은 코드 수정과 별개로 `docs/adr/NNN-slug.md` 해당 파일도 함께 갱신
 
 ---
@@ -511,7 +511,7 @@ reply 까지 완료되면 이번 PR 의 리뷰에서 **재발 가능 패턴**을
 # cwd: <repo root>, branch: main
 git switch main && git pull --ff-only
 # pitfalls slug 파일 신규 생성 + INDEX 갱신
-git add .claude/skills/_shared/pitfalls/
+git add .agents/skills/_shared/pitfalls/
 git commit -m "docs(skill): accumulate review learnings from PR #<N>"
 git push origin main
 ```
@@ -566,5 +566,5 @@ git push origin main
 - **다양한 리뷰 형식**: 🔴/🟡 마커 외에도 파싱 대상
   - GitHub formal review (Request Changes / Comment)
   - 인라인 코드 댓글, 일반 텍스트 코멘트
-- **ADR 갱신 필요한 결정**: CLAUDE.md 표에 명시된 영역이면 코드 수정과 함께 `docs/adr/NNN-slug.md` 해당 파일도 갱신
+- **ADR 갱신 필요한 결정**: AGENTS.md 표에 명시된 영역이면 코드 수정과 함께 `docs/adr/NNN-slug.md` 해당 파일도 갱신
   - 라이브러리 옵션 변경, 캐시 정책 변경, resolver 룰 변경 등

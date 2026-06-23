@@ -9,7 +9,7 @@ related: []
 ---
 
 **증상 A (stale code in reuse-claim)**: plan 이 `(011 의 parsePositiveInt 패턴과 동일)` 처럼 기존 helper 재사용을 주장하면서, 보여준 코드 블록은 그 helper 가 **이미 고친 옛 버전**(예: regex 대신 `Number()`)이다. executor 가 literal 복사하면 이전에 잡았던 결함(4-4 등)이 재도입된다 — 주장↔코드 모순.
-**증상 B (bot-blocked docs 확정)**: docs 가 봇차단(WebFetch 제한)인데 endpoint 경로(단/복수)·응답 형태·필드 타입을 "(확정)" 으로 단언. CLAUDE.md "API 스펙 확인 절차"(추측 머지 금지)와 충돌.
+**증상 B (bot-blocked docs 확정)**: docs 가 봇차단(WebFetch 제한)인데 endpoint 경로(단/복수)·응답 형태·필드 타입을 "(확정)" 으로 단언. AGENTS.md "API 스펙 확인 절차"(추측 머지 금지)와 충돌.
 **증상 C ([[decision-docs-in-phase]] 헤딩 잔존 모순)**: [[decision-docs-in-phase]] 분리를 적용하며 "team-lead docs-first" 노트는 넣었으나 옛 섹션 헤딩 `## 내부 docs 반영 (이 phase 안에서)` 를 안 고쳐 두 지시가 정면 충돌.
 
 **Good**:

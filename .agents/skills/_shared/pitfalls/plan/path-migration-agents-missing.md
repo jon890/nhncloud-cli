@@ -8,9 +8,9 @@ source: [PR29]
 related: []
 ---
 
-**증상**: 단일 파일 → 디렉터리 같은 경로/구조 이전에서 참조 갱신 grep 범위를 `.claude/skills/` 까지만 잡고 `.claude/agents/` 를 빠뜨린다. custom agent 정의(executor·docs-verifier 등)가 스킬의 임베드 검증 스크립트를 **복제 보유**하는 경우가 있어, 스킬만 갱신하고 agent 를 누락하면 그 agent 의 스크립트가 없어진 옛 경로를 가리켜 **조용히 깨진다**(파일 부재 → 에러 또는 garbage pass).
+**증상**: 단일 파일 → 디렉터리 같은 경로/구조 이전에서 참조 갱신 grep 범위를 `.agents/skills/` 까지만 잡고 `.claude/agents/`·`.codex/agents/` 를 빠뜨린다. custom agent 정의(executor·docs-verifier 등)가 스킬의 임베드 검증 스크립트를 **복제 보유**하는 경우가 있어, 스킬만 갱신하고 agent 를 누락하면 그 agent 의 스크립트가 없어진 옛 경로를 가리켜 **조용히 깨진다**(파일 부재 → 에러 또는 garbage pass).
 
-**Good**: 경로/구조 이전 phase 의 참조 grep 범위에 `.claude/agents/` 를 항상 포함한다 — `grep -rn "<옛경로>" CLAUDE.md docs/ .claude/skills/ .claude/agents/ README.md skills/ src/`. 특히 검증 에이전트(docs-verifier 등)는 docs-check SKILL 의 검증 스크립트를 복제하므로 둘을 같은 로직으로 동기화한다(거울 — 이상적으로는 단일 소스화).
+**Good**: 경로/구조 이전 phase 의 참조 grep 범위에 `.claude/agents/` 와 `.codex/agents/` 를 항상 포함한다 — `grep -rn "<옛경로>" AGENTS.md docs/ .agents/skills/ .claude/agents/ .codex/agents/ README.md skills/ src/`. 특히 검증 에이전트(docs-verifier 등)는 docs-check SKILL 의 검증 스크립트를 복제하므로 둘을 같은 로직으로 동기화한다(가능하면 단일 출처화).
 
 **Self-check**: 경로 이전 grep 범위에 `.claude/agents/` 가 있는가? custom agent 의 임베드 스크립트(ADR/docs 검증 등)가 새 구조를 반영하는가?
 

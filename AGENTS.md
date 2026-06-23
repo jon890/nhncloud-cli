@@ -1,4 +1,4 @@
-# AGENTS.md — nhncloud-cli
+# AGENTS.md / CLAUDE.md — nhncloud-cli
 
 ## 프로젝트 개요
 
@@ -92,7 +92,9 @@ src/
 ## 스킬 폴더 구분
 
 - `skills/` — 공개 스킬 (사용자·AI 에이전트용 `skills/nhncloud-cli/SKILL.md`)
-- `.Codex/skills/` — 내부 개발 워크플로우 스킬 (planning, plan-and-build 등)
+- `.agents/skills/` — 내부 개발 워크플로우 스킬의 단일 원본 (planning, plan-and-build 등)
+- `.claude/skills` — Claude 진입점. `.agents/skills` 로 향하는 심링크로 유지한다.
+- `.codex/agents/`, `.claude/agents/` — custom agent adapter. 포맷이 달라 skill 처럼 단일 파일로 합치지 않는다.
 
 ## 코드 컨벤션
 
@@ -147,9 +149,9 @@ src/
 
 ## 한국어 표현 정책 / 마크다운 가독성
 
-전역 `~/.Codex/AGENTS.md` 정책을 따른다.
-외래어 음차 합성 회피, semantic line break, 인라인 나열 금지.
-프로젝트별 외래어 매핑 표·문장 종결 규칙·자가 점검은 `korean-style.md` 가 단일 소스.
+전역 Codex/Claude 에이전트 정책을 따른다.
+외래어 치환표·문장 종결 규칙·자가 점검은 전역 `~/.claude/rules/korean-style.md` 를 단일 소스로 삼는다.
+프로젝트 고유 예외가 필요할 때만 별도 문서를 추가한다.
 
 ## planning / 구현 워크플로우
 
@@ -159,7 +161,7 @@ docs 는 task 생성 전에 commit (docs-first).
 
 ## 개인 식별 정보 / 사내 식별자 노출 금지 (public OSS)
 
-이 repo 는 GitHub public + npm public (`@bifos/nhncloud-cli`) 이므로 다음 식별자는 **README / skills / docs / AGENTS.md / 이슈 본문 + src 코드 (테스트 fixture·에러 메시지 예시 포함) 어디에도 노출 금지**.
+이 repo 는 GitHub public + npm public (`@bifos/nhncloud-cli`) 이므로 다음 식별자는 **README / skills / docs / AGENTS.md / CLAUDE.md / 이슈 본문 + src 코드 (테스트 fixture·에러 메시지 예시 포함) 어디에도 노출 금지**.
 코드 예시·시나리오·issue body 작성 시 항상 placeholder 를 쓴다.
 
 | 노출 금지 | 대체 |
@@ -180,12 +182,12 @@ docs 는 task 생성 전에 commit (docs-first).
 # cwd: <repo root>
 # 1) 공개 도메인 화이트리스트 밖의 URL/이메일 도메인 (사내 도메인 가능성) — 사내 도메인은 여기 명시하지 않는다
 #    https:// 또는 @ prefix 를 요구해 코드의 property 접근(.com/.net) false positive 를 배제
-grep -rnoE "(https?://|@)[A-Za-z0-9.-]+\.(com|co\.kr|net)" README.md skills/ docs/ AGENTS.md src/ 2>/dev/null \
-  | grep -vE "nhncloud\.com|nhncloudservice\.com|github\.com|npmjs\.com|example\.com|Codex\.com|anthropic\.com"
+grep -rnoE "(https?://|@)[A-Za-z0-9.-]+\.(com|co\.kr|net)" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ 2>/dev/null \
+  | grep -vE "nhncloud\.com|nhncloudservice\.com|github\.com|npmjs\.com|example\.com|openai\.com|anthropic\.com"
 # 0건이어야 함 (남으면 사내/미허용 도메인 가능성 — placeholder 또는 화이트리스트 검토)
 
 # 2) 실제 비밀 형태 (placeholder <...> 제외) — secret/password/appkey 뒤 16자 이상 영숫자
-grep -rnE "(secret|password|appkey)['\"]?[[:space:]]*[:=][[:space:]]*['\"][A-Za-z0-9]{16,}" README.md skills/ docs/ src/ 2>/dev/null
+grep -rnE "(secret|password|appkey)['\"]?[[:space:]]*[:=][[:space:]]*['\"][A-Za-z0-9]{16,}" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ 2>/dev/null
 # 0건이어야 함 (남으면 실제값 가능성 — placeholder 로 교체)
 ```
 
