@@ -8,6 +8,9 @@
   - endpoint 경로 세그먼트 단/복수: upload/download 는 `binary-group`(단수)로 추정하나 011 조회는 `binary-groups`(복수)다. 404 면 복수형으로 review-fix.
   - download 응답 형태: raw 파일 바이너리인지, `downloadUrl` 을 담은 JSON 메타인지 미확정(upload 가 downloadUrl 을 주므로 후자 가능성). 코드는 raw 바이너리 가정(`.arrayBuffer()` 저장)이고, JSON 판명 시 downloadUrl 2차 GET 으로 review-fix. round-trip diff 가 wrong-content 를 잡는다.
   - upload 응답 `binaryKey` 타입(number|string): 코드는 둘 다 수용 후 `Number()` 정규화(기존 isBinary 관례).
+- **조회 응답 실측 갱신 (2026-06-23)**: `deploy binary-groups` 읽기 전용 live 호출에서 `description: null` 응답을 확인했다.
+  따라서 `BinaryGroup.description` 은 optional `string | null` 로 취급한다.
+  같은 target 의 `deploy binaries` 는 `totalCount: number`, `binaries: []` 였으므로 `Binary` 항목 필드 필수성은 아직 확정하지 않는다.
 - **대안 기각**:
   - download 도 `.json<NhnEnvelope>()`+unwrap 으로 "통일" — 응답이 바이너리면 JSON 파싱이 깨진다. 봉투 우회가 endpoint 특성상 안전.
   - 진짜 스트리밍(ReadableStream → 디스크 pipe) — MVP 는 `.arrayBuffer()`(메모리 적재)로 충분. 초대형 파일 메모리 압박 확인 시 stream pipe 로 후속 전환(upload 한도 `MAX_UPLOAD_BYTES`).

@@ -31,3 +31,52 @@ describe("DeployClient.artifacts", () => {
     await expect(client.artifacts("appkey")).rejects.toThrow();
   });
 });
+
+describe("DeployClient.binaryGroups", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("description null 을 정상 응답으로 수용", async () => {
+    vi.mocked(ky.get).mockReturnValue({
+      json: async () => ({
+        header: { isSuccessful: true, resultCode: 0, resultMessage: "OK" },
+        body: {
+          binaryGroups: [
+            {
+              key: 1,
+              name: "default",
+              description: null,
+              regionCode: "KR1",
+              createDate: "2026-06-23T00:00:00Z",
+            },
+          ],
+        },
+      }),
+    } as never);
+
+    const client = new DeployClient("token");
+    const res = await client.binaryGroups("appkey", "artifact");
+    expect(res[0]?.description).toBeNull();
+  });
+
+  it("description 누락을 정상 응답으로 수용", async () => {
+    vi.mocked(ky.get).mockReturnValue({
+      json: async () => ({
+        header: { isSuccessful: true, resultCode: 0, resultMessage: "OK" },
+        body: {
+          binaryGroups: [
+            {
+              key: 1,
+              name: "default",
+              regionCode: "KR1",
+              createDate: "2026-06-23T00:00:00Z",
+            },
+          ],
+        },
+      }),
+    } as never);
+
+    const client = new DeployClient("token");
+    const res = await client.binaryGroups("appkey", "artifact");
+    expect(res[0]?.description).toBeUndefined();
+  });
+});

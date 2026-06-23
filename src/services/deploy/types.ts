@@ -3,7 +3,7 @@ export interface BinaryGroup {
   /** 그룹 key (binaries 조회의 binaryGroupKey 입력) */
   key: number | string;
   name: string;
-  description: string;
+  description?: string | null;
   regionCode: string;
   createDate: string;
 }

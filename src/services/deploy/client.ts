@@ -16,7 +16,12 @@ function isBinaryGroup(val: unknown): val is BinaryGroup {
   if (typeof val !== "object" || val === null) return false;
   const obj = val as Record<string, unknown>;
   const keyType = typeof obj["key"];
-  return (keyType === "number" || keyType === "string") && typeof obj["name"] === "string";
+  const descriptionType = typeof obj["description"];
+  return (
+    (keyType === "number" || keyType === "string") &&
+    typeof obj["name"] === "string" &&
+    (descriptionType === "undefined" || descriptionType === "string" || obj["description"] === null)
+  );
 }
 
 function isBinary(val: unknown): val is Binary {
