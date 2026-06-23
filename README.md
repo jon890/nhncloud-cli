@@ -116,10 +116,27 @@ nhncloud logncrash search \
   --query 'logType:"NORMAL"' \
   --from 1h \
   --to now
+
+# body 필드 키워드 검색
+nhncloud logncrash search \
+  --query 'body:request_received' \
+  --from 1h \
+  --to now
+
+# body 부분 문자열 검색
+nhncloud logncrash search \
+  --query 'body:*request_received*' \
+  --from 1h \
+  --to now
 ```
+
+`--query` 는 콘솔의 간편 검색어가 아니라 Log & Crash Search API 의 Lucene 쿼리다.
+body 검색 의도가 명확하면 `body:<keyword>` 또는 `body:*<keyword>*` 처럼 필드를 지정한다.
 
 시간은 상대시간 (`1h` / `30m` / `2d` / `now`) 또는 ISO8601 (`2026-05-01T00:00:00+09:00`) 로 입력한다.
 API 제약상 검색 시작은 최근 90일 이내, 검색 범위는 31일 이하여야 한다 (초과 시 입력 오류로 거절).
+전송 직후에는 인덱싱 지연으로 잠시 0건이 나올 수 있다.
+반복 검색이나 넓은 wildcard 검색은 API rate limit 에 걸릴 수 있으므로 시간 범위를 좁혀 확인한다.
 
 ### 로그 대량 추출 (export)
 

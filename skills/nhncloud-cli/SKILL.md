@@ -147,6 +147,18 @@ logncrash appkey 와 secret 은 콘솔 → Log & Crash Search → 프로젝트 �
 
 전역 옵션: `--json` / `--quiet` / `--no-color`
 
+`--query` 는 Log & Crash Search API 의 Lucene 쿼리 원문이다.
+콘솔의 body 키워드 검색처럼 쓰고 싶으면 필드를 명시한다.
+
+| 의도 | 쿼리 |
+|------|------|
+| body 단어 검색 | `body:request_received` |
+| body 부분 문자열 검색 | `body:*request_received*` |
+| logType 검색 | `logType:"ERROR"` |
+
+전송 직후에는 인덱싱 지연으로 잠시 0건이 나올 수 있다.
+반복 검색이나 넓은 wildcard 검색은 API rate limit 에 걸릴 수 있으므로 시간 범위를 좁혀 확인한다.
+
 ## 시간 입력 형식
 
 - 상대시간: `1h` (1시간 전), `30m` (30분 전), `2d` (2일 전), `now` (현재)

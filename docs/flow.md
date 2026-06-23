@@ -69,6 +69,18 @@ nhncloud logncrash search [options]
 
 전역 옵션: `--json` / `--quiet` / `--no-color`.
 
+### 쿼리 해석
+
+`--query` 는 Log & Crash Search API 의 Lucene 쿼리 원문이다.
+콘솔의 간편 body 키워드 검색과 동일하다고 가정하지 않는다.
+
+- body 단어 검색: `body:request_received`
+- body 부분 문자열 검색: `body:*request_received*`
+- logType 검색: `logType:"ERROR"`
+
+전송 직후에는 인덱싱 지연으로 잠시 0건이 나올 수 있다.
+반복 검색이나 넓은 wildcard 검색은 API rate limit 에 걸릴 수 있으므로 시간 범위를 좁혀 확인한다.
+
 ### 시간 입력 해석
 
 - 상대시간 (`1h`/`30m`/`2d`) 과 `now` 는 호출 시점 기준으로 ISO8601 로 변환해 API 전달.
