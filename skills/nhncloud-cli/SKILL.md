@@ -86,6 +86,30 @@ logncrash appkey 와 secret 은 콘솔 → Log & Crash Search → 프로젝트 �
 | `--quiet` | 핵심 식별자만 출력 | 스크립팅 |
 
 **AI 에이전트는 `--json` 을 사용하여 구조화된 데이터를 파싱하라.**
+단, `--json`은 CLI 출력 계약이며 API 원본 래퍼를 그대로 보존하지 않을 수 있다.
+
+| 명령 | `--json` 출력 shape |
+|------|---------------------|
+| `logncrash search` | `{ totalItems, pageNumber, pageSize, data }` 객체 |
+| `deploy binary-groups` | `binaryGroups` 래퍼를 언랩한 배열 |
+| `deploy binaries` | `{ totalCount, binaries }` 객체 |
+| `instance list` | `servers` 래퍼를 언랩한 server 배열 |
+| `instance get` | `server` 래퍼를 언랩한 단일 server 객체 |
+| `instance flavors` | `flavors` 래퍼를 언랩한 flavor 배열 |
+| `instance images` | `images` 래퍼를 언랩한 image 배열 |
+| `instance availability-zones` | `availabilityZoneInfo` 래퍼를 언랩한 배열 |
+| `instance keypairs` | `keypairs[].keypair`를 flatten한 keypair 배열 |
+| `network list` | VPC 배열 |
+| `network subnet list` | subnet 배열 |
+| `volume list` | volume 배열 |
+| `volume get` | 단일 volume 객체 |
+| `floatingip list` | floating IP 배열 |
+| `ncr list` | `registries` 래퍼를 언랩한 registry 배열 |
+| `ncr get` | `registry` 래퍼를 언랩한 단일 registry 객체 |
+| `ncr images` | repository 배열 |
+| `ncr tags` | tag 배열 |
+
+예: `nhncloud instance get <instance-id> --json`은 `.server.status`가 아니라 `.status`를 읽는다.
 
 ---
 

@@ -179,9 +179,47 @@ nhncloud logncrash send --body "deploy 시작" --app-version 2.3.0 --source batc
 | JSON | `--json` | 자동화·AI 에이전트용 raw 데이터 + 페이지 메타 |
 | quiet | `--quiet` | 행별 최소 출력 |
 
+`--json`은 CLI가 가공한 출력 계약이다.
+NHN Cloud 또는 OpenStack 원본 응답의 최상위 래퍼를 그대로 보존하지 않을 수 있다.
+
+| 명령 | `--json` 출력 shape |
+|------|---------------------|
+| `logncrash search` | `{ totalItems, pageNumber, pageSize, data }` 객체 |
+| `logncrash export` | 파일 출력 전용. stdout JSON 없음 |
+| `deploy artifacts` | Deploy API `body` 객체 |
+| `deploy server-groups` | Deploy API `body` 객체 |
+| `deploy histories` | Deploy API `body` 객체 |
+| `deploy binary-groups` | `binaryGroups` 래퍼를 언랩한 배열 |
+| `deploy binaries` | `{ totalCount, binaries }` 객체 |
+| `deploy upload` | `{ downloadUrl, binaryKey }` 객체 |
+| `instance list` | `servers` 래퍼를 언랩한 server 배열 |
+| `instance get` | `server` 래퍼를 언랩한 단일 server 객체 |
+| `instance create --wait` | `server` 래퍼를 언랩한 단일 server 객체 |
+| `instance flavors` | `flavors` 래퍼를 언랩한 flavor 배열 |
+| `instance images` | `images` 래퍼를 언랩한 image 배열 |
+| `instance availability-zones` | `availabilityZoneInfo` 래퍼를 언랩한 배열 |
+| `instance keypairs` | `keypairs[].keypair`를 flatten한 keypair 배열 |
+| `instance volumes` | `volumeAttachments` 래퍼를 언랩한 attachment 배열 |
+| `network list` | VPC 배열 |
+| `network subnet list` | subnet 배열 |
+| `volume list` | volume 배열 |
+| `volume get` | 단일 volume 객체 |
+| `volume create` | 단일 volume 객체 |
+| `floatingip list` | floating IP 배열 |
+| `floatingip create` | 단일 floating IP 객체 |
+| `ncr list` | `registries` 래퍼를 언랩한 registry 배열 |
+| `ncr get` | `registry` 래퍼를 언랩한 단일 registry 객체 |
+| `ncr images` | repository 배열 |
+| `ncr tags` | tag 배열 |
+
+예를 들어 `instance get --json`은 `.server.status`가 아니라 `.status`를 읽는다.
+
 ### 체이닝 예시
 
 ```bash
+# 인스턴스 상태 확인
+nhncloud instance get <instance-id> --json | jq -r '.status'
+
 # 검색 결과에서 logBody 만 추출
 nhncloud logncrash search --query '*' --from 1h --to now --json | jq -r '.data[].logBody'
 
