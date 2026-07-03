@@ -1,6 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { getIaasToken } from "../../api/keystone.js";
-import { getIaasCredential, resolveProfileName } from "../../config/credentials.js";
+import { resolveIaasTokenContext } from "../iaas.js";
 import { NksClient } from "../../services/nks/client.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
@@ -13,12 +12,7 @@ export async function resolveNksClient(opts: {
   profile?: string;
   region?: string;
 }): Promise<{ client: NksClient; profileName: string }> {
-  const profileName = await resolveProfileName(opts.profile);
-  const iaas = await getIaasCredential(profileName);
-
-  const effectiveIaas = opts.region ? { ...iaas, region: opts.region } : iaas;
-
-  const { tokenId, nksEndpoint } = await getIaasToken(profileName, effectiveIaas);
+  const { profileName, tokenId, nksEndpoint } = await resolveIaasTokenContext(opts);
   return { client: new NksClient(tokenId, nksEndpoint), profileName };
 }
 

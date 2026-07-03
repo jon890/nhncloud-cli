@@ -1,5 +1,4 @@
-import { resolveProfileName, getIaasCredential } from "../../config/credentials.js";
-import { getIaasToken } from "../../api/keystone.js";
+import { resolveIaasTokenContext } from "../iaas.js";
 import { BlockStorageClient } from "../../services/blockstorage/client.js";
 
 /**
@@ -11,12 +10,6 @@ export async function resolveVolumeClient(opts: {
   profile?: string;
   region?: string;
 }): Promise<{ client: BlockStorageClient; profileName: string }> {
-  const profileName = await resolveProfileName(opts.profile);
-  const iaas = await getIaasCredential(profileName);
-
-  // --region flag 가 있으면 자격증명의 region 을 덮어쓴다 (instance/network 와 같은 방식)
-  const effectiveIaas = opts.region ? { ...iaas, region: opts.region } : iaas;
-
-  const { tokenId, blockStorageEndpoint } = await getIaasToken(profileName, effectiveIaas);
+  const { profileName, tokenId, blockStorageEndpoint } = await resolveIaasTokenContext(opts);
   return { client: new BlockStorageClient(tokenId, blockStorageEndpoint), profileName };
 }
