@@ -6,6 +6,7 @@ dist/
 .claude/worktrees/
 .agents/worktrees/
 .claude/scheduled_tasks.lock
+reports/maintenance/context-*.json
 
 # playwright MCP 임시 산출물
 .playwright-mcp/
