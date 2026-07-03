@@ -5,7 +5,7 @@
 NHN Cloud 서비스를 AWS CLI 처럼 호출하는 통합 CLI.
 TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 
-## 지원 명령 (44개, NKS 구현 완료 시 81개 예정)
+## 지원 명령 (81개)
 
 - `configure` — 자격증명 설정 마법사 (대화형 + flag, UAK + 서비스별 키, 연결 테스트).
 - `logncrash search` — Log & Crash 로그 검색 (시간 범위는 90일 이내·31일 이하로 제한, 초과 시 입력 오류).
@@ -51,9 +51,8 @@ TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 - `ncr get <registry>` — 단일 레지스트리 조회 (이름 또는 id).
 - `ncr images <registry>` — 레지스트리의 이미지(repository) 목록 조회 (Harbor REST `/api/v2.0` 우회·UAK Basic Auth·ADR-017, name·artifact_count·pull_count).
 - `ncr tags <registry> <repository>` — 특정 이미지의 태그 목록 조회 (artifact 의 tags flatten·ADR-017, tag·push_time·size).
-- `nks` — NHN Kubernetes Service 명령군 예정 (Keystone 토큰 + `container-infra` API·ADR-019).
-  - Phase 1~2: `supports`, cluster/nodegroup/addon 조회, kubeconfig, 작업 이력, IP 접근 제어 조회.
-  - Phase 3~5: cluster/nodegroup/addon 생성·삭제·resize·upgrade·autoscale·설정 변경.
+- `nks` — NHN Kubernetes Service 명령군 (Keystone 토큰 + `container-infra` API·ADR-019).
+  `supports`, cluster/nodegroup/addon 조회, kubeconfig, 작업 이력, IP 접근 제어, 생성·삭제·resize·upgrade·autoscale·설정 변경을 지원한다.
 
 ## API 스펙 확인 절차
 

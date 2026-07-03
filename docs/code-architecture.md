@@ -18,11 +18,11 @@ src/
     credentials.ts          # ~/.nhncloud/ 로드 + 머지 쓰기, profile 해석
     types.ts                # Credentials(profile.userAccessKey + 서비스 블록) / Config 타입
   api/
-    endpoints.ts            # 서비스별 엔드포인트 맵 + image·network·blockstorage·ncr host 맵 + logncrash-collector 키 (adr-005, adr-013, adr-014, adr-016)
+    endpoints.ts            # 서비스별 엔드포인트 맵 + image·network·blockstorage·nks·ncr host 맵 + logncrash-collector 키 (adr-005, adr-013, adr-014, adr-016, adr-019)
     envelope.ts             # NHN 공통 봉투 unwrap + 에러 매핑 (adr-006)
     httpError.ts            # ky HTTPError → NhnCloudCliError (status별 exit code)
     oauth.ts                # UAK → access_token 교환 + 캐시 (adr-007)
-    keystone.ts             # IaaS tenantId·username·password → tokenId + compute·image·network·blockstorage endpoint 동시 반환 (adr-005, adr-010, adr-013)
+    keystone.ts             # IaaS tenantId·username·password → tokenId + compute·image·network·blockstorage·nks endpoint 동시 반환 (adr-005, adr-010, adr-013, adr-019)
   cache/
     token-store.ts          # ~/.nhncloud/cache/ token + endpoint 읽기·쓰기 (mode 0600)
   services/
@@ -41,6 +41,9 @@ src/
     blockstorage/
       client.ts             # BlockStorageClient — list / get / create (volume, Cinder volumev2, [[adr-013]])
       types.ts              # Volume (name·volume_type nullable) / VolumeAttachment / CreateVolumeParams
+    nks/
+      client.ts             # NksClient — supports / cluster / nodegroup / addon 조회·쓰기 (Keystone token + container-infra API, [[adr-019]])
+      types.ts              # Cluster / NodeGroup / Addon / IP ACL / Autoscale 응답 가드
     ncr/
       client.ts             # NcrClient — listRegistries / getRegistry (Management API, 공통 UAK 정적 헤더 X-TC-AUTHENTICATION-*, region 별 host, [[adr-016]])
       harbor-client.ts      # HarborClient — listRepositories / listArtifacts (데이터플레인 Harbor REST /api/v2.0, UAK Basic Auth, 봉투 미적용, [[adr-017]])
@@ -94,6 +97,12 @@ src/
       get.ts                # nhncloud volume get <id>
       create.ts             # nhncloud volume create --size <GB> (쓰기)
       helpers.ts            # resolveVolumeClient (Keystone 토큰 공유, [[adr-013]])
+    nks/
+      supports.ts           # nhncloud nks supports
+      cluster.ts            # nhncloud nks cluster ... + cluster addon ...
+      nodegroup.ts          # nhncloud nks nodegroup ...
+      addon.ts              # nhncloud nks addon-type / addon ...
+      helpers.ts            # resolveNksClient (Keystone 토큰 공유, [[adr-019]])
     ncr/
       list.ts               # nhncloud ncr list (레지스트리 목록, --region/--app-key)
       get.ts                # nhncloud ncr get <registry> (단일 레지스트리 조회)
@@ -127,13 +136,13 @@ dooray-cli 는 단일 `config + client` 로 충분했지만, NHN Cloud 는 서�
 - `api/endpoints.ts` — 서비스명 → 엔드포인트 (gov 분기는 후속, [[adr-005]])
 - `api/envelope.ts` — `{ header, body }` 봉투 검사, `resultCode` 타입 혼재 흡수 ([[adr-006]])
 - `api/oauth.ts` + `cache/token-store.ts` — deploy 전용. UAK → access_token 교환 후 단기 캐시 ([[adr-007]])
-- `api/keystone.ts` + `cache/token-store.ts` — instance·network·blockstorage 등 IaaS 전용. Keystone token + region 별 compute·image·network·blockstorage endpoint 캐시 ([[adr-010]], [[adr-013]])
+- `api/keystone.ts` + `cache/token-store.ts` — instance·network·blockstorage·nks 등 IaaS 전용. Keystone token + region 별 compute·image·network·blockstorage·nks endpoint 캐시 ([[adr-010]], [[adr-013]], [[adr-019]])
 - 각 `services/<svc>/client.ts` — 위 조각을 조합해 서비스 고유 헤더 부착
   - logncrash: `X-LNCS-SECRET`
   - deploy: `X-NHN-AUTHORIZATION: Bearer <token>` + config target 좌표 ([[adr-008]])
   - instance: `X-Auth-Token: <tokenId>` + region 별 compute endpoint
   - network: `X-Auth-Token: <tokenId>` + region 별 network endpoint (instance 와 토큰 공유, [[adr-013]])
-  - nks(계획): `X-Auth-Token: <tokenId>` + `OpenStack-API-Version: container-infra latest` + region 별 kubernetes infrastructure endpoint ([[adr-019]])
+  - nks: `X-Auth-Token: <tokenId>` + `OpenStack-API-Version: container-infra latest` + region 별 kubernetes infrastructure endpoint ([[adr-019]])
   - ncr: `X-TC-AUTHENTICATION-ID/SECRET` 공통 UAK 정적 헤더 + region 별 ncr host (토큰 교환 없음, [[adr-016]])
   - ncr 이미지/태그: 데이터플레인 host 에 UAK `Basic Auth` + Harbor REST `/api/v2.0` (봉투 미적용, [[adr-017]])
 

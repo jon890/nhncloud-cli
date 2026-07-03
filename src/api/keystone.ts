@@ -1,6 +1,6 @@
 import ky from "ky";
 import { readIaasToken, writeIaasToken } from "../cache/token-store.js";
-import { keystoneIdentityUrl, instanceHost, imageHost, networkHost, blockStorageHost } from "./endpoints.js";
+import { keystoneIdentityUrl, instanceHost, imageHost, networkHost, blockStorageHost, nksHost } from "./endpoints.js";
 import { toNhnCloudCliError } from "./httpError.js";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_API_ERROR } from "../utils/exit-codes.js";
@@ -39,7 +39,7 @@ export async function getIaasToken(
   profile: string,
   iaas: IaasCredential,
   forceRefresh = false,
-): Promise<{ tokenId: string; computeEndpoint: string; imageEndpoint: string; networkEndpoint: string; blockStorageEndpoint: string }> {
+): Promise<{ tokenId: string; computeEndpoint: string; imageEndpoint: string; networkEndpoint: string; blockStorageEndpoint: string; nksEndpoint: string }> {
   // 캐시 확인 (forceRefresh 시 건너뜀)
   if (!forceRefresh) {
     const cached = await readIaasToken(profile, iaas.region);
@@ -50,6 +50,7 @@ export async function getIaasToken(
         imageEndpoint: cached.imageEndpoint,
         networkEndpoint: cached.networkEndpoint,
         blockStorageEndpoint: cached.blockStorageEndpoint,
+        nksEndpoint: cached.nksEndpoint,
       };
     }
   }
@@ -69,6 +70,9 @@ export async function getIaasToken(
   // block storage(Cinder volumev2): 같은 토큰 재사용, host 만 다르고 경로는 compute 와 동일(tenant 포함).
   // docs 확정, 첫 호출 200 으로 확인 예정 (1-27).
   const blockStorageEndpoint = `https://${blockStorageHost(iaas.region)}/v2/${encodeURIComponent(iaas.tenantId)}`;
+
+  // NKS(container-infra): 같은 Keystone 토큰 재사용, tenant segment 없이 /v1.
+  const nksEndpoint = `https://${nksHost(iaas.region)}/v1`;
 
   // Keystone v2 토큰 발급
   let raw: unknown;
@@ -103,8 +107,8 @@ export async function getIaasToken(
 
   // forceRefresh 시 캐시에 저장하지 않음 (임시 검증 용도)
   if (!forceRefresh) {
-    await writeIaasToken(profile, iaas.region, { tokenId, expiresAt, computeEndpoint, imageEndpoint, networkEndpoint, blockStorageEndpoint });
+    await writeIaasToken(profile, iaas.region, { tokenId, expiresAt, computeEndpoint, imageEndpoint, networkEndpoint, blockStorageEndpoint, nksEndpoint });
   }
 
-  return { tokenId, computeEndpoint, imageEndpoint, networkEndpoint, blockStorageEndpoint };
+  return { tokenId, computeEndpoint, imageEndpoint, networkEndpoint, blockStorageEndpoint, nksEndpoint };
 }

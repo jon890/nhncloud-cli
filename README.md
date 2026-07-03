@@ -1,7 +1,8 @@
 # nhncloud-cli
 
 NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 통합 CLI.
-현재 `configure`, `logncrash search/send` (Log & Crash 로그 검색·전송), `deploy` (배포·바이너리 조회·업로드·다운로드), `instance` (Compute 인스턴스 목록·발급·전원 제어·타입 변경·키페어 관리·이미지·가용성 영역 조회·볼륨 연결 포함), `network` (VPC·서브넷 목록 조회), `volume` (Block Storage 볼륨 목록·조회·생성), `ncr` (NHN Container Registry 레지스트리 목록·조회·이미지 목록·태그 목록) 명령을 지원한다.
+현재 81개 명령을 지원한다.
+`configure`, `logncrash search/send/export`, `deploy`, `instance`, `network`, `volume`, `floatingip`, `ncr`, `nks` 명령으로 NHN Cloud 서비스를 조회·운영할 수 있다.
 
 ## 설치
 
@@ -228,6 +229,19 @@ NHN Cloud 또는 OpenStack 원본 응답의 최상위 래퍼를 그대로 보존
 | `ncr get` | `registry` 래퍼를 언랩한 단일 registry 객체 |
 | `ncr images` | repository 배열 |
 | `ncr tags` | tag 배열 |
+| `nks supports` | 지원 Kubernetes version / event type 객체 |
+| `nks cluster list` | cluster 배열 |
+| `nks cluster events` | event 배열 |
+| `nks nodegroup list` | nodegroup 배열 |
+| `nks addon-type list` | addon type 배열 |
+| `nks addon list` | addon 배열 |
+| `nks cluster addon list` | cluster addon 배열 |
+
+NKS의 단건 조회는 API 객체를 그대로 반환한다.
+예를 들어 `nks cluster get`, `nks cluster event`, `nks nodegroup get`, `nks addon-type get`, `nks addon get`, `nks cluster addon get`, `nks cluster ipacl`, `nks nodegroup autoscale` 은 table 출력용 최소 컬럼을 만들고 `--json` 에서는 raw 객체를 보존한다.
+NKS 쓰기 명령 중 생성·resize·설정 변경·노드 action·애드온 변경은 `{ uuid }` 응답을 반환한다.
+삭제 명령은 성공 메시지만 stderr에 쓰고 stdout은 비운다.
+`nks cluster kubeconfig` 는 kubeconfig 문자열을 stdout 또는 파일로 저장한다.
 
 예를 들어 `instance get --json`은 `.server.status`가 아니라 `.status`를 읽는다.
 
@@ -544,6 +558,82 @@ nhncloud ncr tags <registry> <repository>
 nhncloud ncr tags <registry> <repository> --json
 ```
 
+### NHN Kubernetes Service (NKS)
+
+NKS는 `iaas` 자격증명으로 Keystone 토큰을 발급하고 `container-infra` API를 호출한다.
+지원 region은 `kr1`, `kr2`, `kr3` 이다.
+
+```bash
+# 지원 Kubernetes version / event type 조회
+nhncloud nks supports
+
+# 클러스터와 노드 그룹 조회
+nhncloud nks cluster list
+nhncloud nks cluster get <cluster>
+nhncloud nks cluster events <cluster>
+nhncloud nks cluster event <cluster> <event>
+nhncloud nks cluster ipacl <cluster>
+nhncloud nks nodegroup list <cluster>
+nhncloud nks nodegroup get <cluster> <nodegroup>
+nhncloud nks nodegroup autoscale <cluster> <nodegroup>
+
+# kubeconfig stdout 출력 또는 mode 0600 파일 저장
+nhncloud nks cluster kubeconfig <cluster>
+nhncloud nks cluster kubeconfig <cluster> --output ./kubeconfig
+nhncloud nks cluster kubeconfig <cluster> --output ./kubeconfig --force
+
+# 애드온 조회
+nhncloud nks addon-type list
+nhncloud nks addon-type get <addon-type>
+nhncloud nks addon list --k8s-version v1.30.1
+nhncloud nks addon get <addon>
+nhncloud nks cluster addon list <cluster>
+nhncloud nks cluster addon get <cluster> <addon>
+```
+
+복잡한 쓰기 작업은 공식 API payload를 JSON 파일로 전달한다.
+삭제·제거 명령은 비대화형 환경에서 `--yes` 가 필요하다.
+
+```bash
+# 클러스터 / 노드 그룹 생성
+nhncloud nks cluster create --file ./cluster-create.json
+nhncloud nks nodegroup create <cluster> --file ./nodegroup-create.json
+
+# resize / upgrade
+nhncloud nks cluster resize <cluster> --nodegroup worker --node-count 3
+nhncloud nks nodegroup upgrade <cluster> worker --version v1.30.1
+
+# 삭제 / 노드 action
+nhncloud nks cluster delete <cluster> --yes
+nhncloud nks nodegroup delete <cluster> worker --yes
+nhncloud nks nodegroup stop-node <cluster> worker --nodes node-1,node-2
+nhncloud nks nodegroup start-node <cluster> worker --nodes node-1,node-2
+
+# 애드온 설치 / 업데이트 / 제거
+nhncloud nks cluster addon install <cluster> \
+  --name coredns \
+  --version 1.0.0 \
+  --resolve-conflicts overwrite
+
+nhncloud nks cluster addon update <cluster> coredns \
+  --version 1.0.1 \
+  --resolve-conflicts preserve
+
+nhncloud nks cluster addon remove <cluster> coredns --yes
+
+# payload 파일 기반 변경
+nhncloud nks cluster set-ipacl <cluster> --file ./ipacl.json
+nhncloud nks cluster renew-certificate <cluster> --term-of-validity 3
+nhncloud nks cluster update-sgw <cluster> --ncr-sgw <uuid> --obs-sgw <uuid>
+nhncloud nks cluster set-control-plane-log <cluster> --file ./control-plane-log.json
+nhncloud nks nodegroup set-autoscale <cluster> worker --file ./autoscale.json
+nhncloud nks nodegroup set-metric-autoscale <cluster> worker --file ./metric-autoscale.json
+nhncloud nks nodegroup set-userscript <cluster> worker --file ./userscript.sh
+nhncloud nks nodegroup update-flavor <cluster> worker --flavor <flavor-uuid>
+nhncloud nks nodegroup set-fip-auto-bind <cluster> worker --file ./fip-auto-bind.json
+nhncloud nks nodegroup set-labels <cluster> worker --file ./labels.json
+```
+
 ## 개발
 
 ```bash
@@ -553,4 +643,5 @@ pnpm tsc --noEmit     # 타입 체크
 node dist/index.js instance --help
 node dist/index.js logncrash search --help
 node dist/index.js ncr --help
+node dist/index.js nks --help
 ```

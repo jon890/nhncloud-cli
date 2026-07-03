@@ -18,9 +18,10 @@ interface IaasTokenCache {
   imageEndpoint: string;
   networkEndpoint: string;
   blockStorageEndpoint: string;
+  nksEndpoint: string;
 }
 
-// 하위호환: 구버전 캐시는 imageEndpoint/networkEndpoint/blockStorageEndpoint 가 없어 가드 실패 → readIaasToken 이 null 반환 → 토큰 재발급으로 자연 복구.
+// 하위호환: 구버전 캐시는 endpoint 필드가 없어 가드 실패 → readIaasToken 이 null 반환 → 토큰 재발급으로 자연 복구.
 function isIaasTokenCache(val: unknown): val is IaasTokenCache {
   if (typeof val !== "object" || val === null) return false;
   const obj = val as Record<string, unknown>;
@@ -30,7 +31,8 @@ function isIaasTokenCache(val: unknown): val is IaasTokenCache {
     typeof obj["computeEndpoint"] === "string" &&
     typeof obj["imageEndpoint"] === "string" &&
     typeof obj["networkEndpoint"] === "string" &&
-    typeof obj["blockStorageEndpoint"] === "string"
+    typeof obj["blockStorageEndpoint"] === "string" &&
+    typeof obj["nksEndpoint"] === "string"
   );
 }
 
@@ -41,7 +43,7 @@ function isIaasTokenCache(val: unknown): val is IaasTokenCache {
 export async function readIaasToken(
   profile: string,
   region: string,
-): Promise<{ tokenId: string; expiresAt: string; computeEndpoint: string; imageEndpoint: string; networkEndpoint: string; blockStorageEndpoint: string } | null> {
+): Promise<{ tokenId: string; expiresAt: string; computeEndpoint: string; imageEndpoint: string; networkEndpoint: string; blockStorageEndpoint: string; nksEndpoint: string } | null> {
   const filePath = iaasCachePath(profile, region);
   try {
     const raw = await readFile(filePath, "utf-8");
@@ -59,6 +61,7 @@ export async function readIaasToken(
       imageEndpoint: parsed.imageEndpoint,
       networkEndpoint: parsed.networkEndpoint,
       blockStorageEndpoint: parsed.blockStorageEndpoint,
+      nksEndpoint: parsed.nksEndpoint,
     };
   } catch {
     return null;
@@ -71,7 +74,7 @@ export async function readIaasToken(
 export async function writeIaasToken(
   profile: string,
   region: string,
-  data: { tokenId: string; expiresAt: string; computeEndpoint: string; imageEndpoint: string; networkEndpoint: string; blockStorageEndpoint: string },
+  data: { tokenId: string; expiresAt: string; computeEndpoint: string; imageEndpoint: string; networkEndpoint: string; blockStorageEndpoint: string; nksEndpoint: string },
 ): Promise<void> {
   const filePath = iaasCachePath(profile, region);
   await mkdir(dirname(filePath), { recursive: true });
@@ -83,6 +86,7 @@ export async function writeIaasToken(
     imageEndpoint: data.imageEndpoint,
     networkEndpoint: data.networkEndpoint,
     blockStorageEndpoint: data.blockStorageEndpoint,
+    nksEndpoint: data.nksEndpoint,
   };
 
   const tmp = filePath + "." + randomBytes(4).toString("hex") + ".tmp";

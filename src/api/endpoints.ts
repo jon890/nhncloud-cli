@@ -93,6 +93,17 @@ const BLOCKSTORAGE_HOST: Record<string, string> = {
 /** IaaS region 목록 — compute·image·network·blockstorage 공통. region 추가 시 네 host 맵을 함께 갱신한다. */
 const IAAS_REGIONS = Object.keys(INSTANCE_HOST).join(", ");
 
+/**
+ * region → NKS(container-infra) API host 맵 (ADR-019).
+ * 공식 NKS Public API 문서가 endpoint 를 제시한 kr1/kr2/kr3 만 지원한다.
+ * jp1 은 기존 IaaS host 패턴으로 유추하지 않고, 공식 문서 또는 200 실측 후 추가한다.
+ */
+const NKS_HOST: Record<string, string> = {
+  kr1: "kr1-api-kubernetes-infrastructure.nhncloudservice.com",
+  kr2: "kr2-api-kubernetes-infrastructure.nhncloudservice.com",
+  kr3: "kr3-api-kubernetes-infrastructure.nhncloudservice.com",
+};
+
 // ── NCR (NHN Container Registry, Harbor 기반) ──────────────────────────────────
 
 /**
@@ -176,6 +187,21 @@ export function blockStorageHost(region: string): string {
   if (!host) {
     throw new NhnCloudCliError(
       `지원하지 않는 region 입니다: "${region}". 사용 가능한 region: ${IAAS_REGIONS}`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+  return host;
+}
+
+/**
+ * region 에 해당하는 NKS(container-infra) API host 를 반환한다.
+ * 미등록 region 은 EXIT_PARAM_ERROR.
+ */
+export function nksHost(region: string): string {
+  const host = NKS_HOST[region];
+  if (!host) {
+    throw new NhnCloudCliError(
+      `지원하지 않는 NKS region 입니다: "${region}". 사용 가능한 region: ${Object.keys(NKS_HOST).join(", ")}`,
       EXIT_PARAM_ERROR,
     );
   }

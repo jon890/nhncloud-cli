@@ -14,9 +14,6 @@ NKS 구현 완료 후 사용자-facing docs 를 실제 명령 표면과 동기�
   - NKS 자동화 시나리오 추가.
   - cluster/nodegroup/addon 조회와 kubeconfig 저장 예시 추가.
   - 위험 명령은 `--yes` 필요성과 payload 파일 사용을 명시.
-- `AGENTS.md`
-  - “NKS 구현 완료 시 예정” 표현을 실제 지원 명령 수로 확정.
-  - 지원 명령 목록을 실제 구현된 명령과 1:1 동기화.
 - `tasks/030-feat-nks/index.json`
   - `status` 를 `completed` 로 갱신.
   - `current_phase` 를 `6` 으로 유지.
@@ -33,7 +30,6 @@ NKS 구현 완료 후 사용자-facing docs 를 실제 명령 표면과 동기�
 
 - `README.md`
 - `skills/nhncloud-cli/SKILL.md`
-- `AGENTS.md`
 - `tasks/030-feat-nks/index.json`
 
 ## 커밋

@@ -18,6 +18,14 @@
 - install/update 응답은 cluster uuid 만 반환하므로 출력은 대상 cluster uuid 와 작업 요청 성공 여부 중심으로 둔다.
 - `tasks/030-feat-nks/index.json` 에서 Phase 5 `status` 를 `completed` 로, `current_phase` 를 `6` 으로 갱신한다.
 
+## endpoint/body/response matrix
+
+| 명령 | Method / path | Body | Response guard |
+|---|---|---|---|
+| `nks cluster addon install <cluster>` | `POST /clusters/{cluster}/addons/` | `{ name, version, resolve_conflicts, options? }` | `{ uuid: string }` |
+| `nks cluster addon update <cluster> <addon>` | `PATCH /clusters/{cluster}/addons/{addon}` | `{ version, resolve_conflicts, options? }` | `{ uuid: string }` |
+| `nks cluster addon remove <cluster> <addon>` | `DELETE /clusters/{cluster}/addons/{addon}` | 없음 | `{ uuid: string }` |
+
 ## 검증
 
 - 옵션 enum 검증.
@@ -29,7 +37,7 @@
 - `src/services/nks/types.ts`
 - `src/services/nks/client.ts`
 - `src/services/nks/client.test.ts`
-- `src/commands/nks/addon.ts`
+- `src/commands/nks/cluster.ts`
 - `tasks/030-feat-nks/index.json`
 
 ## 커밋

@@ -37,18 +37,16 @@ AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트�
 - `nhncloud ncr` — NHN Container Registry 조회.
   레지스트리 목록·단일은 Management API·UAK 정적 헤더를 쓴다([[adr-016]]).
   이미지/태그는 Harbor REST 데이터플레인·UAK Basic Auth 를 쓴다([[adr-017]]).
-- `nhncloud nks` — NHN Kubernetes Service 관리 계획 (Keystone 토큰 + container-infra API·ADR-019)
+- `nhncloud nks` — NHN Kubernetes Service 관리 (Keystone 토큰 + container-infra API·ADR-019)
   - 클러스터, 노드 그룹, 애드온, 지원 Kubernetes 버전과 작업 종류를 조회한다.
-  - 생성·삭제·resize·upgrade·autoscale 등 쓰기 작업은 phase 별로 추가하며, 복잡한 payload 는 JSON 파일 입력을 기본으로 한다.
+  - 생성·삭제·resize·upgrade·autoscale 등 쓰기 작업을 지원하며, 복잡한 payload 는 JSON 파일 입력을 기본으로 한다.
 - profile 기반 자격증명 (`~/.nhncloud/credentials.json` + `~/.nhncloud/config.json`)
 - 출력 3모드 — 테이블 / `--json` / `--quiet`
 - `--profile` 로 profile 전환
 
 ### 제외 (v1)
 
-- Deploy 바이너리 업/다운로드 — 후속 (조회 2종 `binary-groups`/`binaries` 는 task 011 에서 구현, 업로드·다운로드만 후속)
 - 공공기관용(gov) 엔드포인트
-- IaaS(OpenStack) 서비스군
 
 ## 성공 지표
 

@@ -27,6 +27,25 @@
 - metric autoscale 과 fip/labels 는 PATCH `/nodegroups/{id}` 에 `type` discriminator 를 넣는다.
 - `tasks/030-feat-nks/index.json` 에서 Phase 4 `status` 를 `completed` 로, `current_phase` 를 `5` 로 갱신한다.
 
+## endpoint/body/response matrix
+
+| checkpoint | 명령 | Method / path | Body | Response guard |
+|---|---|---|---|---|
+| lifecycle | `nks nodegroup create <cluster> --file <json>` | `POST /clusters/{cluster}/nodegroups` | JSON file raw payload | `{ uuid: string }` |
+| lifecycle | `nks nodegroup delete <cluster> <nodegroup>` | `DELETE /clusters/{cluster}/nodegroups/{nodegroup}` | 없음 | 2xx 무본문 |
+| node actions | `nks nodegroup stop-node ... --nodes <csv>` | `POST /clusters/{cluster}/nodegroups/{nodegroup}/stop_node` | `{ node_list: \"a:b\" }` | `{ uuid: string }` |
+| node actions | `nks nodegroup start-node ... --nodes <csv>` | `POST /clusters/{cluster}/nodegroups/{nodegroup}/start_node` | `{ node_list: \"a:b\" }` | `{ uuid: string }` |
+| autoscale | `nks nodegroup set-autoscale ... --file <json>` | `POST /clusters/{cluster}/nodegroups/{nodegroup}/autoscale` | JSON file raw payload | `{ uuid: string }` |
+| autoscale | `nks nodegroup set-metric-autoscale ... --file <json>` | `PATCH /clusters/{cluster}/nodegroups/{nodegroup}` | JSON file plus required `type: \"metric_base_autoscale\"` | `{ uuid: string }` |
+| upgrade | `nks nodegroup upgrade ... --version <v>` | `POST /clusters/{cluster}/nodegroups/{nodegroup}/upgrade` | `{ version, num_buffer_nodes?, num_max_unavailable_nodes? }` | `{ uuid: string }` |
+| upgrade | `nks nodegroup set-userscript ... --file <script>` | `POST /clusters/{cluster}/nodegroups/{nodegroup}/userscript` | `{ contents }` | `{ uuid: string }` |
+| patch discriminator | `nks nodegroup update-flavor ... --flavor <uuid>` | `PATCH /clusters/{cluster}/nodegroups/{nodegroup}` | `{ type: \"flavor_id\", flavor_id, ... }` | `{ uuid: string }` |
+| patch discriminator | `nks nodegroup set-fip-auto-bind ... --file <json>` | `PATCH /clusters/{cluster}/nodegroups/{nodegroup}` | JSON file plus required `type: \"fip_auto_bind\"` | `{ uuid: string }` |
+| patch discriminator | `nks nodegroup set-labels ... --file <json>` | `PATCH /clusters/{cluster}/nodegroups/{nodegroup}` | JSON file plus required `type: \"k8s_node_labels\"` | `{ uuid: string }` |
+
+Phase 4는 하나의 atomic commit 을 유지하되 위 checkpoint 순서로 구현·검증한다.
+checkpoint 간 dirty 범위가 커지면 다음 checkpoint 로 넘어가기 전에 `pnpm test -- src/services/nks/client.test.ts` 를 실행한다.
+
 ## 검증
 
 - client 단위테스트에서 path/body/header 를 검증한다.
