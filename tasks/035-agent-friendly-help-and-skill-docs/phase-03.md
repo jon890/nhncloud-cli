@@ -21,17 +21,15 @@ Phase 01, Phase 02의 결과를 사용자 가이드와 내부 검증 기준에 �
 - `agent_type`, `$workflow`, 경로 같은 기계 계약 토큰은 바꾸지 않는다.
 - 개인 식별 정보 금지 정책은 수정하지 않는다.
 
-### 2. docs/code-architecture.md 갱신
+### 2. docs/code-architecture.md와 docs/flow.md 갱신
 
-다음을 반영한다.
+`docs/code-architecture.md`에 다음을 반영한다.
 
 - `src/commands/commands.ts` 항목 추가
 - 공개 skill 구조 설명이 있다면 `skills/nhncloud-cli/references/`를 추가
 - command catalog가 Commander tree에서 동적으로 생성된다는 사실을 한 줄로 기록
 
-### 3. docs/flow.md 갱신
-
-agent 사용 흐름을 추가한다.
+`docs/flow.md`에 agent 사용 흐름을 추가한다.
 
 권장 흐름:
 
@@ -40,7 +38,7 @@ agent 사용 흐름을 추가한다.
 3. discovery 명령을 `--json`으로 호출한다.
 4. 쓰기/삭제 명령은 `--yes`, payload file, region/profile을 명시한다.
 
-### 4. README.md 갱신
+### 3. README.md 갱신
 
 사용자-facing 문서에 짧게만 반영한다.
 
@@ -48,7 +46,7 @@ agent 사용 흐름을 추가한다.
 - 자동화/AI 에이전트 섹션에 `nhncloud commands --json` 예시 추가
 - `--help`에 agent hint가 있다는 내용을 길게 설명하지 않는다.
 
-### 5. 공개 skill 문서 갱신
+### 4. 공개 skill 문서 갱신
 
 Phase 01 구조 기준으로 다음을 보강한다.
 
@@ -59,7 +57,7 @@ Phase 01 구조 기준으로 다음을 보강한다.
   - command catalog 사용법 추가
 - 필요한 경우 각 서비스 reference에 discovery workflow 한 줄 추가
 
-### 6. 내부 검증 스크립트와 문구 갱신
+### 5. 내부 검증 스크립트와 문구 갱신
 
 다음 파일에서 단일 `SKILL.md`만 전제하는 검증 문구가 있으면 reference 구조를 반영한다.
 
@@ -99,6 +97,11 @@ python3 /Users/nhn/.codex/skills/.system/skill-creator/scripts/quick_validate.py
 node dist/index.js commands --json | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{const j=JSON.parse(s); if (!j.commands.some(c=>c.path==='commands')) process.exit(1);})"
 rg -n "commands --json|nhncloud commands" README.md AGENTS.md docs/flow.md skills/nhncloud-cli
 rg -n "skills/nhncloud-cli/SKILL.md" .agents/skills .claude/agents .codex/agents
+if rg -n "skills/nhncloud-cli/SKILL.md" .agents/skills .claude/agents .codex/agents \
+  | rg -v 'references/\\*\\.md|references/|SKILL\\.md.*skills/nhncloud-cli/references|skills/nhncloud-cli/references.*SKILL\\.md'; then
+  echo "stale single-file skill assumption remains"
+  exit 1
+fi
 ```
 
 기대값:
@@ -107,7 +110,7 @@ rg -n "skills/nhncloud-cli/SKILL.md" .agents/skills .claude/agents .codex/agents
 - skill quick validate가 exit 0.
 - `commands --json` catalog에 `commands` command가 포함된다.
 - README, AGENTS, flow, public skill 경로에 `commands --json` 안내가 있다.
-- 단일 `skills/nhncloud-cli/SKILL.md`만 검증하는 문구가 남아 있으면 reference 경로 포함 여부를 확인하고 수정한다.
+- 단일 `skills/nhncloud-cli/SKILL.md`만 검증하는 문구가 남으면 마지막 stale 검사에서 exit 1로 실패한다.
 
 ## 변경 파일
 
