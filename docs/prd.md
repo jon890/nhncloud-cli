@@ -34,7 +34,12 @@ AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트�
   - `list` / `get <id>` / `delete <id>` — 조회·삭제 (`--yes` 로 즉시 삭제)
   - `flavors` — 인스턴스 타입(flavor) 목록·상세 조회 (`--detail`, `--min-disk`/`--min-ram` 필터)
   - GPU 인스턴스도 같은 명령으로 — GPU flavor id 를 `--flavor` 에 넘기면 된다 (NHN docs 가 API 호환성을 명시하진 않지만 동일 Nova v2 카탈로그를 공유)
-- `nhncloud ncr` — NHN Container Registry 조회 (레지스트리 목록·단일은 Management API·UAK 정적 헤더·ADR-016, 이미지/태그는 Harbor REST 데이터플레인·UAK Basic Auth·ADR-017)
+- `nhncloud ncr` — NHN Container Registry 조회.
+  레지스트리 목록·단일은 Management API·UAK 정적 헤더를 쓴다([[adr-016]]).
+  이미지/태그는 Harbor REST 데이터플레인·UAK Basic Auth 를 쓴다([[adr-017]]).
+- `nhncloud nks` — NHN Kubernetes Service 관리 계획 (Keystone 토큰 + container-infra API·ADR-019)
+  - 클러스터, 노드 그룹, 애드온, 지원 Kubernetes 버전과 작업 종류를 조회한다.
+  - 생성·삭제·resize·upgrade·autoscale 등 쓰기 작업은 phase 별로 추가하며, 복잡한 payload 는 JSON 파일 입력을 기본으로 한다.
 - profile 기반 자격증명 (`~/.nhncloud/credentials.json` + `~/.nhncloud/config.json`)
 - 출력 3모드 — 테이블 / `--json` / `--quiet`
 - `--profile` 로 profile 전환

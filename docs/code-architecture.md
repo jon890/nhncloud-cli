@@ -133,6 +133,7 @@ dooray-cli 는 단일 `config + client` 로 충분했지만, NHN Cloud 는 서�
   - deploy: `X-NHN-AUTHORIZATION: Bearer <token>` + config target 좌표 ([[adr-008]])
   - instance: `X-Auth-Token: <tokenId>` + region 별 compute endpoint
   - network: `X-Auth-Token: <tokenId>` + region 별 network endpoint (instance 와 토큰 공유, [[adr-013]])
+  - nks(계획): `X-Auth-Token: <tokenId>` + `OpenStack-API-Version: container-infra latest` + region 별 kubernetes infrastructure endpoint ([[adr-019]])
   - ncr: `X-TC-AUTHENTICATION-ID/SECRET` 공통 UAK 정적 헤더 + region 별 ncr host (토큰 교환 없음, [[adr-016]])
   - ncr 이미지/태그: 데이터플레인 host 에 UAK `Basic Auth` + Harbor REST `/api/v2.0` (봉투 미적용, [[adr-017]])
 

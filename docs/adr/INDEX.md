@@ -26,3 +26,4 @@ ADR-NNN 내용은 `docs/adr/NNN-*.md` 로 찾는다(번호 glob — slug 몰라�
 - [ADR-016](016-ncr-management-api.md): NCR Management API — 공통 UAK 정적 헤더 인증 + region 별 host (OAuth 교환 불요)
 - [ADR-017](017-ncr-images-harbor-rest.md): NCR 이미지/태그 조회 — Harbor REST /api/v2.0 우회 + UAK Basic Auth (Docker v2 _catalog 기각)
 - [ADR-018](018-harness-docs-directory.md): 하네스 누적 docs 디렉터리 구조 — 단일 파일 → 파일 per 항목 + INDEX (ADR·pitfalls)
+- [ADR-019](019-nks-container-infra-api.md): NKS API — Keystone 토큰 + container-infra endpoint

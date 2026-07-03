@@ -473,3 +473,64 @@ nhncloud ncr tags <registry> <repository> [options]  # 특정 이미지의 태�
 | 공통 UAK 누락 / 인증 실패(401·403) | `EXIT_CONFIG_ERROR` 또는 `EXIT_AUTH_ERROR` |
 | appKey 미지정(옵션·자격증명 모두 없음) / 미등록 region | `EXIT_CONFIG_ERROR` / `EXIT_PARAM_ERROR` |
 | NCR API 4xx · 5xx | `EXIT_API_ERROR` |
+
+## nks (NHN Kubernetes Service) 흐름
+
+NKS는 Container 서비스지만 인증은 NCR 이 아니라 IaaS Keystone 계열이다([[adr-019]]).
+profile 의 `iaas` 블록에서 Keystone 토큰을 발급하고, region 별 NKS endpoint 에 `container-infra` API 로 호출한다.
+
+### 인증 흐름
+
+1. profile 의 `iaas` 블록에서 tenantId · username · password · region 로드
+2. 캐시된 Keystone token 이 만료 전이면 재사용, 아니면 발급 후 캐시
+3. `X-Auth-Token: <tokenId>` 와 `OpenStack-API-Version: container-infra latest` 헤더로 NKS API 호출
+
+### 명령 시그니처
+
+```
+nhncloud nks supports
+nhncloud nks cluster list|get|create|delete|resize|kubeconfig|events|event|ipacl|set-ipacl|renew-certificate|update-sgw|set-control-plane-log
+nhncloud nks nodegroup list|get|create|delete|start-node|stop-node|autoscale|set-autoscale|set-metric-autoscale|upgrade|set-userscript|update-flavor|set-fip-auto-bind|set-labels
+nhncloud nks addon-type list|get
+nhncloud nks addon list|get
+nhncloud nks cluster addon list|get|install|update|remove
+```
+
+| 옵션 | 적용 | 설명 |
+|------|------|------|
+| `--region <r>` | 전체 | `iaas.region` override (kr1/kr2/kr3/jp1) |
+| `--profile <name>` | 전체 | profile 선택 |
+| `--file <json>` | create/update 계열 | 공식 API payload 를 담은 JSON 파일 |
+| `--yes` | delete/remove 계열 | confirm 생략 |
+| `--output <file>` | kubeconfig | kubeconfig 를 mode 0600 파일로 저장 |
+
+전역 옵션: `--json` / `--quiet` / `--no-color`.
+
+### 구현 순서
+
+- Phase 1: endpoint/auth/client 골격과 `nks supports`, `nks cluster list`.
+- Phase 2: 클러스터·노드 그룹·애드온 조회 기능 전체.
+- Phase 3: 클러스터 생성·삭제·resize·IP 접근 제어·인증서·서비스 게이트웨이·control plane log.
+- Phase 4: 노드 그룹 생성·삭제·노드 시작/중지·autoscale·upgrade·userscript·flavor·floating IP·Kubernetes label.
+- Phase 5: 클러스터 애드온 설치·업데이트·제거.
+- Phase 6: README 와 공개 skill 반영.
+
+### kubeconfig
+
+`nks cluster kubeconfig <cluster>` 는 기본으로 kubeconfig 본문을 stdout 에 출력한다.
+`--output <file>` 을 지정하면 파일을 mode 0600 으로 저장한다.
+기존 kubeconfig 병합은 이번 범위에서 제외한다.
+
+### 쓰기 payload 정책
+
+클러스터 생성, 노드 그룹 생성, 지표 기반 autoscale, control plane log 처럼 중첩 필드가 많은 명령은 `--file <json>` 을 기본 입력으로 둔다.
+자주 쓰는 단순 변경만 flag 로 직접 받는다.
+삭제 계열은 기존 `instance delete` 와 같은 confirm + `--yes` 정책을 따른다.
+
+### nks 에러 경로
+
+| 상황 | exit code |
+|------|-----------|
+| `iaas` 자격증명 누락 / Keystone 발급 실패 | `EXIT_CONFIG_ERROR` 또는 `EXIT_AUTH_ERROR` |
+| 잘못된 region / payload 파일 파싱 실패 / 필수 인자 누락 | `EXIT_PARAM_ERROR` |
+| NKS API 4xx · 5xx / 응답 형식 불일치 | `EXIT_API_ERROR` |
