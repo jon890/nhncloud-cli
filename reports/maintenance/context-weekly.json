@@ -1,0 +1,166 @@
+{
+  "generatedAt": "2026-07-03T07:54:34.715Z",
+  "mode": "weekly",
+  "since": "7 days ago",
+  "root": "/Users/nhn/personal/nhncloud-cli/.agents/worktrees/codebase-maintenance-skill",
+  "branch": "feat/codebase-maintenance-skill",
+  "status": "## feat/codebase-maintenance-skill\nA  .agents/skills/codebase-maintenance/SKILL.md\nA  .agents/skills/codebase-maintenance/agents/openai.yaml\nA  .agents/skills/codebase-maintenance/references/nhncloud-cli-checks.md\nA  .agents/skills/codebase-maintenance/references/report-template.md\nA  .agents/skills/codebase-maintenance/scripts/collect-maintenance-context.mjs\nM  AGENTS.md\nA  reports/maintenance/2026-07-03-weekly.md\nA  reports/maintenance/context-weekly.json\n",
+  "recentLog": "f75bfd9\t2026-07-03\tfix(skills): separate planning docs from team builds\n.agents/skills/build-with-teams/SKILL.md\n\n3522206\t2026-07-03\tchore(tasks): add plan030 nks phases\ntasks/030-feat-nks/index.json\ntasks/030-feat-nks/phase-01.md\ntasks/030-feat-nks/phase-02.md\ntasks/030-feat-nks/phase-03.md\ntasks/030-feat-nks/phase-04.md\ntasks/030-feat-nks/phase-05.md\ntasks/030-feat-nks/phase-06.md\n\n6794b8b\t2026-07-03\tdocs(nks): document container infra API\nAGENTS.md\ndocs/adr/019-nks-container-infra-api.md\ndocs/adr/INDEX.md\ndocs/code-architecture.md\ndocs/flow.md\ndocs/prd.md\n",
+  "hotFiles": [
+    {
+      "file": ".agents/skills/build-with-teams/SKILL.md",
+      "count": 1
+    },
+    {
+      "file": "AGENTS.md",
+      "count": 1
+    },
+    {
+      "file": "docs/adr/019-nks-container-infra-api.md",
+      "count": 1
+    },
+    {
+      "file": "docs/adr/INDEX.md",
+      "count": 1
+    },
+    {
+      "file": "docs/code-architecture.md",
+      "count": 1
+    },
+    {
+      "file": "docs/flow.md",
+      "count": 1
+    },
+    {
+      "file": "docs/prd.md",
+      "count": 1
+    },
+    {
+      "file": "tasks/030-feat-nks/index.json",
+      "count": 1
+    },
+    {
+      "file": "tasks/030-feat-nks/phase-01.md",
+      "count": 1
+    },
+    {
+      "file": "tasks/030-feat-nks/phase-02.md",
+      "count": 1
+    },
+    {
+      "file": "tasks/030-feat-nks/phase-03.md",
+      "count": 1
+    },
+    {
+      "file": "tasks/030-feat-nks/phase-04.md",
+      "count": 1
+    },
+    {
+      "file": "tasks/030-feat-nks/phase-05.md",
+      "count": 1
+    },
+    {
+      "file": "tasks/030-feat-nks/phase-06.md",
+      "count": 1
+    }
+  ],
+  "counts": {
+    "trackedFiles": 360,
+    "srcCommands": 44,
+    "srcServices": 16,
+    "docs": 26
+  },
+  "srcCommands": [
+    "src/commands/configure-verify.ts",
+    "src/commands/configure.ts",
+    "src/commands/deploy/artifacts.ts",
+    "src/commands/deploy/binaries.ts",
+    "src/commands/deploy/binary-groups.ts",
+    "src/commands/deploy/download.ts",
+    "src/commands/deploy/helpers.ts",
+    "src/commands/deploy/histories.ts",
+    "src/commands/deploy/run.ts",
+    "src/commands/deploy/server-groups.ts",
+    "src/commands/deploy/upload.ts",
+    "src/commands/floatingip/create.ts",
+    "src/commands/floatingip/delete.ts",
+    "src/commands/floatingip/list.ts",
+    "src/commands/instance/availability-zones.ts",
+    "src/commands/instance/create.ts",
+    "src/commands/instance/delete.ts",
+    "src/commands/instance/flavors.ts",
+    "src/commands/instance/get.ts",
+    "src/commands/instance/helpers.ts",
+    "src/commands/instance/images.ts",
+    "src/commands/instance/keypair.ts",
+    "src/commands/instance/keypairs.ts",
+    "src/commands/instance/list.ts",
+    "src/commands/instance/power.ts",
+    "src/commands/instance/resize.ts",
+    "src/commands/instance/volume.ts",
+    "src/commands/instance/volumes.ts",
+    "src/commands/logncrash/export.ts",
+    "src/commands/logncrash/search.ts",
+    "src/commands/logncrash/send.ts",
+    "src/commands/ncr/get.ts",
+    "src/commands/ncr/helpers.test.ts",
+    "src/commands/ncr/helpers.ts",
+    "src/commands/ncr/images.ts",
+    "src/commands/ncr/list.ts",
+    "src/commands/ncr/tags.ts",
+    "src/commands/network/helpers.ts",
+    "src/commands/network/list.ts",
+    "src/commands/network/subnet.ts",
+    "src/commands/volume/create.ts",
+    "src/commands/volume/get.ts",
+    "src/commands/volume/helpers.ts",
+    "src/commands/volume/list.ts"
+  ],
+  "srcServices": [
+    "src/services/blockstorage/client.ts",
+    "src/services/blockstorage/types.ts",
+    "src/services/deploy/client.test.ts",
+    "src/services/deploy/client.ts",
+    "src/services/deploy/types.ts",
+    "src/services/instance/client.ts",
+    "src/services/instance/types.ts",
+    "src/services/logncrash/client.ts",
+    "src/services/logncrash/types.ts",
+    "src/services/ncr/client.test.ts",
+    "src/services/ncr/client.ts",
+    "src/services/ncr/harbor-client.test.ts",
+    "src/services/ncr/harbor-client.ts",
+    "src/services/ncr/types.ts",
+    "src/services/network/client.ts",
+    "src/services/network/types.ts"
+  ],
+  "docs": [
+    "AGENTS.md",
+    "README.md",
+    "docs/adr/001-typescript-commander-tsup.md",
+    "docs/adr/002-ky-http-client.md",
+    "docs/adr/003-profile-credentials-json.md",
+    "docs/adr/004-profile-service-credentials.md",
+    "docs/adr/005-endpoint-hardcoded-map.md",
+    "docs/adr/006-nhn-response-envelope.md",
+    "docs/adr/007-deploy-oauth-token-cache.md",
+    "docs/adr/008-deploy-named-target-config.md",
+    "docs/adr/009-configure-wizard.md",
+    "docs/adr/010-iaas-keystone-token-auth.md",
+    "docs/adr/011-instance-create-boot-volume.md",
+    "docs/adr/012-instance-userdata-base64.md",
+    "docs/adr/013-iaas-multi-service-endpoint.md",
+    "docs/adr/014-logncrash-collector-host.md",
+    "docs/adr/015-deploy-binary-transfer.md",
+    "docs/adr/016-ncr-management-api.md",
+    "docs/adr/017-ncr-images-harbor-rest.md",
+    "docs/adr/018-harness-docs-directory.md",
+    "docs/adr/019-nks-container-infra-api.md",
+    "docs/adr/INDEX.md",
+    "docs/code-architecture.md",
+    "docs/data-schema.md",
+    "docs/flow.md",
+    "docs/prd.md"
+  ],
+  "mergedPrs": null
+}
