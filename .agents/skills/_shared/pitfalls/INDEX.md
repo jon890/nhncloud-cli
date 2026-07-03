@@ -86,7 +86,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 |---|---|---|
 | spinner·UX 순서 (validation 전 시작) | code-review | [spinner-before-validation](code-review/spinner-before-validation.md), [spinner-no-try-catch](code-review/spinner-no-try-catch.md), [resolver-after-editor](code-review/resolver-after-editor.md) |
 | 에러 처리 일관성 (exitCode·catch) | code-review | [bare-await-promise-never](code-review/bare-await-promise-never.md), [exitcode-param-error-in-api-path](code-review/exitcode-param-error-in-api-path.md), [exitcode-missing](code-review/exitcode-missing.md) |
-| 타입 안전성 (Map.get()! / 이중 단언) | code-review | [map-get-nonnull-assertion](code-review/map-get-nonnull-assertion.md), [double-assertion-unknown](code-review/double-assertion-unknown.md), [double-assertion-union-type](code-review/double-assertion-union-type.md) |
+| 타입 안전성 (Map.get()! / 이중 단언 / optional 응답 필드) | code-review | [map-get-nonnull-assertion](code-review/map-get-nonnull-assertion.md), [double-assertion-unknown](code-review/double-assertion-unknown.md), [double-assertion-union-type](code-review/double-assertion-union-type.md), [optional-response-field-guard](code-review/optional-response-field-guard.md) |
 | API/HTTP 패턴 (redirect·throwHttpErrors) | code-review | [redirect-manual-status-missing](code-review/redirect-manual-status-missing.md), [numeric-response-string-number-mixed](code-review/numeric-response-string-number-mixed.md) |
 | exitCode 누락·mismatch | code-review | [exitcode-missing](code-review/exitcode-missing.md), [mock-reject-value-mismatch](code-review/mock-reject-value-mismatch.md), [exit-code-literal-no-constant](code-review/exit-code-literal-no-constant.md) |
 | path-traversal (fileName basename) | code-review | [path-traversal-filename](code-review/path-traversal-filename.md) |
@@ -157,7 +157,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [sendmessage-reply-missing](team/sendmessage-reply-missing.md)
 - [task-index-phase-count-mismatch](team/task-index-phase-count-mismatch.md)
 
-### [code-review/](code-review/) (53)
+### [code-review/](code-review/) (54)
 
 - [adjacent-command-pattern-missing](code-review/adjacent-command-pattern-missing.md)
 - [adr020-silent-fallback](code-review/adr020-silent-fallback.md)
@@ -195,6 +195,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [one-time-secret-silent-loss](code-review/one-time-secret-silent-loss.md)
 - [optional-credential-empty-fallback](code-review/optional-credential-empty-fallback.md)
 - [optional-field-as-cast-return](code-review/optional-field-as-cast-return.md)
+- [optional-response-field-guard](code-review/optional-response-field-guard.md)
 - [path-traversal-filename](code-review/path-traversal-filename.md)
 - [positive-int-number-only](code-review/positive-int-number-only.md)
 - [quiet-mode-identifier-missing](code-review/quiet-mode-identifier-missing.md)

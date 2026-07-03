@@ -404,10 +404,11 @@ host 만 다르고 경로는 compute 처럼 **tenant segment 를 포함**한다(
 ```
 nhncloud volume list [options]                 # 볼륨 목록 (id·name·size·status)
 nhncloud volume get <id> [options]             # 단일 볼륨
-nhncloud volume create --size <GB> [options]   # 볼륨 발급 (쓰기 — --name/--description/--volume-type)
+nhncloud volume create --size <GB> [options]   # 볼륨 발급 (쓰기 — --name/--description/--volume-type/--availability-zone)
 ```
 
 - `volume list`/`get` 은 읽기. `volume create` 는 실제 볼륨 발급(비용)이라 쓰기 — 정리(삭제)는 현재 콘솔 (volume delete 는 후속 ROADMAP).
+- `--availability-zone <az>` 로 `instance availability-zones` 의 `zoneName` 을 지정하면 인스턴스와 같은 AZ에 볼륨을 만들어 attach 시 AZ 불일치 400을 피할 수 있다.
 - `instance volume attach/detach`(쓰기)·`instance volumes`(읽기)는 Nova `os-volume_attachments`(compute endpoint)로 인스턴스↔볼륨 연결을 다룬다 (read-only GET 200 으로 지원 확정).
 - `volume list` 의 id 를 `instance volume attach --volume <id>` 에 넣어 연결한다.
 
@@ -416,7 +417,7 @@ nhncloud volume create --size <GB> [options]   # 볼륨 발급 (쓰기 — --nam
 | 상황 | exit code |
 |------|-----------|
 | `iaas` 자격증명 누락 / Keystone 발급 실패 | `EXIT_CONFIG_ERROR` 또는 `EXIT_AUTH_ERROR` |
-| `--size` 누락/형식 오류 | `EXIT_PARAM_ERROR` |
+| `--size` 누락/형식 오류 또는 공백-only `--availability-zone` | `EXIT_PARAM_ERROR` |
 | Cinder/Nova API 4xx · 5xx | `EXIT_API_ERROR` |
 
 ## floatingip (공인 IP) 흐름
