@@ -5,7 +5,7 @@ description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Cras
 
 # nhncloud-cli
 
-NHN Cloud PaaS 서비스를 AWS CLI 방식으로 호출하는 TypeScript CLI.
+NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 TypeScript CLI.
 `configure`, `logncrash search/send/export`, `deploy`, `instance`, `network`, `volume`, `floatingip`, `ncr`, `nks` 명령을 지원한다.
 
 ## 설치

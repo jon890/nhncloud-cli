@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { chmod, writeFile } from "node:fs/promises";
 import { Command } from "commander";
 import chalk from "chalk";
 import { output, type OutputOptions } from "../../formatters/table.js";
@@ -413,6 +413,7 @@ const kubeconfigCommand = new Command("kubeconfig")
           mode: 0o600,
           flag: opts.force ? "w" : "wx",
         });
+        await chmod(opts.output, 0o600);
       } catch (err) {
         if (err instanceof Error && "code" in err && err.code === "EEXIST") {
           throw new NhnCloudCliError(

@@ -116,7 +116,9 @@ describe("NksClient", () => {
   it("getCluster() 는 /clusters/{cluster} 평면 cluster 객체를 반환한다", async () => {
     vi.mocked(ky.get).mockReturnValue({
       json: async () => ({
-        cluster: { uuid: "cluster-uuid", name: "cluster-a", status: "CREATE_COMPLETE" },
+        uuid: "cluster-uuid",
+        name: "cluster-a",
+        status: "CREATE_COMPLETE",
       }),
     } as never);
 
@@ -130,9 +132,9 @@ describe("NksClient", () => {
     );
   });
 
-  it("getClusterKubeconfig() 는 text body 를 반환한다", async () => {
+  it("getClusterKubeconfig() 는 config 필드를 반환한다", async () => {
     vi.mocked(ky.get).mockReturnValue({
-      text: async () => "apiVersion: v1\nkind: Config\n",
+      json: async () => ({ config: "apiVersion: v1\nkind: Config\n" }),
     } as never);
 
     const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
@@ -187,7 +189,7 @@ describe("NksClient", () => {
 
   it("cluster addon get 응답이 addon 객체가 아니면 EXIT_API_ERROR", async () => {
     vi.mocked(ky.get).mockReturnValue({
-      json: async () => ({ addon: null }),
+      json: async () => ({ unexpected: true }),
     } as never);
 
     const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
