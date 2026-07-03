@@ -5,8 +5,8 @@ import { output, type OutputOptions } from "../../formatters/table.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
-import { resolveNksClient } from "./helpers.js";
-import type { NksAddon, NksClusterSummary, NksNamedResource } from "../../services/nks/types.js";
+import { parsePositiveInteger, readJsonFile, resolveNksClient } from "./helpers.js";
+import type { NksAddon, NksClusterSummary, NksNamedResource, NksUuidResponse } from "../../services/nks/types.js";
 
 interface ClusterListGlobalOpts extends OutputOptions {
   region?: string;
@@ -53,6 +53,14 @@ interface ClusterGlobalOpts extends OutputOptions {
   profile?: string;
   output?: string;
   force?: boolean;
+  file?: string;
+  yes?: boolean;
+  nodegroup?: string;
+  nodeCount?: string;
+  nodesToRemove?: string;
+  termOfValidity?: string;
+  ncrSgw?: string;
+  obsSgw?: string;
 }
 
 function resourceId(resource: NksNamedResource): string {
@@ -75,6 +83,222 @@ function addonRow(addon: NksAddon): string[] {
     addon.status ?? "",
   ];
 }
+
+function uuidOutput(opts: OutputOptions, result: NksUuidResponse, label: string): void {
+  process.stderr.write(chalk.green(`✓ ${label} 요청 완료 (uuid: ${result.uuid})\n`));
+  output(opts, {
+    headers: ["field", "value"],
+    rows: [["uuid", result.uuid]],
+    raw: result,
+    ids: [result.uuid],
+  });
+}
+
+async function confirmDangerousAction(message: string, yes?: boolean): Promise<boolean> {
+  const isTTY = process.stdin.isTTY;
+  if (!isTTY && !yes) {
+    throw new NhnCloudCliError(
+      "비대화형 환경에서 위험 작업은 --yes 플래그가 필요합니다.",
+      EXIT_PARAM_ERROR,
+    );
+  }
+  if (!isTTY || yes) return true;
+
+  const { confirm } = await import("@inquirer/prompts");
+  const ok = await confirm({ message, default: false });
+  if (!ok) {
+    process.stderr.write(chalk.yellow("작업이 취소되었습니다.\n"));
+  }
+  return ok;
+}
+
+const createCommand = new Command("create")
+  .description("NKS 클러스터를 생성한다")
+  .requiredOption("--file <json>", "공식 API payload JSON 파일")
+  .option("--region <region>", "region override (기본: iaas 자격증명의 region)")
+  .option("--profile <name>", "사용할 profile 이름")
+  .action(async (_opts: unknown, cmd: Command) => {
+    const opts = cmd.optsWithGlobals<ClusterGlobalOpts>();
+    const payload = await readJsonFile(opts.file as string);
+    const { client } = await resolveNksClient(opts);
+
+    startSpinner("NKS 클러스터 생성 요청 중...");
+    let result: NksUuidResponse;
+    try {
+      result = await client.createCluster(payload);
+    } catch (err) {
+      stopSpinner(false);
+      throw err;
+    }
+    stopSpinner(true);
+
+    uuidOutput(opts, result, "클러스터 생성");
+  });
+
+const deleteCommand = new Command("delete")
+  .description("NKS 클러스터를 삭제한다")
+  .argument("<cluster>", "클러스터 UUID 또는 이름")
+  .option("--yes", "확인 프롬프트 생략 (CI/비대화형 필수)")
+  .option("--region <region>", "region override (기본: iaas 자격증명의 region)")
+  .option("--profile <name>", "사용할 profile 이름")
+  .action(async (cluster: string, _opts: unknown, cmd: Command) => {
+    const opts = cmd.optsWithGlobals<ClusterGlobalOpts>();
+    const ok = await confirmDangerousAction(`NKS 클러스터 "${cluster}" 를 삭제하시겠습니까?`, opts.yes);
+    if (!ok) return;
+
+    const { client } = await resolveNksClient(opts);
+    startSpinner("NKS 클러스터 삭제 요청 중...");
+    try {
+      await client.deleteCluster(cluster);
+    } catch (err) {
+      stopSpinner(false);
+      throw err;
+    }
+    stopSpinner(true);
+
+    process.stderr.write(chalk.green(`✓ NKS 클러스터 "${cluster}" 삭제 요청 완료\n`));
+  });
+
+const resizeCommand = new Command("resize")
+  .description("NKS 클러스터 노드 그룹 크기를 변경한다")
+  .argument("<cluster>", "클러스터 UUID 또는 이름")
+  .requiredOption("--nodegroup <name-or-uuid>", "노드 그룹 UUID 또는 이름")
+  .requiredOption("--node-count <n>", "변경할 노드 수")
+  .option("--nodes-to-remove <csv>", "삭제할 노드 이름/ID CSV")
+  .option("--region <region>", "region override (기본: iaas 자격증명의 region)")
+  .option("--profile <name>", "사용할 profile 이름")
+  .action(async (cluster: string, _opts: unknown, cmd: Command) => {
+    const opts = cmd.optsWithGlobals<ClusterGlobalOpts>();
+    const nodeCount = parsePositiveInteger(opts.nodeCount as string, "--node-count");
+    const nodesToRemove = opts.nodesToRemove
+      ?.split(",")
+      .map((node) => node.trim())
+      .filter(Boolean);
+
+    if (!nodesToRemove || nodesToRemove.length === 0) {
+      process.stderr.write(chalk.yellow("주의: --nodes-to-remove 가 없으면 감축 시 API가 삭제 노드를 선택할 수 있습니다.\n"));
+    }
+
+    const { client } = await resolveNksClient(opts);
+    startSpinner("NKS 클러스터 resize 요청 중...");
+    try {
+      await client.resizeCluster({
+        cluster,
+        nodegroup: opts.nodegroup as string,
+        nodeCount,
+        nodesToRemove,
+      });
+    } catch (err) {
+      stopSpinner(false);
+      throw err;
+    }
+    stopSpinner(true);
+
+    process.stderr.write(chalk.green(`✓ NKS 클러스터 "${cluster}" resize 요청 완료\n`));
+  });
+
+const setIpAclCommand = new Command("set-ipacl")
+  .description("NKS 클러스터 API endpoint IP ACL 을 설정한다")
+  .argument("<cluster>", "클러스터 UUID 또는 이름")
+  .requiredOption("--file <json>", "공식 API payload JSON 파일")
+  .option("--region <region>", "region override (기본: iaas 자격증명의 region)")
+  .option("--profile <name>", "사용할 profile 이름")
+  .action(async (cluster: string, _opts: unknown, cmd: Command) => {
+    const opts = cmd.optsWithGlobals<ClusterGlobalOpts>();
+    const payload = await readJsonFile(opts.file as string);
+    const { client } = await resolveNksClient(opts);
+
+    startSpinner("NKS IP ACL 설정 요청 중...");
+    let result: NksUuidResponse | null;
+    try {
+      result = await client.setClusterIpAcl(cluster, payload);
+    } catch (err) {
+      stopSpinner(false);
+      throw err;
+    }
+    stopSpinner(true);
+
+    if (result) {
+      uuidOutput(opts, result, "IP ACL 설정");
+    } else {
+      process.stderr.write(chalk.green(`✓ NKS 클러스터 "${cluster}" IP ACL 설정 요청 완료\n`));
+    }
+  });
+
+const renewCertificateCommand = new Command("renew-certificate")
+  .description("NKS 클러스터 인증서를 갱신한다")
+  .argument("<cluster>", "클러스터 UUID 또는 이름")
+  .requiredOption("--term-of-validity <1-5>", "인증서 유효 기간(년)")
+  .option("--region <region>", "region override (기본: iaas 자격증명의 region)")
+  .option("--profile <name>", "사용할 profile 이름")
+  .action(async (cluster: string, _opts: unknown, cmd: Command) => {
+    const opts = cmd.optsWithGlobals<ClusterGlobalOpts>();
+    const term = parsePositiveInteger(opts.termOfValidity as string, "--term-of-validity");
+    if (term < 1 || term > 5) {
+      throw new NhnCloudCliError("--term-of-validity 는 1~5 사이여야 합니다.", EXIT_PARAM_ERROR);
+    }
+    const { client } = await resolveNksClient(opts);
+
+    startSpinner("NKS 인증서 갱신 요청 중...");
+    let result: NksUuidResponse;
+    try {
+      result = await client.renewClusterCertificate(cluster, term);
+    } catch (err) {
+      stopSpinner(false);
+      throw err;
+    }
+    stopSpinner(true);
+
+    uuidOutput(opts, result, "인증서 갱신");
+  });
+
+const updateSgwCommand = new Command("update-sgw")
+  .description("NKS 클러스터 서비스 게이트웨이를 변경한다")
+  .argument("<cluster>", "클러스터 UUID 또는 이름")
+  .requiredOption("--ncr-sgw <uuid>", "NCR service gateway UUID")
+  .requiredOption("--obs-sgw <uuid>", "Object Storage service gateway UUID")
+  .option("--region <region>", "region override (기본: iaas 자격증명의 region)")
+  .option("--profile <name>", "사용할 profile 이름")
+  .action(async (cluster: string, _opts: unknown, cmd: Command) => {
+    const opts = cmd.optsWithGlobals<ClusterGlobalOpts>();
+    const { client } = await resolveNksClient(opts);
+
+    startSpinner("NKS 서비스 게이트웨이 변경 요청 중...");
+    let result: NksUuidResponse;
+    try {
+      result = await client.updateClusterServiceGateway(cluster, opts.ncrSgw as string, opts.obsSgw as string);
+    } catch (err) {
+      stopSpinner(false);
+      throw err;
+    }
+    stopSpinner(true);
+
+    uuidOutput(opts, result, "서비스 게이트웨이 변경");
+  });
+
+const setControlPlaneLogCommand = new Command("set-control-plane-log")
+  .description("NKS 클러스터 control plane log 설정을 변경한다")
+  .argument("<cluster>", "클러스터 UUID 또는 이름")
+  .requiredOption("--file <json>", "control_plane_log 객체 JSON 파일")
+  .option("--region <region>", "region override (기본: iaas 자격증명의 region)")
+  .option("--profile <name>", "사용할 profile 이름")
+  .action(async (cluster: string, _opts: unknown, cmd: Command) => {
+    const opts = cmd.optsWithGlobals<ClusterGlobalOpts>();
+    const controlPlaneLog = await readJsonFile(opts.file as string);
+    const { client } = await resolveNksClient(opts);
+
+    startSpinner("NKS control plane log 설정 요청 중...");
+    let result: NksUuidResponse;
+    try {
+      result = await client.setControlPlaneLog(cluster, controlPlaneLog);
+    } catch (err) {
+      stopSpinner(false);
+      throw err;
+    }
+    stopSpinner(true);
+
+    uuidOutput(opts, result, "control plane log 설정");
+  });
 
 const getCommand = new Command("get")
   .description("NKS 클러스터를 조회한다")
@@ -293,8 +517,15 @@ export const clusterCommand = new Command("cluster")
   .description("NKS 클러스터 관련 명령")
   .addCommand(listCommand)
   .addCommand(getCommand)
+  .addCommand(createCommand)
+  .addCommand(deleteCommand)
+  .addCommand(resizeCommand)
   .addCommand(eventsCommand)
   .addCommand(eventCommand)
   .addCommand(kubeconfigCommand)
   .addCommand(ipAclCommand)
+  .addCommand(setIpAclCommand)
+  .addCommand(renewCertificateCommand)
+  .addCommand(updateSgwCommand)
+  .addCommand(setControlPlaneLogCommand)
   .addCommand(clusterAddonCommand);

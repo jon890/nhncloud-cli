@@ -45,6 +45,11 @@ export interface NksAddon extends NksNamedResource {
   version?: string;
 }
 
+export interface NksUuidResponse {
+  uuid: string;
+  [key: string]: unknown;
+}
+
 export function isNksClusterSummary(val: unknown): val is NksClusterSummary {
   if (typeof val !== "object" || val === null) return false;
   const obj = val as Record<string, unknown>;
@@ -95,4 +100,8 @@ export function isNksAddonType(val: unknown): val is NksAddonType {
 
 export function isNksAddon(val: unknown): val is NksAddon {
   return isPlainObject(val) && typeof val["name"] === "string";
+}
+
+export function isNksUuidResponse(val: unknown): val is NksUuidResponse {
+  return isPlainObject(val) && typeof val["uuid"] === "string";
 }

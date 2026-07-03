@@ -195,4 +195,92 @@ describe("NksClient", () => {
       exitCode: EXIT_API_ERROR,
     });
   });
+
+  it("createCluster() 는 POST /clusters 에 raw payload 를 전달하고 uuid 를 반환한다", async () => {
+    vi.mocked(ky.post).mockReturnValue({
+      json: async () => ({ uuid: "cluster-uuid" }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    const result = await client.createCluster({ name: "cluster-a" });
+
+    expect(result.uuid).toBe("cluster-uuid");
+    expect(ky.post).toHaveBeenCalledWith(
+      "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1/clusters",
+      expect.objectContaining({
+        json: { name: "cluster-a" },
+        headers: expect.objectContaining({
+          "OpenStack-API-Version": "container-infra latest",
+        }),
+      }),
+    );
+  });
+
+  it("deleteCluster() 는 DELETE /clusters/{cluster} 를 호출한다", async () => {
+    vi.mocked(ky.delete).mockReturnValue({} as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    await client.deleteCluster("cluster-a");
+
+    expect(ky.delete).toHaveBeenCalledWith(
+      "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1/clusters/cluster-a",
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+  });
+
+  it("resizeCluster() 는 node_count 와 nodes_to_remove 를 POST 한다", async () => {
+    vi.mocked(ky.post).mockReturnValue({} as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    await client.resizeCluster({
+      cluster: "cluster-a",
+      nodegroup: "worker",
+      nodeCount: 2,
+      nodesToRemove: ["node-1", "node-2"],
+    });
+
+    expect(ky.post).toHaveBeenCalledWith(
+      "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1/clusters/cluster-a/actions/resize",
+      expect.objectContaining({
+        json: {
+          nodegroup: "worker",
+          node_count: 2,
+          nodes_to_remove: ["node-1", "node-2"],
+        },
+      }),
+    );
+  });
+
+  it("renewClusterCertificate() 는 PATCH /certificates/{cluster} 를 호출한다", async () => {
+    vi.mocked(ky.patch).mockReturnValue({
+      json: async () => ({ uuid: "request-uuid" }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    await client.renewClusterCertificate("cluster-a", 3);
+
+    expect(ky.patch).toHaveBeenCalledWith(
+      "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1/certificates/cluster-a",
+      expect.objectContaining({ json: { term_of_validity: 3 } }),
+    );
+  });
+
+  it("setControlPlaneLog() 는 type discriminator 와 control_plane_log 객체를 PATCH 한다", async () => {
+    vi.mocked(ky.patch).mockReturnValue({
+      json: async () => ({ uuid: "request-uuid" }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    await client.setControlPlaneLog("cluster-a", { enabled: true });
+
+    expect(ky.patch).toHaveBeenCalledWith(
+      "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1/clusters/cluster-a",
+      expect.objectContaining({
+        json: {
+          type: "control_plane_log",
+          control_plane_log: { enabled: true },
+        },
+      }),
+    );
+  });
 });
