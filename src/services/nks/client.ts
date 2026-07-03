@@ -162,8 +162,13 @@ export class NksClient {
     await this.requestNoBody("post", `/clusters/${encodeURIComponent(params.cluster)}/actions/resize`, payload);
   }
 
-  async setClusterIpAcl(cluster: string, payload: Record<string, unknown>): Promise<NksUuidResponse | null> {
-    return this.requestOptionalUuid("post", `/clusters/${encodeURIComponent(cluster)}/api_ep_ipacl`, payload);
+  async setClusterIpAcl(cluster: string, payload: Record<string, unknown>): Promise<NksUuidResponse> {
+    return this.requestUuid(
+      "post",
+      `/clusters/${encodeURIComponent(cluster)}/api_ep_ipacl`,
+      payload,
+      "nks cluster set-ipacl 응답 형식이 올바르지 않습니다 — uuid 필드가 없습니다.",
+    );
   }
 
   async renewClusterCertificate(cluster: string, termOfValidity: number): Promise<NksUuidResponse> {
@@ -521,22 +526,6 @@ export class NksClient {
     const raw = await this.requestJson(method, path, payload);
     if (!isNksUuidResponse(raw)) {
       throw new NhnCloudCliError(errorMessage, EXIT_API_ERROR);
-    }
-    return raw;
-  }
-
-  private async requestOptionalUuid(
-    method: "post" | "patch",
-    path: string,
-    payload: Record<string, unknown>,
-  ): Promise<NksUuidResponse | null> {
-    const raw = await this.requestJson(method, path, payload);
-    if (raw === undefined || raw === null || raw === "") return null;
-    if (!isNksUuidResponse(raw)) {
-      throw new NhnCloudCliError(
-        "nks 응답 형식이 올바르지 않습니다 — uuid 필드가 없습니다.",
-        EXIT_API_ERROR,
-      );
     }
     return raw;
   }

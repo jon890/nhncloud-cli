@@ -91,8 +91,8 @@ function clusterIpAclRow(ipAcl: NksClusterIpAcl): string[] {
   return [
     ipAcl.cluster_uuid,
     String(ipAcl.enable),
-    ipAcl.action,
-    String(ipAcl.ipacl_targets.length),
+    ipAcl.action ?? "",
+    String(ipAcl.ipacl_targets?.length ?? 0),
   ];
 }
 
@@ -240,7 +240,7 @@ const setIpAclCommand = new Command("set-ipacl")
     const { client } = await resolveNksClient(opts);
 
     startSpinner("NKS IP ACL 설정 요청 중...");
-    let result: NksUuidResponse | null;
+    let result: NksUuidResponse;
     try {
       result = await client.setClusterIpAcl(cluster, payload);
     } catch (err) {
@@ -249,11 +249,7 @@ const setIpAclCommand = new Command("set-ipacl")
     }
     stopSpinner(true);
 
-    if (result) {
-      uuidOutput(opts, result, "IP ACL 설정");
-    } else {
-      process.stderr.write(chalk.green(`✓ NKS 클러스터 "${cluster}" IP ACL 설정 요청 완료\n`));
-    }
+    uuidOutput(opts, result, "IP ACL 설정");
   });
 
 const renewCertificateCommand = new Command("renew-certificate")

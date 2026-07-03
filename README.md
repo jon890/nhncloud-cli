@@ -236,6 +236,11 @@ NHN Cloud 또는 OpenStack 원본 응답의 최상위 래퍼를 그대로 보존
 | `nks addon list` | addon 배열 |
 | `nks cluster addon list` | cluster addon 배열 |
 
+NKS의 단건 조회는 API 객체를 그대로 반환한다.
+예를 들어 `nks cluster get`, `nks nodegroup get`, `nks addon-type get`, `nks addon get`, `nks cluster addon get`, `nks cluster ipacl`, `nks nodegroup autoscale` 은 table 출력용 최소 컬럼을 만들고 `--json` 에서는 raw 객체를 보존한다.
+NKS 쓰기 명령 중 생성·변경·노드 action·애드온 변경은 `{ uuid }` 응답을 반환한다.
+`nks cluster kubeconfig` 는 kubeconfig 문자열을 stdout 또는 파일로 저장한다.
+
 예를 들어 `instance get --json`은 `.server.status`가 아니라 `.status`를 읽는다.
 
 ### 체이닝 예시
@@ -563,8 +568,12 @@ nhncloud nks supports
 # 클러스터와 노드 그룹 조회
 nhncloud nks cluster list
 nhncloud nks cluster get <cluster>
+nhncloud nks cluster events <cluster>
+nhncloud nks cluster event <cluster> <event>
+nhncloud nks cluster ipacl <cluster>
 nhncloud nks nodegroup list <cluster>
 nhncloud nks nodegroup get <cluster> <nodegroup>
+nhncloud nks nodegroup autoscale <cluster> <nodegroup>
 
 # kubeconfig stdout 출력 또는 mode 0600 파일 저장
 nhncloud nks cluster kubeconfig <cluster>
@@ -573,8 +582,11 @@ nhncloud nks cluster kubeconfig <cluster> --output ./kubeconfig --force
 
 # 애드온 조회
 nhncloud nks addon-type list
+nhncloud nks addon-type get <addon-type>
 nhncloud nks addon list --k8s-version v1.30.1
+nhncloud nks addon get <addon>
 nhncloud nks cluster addon list <cluster>
+nhncloud nks cluster addon get <cluster> <addon>
 ```
 
 복잡한 쓰기 작업은 공식 API payload를 JSON 파일로 전달한다.
@@ -588,6 +600,12 @@ nhncloud nks nodegroup create <cluster> --file ./nodegroup-create.json
 # resize / upgrade
 nhncloud nks cluster resize <cluster> --nodegroup worker --node-count 3
 nhncloud nks nodegroup upgrade <cluster> worker --version v1.30.1
+
+# 삭제 / 노드 action
+nhncloud nks cluster delete <cluster> --yes
+nhncloud nks nodegroup delete <cluster> worker --yes
+nhncloud nks nodegroup stop-node <cluster> worker --nodes node-1,node-2
+nhncloud nks nodegroup start-node <cluster> worker --nodes node-1,node-2
 
 # 애드온 설치 / 업데이트 / 제거
 nhncloud nks cluster addon install <cluster> \
@@ -603,8 +621,13 @@ nhncloud nks cluster addon remove <cluster> coredns --yes
 
 # payload 파일 기반 변경
 nhncloud nks cluster set-ipacl <cluster> --file ./ipacl.json
+nhncloud nks cluster renew-certificate <cluster> --term-of-validity 3
+nhncloud nks cluster update-sgw <cluster> --ncr-sgw <uuid> --obs-sgw <uuid>
 nhncloud nks cluster set-control-plane-log <cluster> --file ./control-plane-log.json
 nhncloud nks nodegroup set-autoscale <cluster> worker --file ./autoscale.json
+nhncloud nks nodegroup set-metric-autoscale <cluster> worker --file ./metric-autoscale.json
+nhncloud nks nodegroup set-userscript <cluster> worker --file ./userscript.sh
+nhncloud nks nodegroup update-flavor <cluster> worker --flavor <flavor-uuid>
 nhncloud nks nodegroup set-fip-auto-bind <cluster> worker --file ./fip-auto-bind.json
 nhncloud nks nodegroup set-labels <cluster> worker --file ./labels.json
 ```

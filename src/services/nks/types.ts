@@ -47,15 +47,15 @@ export interface NksAddon extends NksNamedResource {
 
 export interface NksClusterIpAcl {
   cluster_uuid: string;
-  enable: boolean;
-  action: string;
-  ipacl_targets: unknown[];
+  enable: boolean | "true" | "false";
+  action?: string;
+  ipacl_targets?: unknown[];
   [key: string]: unknown;
 }
 
 export interface NksNodeGroupAutoscale {
-  ca_enable: boolean;
-  clusterautoscale: Record<string, unknown>;
+  ca_enable: boolean | "true" | "false";
+  clusterautoscale: unknown;
   [key: string]: unknown;
 }
 
@@ -126,15 +126,13 @@ export function isNksAddon(val: unknown): val is NksAddon {
 }
 
 export function isNksClusterIpAcl(val: unknown): val is NksClusterIpAcl {
-  return (
-    isPlainObject(val) &&
-    !("header" in val) &&
-    !("body" in val) &&
-    typeof val["cluster_uuid"] === "string" &&
-    typeof val["enable"] === "boolean" &&
-    typeof val["action"] === "string" &&
-    Array.isArray(val["ipacl_targets"])
-  );
+  if (!isPlainObject(val) || "header" in val || "body" in val) return false;
+  if (typeof val["cluster_uuid"] !== "string" || !isBooleanLike(val["enable"])) return false;
+
+  const isEnabled = val["enable"] === true || val["enable"] === "true";
+  if (!isEnabled) return true;
+
+  return typeof val["action"] === "string" && Array.isArray(val["ipacl_targets"]);
 }
 
 export function isNksNodeGroupAutoscale(val: unknown): val is NksNodeGroupAutoscale {
@@ -142,9 +140,13 @@ export function isNksNodeGroupAutoscale(val: unknown): val is NksNodeGroupAutosc
     isPlainObject(val) &&
     !("header" in val) &&
     !("body" in val) &&
-    typeof val["ca_enable"] === "boolean" &&
-    isPlainObject(val["clusterautoscale"])
+    isBooleanLike(val["ca_enable"]) &&
+    "clusterautoscale" in val
   );
+}
+
+function isBooleanLike(val: unknown): val is boolean | "true" | "false" {
+  return typeof val === "boolean" || val === "true" || val === "false";
 }
 
 export function isNksUuidResponse(val: unknown): val is NksUuidResponse {

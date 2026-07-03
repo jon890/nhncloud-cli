@@ -46,9 +46,7 @@ AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트�
 
 ### 제외 (v1)
 
-- Deploy 바이너리 업/다운로드 — 후속 (조회 2종 `binary-groups`/`binaries` 는 task 011 에서 구현, 업로드·다운로드만 후속)
 - 공공기관용(gov) 엔드포인트
-- IaaS(OpenStack) 서비스군
 
 ## 성공 지표
 
