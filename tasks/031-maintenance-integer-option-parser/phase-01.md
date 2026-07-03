@@ -7,6 +7,7 @@ CLI 숫자 옵션 파싱을 공통 helper로 일관화해 `parseInt` 부분 파�
 
 유효한 숫자 입력의 동작은 유지한다.
 잘못된 숫자 표기만 더 일찍, 더 일관된 `EXIT_PARAM_ERROR`로 거부한다.
+선행 0 표기(`"01"`)는 기존 `parseInt` / `Number()`가 통과시켰지만, 이번 정책에서는 십진 정수 표기 오류로 보고 의도적으로 거부한다.
 
 ## 구현 가능성
 
@@ -98,8 +99,18 @@ NKS 명령은 별도 구현 세션에서 같은 helper를 재사용한다.
 - 파일 내부 `parsePositiveInt` / `parseNonNegInt` helper는 제거한다.
 - inline `parseInt`는 공용 helper 호출로 교체한다.
 - spinner 시작 전 파라미터 검증 위치를 유지한다.
+- 다음 parsed 변수는 자격증명 resolve, spinner, API 호출 전에 만든다.
+  - `timeoutMs`
+  - `bootVolumeSize`
+  - `ephemeralDiskSize`
+  - `limit`
+  - `minDisk`
+  - `minRam`
+  - `page`
+  - `size`
+  - `concurrentNum`
 - `deploy run`은 `client.run()` 인자 구성 전에 `concurrentNum`을 검증한 변수로 만든다.
-  spinner 내부에서 처음 파싱하지 않는다.
+  `opts` 추출 직후, `getDeployTarget()`, `createDeployClient()`, spinner, `client.run()` 인자 구성보다 먼저 파싱한다.
 
 ### 4. task 상태 갱신
 
@@ -134,15 +145,16 @@ grep -rnE "Number\\(value\\)|Number\\(opts\\." src/commands
 ## 완료 조건
 
 1. `pnpm build` 정상.
-2. `pnpm test` 정상.
-3. `src/commands/parse-options.test.ts`가 정상/거부 케이스를 모두 검증한다.
-4. 대상 5개 명령에서 숫자 옵션 직접 `parseInt`가 사라진다.
-5. 대상 5개 명령에서 regex 없는 `Number()` 기반 parser가 사라진다.
-6. `node dist/index.js instance create --help` 정상.
-7. `node dist/index.js instance images --help` 정상.
-8. `node dist/index.js instance flavors --help` 정상.
-9. `node dist/index.js logncrash search --help` 정상.
-10. `node dist/index.js deploy run --help` 정상.
+2. `pnpm tsc --noEmit` 정상.
+3. `pnpm test` 정상.
+4. `src/commands/parse-options.test.ts`가 정상/거부 케이스를 모두 검증한다.
+5. 대상 5개 명령에서 숫자 옵션 직접 `parseInt`가 사라진다.
+6. 대상 5개 명령에서 regex 없는 `Number()` 기반 parser가 사라진다.
+7. `node dist/index.js instance create --help` 정상.
+8. `node dist/index.js instance images --help` 정상.
+9. `node dist/index.js instance flavors --help` 정상.
+10. `node dist/index.js logncrash search --help` 정상.
+11. `node dist/index.js deploy run --help` 정상.
 
 ## 변경 파일
 
