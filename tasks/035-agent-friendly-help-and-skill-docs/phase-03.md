@@ -65,6 +65,11 @@ Phase 01 구조 기준으로 다음을 보강한다.
 - `.agents/skills/build-with-teams/SKILL.md`
 - `.agents/skills/docs-check/SKILL.md`
 - `.agents/skills/codebase-maintenance/references/nhncloud-cli-checks.md`
+- `.agents/skills/planning/SKILL.md`
+- `.agents/skills/planning/task-create.md`
+- `.agents/skills/_shared/pitfalls/plan/new-command-docs-required-skip.md`
+- `.claude/agents/nhncloud-cli-docs-verifier.md`
+- `.codex/agents/nhncloud-cli-docs-verifier.toml`
 
 예:
 
@@ -130,7 +135,13 @@ fi
 - `.agents/skills/build-with-teams/SKILL.md`
 - `.agents/skills/docs-check/SKILL.md`
 - `.agents/skills/codebase-maintenance/references/nhncloud-cli-checks.md`
+- `.agents/skills/planning/SKILL.md`
+- `.agents/skills/planning/task-create.md`
+- `.agents/skills/_shared/pitfalls/plan/new-command-docs-required-skip.md`
+- `.claude/agents/nhncloud-cli-docs-verifier.md`
+- `.codex/agents/nhncloud-cli-docs-verifier.toml`
 - `tasks/035-agent-friendly-help-and-skill-docs/index.json`
+- `tasks/035-agent-friendly-help-and-skill-docs/phase-03.md`
 
 ## task 상태
 

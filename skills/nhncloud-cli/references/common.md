@@ -67,10 +67,24 @@ profile 해석 순서:
 API 원본 wrapper를 항상 보존하지 않는다.
 예를 들어 `nhncloud instance get <instance-id> --json`은 `.server.status`가 아니라 `.status`를 읽는다.
 
+## Command catalog
+
+`nhncloud commands`는 Commander tree에서 command path, argument, option, description을 출력한다.
+외부 API를 호출하지 않는 read-only metadata 명령이다.
+
+```bash
+nhncloud commands
+nhncloud commands --json
+nhncloud commands --json | jq '.commands[] | select(.path=="nks cluster list")'
+```
+
+AI 에이전트는 먼저 `commands --json`으로 실제 command path와 option 이름을 확인하고, 그다음 서비스 reference를 읽는다.
+
 ## JSON shape 요약
 
 | 명령 | `--json` 출력 shape |
 |------|---------------------|
+| `commands` | `{ commands: [{ path, description, arguments, options, subcommands }] }` |
 | `logncrash search` | `{ totalItems, pageNumber, pageSize, data }` |
 | `deploy binary-groups` | `binaryGroups` wrapper를 언랩한 배열 |
 | `deploy binaries` | `{ totalCount, binaries }` |

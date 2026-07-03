@@ -84,7 +84,7 @@ git log origin/main --oneline --grep "{NNN}\|{task-name}" | head -3
 
 1. **docs-first 경계**: planning 결정 docs 반영 + 커밋 → task 생성은 `/planning` 산출물이다.
    기존 `tasks/{plan}` 을 인자로 받은 실행에서는 그 task 와 이미 커밋된 planning docs 를 기준으로 삼고, phase 안에서 planning 결정 docs 를 새로 갱신하지 않는다.
-   `README.md` / `skills/nhncloud-cli/SKILL.md` 같은 사용자-facing docs 는 실제 코드 표면에 의존하므로 마지막 phase 에서만 갱신한다.
+   `README.md` / `skills/nhncloud-cli/SKILL.md` / `skills/nhncloud-cli/references/*.md` 같은 사용자-facing docs 는 실제 코드 표면에 의존하므로 마지막 phase 에서만 갱신한다.
 2. **가시적 협업**: 백그라운드 스크립트 대신 에이전트 팀이 각 단계를 명시적으로 수행
 3. **평가 통과 조건**: critic 승인 없이 실행 불가. REVISE면 계획 수정 후 재평가
 4. **docs 정합성**: 실행 완료 후 docs-verifier가 코드↔문서 일치 검증
@@ -499,9 +499,9 @@ executor 완료 후 team-lead → docs-verifier에게 검증 요청.
 
 9. **갱신 시점 분리 위반 없는가**
    - planning 결정 docs (`docs/adr/` / `code-architecture.md` / `AGENTS.md` / `data-schema.md` / `flow.md` / `prd.md`) 를 phase 안에서 변경하면 VIOLATION
-   - 사용자 가이드 docs (`README.md` / `skills/nhncloud-cli/SKILL.md`) 는 phase 마지막에서만 변경 OK
+   - 사용자 가이드 docs (`README.md` / `skills/nhncloud-cli/SKILL.md` / `skills/nhncloud-cli/references/*.md`) 는 phase 마지막에서만 변경 OK
 
-10. **`skills/nhncloud-cli/SKILL.md` (공개 스킬) dogfooding** — CLI 는 공개 스킬도 검증 대상
+10. **`skills/nhncloud-cli/SKILL.md` + `skills/nhncloud-cli/references/*.md` (공개 스킬) dogfooding** — CLI 는 공개 스킬도 검증 대상
     - 새/삭제/변경된 명령·옵션이 공개 스킬에 반영되지 않으면 외부 사용자가 오작동 경로를 따라감
     - docs 영향 표 행에 표시되어 있을 때 적용
 
@@ -666,4 +666,4 @@ executor / code-reviewer / docs-verifier 프롬프트에 아래 컨텍스트를 
 - **코드 규칙 권위**: 프로젝트 루트 `AGENTS.md` (ky 강제 / stdout vs stderr / `NhnCloudCliError` / 캐시 디렉토리 규약)
 - **스킬 폴더 구분**: `skills/` = 공개 사용자 가이드, `.agents/skills/` = 내부 개발 스킬 단일 원본
   - 인사이트 이식·docs-verifier 모두 `.agents/skills/` 대상
-  - 공개 스킬 정합성 검사 (dooray-cli docs-verifier 항목 10) 만 예외적으로 `skills/nhncloud-cli/SKILL.md` 참조
+  - 공개 스킬 정합성 검사 (dooray-cli docs-verifier 항목 10) 만 예외적으로 `skills/nhncloud-cli/SKILL.md`와 `skills/nhncloud-cli/references/*.md` 참조

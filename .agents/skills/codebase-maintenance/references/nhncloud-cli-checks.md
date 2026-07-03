@@ -23,7 +23,7 @@
 - `src/commands/*`의 option naming, `--json`/`--quiet`, spinner 순서 불일치.
 - `src/services/*/client.ts`의 response guard, envelope 적용/미적용 혼동.
 - `docs/code-architecture.md`의 디렉터리 트리와 실제 `src/` 불일치.
-- `docs/flow.md`, `README.md`, `skills/nhncloud-cli/SKILL.md`의 명령 표면 drift.
+- `docs/flow.md`, `README.md`, `skills/nhncloud-cli/SKILL.md`, `skills/nhncloud-cli/references/*.md`의 명령 표면 drift.
 - `.agents/skills/_shared/pitfalls/`에 이미 있는 반복 지적이 새 코드에서 재발했는지.
 
 ## 권장 점검 명령

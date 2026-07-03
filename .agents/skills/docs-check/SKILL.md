@@ -102,7 +102,7 @@ ADR이 "왜"를 담고 있는가. "결정 / 맥락 / 대안 기각" 구조가 �
 `AGENTS.md` "docs / ADR 작성 형식" 6가지 패턴 위반을 점검.
 정책 본문은 거기에 단일 소스 — 본 섹션은 검출 휴리스틱만.
 
-대상: `docs/*.md` / `AGENTS.md` / `README.md` / `skills/nhncloud-cli/SKILL.md` / `tasks/**/*.md` / `.agents/skills/**/*.md`.
+대상: `docs/*.md` / `AGENTS.md` / `README.md` / `skills/nhncloud-cli/SKILL.md` / `skills/nhncloud-cli/references/*.md` / `tasks/**/*.md` / `.agents/skills/**/*.md`.
 코드 블록 / 표 / 디렉터리 트리는 미적용.
 
 검출 휴리스틱:

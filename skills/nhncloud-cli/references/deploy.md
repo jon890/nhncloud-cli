@@ -10,6 +10,12 @@ UAK를 OAuth `client_credentials`로 교환한 Bearer token으로 인증하고, 
 
 `~/.nhncloud/config.json`에는 named deploy target을 둔다.
 
+Discovery:
+
+```bash
+nhncloud commands --json | jq '.commands[] | select(.path|startswith("deploy"))'
+```
+
 ```json
 {
   "version": 1,

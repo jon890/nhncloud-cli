@@ -7,6 +7,7 @@ IaaS 자격증명으로 Keystone token을 발급하고 `container-infra` API를 
 ## Discovery 순서
 
 ```bash
+nhncloud commands --json | jq '.commands[] | select(.path|startswith("nks"))'
 nhncloud nks supports --json
 nhncloud nks cluster list --json
 nhncloud nks cluster get <cluster> --json

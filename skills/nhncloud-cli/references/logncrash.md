@@ -4,6 +4,12 @@
 
 ## 검색
 
+Discovery:
+
+```bash
+nhncloud commands --json | jq '.commands[] | select(.path|startswith("logncrash"))'
+```
+
 ```bash
 nhncloud logncrash search \
   --query 'logType:"ERROR"' \

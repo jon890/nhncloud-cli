@@ -1,8 +1,8 @@
 # nhncloud-cli
 
 NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 통합 CLI.
-현재 81개 명령을 지원한다.
-`configure`, `logncrash search/send/export`, `deploy`, `instance`, `network`, `volume`, `floatingip`, `ncr`, `nks` 명령으로 NHN Cloud 서비스를 조회·운영할 수 있다.
+현재 98개 command catalog 항목을 지원한다.
+`configure`, `commands`, `logncrash search/send/export`, `deploy`, `instance`, `network`, `volume`, `floatingip`, `ncr`, `nks` 명령으로 NHN Cloud 서비스를 조회·운영할 수 있다.
 
 ## 설치
 
@@ -200,8 +200,21 @@ nhncloud logncrash send --body "deploy 시작" --app-version 2.3.0 --source batc
 `--json`은 CLI가 가공한 출력 계약이다.
 NHN Cloud 또는 OpenStack 원본 응답의 최상위 래퍼를 그대로 보존하지 않을 수 있다.
 
+### 자동화와 AI 에이전트
+
+명령 경로, 인수, 옵션은 `nhncloud commands --json`으로 확인한다.
+이 명령은 외부 API를 호출하지 않고 Commander tree metadata만 stdout에 출력한다.
+
+```bash
+nhncloud commands --json | jq '.commands[] | select(.path=="nks cluster list")'
+```
+
+root와 주요 service group의 `--help`에는 짧은 agent hint가 포함된다.
+긴 사용법은 README와 공개 skill reference를 기준으로 확인한다.
+
 | 명령 | `--json` 출력 shape |
 |------|---------------------|
+| `commands` | `{ commands: [{ path, description, arguments, options, subcommands }] }` |
 | `logncrash search` | `{ totalItems, pageNumber, pageSize, data }` 객체 |
 | `logncrash export` | 파일 출력 전용. stdout JSON 없음 |
 | `deploy artifacts` | Deploy API `body` 객체 |
@@ -644,4 +657,5 @@ node dist/index.js instance --help
 node dist/index.js logncrash search --help
 node dist/index.js ncr --help
 node dist/index.js nks --help
+node dist/index.js commands --json
 ```

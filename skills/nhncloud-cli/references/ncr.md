@@ -18,6 +18,7 @@ nhncloud configure --uak-id <uak-id> --uak-secret <uak-secret> --ncr-appkey <app
 ## Registry 조회
 
 ```bash
+nhncloud commands --json | jq '.commands[] | select(.path|startswith("ncr"))'
 nhncloud ncr list --app-key <appkey> --json
 nhncloud ncr list --region kr2 --app-key <appkey> --json
 nhncloud ncr get <registry> --app-key <appkey> --json

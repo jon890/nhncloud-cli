@@ -1,6 +1,6 @@
 ---
 name: nhncloud-cli
-description: NHN Cloud 서비스 CLI. configure, Log & Crash(logncrash search/send/export), Deploy(deploy run/artifacts/server-groups/histories/binary-groups/binaries/upload/download), Compute(instance), VPC/network, Block Storage(volume), Floating IP(floatingip), NHN Container Registry(ncr), NHN Kubernetes Service(nks supports/cluster/nodegroup/addon/kubeconfig) 등 NHN Cloud API를 터미널과 AI 에이전트에서 호출한다.
+description: NHN Cloud 서비스 CLI. commands --json catalog, configure, Log & Crash(logncrash search/send/export), Deploy(deploy run/artifacts/server-groups/histories/binary-groups/binaries/upload/download), Compute(instance), VPC/network, Block Storage(volume), Floating IP(floatingip), NHN Container Registry(ncr), NHN Kubernetes Service(nks supports/cluster/nodegroup/addon/kubeconfig) 등 NHN Cloud API를 터미널과 AI 에이전트에서 호출한다.
 ---
 
 # nhncloud-cli
@@ -13,6 +13,7 @@ NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 TypeScript CLI다.
 
 | 상황 | 읽을 reference |
 |------|----------------|
+| 명령 경로, 인수, option metadata 확인 | `nhncloud commands --json` 실행 후 필요한 reference 선택 |
 | 설치, configure, profile, 출력 모드, 에러 코드, 자동화 기본 규칙 | [common.md](references/common.md) |
 | Log & Crash 검색, scroll export, 로그 전송 | [logncrash.md](references/logncrash.md) |
 | Deploy 실행, 배포 조회, 바이너리 업로드/다운로드 | [deploy.md](references/deploy.md) |

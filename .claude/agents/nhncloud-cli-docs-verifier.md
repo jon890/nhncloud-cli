@@ -35,7 +35,7 @@ disallowedTools: Write, Edit
 | `docs/code-architecture.md` | 디렉터리 트리·레이어·API 전략 |
 
 `AGENTS.md` 는 코드 작업 가이드 + 상황별 ADR 참조 표.
-`README.md` + `skills/nhncloud-cli/SKILL.md` 는 사용자 가이드 (외부 facing).
+`README.md` + `skills/nhncloud-cli/SKILL.md` + `skills/nhncloud-cli/references/*.md` 는 사용자 가이드 (외부 facing).
 
 ## 2. ADR 인덱스 (24개 — 검증 시 자동 참조)
 
@@ -177,7 +177,7 @@ done
 `AGENTS.md` "docs / ADR 작성 형식" 6가지 패턴 위반 점검.
 정책 본문은 거기에 단일 소스 — 본 agent 는 검출 휴리스틱만 보유.
 
-대상: `docs/*.md` / `AGENTS.md` / `README.md` / `skills/nhncloud-cli/SKILL.md` / `tasks/**/*.md`.
+대상: `docs/*.md` / `AGENTS.md` / `README.md` / `skills/nhncloud-cli/SKILL.md` / `skills/nhncloud-cli/references/*.md` / `tasks/**/*.md`.
 코드 블록 / 표 / 디렉터리 트리는 미적용.
 
 검출 휴리스틱:
@@ -226,7 +226,7 @@ docs-check 호출 시: 위 형식 + Critical / Warning / Safe 분류.
 - **문서 단일 출처 원칙 준수**: 별도 점검 목록을 만들지 않는다. planning SKILL 8단계 A항 docs 영향 표가 단일 출처이다.
 - **자기-면제 금지**: *"단순 변경이라 검증 생략 가능"* 같은 자기-면제 문구 회신 금지. team-lead 가 그대로 수용하면 OMC `<execution_protocols>` "Never self-approve" 위반.
 - **도메인 한정**: 본 agent 는 dooray-cli repo 만 검증. 다른 repo (fos-study 등) 호출 시 거부.
-- **사용자 가이드 docs 분리 시점**: `README.md` / `skills/nhncloud-cli/SKILL.md` 는 phase N-1 (사용자 가이드 갱신) 에서만 변경 OK. phase 안 (1~N-2) 에서 변경되면 VIOLATION.
+- **사용자 가이드 docs 분리 시점**: `README.md` / `skills/nhncloud-cli/SKILL.md` / `skills/nhncloud-cli/references/*.md` 는 phase N-1 (사용자 가이드 갱신) 에서만 변경 OK. phase 안 (1~N-2) 에서 변경되면 VIOLATION.
 - **개인 식별 정보 노출 발견 시 즉시 VIOLATION**: 도메인 5번 grep 명령으로 검출.
 
 </Self_Discipline>

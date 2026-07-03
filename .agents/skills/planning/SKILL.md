@@ -164,7 +164,7 @@ build-with-teams 의 docs-verifier 검증 항목과 본 SKILL 의 docs 영향 �
 
 | 내용 유형 | 단일 소스 | 역참조 / 링크해야 할 곳 |
 |---|---|---|
-| 명령 동작 / 옵션 / 주의사항 | `AGENTS.md` 주의사항 표 | `README.md` (사용 예만), `skills/nhncloud-cli/SKILL.md` (AI 자동화 시나리오) |
+| 명령 동작 / 옵션 / 주의사항 | `AGENTS.md` 주의사항 표 | `README.md` (사용 예만), `skills/nhncloud-cli/SKILL.md` router와 `skills/nhncloud-cli/references/*.md` (AI 자동화 시나리오) |
 | 디렉터리 구조 / 레이어 | `docs/code-architecture.md` 디렉터리 구조 | `AGENTS.md` (요약 한 블록) |
 | 기술 결정 근거 (왜) | `docs/adr/` (해당 ADR 파일) | `AGENTS.md` ADR 참조 표, `docs/code-architecture.md` 해당 영역에 ADR-NNN 한 줄 |
 | 캐시 / 파일 레이아웃 | `docs/adr/` (해당 ADR 파일) | `AGENTS.md` 캐시 규약 행 |
@@ -183,7 +183,7 @@ docs/adr/  ←──── (ADR-NNN 역참조) ────  docs/code-architect
                        ↓
                README.md (사용 예만)
                        ↓
-        skills/nhncloud-cli/SKILL.md (공개, 자동화 시나리오)
+        skills/nhncloud-cli/SKILL.md + skills/nhncloud-cli/references/*.md (공개, 자동화 시나리오)
 
 docs/data-schema.md           ←  docs/adr/ (스키마 결정 ADR 파일)
 docs/flow.md                  ←  docs/prd.md
@@ -199,7 +199,7 @@ docs/flow.md                  ←  docs/prd.md
 
 **한 task 가 복수 변경 유형에 해당하면 해당 행들의 docs 를 합집합으로 손댄다.** 한 행만 보고 끝내지 않는다 — 예: "신규 ADR 동반 변경" + "캐시 schema 변경" 둘 다인 task 는 후자의 `data-schema.md` 필수 항목도 갱신해야 한다 (PR #12 에서 ADR 행만 보고 캐시 schema 행의 data-schema.md 를 놓쳐 docs-verifier UPDATE_NEEDED).
 
-| 변경 유형 | AGENTS.md | docs/adr/ | code-architecture.md | prd.md | flow.md | data-schema.md | README.md | skills/nhncloud-cli/SKILL.md |
+| 변경 유형 | AGENTS.md | docs/adr/ | code-architecture.md | prd.md | flow.md | data-schema.md | README.md | skills/nhncloud-cli/SKILL.md + references/*.md |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | 신규 CLI 명령 (소) | 주의사항 1줄 + "N개 명령" 카운트 | — | 디렉터리 트리 + 필요 시 utils 추가 | MVP 범위 한 줄 (`- \`dooray X\` — 한 줄 설명`) | 사용자 흐름 섹션 (대화 / 입출력 예시) + 새 옵션 시 옵션 표 행 | (캐시 도입 시) | 사용 예 섹션 + intro "지원 명령" 문구 | 빠른 참조 표 + 자동화 시나리오 + 프론트매터 description |
 | 신규 ADR 동반 변경 | 주의사항 + ADR 참조 표 행 | ADR 본문 + 상단 ADR Index 등재 + **선행 ADR 이 이 작업을 "후속/신설 예정" 으로 가리켰으면 그 미래형 정정** (`[[adr-NNN]]` 역참조로) | 해당 영역에 ADR-NNN 역참조 한 줄 | (사용자 facing 변경 시) | (사용자 흐름 변경 시) | (스키마 결정 시) | 사용 예 (해당 명령 있을 때) | 시나리오 (해당 명령 있을 때) |
@@ -217,7 +217,7 @@ docs/flow.md                  ←  docs/prd.md
 | docs | 갱신 시점 | 이유 |
 |---|---|---|
 | `docs/adr/`, `code-architecture.md`, `AGENTS.md`, `data-schema.md`, `flow.md`, `prd.md` | **planning 단계에서 즉시 반영 + commit** | 기획 결정의 단일 소스. task 생성 후 변경 금지 (코드↔docs 결정 mismatch 회피) |
-| `README.md`, `skills/nhncloud-cli/SKILL.md` | **task 마지막 phase (phase-N)** | 코드 산출물 (실제 명령 인자/옵션) 에 의존 — phase-1·2 후에야 정확히 작성 가능 |
+| `README.md`, `skills/nhncloud-cli/SKILL.md`, `skills/nhncloud-cli/references/*.md` | **task 마지막 phase (phase-N)** | 코드 산출물 (실제 명령 인자/옵션) 에 의존 — phase-1·2 후에야 정확히 작성 가능 |
 
 이 분리를 phase 작성 시 명시적으로 따른다. planning 결정 docs 를 phase 안에서 변경하면 critic REVISE 또는 docs-verifier VIOLATION 사유.
 

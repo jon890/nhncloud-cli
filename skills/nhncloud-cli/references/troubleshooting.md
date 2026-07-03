@@ -7,8 +7,9 @@
 1. 명령에 `--profile <name>`을 명시했는지 확인한다.
 2. IaaS/NKS/NCR 명령이면 `--region <region>`이 의도와 맞는지 확인한다.
 3. 조회 명령을 `--json`으로 다시 실행해 stdout shape를 확인한다.
-4. exit code를 확인한다.
-5. 서비스별 인증 모델을 대조한다.
+4. `nhncloud commands --json`으로 실제 command path와 option 이름을 확인한다.
+5. exit code를 확인한다.
+6. 서비스별 인증 모델을 대조한다.
 
 ## 인증 모델
 

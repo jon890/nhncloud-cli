@@ -23,6 +23,7 @@ NHNCLOUD_IAAS_PASSWORD=<password> nhncloud configure \
 인스턴스 생성 전에는 조회 명령으로 id를 확인한다.
 
 ```bash
+nhncloud commands --json | jq '.commands[] | select(.path|test("^(instance|network|volume|floatingip)"))'
 nhncloud instance images --json
 nhncloud instance flavors --detail --json
 nhncloud network list --json
