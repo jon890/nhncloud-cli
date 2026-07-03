@@ -82,7 +82,9 @@ git log origin/main --oneline --grep "{NNN}\|{task-name}" | head -3
 
 ## 핵심 원칙
 
-1. **docs-first**: docs 반영 + 커밋 → task 생성 → 실행. 순서 위반 금지
+1. **docs-first 경계**: planning 결정 docs 반영 + 커밋 → task 생성은 `/planning` 산출물이다.
+   기존 `tasks/{plan}` 을 인자로 받은 실행에서는 그 task 와 이미 커밋된 planning docs 를 기준으로 삼고, phase 안에서 planning 결정 docs 를 새로 갱신하지 않는다.
+   `README.md` / `skills/nhncloud-cli/SKILL.md` 같은 사용자-facing docs 는 실제 코드 표면에 의존하므로 마지막 phase 에서만 갱신한다.
 2. **가시적 협업**: 백그라운드 스크립트 대신 에이전트 팀이 각 단계를 명시적으로 수행
 3. **평가 통과 조건**: critic 승인 없이 실행 불가. REVISE면 계획 수정 후 재평가
 4. **docs 정합성**: 실행 완료 후 docs-verifier가 코드↔문서 일치 검증
@@ -92,7 +94,7 @@ git log origin/main --oneline --grep "{NNN}\|{task-name}" | head -3
 
 | 역할 | 에이전트 타입 | 기본 모델 | 책임 |
 |---|---|---|---|
-| **team-lead** | main session | opus | 계획 수립, task 생성, 팀 조율, **phase 별 atomic commit (6.1)**, 최종 push/PR |
+| **team-lead** | main session | opus | 계획 수립, task 생성, 팀 조율, **phase 별 atomic commit (7.1)**, 최종 push/PR |
 | **critic** | runtime별 critic role | opus | 계획 평가 (APPROVE/REVISE), 실제 코드 대조 |
 | **executor** | `executor` 또는 `nhncloud-cli-executor` adapter | sonnet | phase 순차 실행, 코드 수정 (커밋 제외). nhncloud-cli 도메인 self-check 임베드 (spinner 순서 / resolver 검증 / 타입 안전성 등 TOP 패턴) |
 | **code-reviewer** | `code-reviewer` / `critic` / verifier role | sonnet | 코드 품질 검사 (PASS/FIX_NEEDED), AI slop/금지사항 탐지 |
@@ -150,7 +152,7 @@ Agent({
 
 - `team_name` + `name`을 반드시 지정 (`name`은 `critic`/`executor`/`code-reviewer`/`docs-verifier`로 통일)
 - `run_in_background: true`로 idle 대기 가능
-  (단 executor 는 4+ phase 에서 6.2 적용 — phase별 스폰·shutdown)
+  (단 executor 는 4+ phase 에서 7.2 적용 — phase별 스폰·shutdown)
 - 이후 통신은 **모두 `SendMessage({to: "critic", message: "..."})`로만** 진행
 
 **SendMessage 회신 강제 (필수 — 텍스트 출력 누락 사고 방지)**:
@@ -201,7 +203,7 @@ critic 은 응답 후 idle 유지에 성공하지만 검증 에이전트는 일�
 **적용 시점**:
 
 - code-reviewer: executor 완료 직후 (executor 와 동시 스폰 X — executor 완료 후 새로 스폰이 안전)
-- docs-verifier: 8단계 검증 직전 새로 스폰
+- docs-verifier: 9단계 검증 직전 새로 스폰
 
 **팀원 프롬프트/메시지는 worktree 절대경로로 전달한다 (필수).**
 
@@ -244,7 +246,7 @@ task의 `index.json` + phase 파일을 읽고 규모를 판정하여 팀원 모�
 |---|---|
 | **소** | `total_phases: 1`, 버그 수정/UI 미세 조정/단순 설정 변경 |
 | **중** | `total_phases: 2~3`, 기존 기능 확장/리팩토링/스키마 단순 추가 |
-| **대** | `total_phases: 4+` 또는 아키텍처/신규 도메인/DB 스키마 대규모 변경 — executor phase별 스폰·shutdown 적용 (→ 6.2) |
+| **대** | `total_phases: 4+` 또는 아키텍처/신규 도메인/DB 스키마 대규모 변경 — executor phase별 스폰·shutdown 적용 (→ 7.2) |
 
 ### 규모별 모델 표
 
@@ -278,16 +280,33 @@ TeamCreate → team name: plan{NNN}
 
 critic + docs-verifier를 `run_in_background: true`로 스폰. 대기 상태로 준비.
 
-### 2. 문서 파악 + 논의
+### 2. 실행 모드 확정
+
+`tasks/{plan}/index.json` 이 이미 있으면 **구현 실행 모드**로 진행한다.
+
+- 4~5단계의 docs 최신화 / task 생성은 건너뛴다.
+- planning 결정 docs (`docs/adr/`, `docs/code-architecture.md`, `AGENTS.md`, `docs/flow.md`, `docs/prd.md`, `docs/data-schema.md`) 는 phase 변경 파일에 포함하지 않는다.
+- critic 이 task 자체의 오류를 지적하면 task 파일만 수정한다.
+  공식 API 경로처럼 planning 결정 docs 자체가 틀린 경우에만 구현 phase 시작 전 별도 docs 정정 커밋으로 고치고, phase 변경 파일 목록에는 넣지 않는다.
+
+`tasks/{plan}/index.json` 이 없으면 신규 설계가 필요한 상태다.
+이 경우 여기서 임의로 docs/task 를 만들지 말고 `/planning` 으로 넘긴다.
+
+### 3. 문서 파악 + 논의
 
 team-lead가 `docs/` 하위 문서를 읽고 사용자와 논의.
 
-### 3. docs 최신화 + 커밋
+### 4. docs 최신화 + 커밋
 
-논의 결과를 task 생성 전에 docs에 반영. docs 변경사항 단독 커밋.
+신규 설계 모드에서만 수행한다.
+논의 결과를 task 생성 전에 docs에 반영한다.
+docs 변경사항은 단독 커밋한다.
 
-### 4. task 파일 생성
+기존 task 구현 모드에서는 수행하지 않는다.
 
+### 5. task 파일 생성
+
+신규 설계 모드에서만 수행한다.
 `tasks/{NNN}-{task-name}/` 디렉터리에 `index.json` + `phase-{N}.md` 생성.
 phase 프롬프트 규칙은 기존 `plan-and-build`와 동일:
 
@@ -301,7 +320,9 @@ phase 프롬프트 규칙은 기존 `plan-and-build`와 동일:
 
 task 파일 생성 후 커밋.
 
-### 5. critic 평가 (통과 조건)
+기존 task 구현 모드에서는 수행하지 않는다.
+
+### 6. critic 평가 (통과 조건)
 
 team-lead → critic에게 계획 전송 (SendMessage).
 
@@ -316,10 +337,10 @@ critic 평가 관점:
 7. **`pitfalls/plan/` 의 관련 패턴이 사전 해소되었는가?** (INDEX 라우터로 변경 유형 파일 선택)
 
 판정:
-- **APPROVE** → 6단계로
-- **REVISE** → 문제점 수정 후 재평가 (5단계 반복, 한도 3회)
+- **APPROVE** → 7단계로
+- **REVISE** → 문제점 수정 후 재평가 (6단계 반복, 한도 3회)
 
-### 6. executor 실행
+### 7. executor 실행
 
 critic APPROVE 후 executor를 `run_in_background: true`, `mode: "bypassPermissions"`로 스폰.
 critic 승인 + docs-verifier 검증의 이중 안전망이 있으므로 executor는 권한 확인 없이 실행.
@@ -331,16 +352,16 @@ executor에게 전달할 정보:
 
 executor 규칙:
 - phase-{N}.md를 순서대로 읽고 실행
-  (4+ phase: 6.2 에 따라 team-lead 가 phase 하나씩 새 executor 로 진행 — 단일 executor 의 전 phase 순차 실행은 3 phase 이하)
+  (4+ phase: 7.2 에 따라 team-lead 가 phase 하나씩 새 executor 로 진행 — 단일 executor 의 전 phase 순차 실행은 3 phase 이하)
 - 각 phase 완료 후 성공 기준 검증
-- **커밋은 하지 않음** — phase 별 commit 은 team-lead 가 수행 (아래 6.1 참조)
+- **커밋은 하지 않음** — phase 별 commit 은 team-lead 가 수행 (아래 7.1 참조)
 - **마지막 phase 에서 `tasks/{NNN}-{task-name}/index.json` 의 다음 필드를 `completed` 로 업데이트**
   - `status` / `current_phase` / 각 phase `status`
   - 별도 phase 아닌 마지막 phase 작업 내 스텝으로 처리
 - phase 완료/실패 시 즉시 team-lead 에게 SendMessage 보고 → team-lead 가 그 phase 를 commit 한 후 다음 phase 진행 지시
-  (4+ phase: 해당 executor shutdown 후 새 executor 스폰 — 6.2 참조)
+  (4+ phase: 해당 executor shutdown 후 새 executor 스폰 — 7.2 참조)
 
-### 6.1 phase 별 atomic commit (필수)
+### 7.1 phase 별 atomic commit (필수)
 
 executor 가 phase-{N} 완료 보고하면 team-lead 가 즉시 그 phase 의 변경사항만 commit. 다음 phase 시작 전에 commit 이 끝나야 한다.
 
@@ -366,20 +387,20 @@ git commit -m "<phase-NN.md 의 ## 커밋 섹션 메시지>"
 - FIX_NEEDED 면 이미 commit 된 phase 들을 amend 하지 않고, 별도 `fix(<scope>): <지적 사항>` commit 추가
 - amend 금지 — 이미 push 됐을 수 있고, history 연속성 보존이 디버깅 가치가 더 큼
 
-**push 주기**: 매 phase commit 후 즉시 push 하지 않고 task 종료 시 일괄 push (9단계).
+**push 주기**: 매 phase commit 후 즉시 push 하지 않고 task 종료 시 일괄 push (10단계).
 PR 생성 직전이라 commit 누적이 자연스러움.
 단 worktree 가 길어지면 (1시간 이상) 중간 push 1회 허용.
 
-### 6.2 phase별 spawn-shutdown 사이클 (대규모)
+### 7.2 phase별 spawn-shutdown 사이클 (대규모)
 
-**3 phase 이하는 6단계 단일 executor 모델 그대로**, 4+ phase 만 본 사이클 적용.
+**3 phase 이하는 7단계 단일 executor 모델 그대로**, 4+ phase 만 본 사이클 적용.
 critic / code-reviewer / docs-verifier 에는 영향 없음 — executor 만 해당.
 
-**적용 조건**: `total_phases` 4 이상("대" 규모 판정)일 때 phase 마다 새 executor 를 스폰하고 즉시 shutdown. 3 phase 이하는 스폰 오버헤드를 피하기 위해 단일 executor 가 전 phase 를 순차 처리한다(6단계 기본 모델 유지).
+**적용 조건**: `total_phases` 4 이상("대" 규모 판정)일 때 phase 마다 새 executor 를 스폰하고 즉시 shutdown. 3 phase 이하는 스폰 오버헤드를 피하기 위해 단일 executor 가 전 phase 를 순차 처리한다(7단계 기본 모델 유지).
 
 **컨텍스트 격리**: phase 마다 새 컨텍스트로 시작해 토큰 누적을 끊는다. phase별 모델 정책을 독립적으로 적용할 수 있다.
 
-**즉시 shutdown**: team-lead 가 phase commit (6.1) 을 마치면 그 executor 에게 곧장 `shutdown_request` 를 보낸다. idle 잔존이 리소스를 점유하는 것을 막는다.
+**즉시 shutdown**: team-lead 가 phase commit (7.1) 을 마치면 그 executor 에게 곧장 `shutdown_request` 를 보낸다. idle 잔존이 리소스를 점유하는 것을 막는다.
 
 **직전 phase 학습 인계**: 새 executor 스폰 프롬프트에 직전 phase 에서 확인한 도메인 발견(이동한 파일 경로·갱신한 import·확정된 타입 등)을 1~2줄로 요약해 넘긴다. 컨텍스트가 새로 시작돼도 domain 연속성이 유지된다.
 
@@ -399,7 +420,7 @@ Agent({
 })
 ```
 
-### 7. 코드 품질 검사 (code-reviewer)
+### 8. 코드 품질 검사 (code-reviewer)
 
 executor 완료 후 team-lead가 **code-reviewer 팀원에게 SendMessage로 검사 요청**. team-lead가 직접 수행하지 않는다 (건너뛰기 방지).
 
@@ -432,7 +453,7 @@ executor (`nhncloud-cli-executor`) 는 phase 시작 직전 TOP 패턴 self-check
 **code-reviewer가 검사할 범위**: executor가 변경한 파일만 (`git diff --name-only` 기준).
 
 판정 (SendMessage로 team-lead에게 회신):
-- **PASS** → 8단계로
+- **PASS** → 9단계로
 - **FIX_NEEDED** → team-lead가 executor에게 수정 목록 전달 → executor 수정 → code-reviewer 재검사 (한도 2회)
 
 **FIX_NEEDED 처리 시 필수 루프 — 자기-면제 금지 (CRITICAL)**:
@@ -455,7 +476,7 @@ code-reviewer 가 FIX 회신에 *"재검사 불필요"* / *"단순 변경이라 
 더 중요한 건 일관성 — "code-reviewer 가 면제했으니 OK" 가 한 번 통과되면 다음 plan 부터는 더 큰 수정도 면제 요청이 들어올 수 있다.
 그때도 자기-승인 회피 원칙이 깨진다.
 
-### 8. docs-verifier 검증 (문서 부패 포함)
+### 9. docs-verifier 검증 (문서 부패 포함)
 
 executor 완료 후 team-lead → docs-verifier에게 검증 요청.
 
@@ -485,13 +506,13 @@ executor 완료 후 team-lead → docs-verifier에게 검증 요청.
     - docs 영향 표 행에 표시되어 있을 때 적용
 
 판정:
-- **PASS** → 9단계로
+- **PASS** → 10단계로
 - **UPDATE_NEEDED** → team-lead가 docs 업데이트 후 재검증 (한도 2회)
 - **VIOLATION** → team-lead가 코드 수정 지시 (executor 재투입, 한도 2회)
 
 **UPDATE_NEEDED / VIOLATION 처리 시 필수 루프 — 자기-면제 금지**:
 
-code-reviewer 와 동일 원칙 (위 7단계 "자기-면제 금지" 박스 참조).
+code-reviewer 와 동일 원칙 (위 8단계 "자기-면제 금지" 박스 참조).
 docs-verifier 가 *"내용 확인 수준으로 충분"* / *"재검증 없이 PR 진행 가능"* 같은 자기-면제 문구를 회신에 포함하더라도 **그대로 수용 금지**.
 
 | 수정 시나리오 | 처리 |
@@ -502,10 +523,10 @@ docs-verifier 가 *"내용 확인 수준으로 충분"* / *"재검증 없이 PR 
 
 재검증 한도 2회 카운터 동일 적용. 한도 초과 시 `PHASE_BLOCKED: docs-verifier 한도 초과 — docs/코드 정합성 수동 점검`.
 
-**Why**: 7단계와 동일. 일관성 측면.
+**Why**: 8단계와 동일. 일관성 측면.
 UPDATE_NEEDED 가 3곳 같이 잡혔는데 그중 1곳을 잘못 갱신했어도 자기-면제로 묻히면 다음 plan 부터 PASS 신뢰성이 떨어진다.
 
-### 9. 완료 + PR 생성
+### 10. 완료 + PR 생성
 
 1. team-lead 가 누적 commit 검토 — `git log --oneline feat/{plan}..origin/main` 의 역순으로 phase 별 commit 이 의도대로 들어갔는지 확인
    - 마지막 phase commit 에 `index.json` completed 가 포함됐는지 grep 검증
@@ -515,7 +536,7 @@ UPDATE_NEEDED 가 3곳 같이 잡혔는데 그중 1곳을 잘못 갱신했어도
 5. **PR 생성** — `gh pr create` (main 대상). PR description 에 phase 별 commit 목록 자동 포함 (`gh pr create --body` 안에 `git log --oneline {base}..HEAD` 결과)
 6. **index.json 완료 상태는 PR 브랜치에만 존재** — 메인 워킹 디렉토리에서는 **건드리지 않는다**:
    - 마지막 phase 커밋이 이미 `index.json` 의 `status="completed"` + 모든 phase `status="completed"` 를 포함해야 한다
-   - task 파일 설계 시 마지막 phase 에 해당 업데이트 명시 (4단계 참조)
+   - task 파일 설계 시 마지막 phase 에 해당 업데이트 명시 (5단계 참조)
    - main에서 별도 커밋 **금지** 이유:
      - 이중 진실원 회피
      - main에 진행 중인 다른 작업(다른 plan의 미푸시 커밋, unstaged 변경)과 의도치 않게 섞여 push될 위험
@@ -601,7 +622,7 @@ executor·code-reviewer에게 프롬프트 전달 시 이 섹션을 참조 또�
 
 executor가 phase 실패 보고 시:
 1. team-lead가 실패 원인 분석
-2. phase 수정 필요 시 → critic 재평가 (5단계부터)
+2. phase 수정 필요 시 → critic 재평가 (6단계부터)
 3. 단순 에러 수정 시 → executor에게 재실행 지시
 
 ## 실행 흐름 요약
@@ -609,8 +630,8 @@ executor가 phase 실패 보고 시:
 ```
 [사전 검증 — main index.json status + 원격 feat 브랜치 + 오픈 PR (3중 체크)]
     → [worktree 생성 (origin/main 기반)]
-    → [docs 최신화 + 커밋]
-    → [task 파일 생성 + 커밋]  ← 마지막 phase에 index.json completed 업데이트 스텝 포함
+    → [기존 task 구현 모드: docs/task 생성 단계 skip]
+      또는 [신규 설계 필요: /planning 으로 넘긴 뒤 docs 최신화 + task 생성]
     → [critic 평가] ←─ REVISE면 계획 수정 후 재평가 (한도 3회)
     → [executor 실행 phase-1] → [team-lead phase-1 commit] → ... → [phase-N (index.json completed 포함)] → [team-lead phase-N commit]
     → [코드 품질 검사 (task 종료 후 1회)] ←─ FIX_NEEDED면 executor 재투입 (한도 2회) → 추가 fix commit (amend 금지)
