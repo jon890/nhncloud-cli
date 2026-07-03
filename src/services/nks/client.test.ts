@@ -132,6 +132,35 @@ describe("NksClient", () => {
     );
   });
 
+  it("getCluster() 는 봉투형 singleton 응답을 거부한다", async () => {
+    vi.mocked(ky.get).mockReturnValue({
+      json: async () => ({
+        header: { isSuccessful: true, resultCode: 0, resultMessage: "OK" },
+        body: {
+          uuid: "cluster-uuid",
+          name: "cluster-a",
+          status: "CREATE_COMPLETE",
+        },
+      }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    await expect(client.getCluster("cluster-a")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+
+  it("getCluster() 는 식별 필드가 없는 singleton 응답을 거부한다", async () => {
+    vi.mocked(ky.get).mockReturnValue({
+      json: async () => ({ unexpected: true }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    await expect(client.getCluster("cluster-a")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+
   it("getClusterKubeconfig() 는 config 필드를 반환한다", async () => {
     vi.mocked(ky.get).mockReturnValue({
       json: async () => ({ config: "apiVersion: v1\nkind: Config\n" }),

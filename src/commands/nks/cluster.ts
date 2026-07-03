@@ -115,6 +115,25 @@ async function confirmDangerousAction(message: string, yes?: boolean): Promise<b
   return ok;
 }
 
+export async function writeKubeconfigFile(path: string, contents: string, force?: boolean): Promise<void> {
+  try {
+    await writeFile(path, contents, {
+      encoding: "utf-8",
+      mode: 0o600,
+      flag: force ? "w" : "wx",
+    });
+    await chmod(path, 0o600);
+  } catch (err) {
+    if (err instanceof Error && "code" in err && err.code === "EEXIST") {
+      throw new NhnCloudCliError(
+        `파일이 이미 존재합니다: ${path}. 덮어쓰려면 --force 를 지정하세요.`,
+        EXIT_PARAM_ERROR,
+      );
+    }
+    throw err;
+  }
+}
+
 const createCommand = new Command("create")
   .description("NKS 클러스터를 생성한다")
   .requiredOption("--file <json>", "공식 API payload JSON 파일")
@@ -407,22 +426,7 @@ const kubeconfigCommand = new Command("kubeconfig")
     stopSpinner(true);
 
     if (opts.output) {
-      try {
-        await writeFile(opts.output, kubeconfig, {
-          encoding: "utf-8",
-          mode: 0o600,
-          flag: opts.force ? "w" : "wx",
-        });
-        await chmod(opts.output, 0o600);
-      } catch (err) {
-        if (err instanceof Error && "code" in err && err.code === "EEXIST") {
-          throw new NhnCloudCliError(
-            `파일이 이미 존재합니다: ${opts.output}. 덮어쓰려면 --force 를 지정하세요.`,
-            EXIT_PARAM_ERROR,
-          );
-        }
-        throw err;
-      }
+      await writeKubeconfigFile(opts.output, kubeconfig, opts.force);
       process.stderr.write(chalk.green(`✓ kubeconfig 를 저장했습니다: ${opts.output}\n`));
       return;
     }

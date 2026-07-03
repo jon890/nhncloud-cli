@@ -75,13 +75,22 @@ export function isPlainObject(val: unknown): val is Record<string, unknown> {
 
 export function isNksNamedResource(val: unknown): val is NksNamedResource {
   if (!isPlainObject(val)) return false;
+  if ("header" in val || "body" in val) return false;
   const uuid = val["uuid"];
   const id = val["id"];
   const name = val["name"];
+  const status = val["status"];
+  const hasKnownResourceField =
+    typeof uuid === "string" ||
+    typeof id === "string" ||
+    typeof name === "string" ||
+    typeof status === "string";
   return (
+    hasKnownResourceField &&
     (uuid === undefined || typeof uuid === "string") &&
     (id === undefined || typeof id === "string") &&
-    (name === undefined || typeof name === "string")
+    (name === undefined || typeof name === "string") &&
+    (status === undefined || typeof status === "string")
   );
 }
 
