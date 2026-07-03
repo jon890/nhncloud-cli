@@ -66,6 +66,7 @@
 - `src/commands/nks/cluster.ts`
 - `src/commands/nks/nodegroup.ts`
 - `src/commands/nks/addon.ts`
+- `src/index.ts`
 - `tasks/030-feat-nks/index.json`
 
 ## 커밋
