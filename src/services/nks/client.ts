@@ -426,6 +426,56 @@ export class NksClient {
     return raw.addon;
   }
 
+  async installClusterAddon(
+    cluster: string,
+    params: { name: string; version: string; resolveConflicts: string },
+  ): Promise<NksUuidResponse> {
+    return this.requestUuid(
+      "post",
+      `/clusters/${encodeURIComponent(cluster)}/addons/`,
+      {
+        name: params.name,
+        version: params.version,
+        resolve_conflicts: params.resolveConflicts,
+      },
+      "nks cluster addon install 응답 형식이 올바르지 않습니다 — uuid 필드가 없습니다.",
+    );
+  }
+
+  async updateClusterAddon(
+    cluster: string,
+    addon: string,
+    params: { version: string; resolveConflicts: string },
+  ): Promise<NksUuidResponse> {
+    return this.requestUuid(
+      "patch",
+      `/clusters/${encodeURIComponent(cluster)}/addons/${encodeURIComponent(addon)}`,
+      {
+        version: params.version,
+        resolve_conflicts: params.resolveConflicts,
+      },
+      "nks cluster addon update 응답 형식이 올바르지 않습니다 — uuid 필드가 없습니다.",
+    );
+  }
+
+  async removeClusterAddon(cluster: string, addon: string): Promise<NksUuidResponse> {
+    const url = `${this.nksEndpoint}/clusters/${encodeURIComponent(cluster)}/addons/${encodeURIComponent(addon)}`;
+    try {
+      const raw: unknown = await ky
+        .delete(url, { headers: this.authHeaders(), retry: 0, timeout: DEFAULT_TIMEOUT_MS })
+        .json();
+      if (!isNksUuidResponse(raw)) {
+        throw new NhnCloudCliError(
+          "nks cluster addon remove 응답 형식이 올바르지 않습니다 — uuid 필드가 없습니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return raw;
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
   private async getNamedResource(key: string, path: string, errorMessage: string): Promise<NksNamedResource> {
     const raw = await this.getJson(path);
     if (!isNamedResourceResponse(key, raw)) {

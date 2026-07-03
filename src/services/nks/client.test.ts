@@ -363,4 +363,65 @@ describe("NksClient", () => {
       expect.objectContaining({ json: { flavor_id: "flavor-uuid", type: "flavor_id" } }),
     );
   });
+
+  it("installClusterAddon() 은 POST /clusters/{cluster}/addons/ 로 요청한다", async () => {
+    vi.mocked(ky.post).mockReturnValue({
+      json: async () => ({ uuid: "cluster-uuid" }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    await client.installClusterAddon("cluster-a", {
+      name: "coredns",
+      version: "1.0.0",
+      resolveConflicts: "overwrite",
+    });
+
+    expect(ky.post).toHaveBeenCalledWith(
+      "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1/clusters/cluster-a/addons/",
+      expect.objectContaining({
+        json: {
+          name: "coredns",
+          version: "1.0.0",
+          resolve_conflicts: "overwrite",
+        },
+      }),
+    );
+  });
+
+  it("updateClusterAddon() 은 PATCH /clusters/{cluster}/addons/{addon} 로 요청한다", async () => {
+    vi.mocked(ky.patch).mockReturnValue({
+      json: async () => ({ uuid: "cluster-uuid" }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    await client.updateClusterAddon("cluster-a", "coredns", {
+      version: "1.0.1",
+      resolveConflicts: "preserve",
+    });
+
+    expect(ky.patch).toHaveBeenCalledWith(
+      "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1/clusters/cluster-a/addons/coredns",
+      expect.objectContaining({
+        json: {
+          version: "1.0.1",
+          resolve_conflicts: "preserve",
+        },
+      }),
+    );
+  });
+
+  it("removeClusterAddon() 은 DELETE 응답 uuid 를 반환한다", async () => {
+    vi.mocked(ky.delete).mockReturnValue({
+      json: async () => ({ uuid: "cluster-uuid" }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    const result = await client.removeClusterAddon("cluster-a", "coredns");
+
+    expect(result.uuid).toBe("cluster-uuid");
+    expect(ky.delete).toHaveBeenCalledWith(
+      "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1/clusters/cluster-a/addons/coredns",
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+  });
 });

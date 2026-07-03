@@ -61,6 +61,9 @@ interface ClusterGlobalOpts extends OutputOptions {
   termOfValidity?: string;
   ncrSgw?: string;
   obsSgw?: string;
+  name?: string;
+  version?: string;
+  resolveConflicts?: string;
 }
 
 function resourceId(resource: NksNamedResource): string {
@@ -508,10 +511,108 @@ const clusterAddonGetCommand = new Command("get")
     });
   });
 
+function parseResolveConflicts(value: string | undefined): string {
+  if (value === "none" || value === "overwrite" || value === "preserve") {
+    return value;
+  }
+  throw new NhnCloudCliError(
+    `--resolve-conflicts 는 none, overwrite, preserve 중 하나여야 합니다: ${JSON.stringify(value)}`,
+    EXIT_PARAM_ERROR,
+  );
+}
+
+const clusterAddonInstallCommand = new Command("install")
+  .description("NKS 클러스터 애드온을 설치한다")
+  .argument("<cluster>", "클러스터 UUID 또는 이름")
+  .requiredOption("--name <name>", "애드온 이름")
+  .requiredOption("--version <version>", "애드온 버전")
+  .requiredOption("--resolve-conflicts <none|overwrite|preserve>", "충돌 해결 정책")
+  .option("--region <region>", "region override (기본: iaas 자격증명의 region)")
+  .option("--profile <name>", "사용할 profile 이름")
+  .action(async (cluster: string, _opts: unknown, cmd: Command) => {
+    const opts = cmd.optsWithGlobals<ClusterGlobalOpts>();
+    const resolveConflicts = parseResolveConflicts(opts.resolveConflicts);
+    const { client } = await resolveNksClient(opts);
+
+    startSpinner("NKS 클러스터 애드온 설치 요청 중...");
+    let result: NksUuidResponse;
+    try {
+      result = await client.installClusterAddon(cluster, {
+        name: opts.name as string,
+        version: opts.version as string,
+        resolveConflicts,
+      });
+    } catch (err) {
+      stopSpinner(false);
+      throw err;
+    }
+    stopSpinner(true);
+
+    uuidOutput(opts, result, "클러스터 애드온 설치");
+  });
+
+const clusterAddonUpdateCommand = new Command("update")
+  .description("NKS 클러스터 애드온을 업데이트한다")
+  .argument("<cluster>", "클러스터 UUID 또는 이름")
+  .argument("<addon>", "애드온 UUID 또는 이름")
+  .requiredOption("--version <version>", "애드온 버전")
+  .requiredOption("--resolve-conflicts <none|overwrite|preserve>", "충돌 해결 정책")
+  .option("--region <region>", "region override (기본: iaas 자격증명의 region)")
+  .option("--profile <name>", "사용할 profile 이름")
+  .action(async (cluster: string, addon: string, _opts: unknown, cmd: Command) => {
+    const opts = cmd.optsWithGlobals<ClusterGlobalOpts>();
+    const resolveConflicts = parseResolveConflicts(opts.resolveConflicts);
+    const { client } = await resolveNksClient(opts);
+
+    startSpinner("NKS 클러스터 애드온 업데이트 요청 중...");
+    let result: NksUuidResponse;
+    try {
+      result = await client.updateClusterAddon(cluster, addon, {
+        version: opts.version as string,
+        resolveConflicts,
+      });
+    } catch (err) {
+      stopSpinner(false);
+      throw err;
+    }
+    stopSpinner(true);
+
+    uuidOutput(opts, result, "클러스터 애드온 업데이트");
+  });
+
+const clusterAddonRemoveCommand = new Command("remove")
+  .description("NKS 클러스터 애드온을 제거한다")
+  .argument("<cluster>", "클러스터 UUID 또는 이름")
+  .argument("<addon>", "애드온 UUID 또는 이름")
+  .option("--yes", "확인 프롬프트 생략 (CI/비대화형 필수)")
+  .option("--region <region>", "region override (기본: iaas 자격증명의 region)")
+  .option("--profile <name>", "사용할 profile 이름")
+  .action(async (cluster: string, addon: string, _opts: unknown, cmd: Command) => {
+    const opts = cmd.optsWithGlobals<ClusterGlobalOpts>();
+    const ok = await confirmDangerousAction(`NKS 클러스터 애드온 "${addon}" 을 제거하시겠습니까?`, opts.yes);
+    if (!ok) return;
+
+    const { client } = await resolveNksClient(opts);
+    startSpinner("NKS 클러스터 애드온 제거 요청 중...");
+    let result: NksUuidResponse;
+    try {
+      result = await client.removeClusterAddon(cluster, addon);
+    } catch (err) {
+      stopSpinner(false);
+      throw err;
+    }
+    stopSpinner(true);
+
+    uuidOutput(opts, result, "클러스터 애드온 제거");
+  });
+
 const clusterAddonCommand = new Command("addon")
   .description("NKS 클러스터 애드온 관련 명령")
   .addCommand(clusterAddonListCommand)
-  .addCommand(clusterAddonGetCommand);
+  .addCommand(clusterAddonGetCommand)
+  .addCommand(clusterAddonInstallCommand)
+  .addCommand(clusterAddonUpdateCommand)
+  .addCommand(clusterAddonRemoveCommand);
 
 export const clusterCommand = new Command("cluster")
   .description("NKS 클러스터 관련 명령")
