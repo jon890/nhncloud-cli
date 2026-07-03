@@ -1,6 +1,6 @@
 ---
 name: nhncloud-cli-docs-verifier
-description: nhncloud-cli 도메인 docs 정합성 검증 전문가. 6축 (부패·과대화·추론성·중복·자명성·가독성) 점검 + 도메인 지식 (ADR-001~019 / planning 8단계 A항 docs 영향 표 / 캐시 규약 / 개인 식별 정보 사전 점검 / 문서 단일 출처 원칙) 보유. build-with-teams 의 docs-verifier + docs-check 양쪽이 동일 agent 호출. nhncloud-cli repo 만 검증, 다른 repo 에 적용 금지.
+description: nhncloud-cli 도메인 docs 정합성 검증 전문가. 6축 (부패·과대화·추론성·중복·자명성·가독성) 점검 + 도메인 지식 (docs/adr 동적 검증 / planning 8단계 A항 docs 영향 표 / 캐시 규약 / 개인 식별 정보 사전 점검 / 문서 단일 출처 원칙) 보유. build-with-teams 의 docs-verifier + docs-check 양쪽이 동일 agent 호출. nhncloud-cli repo 만 검증, 다른 repo 에 적용 금지.
 model: sonnet
 disallowedTools: Write, Edit
 ---
@@ -37,9 +37,10 @@ disallowedTools: Write, Edit
 `AGENTS.md` 는 코드 작업 가이드 + 상황별 ADR 참조 표.
 `README.md` + `skills/nhncloud-cli/SKILL.md` + `skills/nhncloud-cli/references/*.md` 는 사용자 가이드 (외부 facing).
 
-## 2. ADR 인덱스 (19개 — 검증 시 자동 참조)
+## 2. ADR 인덱스 (동적 검증)
 
-ADR-001 TypeScript + Commander.js + tsup / ADR-002 ky / ADR-003 profile credentials / ADR-004 service credentials / ADR-005 endpoint map / ADR-006 NHN response envelope / ADR-007 Deploy OAuth token cache / ADR-008 Deploy named target / ADR-009 configure wizard / ADR-010 IaaS Keystone token / ADR-011 Instance boot volume / ADR-012 instance user_data / ADR-013 IaaS multi-service endpoint / ADR-014 Log & Crash collector / ADR-015 Deploy binary transfer / ADR-016 NCR Management API / ADR-017 NCR Harbor REST / ADR-018 harness docs directory / ADR-019 NKS container-infra API.
+ADR 번호와 제목은 `docs/adr/INDEX.md`와 `docs/adr/[0-9]*.md`를 동적으로 대조한다.
+고정 목록을 복사해 보관하지 않는다.
 
 ## 3. 캐시 디렉터리 규약 (data-schema.md ↔ src/cache/token-store.ts)
 

@@ -58,7 +58,7 @@ pnpm tsc --noEmit && pnpm run build && pnpm test
 
 ## 상황별 ADR 참조
 
-새 HTTP 요청 / 캐시 변경 / 멤버 lookup / post 메타 / input 통합 / 파일 업로드 등 작업 시
+새 HTTP 요청 / 캐시 변경 / profile·region 해석 / payload file / binary upload·download 등 작업 시
 `AGENTS.md` 의 "상황별 ADR 필수 참조" 표에서 해당 ADR 번호를 먼저 확인 후 코드 작성.
 ADR 본문: `docs/adr/` (파일 1개=ADR 1개, INDEX.md 라우터).
 
@@ -90,10 +90,10 @@ grep -A 20 "startSpinner" src/commands/<scope>/<cmd>.ts | grep -cE "try\s*\{"
 # 0이면 누락 — try/catch 추가 필요
 ```
 
-**1-3 resolver-before-editor**: `resolveWikiPageInput` / `resolvePostInput` 는 `readBodyInputOrNull` / `openInEditor` 보다 항상 먼저 호출.
+**1-3 resolver-before-input**: profile·region·target 같은 resolver 는 file read / stdin read / payload parse 보다 먼저 호출.
 ```bash
-grep -B 5 "openInEditor\|readBodyInputOrNull" src/commands/<scope>/<cmd>.ts | grep "resolve[A-Z]"
-# resolver 가 뒤에 있으면 의심
+grep -B 5 "readFile\|readStdin\|JSON.parse" src/commands/<scope>/<cmd>.ts | grep "resolve[A-Z]"
+# resolver 가 input 수집 뒤에 있으면 의심
 ```
 
 ---
