@@ -14,9 +14,12 @@
 - `nks nodegroup list <cluster>`
 - `nks nodegroup get <cluster> <nodegroup>`
 - `nks nodegroup autoscale <cluster> <nodegroup>`
-- `nks addon-type list|get`
-- `nks addon list|get`
-- `nks cluster addon list|get`
+- `nks addon-type list`
+- `nks addon-type get <addon-type>`
+- `nks addon list`
+- `nks addon get <addon>`
+- `nks cluster addon list <cluster>`
+- `nks cluster addon get <cluster> <addon>`
 
 ## 설계
 
@@ -27,6 +30,25 @@
 - `cluster` 와 `nodegroup` 식별자는 공식 API 처럼 UUID 또는 이름을 허용한다.
 - 작업 이력 API는 공식 문서의 `CLUSTER_UUID` 요구를 보존하되 CLI 인자명은 기존 범위에 맞춰 `<cluster>` 로 둔다.
 - `tasks/030-feat-nks/index.json` 에서 Phase 2 `status` 를 `completed` 로, `current_phase` 를 `3` 으로 갱신한다.
+
+## endpoint/body/response matrix
+
+| 명령 | Method / path | Body | Response guard |
+|---|---|---|---|
+| `nks cluster get <cluster>` | `GET /clusters/{cluster}` | 없음 | cluster 객체 최소 `uuid`, `name`, `status` |
+| `nks cluster events <cluster>` | `GET /clusters/{cluster}/events` | 없음 | `events` 배열 |
+| `nks cluster event <cluster> <event>` | `GET /clusters/{cluster}/events/{event}` | 없음 | event 객체 최소 `uuid` 또는 `id` 계열 식별자 |
+| `nks cluster kubeconfig <cluster>` | `GET /clusters/{cluster}/config` | 없음 | text body 또는 kubeconfig 객체를 raw 저장/출력 |
+| `nks cluster ipacl <cluster>` | `GET /clusters/{cluster}/api_ep_ipacl` | 없음 | IP ACL 객체 또는 배열. 불명확 필드는 raw 보존 |
+| `nks nodegroup list <cluster>` | `GET /clusters/{cluster}/nodegroups` | 없음 | `nodegroups` 배열 |
+| `nks nodegroup get <cluster> <nodegroup>` | `GET /clusters/{cluster}/nodegroups/{nodegroup}` | 없음 | nodegroup 객체 최소 `uuid`, `name`, `status` |
+| `nks nodegroup autoscale <cluster> <nodegroup>` | `GET /clusters/{cluster}/nodegroups/{nodegroup}/autoscale` | 없음 | autoscale 객체 raw 보존 |
+| `nks addon-type list` | `GET /addon_types` | 없음 | `addon_types` 배열 |
+| `nks addon-type get <addon-type>` | `GET /addon_types/{addonType}` | 없음 | addon type 객체 최소 `uuid` 또는 `type` |
+| `nks addon list` | `GET /addons` + query | 없음 | `addons` 배열 |
+| `nks addon get <addon>` | `GET /addons/{addon}` | 없음 | addon 객체 최소 `uuid`, `name`, `version` |
+| `nks cluster addon list <cluster>` | `GET /clusters/{cluster}/addons` | 없음 | `addons` 배열 |
+| `nks cluster addon get <cluster> <addon>` | `GET /clusters/{cluster}/addons/{addon}` | 없음 | cluster addon 객체 최소 `uuid`, `name`, `status` |
 
 ## 검증
 

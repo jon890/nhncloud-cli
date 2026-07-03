@@ -23,6 +23,18 @@
 - control plane log payload 는 appkey 등 민감값이 포함될 수 있어 로그에 payload 원문을 출력하지 않는다.
 - `tasks/030-feat-nks/index.json` 에서 Phase 3 `status` 를 `completed` 로, `current_phase` 를 `4` 로 갱신한다.
 
+## endpoint/body/response matrix
+
+| 명령 | Method / path | Body | Response guard |
+|---|---|---|---|
+| `nks cluster create --file <json>` | `POST /clusters` | JSON file raw payload | `{ uuid: string }` |
+| `nks cluster delete <cluster>` | `DELETE /clusters/{cluster}` | 없음 | 2xx 무본문 |
+| `nks cluster resize <cluster>` | `POST /clusters/{cluster}/actions/resize` | `{ nodegroup, node_count, nodes_to_remove? }` | 2xx 무본문 |
+| `nks cluster set-ipacl <cluster>` | `POST /clusters/{cluster}/api_ep_ipacl` | JSON file raw payload | `{ uuid: string }` 또는 2xx |
+| `nks cluster renew-certificate <cluster>` | `POST /clusters/{cluster}/actions/renew_certificate` | `{ term_of_validity }` | `{ uuid: string }` |
+| `nks cluster update-sgw <cluster>` | `POST /clusters/{cluster}/actions/update_sgw` | `{ ncr_sgw, obs_sgw }` | `{ uuid: string }` |
+| `nks cluster set-control-plane-log <cluster>` | `POST /clusters/{cluster}/actions/update_control_plane_log` | JSON file raw payload | `{ uuid: string }` 또는 2xx |
+
 ## 검증
 
 - payload 파일 파싱 오류는 `EXIT_PARAM_ERROR`.

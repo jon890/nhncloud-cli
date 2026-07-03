@@ -26,7 +26,8 @@ NKS는 NHN 공통 봉투가 아니라 OpenStack 계열 평면 JSON/무본문 응
 ### 1. endpoint/cache/auth
 
 - `src/api/endpoints.ts`
-  - `NKS_HOST` 맵 추가: `kr1`, `kr2`, `kr3`, `jp1`.
+  - `NKS_HOST` 맵 추가: `kr1`, `kr2`, `kr3`.
+  - `jp1` 은 공식 NKS API 문서에 endpoint 가 없으므로 이번 구현에서 제외한다.
   - `nksHost(region)` 추가.
   - region 오류 메시지는 기존 IaaS host helper 와 같은 `EXIT_PARAM_ERROR`.
 - `src/cache/token-store.ts`
