@@ -110,10 +110,17 @@ logncrash appkey 와 secret 은 콘솔 → Log & Crash Search → 프로젝트 �
 | `ncr tags` | tag 배열 |
 | `nks supports` | 지원 Kubernetes version / event type 객체 |
 | `nks cluster list` | cluster 배열 |
+| `nks cluster events` | event 배열 |
 | `nks nodegroup list` | nodegroup 배열 |
 | `nks addon-type list` | addon type 배열 |
 | `nks addon list` | addon 배열 |
 | `nks cluster addon list` | cluster addon 배열 |
+
+NKS 단건 조회는 API 객체를 그대로 반환한다.
+예를 들어 `nks cluster get`, `nks cluster event`, `nks nodegroup get`, `nks addon-type get`, `nks addon get`, `nks cluster addon get`, `nks cluster ipacl`, `nks nodegroup autoscale` 은 table 출력용 최소 컬럼을 만들고 `--json` 에서는 raw 객체를 보존한다.
+NKS 쓰기 명령 중 생성·resize·설정 변경·노드 action·애드온 변경은 `{ uuid }` 응답을 반환한다.
+삭제 명령은 성공 메시지만 stderr에 쓰고 stdout은 비운다.
+`nks cluster kubeconfig` 는 kubeconfig 문자열을 stdout 또는 파일로 저장한다.
 
 예: `nhncloud instance get <instance-id> --json`은 `.server.status`가 아니라 `.status`를 읽는다.
 
@@ -768,13 +775,18 @@ AI 에이전트는 조회 작업에 `--json`을 우선 사용한다.
 | 클러스터 목록 조회 | `nhncloud nks cluster list --json` |
 | 클러스터 상세 조회 | `nhncloud nks cluster get <cluster> --json` |
 | 작업 이력 조회 | `nhncloud nks cluster events <cluster> --json` |
+| 작업 이력 단건 조회 | `nhncloud nks cluster event <cluster> <event> --json` |
+| API endpoint IP ACL 조회 | `nhncloud nks cluster ipacl <cluster> --json` |
 | kubeconfig stdout 출력 | `nhncloud nks cluster kubeconfig <cluster>` |
 | kubeconfig 파일 저장 | `nhncloud nks cluster kubeconfig <cluster> --output ./kubeconfig` |
 | 노드 그룹 목록 조회 | `nhncloud nks nodegroup list <cluster> --json` |
 | 노드 그룹 autoscale 조회 | `nhncloud nks nodegroup autoscale <cluster> <nodegroup> --json` |
 | 애드온 타입 조회 | `nhncloud nks addon-type list --json` |
+| 애드온 타입 단건 조회 | `nhncloud nks addon-type get <addon-type> --json` |
 | 설치 가능 애드온 조회 | `nhncloud nks addon list --k8s-version v1.30.1 --json` |
+| 설치 가능 애드온 단건 조회 | `nhncloud nks addon get <addon> --json` |
 | 클러스터 설치 애드온 조회 | `nhncloud nks cluster addon list <cluster> --json` |
+| 클러스터 설치 애드온 단건 조회 | `nhncloud nks cluster addon get <cluster> <addon> --json` |
 
 ### 쓰기 시나리오
 
