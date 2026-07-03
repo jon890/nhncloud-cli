@@ -283,4 +283,84 @@ describe("NksClient", () => {
       }),
     );
   });
+
+  it("createNodeGroup() 은 POST /clusters/{cluster}/nodegroups 에 raw payload 를 전달한다", async () => {
+    vi.mocked(ky.post).mockReturnValue({
+      json: async () => ({ uuid: "nodegroup-uuid" }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    await client.createNodeGroup("cluster-a", { name: "worker" });
+
+    expect(ky.post).toHaveBeenCalledWith(
+      "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1/clusters/cluster-a/nodegroups",
+      expect.objectContaining({ json: { name: "worker" } }),
+    );
+  });
+
+  it("stopNodeGroupNodes() 는 node_list 를 colon 구분 문자열로 보낸다", async () => {
+    vi.mocked(ky.post).mockReturnValue({
+      json: async () => ({ uuid: "request-uuid" }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    await client.stopNodeGroupNodes("cluster-a", "worker", ["node-1", "node-2"]);
+
+    expect(ky.post).toHaveBeenCalledWith(
+      "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1/clusters/cluster-a/nodegroups/worker/stop_node",
+      expect.objectContaining({ json: { node_list: "node-1:node-2" } }),
+    );
+  });
+
+  it("setNodeGroupMetricAutoscale() 는 PATCH discriminator 를 넣는다", async () => {
+    vi.mocked(ky.patch).mockReturnValue({
+      json: async () => ({ uuid: "request-uuid" }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    await client.setNodeGroupMetricAutoscale("cluster-a", "worker", { enabled: true });
+
+    expect(ky.patch).toHaveBeenCalledWith(
+      "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1/clusters/cluster-a/nodegroups/worker",
+      expect.objectContaining({ json: { enabled: true, type: "metric_base_autoscale" } }),
+    );
+  });
+
+  it("upgradeNodeGroup() 은 optional buffer 값을 snake_case 로 보낸다", async () => {
+    vi.mocked(ky.post).mockReturnValue({
+      json: async () => ({ uuid: "request-uuid" }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    await client.upgradeNodeGroup("cluster-a", "default-master", {
+      version: "v1.30.1",
+      numBufferNodes: 1,
+      numMaxUnavailableNodes: 2,
+    });
+
+    expect(ky.post).toHaveBeenCalledWith(
+      "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1/clusters/cluster-a/nodegroups/default-master/upgrade",
+      expect.objectContaining({
+        json: {
+          version: "v1.30.1",
+          num_buffer_nodes: 1,
+          num_max_unavailable_nodes: 2,
+        },
+      }),
+    );
+  });
+
+  it("updateNodeGroupFlavor() 는 flavor_id discriminator 를 PATCH 한다", async () => {
+    vi.mocked(ky.patch).mockReturnValue({
+      json: async () => ({ uuid: "request-uuid" }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    await client.updateNodeGroupFlavor("cluster-a", "worker", { flavorId: "flavor-uuid" });
+
+    expect(ky.patch).toHaveBeenCalledWith(
+      "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1/clusters/cluster-a/nodegroups/worker",
+      expect.objectContaining({ json: { flavor_id: "flavor-uuid", type: "flavor_id" } }),
+    );
+  });
 });

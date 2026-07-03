@@ -43,6 +43,15 @@ export async function readJsonFile(path: string): Promise<Record<string, unknown
   }
 }
 
+export async function readTextFile(path: string): Promise<string> {
+  try {
+    return await readFile(path, "utf-8");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new NhnCloudCliError(`파일을 읽을 수 없습니다: ${path} (${message})`, EXIT_PARAM_ERROR);
+  }
+}
+
 export function parsePositiveInteger(value: string, optionName: string): number {
   if (!/^[1-9]\d*$/.test(value)) {
     throw new NhnCloudCliError(`${optionName} 는 양의 정수여야 합니다: ${JSON.stringify(value)}`, EXIT_PARAM_ERROR);

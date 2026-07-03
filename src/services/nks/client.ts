@@ -267,6 +267,94 @@ export class NksClient {
     );
   }
 
+  async createNodeGroup(cluster: string, payload: Record<string, unknown>): Promise<NksUuidResponse> {
+    return this.requestUuid(
+      "post",
+      `/clusters/${encodeURIComponent(cluster)}/nodegroups`,
+      payload,
+      "nks nodegroup create 응답 형식이 올바르지 않습니다 — uuid 필드가 없습니다.",
+    );
+  }
+
+  async deleteNodeGroup(cluster: string, nodegroup: string): Promise<void> {
+    await this.requestNoBody("delete", `/clusters/${encodeURIComponent(cluster)}/nodegroups/${encodeURIComponent(nodegroup)}`);
+  }
+
+  async stopNodeGroupNodes(cluster: string, nodegroup: string, nodes: string[]): Promise<NksUuidResponse> {
+    return this.requestUuid(
+      "post",
+      `/clusters/${encodeURIComponent(cluster)}/nodegroups/${encodeURIComponent(nodegroup)}/stop_node`,
+      { node_list: nodes.join(":") },
+      "nks nodegroup stop-node 응답 형식이 올바르지 않습니다 — uuid 필드가 없습니다.",
+    );
+  }
+
+  async startNodeGroupNodes(cluster: string, nodegroup: string, nodes: string[]): Promise<NksUuidResponse> {
+    return this.requestUuid(
+      "post",
+      `/clusters/${encodeURIComponent(cluster)}/nodegroups/${encodeURIComponent(nodegroup)}/start_node`,
+      { node_list: nodes.join(":") },
+      "nks nodegroup start-node 응답 형식이 올바르지 않습니다 — uuid 필드가 없습니다.",
+    );
+  }
+
+  async setNodeGroupAutoscale(cluster: string, nodegroup: string, payload: Record<string, unknown>): Promise<NksUuidResponse> {
+    return this.requestUuid(
+      "post",
+      `/clusters/${encodeURIComponent(cluster)}/nodegroups/${encodeURIComponent(nodegroup)}/autoscale`,
+      payload,
+      "nks nodegroup set-autoscale 응답 형식이 올바르지 않습니다 — uuid 필드가 없습니다.",
+    );
+  }
+
+  async setNodeGroupMetricAutoscale(cluster: string, nodegroup: string, payload: Record<string, unknown>): Promise<NksUuidResponse> {
+    return this.patchNodeGroup(cluster, nodegroup, "metric_base_autoscale", payload);
+  }
+
+  async upgradeNodeGroup(
+    cluster: string,
+    nodegroup: string,
+    params: { version: string; numBufferNodes?: number; numMaxUnavailableNodes?: number },
+  ): Promise<NksUuidResponse> {
+    const payload: Record<string, unknown> = { version: params.version };
+    if (params.numBufferNodes !== undefined) payload["num_buffer_nodes"] = params.numBufferNodes;
+    if (params.numMaxUnavailableNodes !== undefined) payload["num_max_unavailable_nodes"] = params.numMaxUnavailableNodes;
+    return this.requestUuid(
+      "post",
+      `/clusters/${encodeURIComponent(cluster)}/nodegroups/${encodeURIComponent(nodegroup)}/upgrade`,
+      payload,
+      "nks nodegroup upgrade 응답 형식이 올바르지 않습니다 — uuid 필드가 없습니다.",
+    );
+  }
+
+  async setNodeGroupUserscript(cluster: string, nodegroup: string, contents: string): Promise<NksUuidResponse> {
+    return this.requestUuid(
+      "post",
+      `/clusters/${encodeURIComponent(cluster)}/nodegroups/${encodeURIComponent(nodegroup)}/userscript`,
+      { contents },
+      "nks nodegroup set-userscript 응답 형식이 올바르지 않습니다 — uuid 필드가 없습니다.",
+    );
+  }
+
+  async updateNodeGroupFlavor(
+    cluster: string,
+    nodegroup: string,
+    params: { flavorId: string; numBufferNodes?: number; numMaxUnavailableNodes?: number },
+  ): Promise<NksUuidResponse> {
+    const payload: Record<string, unknown> = { flavor_id: params.flavorId };
+    if (params.numBufferNodes !== undefined) payload["num_buffer_nodes"] = params.numBufferNodes;
+    if (params.numMaxUnavailableNodes !== undefined) payload["num_max_unavailable_nodes"] = params.numMaxUnavailableNodes;
+    return this.patchNodeGroup(cluster, nodegroup, "flavor_id", payload);
+  }
+
+  async setNodeGroupFipAutoBind(cluster: string, nodegroup: string, payload: Record<string, unknown>): Promise<NksUuidResponse> {
+    return this.patchNodeGroup(cluster, nodegroup, "fip_auto_bind", payload);
+  }
+
+  async setNodeGroupLabels(cluster: string, nodegroup: string, payload: Record<string, unknown>): Promise<NksUuidResponse> {
+    return this.patchNodeGroup(cluster, nodegroup, "k8s_node_labels", payload);
+  }
+
   async listAddonTypes(): Promise<NksAddonType[]> {
     const raw = await this.getJson("/addon_types");
     if (!isAddonTypesResponse(raw)) {
@@ -428,5 +516,19 @@ export class NksClient {
     } catch (err) {
       throw toNhnCloudCliError(err);
     }
+  }
+
+  private async patchNodeGroup(
+    cluster: string,
+    nodegroup: string,
+    type: string,
+    payload: Record<string, unknown>,
+  ): Promise<NksUuidResponse> {
+    return this.requestUuid(
+      "patch",
+      `/clusters/${encodeURIComponent(cluster)}/nodegroups/${encodeURIComponent(nodegroup)}`,
+      { ...payload, type },
+      "nks nodegroup patch 응답 형식이 올바르지 않습니다 — uuid 필드가 없습니다.",
+    );
   }
 }
