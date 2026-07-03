@@ -37,7 +37,7 @@
 - `src/services/nks/types.ts`
 - `src/services/nks/client.ts`
 - `src/services/nks/client.test.ts`
-- `src/commands/nks/addon.ts`
+- `src/commands/nks/cluster.ts`
 - `tasks/030-feat-nks/index.json`
 
 ## 커밋
