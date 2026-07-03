@@ -6,7 +6,7 @@ import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { parsePositiveInteger, readJsonFile, resolveNksClient } from "./helpers.js";
-import type { NksAddon, NksClusterSummary, NksNamedResource, NksUuidResponse } from "../../services/nks/types.js";
+import type { NksAddon, NksClusterIpAcl, NksClusterSummary, NksNamedResource, NksUuidResponse } from "../../services/nks/types.js";
 
 interface ClusterListGlobalOpts extends OutputOptions {
   region?: string;
@@ -84,6 +84,15 @@ function addonRow(addon: NksAddon): string[] {
     addon.name,
     addon.version ?? "",
     addon.status ?? "",
+  ];
+}
+
+function clusterIpAclRow(ipAcl: NksClusterIpAcl): string[] {
+  return [
+    ipAcl.cluster_uuid,
+    String(ipAcl.enable),
+    ipAcl.action,
+    String(ipAcl.ipacl_targets.length),
   ];
 }
 
@@ -444,7 +453,7 @@ const ipAclCommand = new Command("ipacl")
     const { client } = await resolveNksClient(opts);
 
     startSpinner("NKS IP ACL 조회 중...");
-    let result: NksNamedResource;
+    let result: NksClusterIpAcl;
     try {
       result = await client.getClusterIpAcl(cluster);
     } catch (err) {
@@ -454,10 +463,10 @@ const ipAclCommand = new Command("ipacl")
     stopSpinner(true);
 
     output(opts, {
-      headers: ["id", "name", "status"],
-      rows: [resourceRow(result)],
+      headers: ["cluster_uuid", "enable", "action", "target_count"],
+      rows: [clusterIpAclRow(result)],
       raw: result,
-      ids: [resourceId(result)],
+      ids: [result.cluster_uuid],
     });
   });
 

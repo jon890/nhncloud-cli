@@ -176,6 +176,46 @@ describe("NksClient", () => {
     );
   });
 
+  it("getClusterIpAcl() 는 공식 IP ACL 객체를 반환한다", async () => {
+    vi.mocked(ky.get).mockReturnValue({
+      json: async () => ({
+        cluster_uuid: "cluster-uuid",
+        enable: true,
+        action: "ALLOW",
+        ipacl_targets: [{ cidr: "203.0.113.0/24" }],
+      }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    const result = await client.getClusterIpAcl("cluster-a");
+
+    expect(result.cluster_uuid).toBe("cluster-uuid");
+    expect(result.ipacl_targets).toHaveLength(1);
+    expect(ky.get).toHaveBeenCalledWith(
+      "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1/clusters/cluster-a/api_ep_ipacl",
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+  });
+
+  it("getClusterIpAcl() 는 봉투형 응답을 거부한다", async () => {
+    vi.mocked(ky.get).mockReturnValue({
+      json: async () => ({
+        header: { isSuccessful: true, resultCode: 0, resultMessage: "OK" },
+        body: {
+          cluster_uuid: "cluster-uuid",
+          enable: true,
+          action: "ALLOW",
+          ipacl_targets: [],
+        },
+      }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    await expect(client.getClusterIpAcl("cluster-a")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+
   it("listNodeGroups() 는 nodegroups 배열을 반환한다", async () => {
     vi.mocked(ky.get).mockReturnValue({
       json: async () => ({
@@ -187,6 +227,38 @@ describe("NksClient", () => {
     const result = await client.listNodeGroups("cluster-a");
 
     expect(result[0].name).toBe("worker");
+  });
+
+  it("getNodeGroupAutoscale() 는 공식 autoscale 객체를 반환한다", async () => {
+    vi.mocked(ky.get).mockReturnValue({
+      json: async () => ({
+        ca_enable: true,
+        ca_min_node_count: 1,
+        ca_max_node_count: 5,
+        clusterautoscale: { scale_down_enabled: true },
+      }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    const result = await client.getNodeGroupAutoscale("cluster-a", "worker");
+
+    expect(result.ca_enable).toBe(true);
+    expect(result.clusterautoscale["scale_down_enabled"]).toBe(true);
+    expect(ky.get).toHaveBeenCalledWith(
+      "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1/clusters/cluster-a/nodegroups/worker/autoscale",
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+  });
+
+  it("getNodeGroupAutoscale() 는 식별 필드가 없는 임의 객체를 거부한다", async () => {
+    vi.mocked(ky.get).mockReturnValue({
+      json: async () => ({ unexpected: true }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    await expect(client.getNodeGroupAutoscale("cluster-a", "worker")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
   });
 
   it("listAddons() 는 query option 을 snake_case 로 전달한다", async () => {

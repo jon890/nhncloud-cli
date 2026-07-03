@@ -6,14 +6,18 @@ import {
   isNksAddon,
   isNksAddonType,
   isNksClusterSummary,
+  isNksClusterIpAcl,
   isNksNamedResource,
+  isNksNodeGroupAutoscale,
   isNksNodeGroupSummary,
   isNksSupports,
   isNksUuidResponse,
   type NksAddon,
   type NksAddonType,
+  type NksClusterIpAcl,
   type NksClusterSummary,
   type NksNamedResource,
+  type NksNodeGroupAutoscale,
   type NksNodeGroupSummary,
   type NksSupports,
   type NksUuidResponse,
@@ -215,11 +219,15 @@ export class NksClient {
     return raw.config;
   }
 
-  async getClusterIpAcl(cluster: string): Promise<NksNamedResource> {
-    return this.getFlatNamedResource(
-      `/clusters/${encodeURIComponent(cluster)}/api_ep_ipacl`,
-      "nks cluster ipacl 응답 형식이 올바르지 않습니다 — api_ep_ipacl 객체가 아닙니다.",
-    );
+  async getClusterIpAcl(cluster: string): Promise<NksClusterIpAcl> {
+    const raw = await this.getJson(`/clusters/${encodeURIComponent(cluster)}/api_ep_ipacl`);
+    if (!isNksClusterIpAcl(raw)) {
+      throw new NhnCloudCliError(
+        "nks cluster ipacl 응답 형식이 올바르지 않습니다 — cluster_uuid, enable, action, ipacl_targets 필드가 없습니다.",
+        EXIT_API_ERROR,
+      );
+    }
+    return raw;
   }
 
   async listNodeGroups(cluster: string): Promise<NksNodeGroupSummary[]> {
@@ -244,11 +252,15 @@ export class NksClient {
     return raw;
   }
 
-  async getNodeGroupAutoscale(cluster: string, nodegroup: string): Promise<NksNamedResource> {
-    return this.getFlatNamedResource(
-      `/clusters/${encodeURIComponent(cluster)}/nodegroups/${encodeURIComponent(nodegroup)}/autoscale`,
-      "nks nodegroup autoscale 응답 형식이 올바르지 않습니다 — autoscale 객체가 아닙니다.",
-    );
+  async getNodeGroupAutoscale(cluster: string, nodegroup: string): Promise<NksNodeGroupAutoscale> {
+    const raw = await this.getJson(`/clusters/${encodeURIComponent(cluster)}/nodegroups/${encodeURIComponent(nodegroup)}/autoscale`);
+    if (!isNksNodeGroupAutoscale(raw)) {
+      throw new NhnCloudCliError(
+        "nks nodegroup autoscale 응답 형식이 올바르지 않습니다 — ca_enable, clusterautoscale 필드가 없습니다.",
+        EXIT_API_ERROR,
+      );
+    }
+    return raw;
   }
 
   async createNodeGroup(cluster: string, payload: Record<string, unknown>): Promise<NksUuidResponse> {

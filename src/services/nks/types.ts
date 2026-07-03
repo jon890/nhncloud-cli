@@ -45,6 +45,20 @@ export interface NksAddon extends NksNamedResource {
   version?: string;
 }
 
+export interface NksClusterIpAcl {
+  cluster_uuid: string;
+  enable: boolean;
+  action: string;
+  ipacl_targets: unknown[];
+  [key: string]: unknown;
+}
+
+export interface NksNodeGroupAutoscale {
+  ca_enable: boolean;
+  clusterautoscale: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 export interface NksUuidResponse {
   uuid: string;
   [key: string]: unknown;
@@ -109,6 +123,28 @@ export function isNksAddonType(val: unknown): val is NksAddonType {
 
 export function isNksAddon(val: unknown): val is NksAddon {
   return isPlainObject(val) && typeof val["name"] === "string";
+}
+
+export function isNksClusterIpAcl(val: unknown): val is NksClusterIpAcl {
+  return (
+    isPlainObject(val) &&
+    !("header" in val) &&
+    !("body" in val) &&
+    typeof val["cluster_uuid"] === "string" &&
+    typeof val["enable"] === "boolean" &&
+    typeof val["action"] === "string" &&
+    Array.isArray(val["ipacl_targets"])
+  );
+}
+
+export function isNksNodeGroupAutoscale(val: unknown): val is NksNodeGroupAutoscale {
+  return (
+    isPlainObject(val) &&
+    !("header" in val) &&
+    !("body" in val) &&
+    typeof val["ca_enable"] === "boolean" &&
+    isPlainObject(val["clusterautoscale"])
+  );
 }
 
 export function isNksUuidResponse(val: unknown): val is NksUuidResponse {

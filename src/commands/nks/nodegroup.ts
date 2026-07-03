@@ -5,7 +5,7 @@ import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { parsePositiveInteger, readJsonFile, readTextFile, resolveNksClient } from "./helpers.js";
-import type { NksNamedResource, NksNodeGroupSummary, NksUuidResponse } from "../../services/nks/types.js";
+import type { NksNamedResource, NksNodeGroupAutoscale, NksNodeGroupSummary, NksUuidResponse } from "../../services/nks/types.js";
 
 interface NodeGroupGlobalOpts extends OutputOptions {
   region?: string;
@@ -35,6 +35,13 @@ function resourceId(resource: NksNamedResource): string {
 
 function resourceRow(resource: NksNamedResource): string[] {
   return [resourceId(resource), resource.name ?? "", resource.status ?? ""];
+}
+
+function rawObjectRows(resource: Record<string, unknown>): string[][] {
+  return Object.entries(resource).map(([key, value]) => [
+    key,
+    typeof value === "object" && value !== null ? JSON.stringify(value) : String(value),
+  ]);
 }
 
 function uuidOutput(opts: OutputOptions, result: NksUuidResponse, label: string): void {
@@ -219,7 +226,7 @@ const autoscaleCommand = new Command("autoscale")
     const { client } = await resolveNksClient(opts);
 
     startSpinner("NKS 노드 그룹 autoscale 조회 중...");
-    let result: NksNamedResource;
+    let result: NksNodeGroupAutoscale;
     try {
       result = await client.getNodeGroupAutoscale(cluster, nodegroup);
     } catch (err) {
@@ -229,10 +236,10 @@ const autoscaleCommand = new Command("autoscale")
     stopSpinner(true);
 
     output(opts, {
-      headers: ["id", "name", "status"],
-      rows: [resourceRow(result)],
+      headers: ["field", "value"],
+      rows: rawObjectRows(result),
       raw: result,
-      ids: [resourceId(result)],
+      ids: [],
     });
   });
 
