@@ -149,7 +149,20 @@ git tag -a v<version> -m "v<version>"
 git push origin v<version>
 ```
 
-릴리스 노트는 **2단계 분석 결과를 그대로 활용**해 작성한다 (Highlights / 신규 명령 / 신규 옵션 / 버그 수정 / **Closes** / Full Changelog 링크).
+릴리스 노트는 **2단계 분석 결과를 그대로 활용**해 작성한다.
+
+**언어 원칙**: AGENTS.md "한국어 표현 정책 / 마크다운 가독성"을 따른다.
+GitHub Release 노트도 사용자-facing 문서이므로 한국어로 작성한다.
+CLI 명령, 파일 경로, package 이름, API 필드, `Closes`, `Full Changelog` URL 같은 기계 계약 토큰은 원문을 유지한다.
+
+권장 섹션:
+- 주요 변경
+- 새 명령
+- 새 옵션
+- 수정
+- 문서
+- Closes
+- 전체 변경
 
 **전달 방식: `--notes-file <path>` 필수** — 인라인 `--notes "..."` 또는 quoted heredoc 금지.
 
