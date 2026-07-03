@@ -168,7 +168,7 @@ build-with-teams 의 docs-verifier 검증 항목과 본 SKILL 의 docs 영향 �
 | 디렉터리 구조 / 레이어 | `docs/code-architecture.md` 디렉터리 구조 | `AGENTS.md` (요약 한 블록) |
 | 기술 결정 근거 (왜) | `docs/adr/` (해당 ADR 파일) | `AGENTS.md` ADR 참조 표, `docs/code-architecture.md` 해당 영역에 ADR-NNN 한 줄 |
 | 캐시 / 파일 레이아웃 | `docs/adr/` (해당 ADR 파일) | `AGENTS.md` 캐시 규약 행 |
-| API 호출 패턴 / 엔드포인트 함정 | `docs/adr/` (해당 ADR 파일 — 예: ADR-015 파일 307, ADR-026 wiki 함정) | `docs/code-architecture.md` api/ 섹션 |
+| API 호출 패턴 / 엔드포인트 함정 | `docs/adr/` (해당 ADR 파일 — 예: ADR-015 deploy 바이너리 전송, ADR-019 NKS endpoint·인증) | `docs/code-architecture.md` api/ 섹션 |
 | DB / 데이터 스키마 | `docs/data-schema.md` | `docs/adr/` (스키마 결정 ADR 파일) |
 | 사용자 흐름 / 시나리오 | `docs/flow.md` | `docs/prd.md` (기능 → 흐름 매핑) |
 
@@ -201,10 +201,10 @@ docs/flow.md                  ←  docs/prd.md
 
 | 변경 유형 | AGENTS.md | docs/adr/ | code-architecture.md | prd.md | flow.md | data-schema.md | README.md | skills/nhncloud-cli/SKILL.md + references/*.md |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| 신규 CLI 명령 (소) | 주의사항 1줄 + "N개 명령" 카운트 | — | 디렉터리 트리 + 필요 시 utils 추가 | MVP 범위 한 줄 (`- \`dooray X\` — 한 줄 설명`) | 사용자 흐름 섹션 (대화 / 입출력 예시) + 새 옵션 시 옵션 표 행 | (캐시 도입 시) | 사용 예 섹션 + intro "지원 명령" 문구 | 빠른 참조 표 + 자동화 시나리오 + 프론트매터 description |
+| 신규 CLI 명령 (소) | 주의사항 1줄 + "N개 명령" 카운트 | — | 디렉터리 트리 + 필요 시 utils 추가 | MVP 범위 한 줄 (`- \`nhncloud <service> <command>\` — 한 줄 설명`) | 사용자 흐름 섹션 (대화 / 입출력 예시) + 새 옵션 시 옵션 표 행 | (캐시 도입 시) | 사용 예 섹션 + intro "지원 명령" 문구 | 빠른 참조 표 + 자동화 시나리오 + 프론트매터 description |
 | 신규 ADR 동반 변경 | 주의사항 + ADR 참조 표 행 | ADR 본문 + 상단 ADR Index 등재 + **선행 ADR 이 이 작업을 "후속/신설 예정" 으로 가리켰으면 그 미래형 정정** (`[[adr-NNN]]` 역참조로) | 해당 영역에 ADR-NNN 역참조 한 줄 | (사용자 facing 변경 시) | (사용자 흐름 변경 시) | (스키마 결정 시) | 사용 예 (해당 명령 있을 때) | 시나리오 (해당 명령 있을 때) |
 | 캐시 schema / TTL 변경 | 캐시 규약 행 | ADR 갱신 (ADR-004/010) | utils/cache 섹션 | — | — | 캐시 디렉터리 + 스키마 본문 | — | — |
-| 새 API 호출 패턴 (재시도/redirect 등) | — | 정책 결정 ADR (예: ADR-015, ADR-026) | api/ 섹션 + ADR-NNN 역참조 | — | — | — | — | — |
+| 새 API 호출 패턴 (재시도/redirect 등) | — | 정책 결정 ADR (예: ADR-015, ADR-019) | api/ 섹션 + ADR-NNN 역참조 | — | — | — | — | — |
 | DB 스키마 변경 | — | 결정 ADR | api/ 섹션 (해당 시) | — | — | 스키마 본문 | — | — |
 | 사용자 흐름 변경 (옵션 추가/UX) | — | — | — | (MVP 범위 변경 시) | 흐름 추가/수정 | — | 사용 예 (해당 시) | 시나리오 (해당 시) |
 | 기존 resolver 입력 형식 확대 (이메일/ID 분기 등) | 주의사항의 resolver 설명 1줄 갱신 | — | resolver 주석 1줄 갱신 | — | 사용 예 (자동 분기 시나리오) | — | 사용 예 (해당 명령) | 빠른 참조 표 + 동명이인 우회 같은 시나리오 |
@@ -285,7 +285,7 @@ done
 | 소 (버그 수정, UI 미세 조정) | 1 → 8 (나머지 생략) |
 | 중 (기존 기능 확장, 프롬프트 개선) | 1 → 3 → 6 → 7 → 8 |
 | 대 (신규 기능, 파이프라인 추가) | 전체 8단계 |
-| **CLI 레포 (dooray-cli) — 전 규모** | **4단계 압축: (1+2) → (3+4) → (5+6) → (7+8)** |
+| **CLI 레포 (nhncloud-cli) — 전 규모** | **4단계 압축: (1+2) → (3+4) → (5+6) → (7+8)** |
 
 CLI 레포에서는 8단계를 4단계(1+2 합침, 3+4 합침, 5+6 합침, 7+8 합침)로 압축 가능 — 단 각 합쳐진 단계 내부에서 모호함 제거는 동일하게 수행. UI가 없으므로 3단계는 "주요 호출 시나리오 검증(명령 인자/플래그 조합, API 호출 시퀀스)"으로, 4단계는 "명령 시그니처·옵션·출력 포맷(stdout/stderr)"으로 해석한다.
 

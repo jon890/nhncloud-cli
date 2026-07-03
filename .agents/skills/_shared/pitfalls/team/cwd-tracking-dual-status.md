@@ -13,6 +13,6 @@ related: []
 
 commit 전 `pwd` + 양쪽 동시 점검:
 ```bash
-git -C /Users/.../dooray-cli status --short
-git -C /Users/.../dooray-cli/.agents/worktrees/{plan} status --short
+git -C /Users/.../nhncloud-cli status --short
+git -C /Users/.../nhncloud-cli/.agents/worktrees/{plan} status --short
 ```

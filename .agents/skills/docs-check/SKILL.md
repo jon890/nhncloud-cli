@@ -138,9 +138,9 @@ Agent({
 agent 가 수행하는 자동 grep 검증 (도메인 지식 박힌 단일 소스):
 - ADR Index sync + 본문 30줄 BLOAT + 구분선 누락
 - PRD MVP 명령 ↔ `node dist/index.js --help`
-- data-schema.md 캐시 디렉터리 ↔ `src/cache/store.ts` 의 `*_DIR` 상수
+- data-schema.md 자격증명/설정 파일 ↔ `src/config/` 의 파일 경로·schema 처리
 - flow.md 명령 ↔ 실제 명령 (변경 시 반영 누락 자동 감지)
-- code-architecture.md resolvers/ 트리 ↔ `src/resolvers/`
+- code-architecture.md services/commands/api/config 트리 ↔ `src/` 실제 구조
 - 개인 식별 정보 사전 점검 (사내 식별자 / 19자리 ID 노출 검출)
 
 team-lead 는 agent 회신을 받아 Critical 항목부터 사용자 승인 후 수정 (agent 자체는 read-only — `disallowedTools: Write, Edit`).

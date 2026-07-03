@@ -98,7 +98,7 @@ git log origin/main --oneline --grep "{NNN}\|{task-name}" | head -3
 | **critic** | runtime별 critic role | opus | 계획 평가 (APPROVE/REVISE), 실제 코드 대조 |
 | **executor** | `executor` 또는 `nhncloud-cli-executor` adapter | sonnet | phase 순차 실행, 코드 수정 (커밋 제외). nhncloud-cli 도메인 self-check 임베드 (spinner 순서 / resolver 검증 / 타입 안전성 등 TOP 패턴) |
 | **code-reviewer** | `code-reviewer` / `critic` / verifier role | sonnet | 코드 품질 검사 (PASS/FIX_NEEDED), AI slop/금지사항 탐지 |
-| **docs-verifier** | `nhncloud-cli-docs-verifier` adapter 또는 verifier role | sonnet | 코드↔docs 정합성 검증 (PASS/UPDATE_NEEDED/VIOLATION). nhncloud-cli 도메인 지식 (ADR-001~024 / docs 영향 표 / 캐시 규약 / 개인 식별 정보 사전 점검) 자동 적용 — 매번 검사 항목 길게 전달 불요 |
+| **docs-verifier** | `nhncloud-cli-docs-verifier` adapter 또는 verifier role | sonnet | 코드↔docs 정합성 검증 (PASS/UPDATE_NEEDED/VIOLATION). nhncloud-cli 도메인 지식 (`docs/adr/INDEX.md` + 실제 ADR 파일 / docs 영향 표 / 캐시 규약 / 개인 식별 정보 사전 점검) 자동 적용 — 매번 검사 항목 길게 전달 불요 |
 
 ## Codex native adapter
 

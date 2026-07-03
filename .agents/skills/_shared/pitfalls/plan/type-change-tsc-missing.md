@@ -9,7 +9,7 @@ related: []
 ---
 
 **증상**: phase 성공 기준이 `pnpm build && pnpm test` 만 명시. 신규 type 정의/import/시그니처 변경을 포함한 phase 가 빌드/테스트 통과해도 tsc 검증을 우회 → 머지 후 다음 PR 에서 회귀 발견.
-**왜**: tsup (esbuild) 과 vitest 모두 type-check 를 스킵. dooray-cli CI 도 historically `pnpm build && pnpm test` 만 돌림. type 회귀가 생산 build 에서는 안 보이고 type 전용 step (`tsc --noEmit`) 에서만 보인다.
+**왜**: tsup (esbuild) 과 vitest 모두 type-check 를 스킵. nhncloud-cli CI 도 `pnpm build && pnpm test` 만으로는 type 회귀를 놓칠 수 있다. type 회귀가 생산 build 에서는 안 보이고 type 전용 step (`tsc --noEmit`) 에서만 보인다.
 
 **Good** (type 변경을 포함한 phase 의 성공 기준):
 ```bash

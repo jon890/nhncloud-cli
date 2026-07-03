@@ -105,7 +105,7 @@ grep 패턴 정의는 거기에서 단일 소스로 관리 — 본 skill 은 실
 
 **히트가 있으면**:
 - 사용자에게 즉시 보고 + 위치 노출
-- AGENTS.md 개인 식별 정보 섹션의 placeholder 가이드 (`<project>` / `<tenant>` / `<postId>` 등) 또는 dummy 패턴으로 교체 후 보완 commit
+- AGENTS.md 개인 식별 정보 섹션의 placeholder 가이드 (`<tenant-id>` / `<instance-id>` / `<network-uuid>` 등) 또는 dummy 패턴으로 교체 후 보완 commit
 - 보완 commit 후 grep 재실행 → 0건 확인 후 다음 단계 진행
 - **사용자가 "내부 사용 OK" 로 명시 동의하지 않는 한 release 차단**
 

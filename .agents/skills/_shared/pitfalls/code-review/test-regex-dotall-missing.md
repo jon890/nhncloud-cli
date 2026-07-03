@@ -24,4 +24,4 @@ grep -A2 'toThrow(/' tasks/*/phase-*.md | grep -v '/s)'
 
 ---
 
-이 파일은 dooray-cli 전용. 시드 1 / 2 패턴은 fos-blog 와 동일 구조이지만 도메인별 예시는 dooray-cli 컨텍스트로 표현. 3 / 4 / ... 는 이 레포 고유.
+이 파일은 nhncloud-cli 전용. 시드 1 / 2 패턴은 fos-blog 와 동일 구조이지만 도메인별 예시는 nhncloud-cli 컨텍스트로 표현. 3 / 4 / ... 는 이 레포 고유.

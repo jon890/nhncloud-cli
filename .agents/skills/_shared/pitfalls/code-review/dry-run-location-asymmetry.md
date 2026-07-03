@@ -18,7 +18,7 @@ related: []
 - "dry-run JSON 출력 범위가 두 명령에서 동일한가" self-check
 - 범위 통일이 불가능하면 (예: create 가 신규 자원이라 resolve 비용 회피) README/SKILL.md 에 명령별로 범위를 분리 서술
 
-**검출**: phase diff 에 동일 옵션이 2 개 이상 `commands/post/*.ts` 에 추가됐으면 `grep -nE "opts\.dryRun|JSON\.stringify" <변경 파일들>` 결과 비교.
+**검출**: phase diff 에 동일 옵션이 2 개 이상 `src/commands/<svc>/*.ts` 에 추가됐으면 `grep -nE "opts\.dryRun|JSON\.stringify" <변경 파일들>` 결과 비교.
 dry-run 분기 직전 코드에 무엇이 resolve 됐는지 라인 단위로 대조. 비대칭이면 docs 도 두 명령을 분리해서 서술.
 
 **Why**: PR #55 review.

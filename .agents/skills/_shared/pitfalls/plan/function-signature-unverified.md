@@ -37,4 +37,4 @@ grep -nE "^\s*(export )?async function (validateMandatoryTags|resolveTags|toNhnC
 **Why**: PR #46 (post comment get) 가 `PostCommentDetailResponse` 를 사용했지만 import 누락.
   plan026 (PR #48) `await Promise<never>` 패턴이 TS2366 발생.
   둘 다 build/test PASS 로 머지 → 다음 PR 의 review-fix 단계에서야 발견.
-  tsup 의 type-check 우회 특성은 dooray-cli 모든 type-touching phase 의 공통 함정.
+  tsup 의 type-check 우회 특성은 nhncloud-cli 모든 type-touching phase 의 공통 함정.
