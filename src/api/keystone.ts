@@ -18,6 +18,15 @@ interface KeystoneTokenResponse {
   };
 }
 
+export interface IaasTokenEndpoints {
+  tokenId: string;
+  computeEndpoint: string;
+  imageEndpoint: string;
+  networkEndpoint: string;
+  blockStorageEndpoint: string;
+  nksEndpoint: string;
+}
+
 function isKeystoneTokenResponse(val: unknown): val is KeystoneTokenResponse {
   if (typeof val !== "object" || val === null) return false;
   const obj = val as Record<string, unknown>;
@@ -39,7 +48,7 @@ export async function getIaasToken(
   profile: string,
   iaas: IaasCredential,
   forceRefresh = false,
-): Promise<{ tokenId: string; computeEndpoint: string; imageEndpoint: string; networkEndpoint: string; blockStorageEndpoint: string; nksEndpoint: string }> {
+): Promise<IaasTokenEndpoints> {
   // 캐시 확인 (forceRefresh 시 건너뜀)
   if (!forceRefresh) {
     const cached = await readIaasToken(profile, iaas.region);
