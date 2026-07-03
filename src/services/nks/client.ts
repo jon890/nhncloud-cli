@@ -25,16 +25,22 @@ import {
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-function isClustersResponse(val: unknown): val is { clusters: NksClusterSummary[] } {
+function isArrayFieldResponse<T>(
+  key: string,
+  val: unknown,
+  itemGuard: (item: unknown) => item is T,
+): val is Record<string, T[]> {
   if (typeof val !== "object" || val === null) return false;
-  const obj = val as Record<string, unknown>;
-  return Array.isArray(obj["clusters"]) && obj["clusters"].every(isNksClusterSummary);
+  const field = (val as Record<string, unknown>)[key];
+  return Array.isArray(field) && field.every(itemGuard);
+}
+
+function isClustersResponse(val: unknown): val is { clusters: NksClusterSummary[] } {
+  return isArrayFieldResponse("clusters", val, isNksClusterSummary);
 }
 
 function isNamedResourceArrayResponse(key: string, val: unknown): val is Record<string, NksNamedResource[]> {
-  if (typeof val !== "object" || val === null) return false;
-  const obj = val as Record<string, unknown>;
-  return Array.isArray(obj[key]) && obj[key].every(isNksNamedResource);
+  return isArrayFieldResponse(key, val, isNksNamedResource);
 }
 
 function isConfigResponse(val: unknown): val is { config: string } {
@@ -44,21 +50,15 @@ function isConfigResponse(val: unknown): val is { config: string } {
 }
 
 function isNodeGroupsResponse(val: unknown): val is { nodegroups: NksNodeGroupSummary[] } {
-  if (typeof val !== "object" || val === null) return false;
-  const obj = val as Record<string, unknown>;
-  return Array.isArray(obj["nodegroups"]) && obj["nodegroups"].every(isNksNodeGroupSummary);
+  return isArrayFieldResponse("nodegroups", val, isNksNodeGroupSummary);
 }
 
 function isAddonTypesResponse(val: unknown): val is { addon_types: NksAddonType[] } {
-  if (typeof val !== "object" || val === null) return false;
-  const obj = val as Record<string, unknown>;
-  return Array.isArray(obj["addon_types"]) && obj["addon_types"].every(isNksAddonType);
+  return isArrayFieldResponse("addon_types", val, isNksAddonType);
 }
 
 function isAddonsResponse(val: unknown): val is { addons: NksAddon[] } {
-  if (typeof val !== "object" || val === null) return false;
-  const obj = val as Record<string, unknown>;
-  return Array.isArray(obj["addons"]) && obj["addons"].every(isNksAddon);
+  return isArrayFieldResponse("addons", val, isNksAddon);
 }
 
 export class NksClient {
