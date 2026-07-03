@@ -65,6 +65,7 @@ AZ 이름은 `kr-pub-a`처럼 region별로 달라질 수 있으므로,
 
 - `src/services/blockstorage/types.ts`
   - `Volume`에 `availability_zone?: string` 추가.
+  - 현재 command가 이미 사용하는 `volume_type?: string | null`도 `Volume` 타입에 명시해 타입체크와 출력 타입을 맞춘다.
   - `CreateVolumeParams`에 `availability_zone?: string` 추가.
 - `src/services/blockstorage/client.ts`
   - `params.availability_zone`이 있으면 `volumeBody["availability_zone"]`에 넣는다.
@@ -90,7 +91,18 @@ AZ 이름은 `kr-pub-a`처럼 region별로 달라질 수 있으므로,
   - 응답 형식 오류는 기존처럼 `EXIT_API_ERROR`.
 
 Command test infra는 현재 없다.
-대신 help smoke와 grep으로 CLI surface를 검증한다.
+대신 help smoke와 실제 command 실행 smoke로 CLI surface를 검증한다.
+
+추가 smoke:
+
+```bash
+node dist/index.js volume create --size 10 --availability-zone "   "
+```
+
+기대값:
+
+- exit code는 `EXIT_PARAM_ERROR`.
+- 자격증명 해석이나 API 호출 전에 `--availability-zone` 공백 오류를 반환한다.
 
 ### 4. docs
 
@@ -134,8 +146,10 @@ Command test infra는 현재 없다.
 
 ```bash
 pnpm build
+pnpm tsc --noEmit
 pnpm test
 node dist/index.js volume create --help
+node dist/index.js volume create --size 10 --availability-zone "   "
 grep -rn "availability_zone" src/services/blockstorage src/commands/volume
 grep -rn -- "--availability-zone" README.md skills/nhncloud-cli/SKILL.md docs/flow.md AGENTS.md src/commands/volume/create.ts
 ```
@@ -143,7 +157,9 @@ grep -rn -- "--availability-zone" README.md skills/nhncloud-cli/SKILL.md docs/fl
 기대값:
 
 - build/test 모두 exit 0.
+- `pnpm tsc --noEmit` exit 0.
 - help stdout에 `--availability-zone <az>`가 포함된다.
+- 공백-only `--availability-zone` smoke는 `EXIT_PARAM_ERROR`로 실패하고 API 호출 전 종료한다.
 - service client test에서 `volume.availability_zone` payload 포함/미포함 케이스가 모두 고정된다.
 - docs grep은 위 5개 파일에서 모두 1건 이상 나온다.
 

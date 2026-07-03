@@ -12,6 +12,7 @@ interface CreateGlobalOpts extends OutputOptions {
   name?: string;
   description?: string;
   volumeType?: string;
+  availabilityZone?: string;
   snapshotId?: string;
   region?: string;
   profile?: string;
@@ -23,6 +24,7 @@ export const createCommand = new Command("create")
   .option("--name <name>", "볼륨 이름")
   .option("--description <text>", "볼륨 설명")
   .option("--volume-type <type>", "볼륨 타입")
+  .option("--availability-zone <az>", "가용성 영역(AZ). instance availability-zones 로 조회한 zoneName 지정")
   .option("--snapshot-id <id>", "스냅샷 ID (스냅샷에서 볼륨 생성)")
   .option("--region <region>", "region override (기본: iaas 자격증명의 region)")
   .option("--profile <name>", "사용할 profile 이름")
@@ -39,6 +41,14 @@ export const createCommand = new Command("create")
     }
     const sizeNum = Number(opts.size);
 
+    const availabilityZone = opts.availabilityZone?.trim();
+    if (opts.availabilityZone !== undefined && availabilityZone === "") {
+      throw new NhnCloudCliError(
+        `--availability-zone 은 공백이 아닌 문자열이어야 합니다: ${JSON.stringify(opts.availabilityZone)}`,
+        EXIT_PARAM_ERROR,
+      );
+    }
+
     // ── 2. 자격증명 + token 획득 (spinner 시작 전) ──
     const { client } = await resolveVolumeClient(opts);
 
@@ -52,6 +62,7 @@ export const createCommand = new Command("create")
         name: opts.name,
         description: opts.description,
         volume_type: opts.volumeType,
+        availability_zone: availabilityZone,
         snapshot_id: opts.snapshotId,
       });
     } catch (err) {
@@ -70,6 +81,7 @@ export const createCommand = new Command("create")
       ["size", String(volume.size)],
       ["status", volume.status],
       ["volume_type", volume.volume_type ?? ""],
+      ["availability_zone", volume.availability_zone ?? ""],
       ["created_at", volume.created_at],
     ];
 

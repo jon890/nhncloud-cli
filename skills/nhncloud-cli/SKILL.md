@@ -600,6 +600,7 @@ nhncloud instance create \
 | 단일 볼륨 상세 조회 | `nhncloud volume get <volume-id>` |
 | 볼륨 생성 (⚠️ 쓰기) | `nhncloud volume create --size <gb>` |
 | 이름·타입 지정 생성 (⚠️ 쓰기) | `nhncloud volume create --size 50 --name my-volume --volume-type "General SSD"` |
+| AZ 지정 생성 (⚠️ 쓰기) | `nhncloud volume create --size 50 --volume-type "General SSD" --availability-zone kr-pub-a` |
 | 인스턴스 연결 볼륨 목록 | `nhncloud instance volumes <instance-id>` |
 | 볼륨 연결 (⚠️ 쓰기) | `nhncloud instance volume attach <instance-id> --volume <volume-id>` |
 | 볼륨 연결 해제 (⚠️ 쓰기) | `nhncloud instance volume detach <instance-id> <volume-id>` |
@@ -627,6 +628,7 @@ nhncloud instance create \
 | `--name <name>` | 아니오 | 볼륨 이름 |
 | `--description <text>` | 아니오 | 볼륨 설명 |
 | `--volume-type <type>` | 아니오 | 볼륨 타입 (예: `General SSD`) |
+| `--availability-zone <az>` | 아니오 | 가용성 영역(AZ). `instance availability-zones` 로 조회한 `zoneName` 지정 |
 | `--snapshot-id <id>` | 아니오 | 스냅샷 ID (스냅샷으로부터 생성) |
 | `--region <region>` | 아니오 | region override |
 | `--profile <name>` | 아니오 | 사용할 profile 이름 |
