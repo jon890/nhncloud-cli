@@ -31,9 +31,9 @@
 | `nks cluster delete <cluster>` | `DELETE /clusters/{cluster}` | 없음 | 2xx 무본문 |
 | `nks cluster resize <cluster>` | `POST /clusters/{cluster}/actions/resize` | `{ nodegroup, node_count, nodes_to_remove? }` | 2xx 무본문 |
 | `nks cluster set-ipacl <cluster>` | `POST /clusters/{cluster}/api_ep_ipacl` | JSON file raw payload | `{ uuid: string }` 또는 2xx |
-| `nks cluster renew-certificate <cluster>` | `POST /clusters/{cluster}/actions/renew_certificate` | `{ term_of_validity }` | `{ uuid: string }` |
+| `nks cluster renew-certificate <cluster>` | `PATCH /certificates/{cluster}` | `{ term_of_validity }` | `{ uuid: string }` |
 | `nks cluster update-sgw <cluster>` | `POST /clusters/{cluster}/actions/update_sgw` | `{ ncr_sgw, obs_sgw }` | `{ uuid: string }` |
-| `nks cluster set-control-plane-log <cluster>` | `POST /clusters/{cluster}/actions/update_control_plane_log` | JSON file raw payload | `{ uuid: string }` 또는 2xx |
+| `nks cluster set-control-plane-log <cluster>` | `PATCH /clusters/{cluster}` | JSON file plus required `type: "control_plane_log"` | `{ uuid: string }` |
 
 ## 검증
 

@@ -24,7 +24,7 @@
 |---|---|---|---|
 | `nks cluster addon install <cluster>` | `POST /clusters/{cluster}/addons/` | `{ name, version, resolve_conflicts, options? }` | `{ uuid: string }` |
 | `nks cluster addon update <cluster> <addon>` | `PATCH /clusters/{cluster}/addons/{addon}` | `{ version, resolve_conflicts, options? }` | `{ uuid: string }` |
-| `nks cluster addon remove <cluster> <addon>` | `DELETE /clusters/{cluster}/addons/{addon}` | 없음 | 2xx 무본문 |
+| `nks cluster addon remove <cluster> <addon>` | `DELETE /clusters/{cluster}/addons/{addon}` | 없음 | `{ uuid: string }` |
 
 ## 검증
 

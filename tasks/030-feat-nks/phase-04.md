@@ -33,8 +33,8 @@
 |---|---|---|---|---|
 | lifecycle | `nks nodegroup create <cluster> --file <json>` | `POST /clusters/{cluster}/nodegroups` | JSON file raw payload | `{ uuid: string }` |
 | lifecycle | `nks nodegroup delete <cluster> <nodegroup>` | `DELETE /clusters/{cluster}/nodegroups/{nodegroup}` | 없음 | 2xx 무본문 |
-| node actions | `nks nodegroup stop-node ... --nodes <csv>` | `POST /clusters/{cluster}/nodegroups/{nodegroup}/stop_node` | `{ node_list: \"a:b\" }` | 2xx 무본문 |
-| node actions | `nks nodegroup start-node ... --nodes <csv>` | `POST /clusters/{cluster}/nodegroups/{nodegroup}/start_node` | `{ node_list: \"a:b\" }` | 2xx 무본문 |
+| node actions | `nks nodegroup stop-node ... --nodes <csv>` | `POST /clusters/{cluster}/nodegroups/{nodegroup}/stop_node` | `{ node_list: \"a:b\" }` | `{ uuid: string }` |
+| node actions | `nks nodegroup start-node ... --nodes <csv>` | `POST /clusters/{cluster}/nodegroups/{nodegroup}/start_node` | `{ node_list: \"a:b\" }` | `{ uuid: string }` |
 | autoscale | `nks nodegroup set-autoscale ... --file <json>` | `POST /clusters/{cluster}/nodegroups/{nodegroup}/autoscale` | JSON file raw payload | `{ uuid: string }` |
 | autoscale | `nks nodegroup set-metric-autoscale ... --file <json>` | `PATCH /clusters/{cluster}/nodegroups/{nodegroup}` | JSON file plus required `type: \"metric_base_autoscale\"` | `{ uuid: string }` |
 | upgrade | `nks nodegroup upgrade ... --version <v>` | `POST /clusters/{cluster}/nodegroups/{nodegroup}/upgrade` | `{ version, num_buffer_nodes?, num_max_unavailable_nodes? }` | `{ uuid: string }` |
