@@ -95,6 +95,7 @@ export class BlockStorageClient {
     if (params.name !== undefined) volumeBody["name"] = params.name;
     if (params.description !== undefined) volumeBody["description"] = params.description;
     if (params.volume_type !== undefined) volumeBody["volume_type"] = params.volume_type;
+    if (params.availability_zone !== undefined) volumeBody["availability_zone"] = params.availability_zone;
     if (params.snapshot_id !== undefined) volumeBody["snapshot_id"] = params.snapshot_id;
     try {
       const raw = await ky
