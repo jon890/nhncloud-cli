@@ -47,6 +47,9 @@ description: 주기적으로 코드베이스를 검사해 최근 PR/commit, 변�
 - 기존 `AGENTS.md`, `docs/adr/`, `docs/code-architecture.md`, `.agents/skills/_shared/pitfalls/`를 repo-local 계약으로 본다.
 - CI가 이미 잡는 포맷/타입 오류만 반복 보고하지 않는다.
   보고서는 사람이 판단해야 하는 구조 문제와 반복 패턴에 집중한다.
+- skill/docs 규칙은 "사용자가 지시했다"는 이유만으로 유지하지 않는다.
+  반복성, 위험도, 코드/설정 자명성, LLM 기본 행동 여부, 정적 도구 대체 가능성, stale 여부를 함께 본다.
+  이 판단은 `docs-check`의 사용자 지시·규칙 품질 점검으로 넘긴다.
 - public repo 식별자 검사를 유지한다.
   실제 도메인, appkey, secret, tenant, instance id 후보는 반드시 P0로 분류한다.
 
@@ -80,6 +83,7 @@ description: 주기적으로 코드베이스를 검사해 최근 PR/commit, 변�
 ## 넘겨줄 흐름
 
 - 문서 부패 중심이면 `docs-check`를 먼저 실행한다.
+- skill 규칙 품질, 사용자 지시 영속화, pitfall prune, 정적 도구화 후보가 핵심이면 `docs-check`를 먼저 실행한다.
 - 코드 냄새 cleanup이면 `ai-slop-cleaner`에 파일 범위를 넘긴다.
 - 여러 단계, 문서 갱신, critic/docs-verifier가 필요하면 `build-with-teams`로 넘긴다.
 - 단순 PR diff review면 `code-review`를 사용하고 이 스킬은 사용하지 않는다.

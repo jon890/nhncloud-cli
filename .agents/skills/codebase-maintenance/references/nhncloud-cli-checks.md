@@ -25,6 +25,8 @@
 - `docs/code-architecture.md`의 디렉터리 트리와 실제 `src/` 불일치.
 - `docs/flow.md`, `README.md`, `skills/nhncloud-cli/SKILL.md`의 명령 표면 drift.
 - `.agents/skills/_shared/pitfalls/`에 이미 있는 반복 지적이 새 코드에서 재발했는지.
+- skill/pitfall 규칙이 여전히 좋은 규칙인지.
+  한 번의 사건인지, LLM 기본 행동으로 충분한지, 코드로 자명한지, 정적 도구로 대체 가능한지, stale 도메인 지식인지 본다.
 
 ## 권장 점검 명령
 
@@ -43,6 +45,7 @@ grep -rnoE "(https?://|@)[A-Za-z0-9.-]+\\.(com|co\\.kr|net)" README.md skills/ d
 - 같은 API response guard shape가 서비스별로 복붙되고 하나만 drift한다.
 - command option validation이 같은 numeric/range rule을 반복한다.
 - docs update 규칙이 task phase마다 빠져 반복 review 지적을 만든다.
+- skill 규칙이 반복성과 위험도는 높지만 도구로 자동화하기 어렵고 비자명하다.
 
 ## 나쁜 리팩토링 후보
 
@@ -50,3 +53,5 @@ grep -rnoE "(https?://|@)[A-Za-z0-9.-]+\\.(com|co\\.kr|net)" README.md skills/ d
 - 인증 모델이 다른 서비스를 하나의 generic client로 합친다.
 - command 출력 컬럼을 "보기 좋게" 바꾸지만 snapshot/usage 검증이 없다.
 - tests 없이 cache schema migration을 바꾼다.
+- 한 번의 실수만 근거로 skill/pitfall을 계속 늘린다.
+- grep/tsc/ast-grep으로 잡을 수 있는 규칙을 LLM 판단 문서로만 유지한다.
