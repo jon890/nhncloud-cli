@@ -39,6 +39,8 @@ import { listCommand as ncrListCommand } from "./commands/ncr/list.js";
 import { getCommand as ncrGetCommand } from "./commands/ncr/get.js";
 import { imagesCommand as ncrImagesCommand } from "./commands/ncr/images.js";
 import { tagsCommand as ncrTagsCommand } from "./commands/ncr/tags.js";
+import { supportsCommand as nksSupportsCommand } from "./commands/nks/supports.js";
+import { clusterCommand as nksClusterCommand } from "./commands/nks/cluster.js";
 
 const program = new Command();
 
@@ -140,6 +142,13 @@ ncrCommand.addCommand(ncrImagesCommand);
 ncrCommand.addCommand(ncrTagsCommand);
 
 program.addCommand(ncrCommand);
+
+// nks 커맨드 그룹
+const nksCommand = new Command("nks").description("NHN Kubernetes Service 관련 명령");
+nksCommand.addCommand(nksSupportsCommand);
+nksCommand.addCommand(nksClusterCommand);
+
+program.addCommand(nksCommand);
 
 program.parseAsync().catch((err: unknown) => {
   const message = err instanceof Error ? err.message : String(err);
