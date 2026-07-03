@@ -4,7 +4,7 @@ import { output, type OutputOptions } from "../../formatters/table.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
-import { parsePositiveInteger, readJsonFile, readTextFile, resolveNksClient } from "./helpers.js";
+import { parseNonNegativeInteger, parsePositiveInteger, readJsonFile, readTextFile, resolveNksClient } from "./helpers.js";
 import type { NksNamedResource, NksNodeGroupAutoscale, NksNodeGroupSummary, NksUuidResponse } from "../../services/nks/types.js";
 
 interface NodeGroupGlobalOpts extends OutputOptions {
@@ -64,6 +64,10 @@ function parseCsv(value: string, optionName: string): string[] {
 
 function optionalPositiveInteger(value: string | undefined, optionName: string): number | undefined {
   return value === undefined ? undefined : parsePositiveInteger(value, optionName);
+}
+
+function optionalNonNegativeInteger(value: string | undefined, optionName: string): number | undefined {
+  return value === undefined ? undefined : parseNonNegativeInteger(value, optionName);
 }
 
 async function confirmDangerousAction(message: string, yes?: boolean): Promise<boolean> {
@@ -311,7 +315,7 @@ const upgradeCommand = new Command("upgrade")
     try {
       result = await client.upgradeNodeGroup(cluster, nodegroup, {
         version: opts.version as string,
-        numBufferNodes: optionalPositiveInteger(opts.numBufferNodes, "--num-buffer-nodes"),
+        numBufferNodes: optionalNonNegativeInteger(opts.numBufferNodes, "--num-buffer-nodes"),
         numMaxUnavailableNodes: optionalPositiveInteger(opts.numMaxUnavailableNodes, "--num-max-unavailable-nodes"),
       });
     } catch (err) {
@@ -366,7 +370,7 @@ const updateFlavorCommand = new Command("update-flavor")
     try {
       result = await client.updateNodeGroupFlavor(cluster, nodegroup, {
         flavorId: opts.flavor as string,
-        numBufferNodes: optionalPositiveInteger(opts.numBufferNodes, "--num-buffer-nodes"),
+        numBufferNodes: optionalNonNegativeInteger(opts.numBufferNodes, "--num-buffer-nodes"),
         numMaxUnavailableNodes: optionalPositiveInteger(opts.numMaxUnavailableNodes, "--num-max-unavailable-nodes"),
       });
     } catch (err) {

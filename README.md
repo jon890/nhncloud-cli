@@ -239,8 +239,8 @@ NHN Cloud 또는 OpenStack 원본 응답의 최상위 래퍼를 그대로 보존
 
 NKS의 단건 조회는 API 객체를 그대로 반환한다.
 예를 들어 `nks cluster get`, `nks cluster event`, `nks nodegroup get`, `nks addon-type get`, `nks addon get`, `nks cluster addon get`, `nks cluster ipacl`, `nks nodegroup autoscale` 은 table 출력용 최소 컬럼을 만들고 `--json` 에서는 raw 객체를 보존한다.
-NKS 쓰기 명령 중 생성·설정 변경·노드 action·애드온 변경은 `{ uuid }` 응답을 반환한다.
-`nks cluster resize`, 삭제 명령은 성공 메시지만 stderr에 쓰고 stdout은 비운다.
+NKS 쓰기 명령 중 생성·resize·설정 변경·노드 action·애드온 변경은 `{ uuid }` 응답을 반환한다.
+삭제 명령은 성공 메시지만 stderr에 쓰고 stdout은 비운다.
 `nks cluster kubeconfig` 는 kubeconfig 문자열을 stdout 또는 파일로 저장한다.
 
 예를 들어 `instance get --json`은 `.server.status`가 아니라 `.status`를 읽는다.

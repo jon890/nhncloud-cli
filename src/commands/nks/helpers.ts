@@ -58,3 +58,10 @@ export function parsePositiveInteger(value: string, optionName: string): number 
   }
   return Number(value);
 }
+
+export function parseNonNegativeInteger(value: string, optionName: string): number {
+  if (!/^\d+$/.test(value)) {
+    throw new NhnCloudCliError(`${optionName} 는 0 이상의 정수여야 합니다: ${JSON.stringify(value)}`, EXIT_PARAM_ERROR);
+  }
+  return Number(value);
+}

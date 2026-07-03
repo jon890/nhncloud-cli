@@ -212,8 +212,9 @@ const resizeCommand = new Command("resize")
 
     const { client } = await resolveNksClient(opts);
     startSpinner("NKS 클러스터 resize 요청 중...");
+    let result: NksUuidResponse;
     try {
-      await client.resizeCluster({
+      result = await client.resizeCluster({
         cluster,
         nodegroup: opts.nodegroup as string,
         nodeCount,
@@ -225,7 +226,7 @@ const resizeCommand = new Command("resize")
     }
     stopSpinner(true);
 
-    process.stderr.write(chalk.green(`✓ NKS 클러스터 "${cluster}" resize 요청 완료\n`));
+    uuidOutput(opts, result, "클러스터 resize");
   });
 
 const setIpAclCommand = new Command("set-ipacl")

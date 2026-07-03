@@ -31,12 +31,6 @@ function isClustersResponse(val: unknown): val is { clusters: NksClusterSummary[
   return Array.isArray(obj["clusters"]) && obj["clusters"].every(isNksClusterSummary);
 }
 
-function isNamedResourceResponse(key: string, val: unknown): val is Record<string, NksNamedResource> {
-  if (typeof val !== "object" || val === null) return false;
-  const obj = val as Record<string, unknown>;
-  return isNksNamedResource(obj[key]);
-}
-
 function isNamedResourceArrayResponse(key: string, val: unknown): val is Record<string, NksNamedResource[]> {
   if (typeof val !== "object" || val === null) return false;
   const obj = val as Record<string, unknown>;
@@ -151,7 +145,7 @@ export class NksClient {
     nodegroup: string;
     nodeCount: number;
     nodesToRemove?: string[];
-  }): Promise<void> {
+  }): Promise<NksUuidResponse> {
     const payload: Record<string, unknown> = {
       nodegroup: params.nodegroup,
       node_count: params.nodeCount,
@@ -159,7 +153,12 @@ export class NksClient {
     if (params.nodesToRemove && params.nodesToRemove.length > 0) {
       payload["nodes_to_remove"] = params.nodesToRemove;
     }
-    await this.requestNoBody("post", `/clusters/${encodeURIComponent(params.cluster)}/actions/resize`, payload);
+    return this.requestUuid(
+      "post",
+      `/clusters/${encodeURIComponent(params.cluster)}/actions/resize`,
+      payload,
+      "nks cluster resize 응답 형식이 올바르지 않습니다 — uuid 필드가 없습니다.",
+    );
   }
 
   async setClusterIpAcl(cluster: string, payload: Record<string, unknown>): Promise<NksUuidResponse> {
@@ -475,14 +474,6 @@ export class NksClient {
     } catch (err) {
       throw toNhnCloudCliError(err);
     }
-  }
-
-  private async getNamedResource(key: string, path: string, errorMessage: string): Promise<NksNamedResource> {
-    const raw = await this.getJson(path);
-    if (!isNamedResourceResponse(key, raw)) {
-      throw new NhnCloudCliError(errorMessage, EXIT_API_ERROR);
-    }
-    return raw[key];
   }
 
   private async getNamedResourceArray(key: string, path: string, errorMessage: string): Promise<NksNamedResource[]> {

@@ -378,16 +378,19 @@ describe("NksClient", () => {
   });
 
   it("resizeCluster() 는 node_count 와 nodes_to_remove 를 POST 한다", async () => {
-    vi.mocked(ky.post).mockReturnValue({} as never);
+    vi.mocked(ky.post).mockReturnValue({
+      json: async () => ({ uuid: "cluster-uuid" }),
+    } as never);
 
     const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
-    await client.resizeCluster({
+    const result = await client.resizeCluster({
       cluster: "cluster-a",
       nodegroup: "worker",
       nodeCount: 2,
       nodesToRemove: ["node-1", "node-2"],
     });
 
+    expect(result.uuid).toBe("cluster-uuid");
     expect(ky.post).toHaveBeenCalledWith(
       "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1/clusters/cluster-a/actions/resize",
       expect.objectContaining({
