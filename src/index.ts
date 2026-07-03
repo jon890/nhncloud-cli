@@ -39,10 +39,72 @@ import { listCommand as ncrListCommand } from "./commands/ncr/list.js";
 import { getCommand as ncrGetCommand } from "./commands/ncr/get.js";
 import { imagesCommand as ncrImagesCommand } from "./commands/ncr/images.js";
 import { tagsCommand as ncrTagsCommand } from "./commands/ncr/tags.js";
+import { createCommandsCommand } from "./commands/commands.js";
 import { supportsCommand as nksSupportsCommand } from "./commands/nks/supports.js";
 import { clusterCommand as nksClusterCommand } from "./commands/nks/cluster.js";
 import { nodegroupCommand as nksNodegroupCommand } from "./commands/nks/nodegroup.js";
 import { addonCommand as nksAddonCommand, addonTypeCommand as nksAddonTypeCommand } from "./commands/nks/addon.js";
+
+const rootAgentHints = `
+Agent hints:
+  - Prefer --json for structured output.
+  - Use --quiet only when the command documents an identifier output.
+  - Use --profile <name> to avoid relying on default profile.
+  - For IaaS/NKS commands, use --region <region> when region matters.
+  - Run "nhncloud commands --json" to inspect command paths and options.
+`;
+
+const logncrashAgentWorkflow = `
+Agent workflow:
+  1. nhncloud logncrash search --query '*' --from 1h --to now --json
+  2. nhncloud logncrash export --query '<lucene>' --from 1h --to now --output logs.jsonl
+`;
+
+const deployAgentWorkflow = `
+Agent workflow:
+  1. nhncloud deploy artifacts <target> --json
+  2. nhncloud deploy server-groups <target> --json
+  3. nhncloud deploy run <target>
+`;
+
+const instanceAgentWorkflow = `
+Agent workflow:
+  1. nhncloud instance images --json
+  2. nhncloud instance flavors --detail --json
+  3. nhncloud instance list --json
+`;
+
+const networkAgentWorkflow = `
+Agent workflow:
+  1. nhncloud network list --json
+  2. nhncloud network subnet list --json
+`;
+
+const volumeAgentWorkflow = `
+Agent workflow:
+  1. nhncloud volume list --json
+  2. nhncloud volume get <volume-id> --json
+`;
+
+const floatingIpAgentWorkflow = `
+Agent workflow:
+  1. nhncloud floatingip list --json
+  2. nhncloud floatingip create --json
+`;
+
+const ncrAgentWorkflow = `
+Agent workflow:
+  1. nhncloud ncr list --json
+  2. nhncloud ncr images <registry> --json
+  3. nhncloud ncr tags <registry> <repository> --json
+`;
+
+const nksAgentWorkflow = `
+Agent workflow:
+  1. nhncloud nks supports --json
+  2. nhncloud nks cluster list --json
+  3. nhncloud nks cluster get <cluster> --json
+`;
 
 const program = new Command();
 
@@ -52,7 +114,8 @@ program
   .version("0.6.0")
   .option("--json", "JSON 형식으로 출력")
   .option("--quiet", "최소 출력 (자동화용)")
-  .option("--no-color", "색상 비활성화");
+  .option("--no-color", "색상 비활성화")
+  .addHelpText("after", rootAgentHints);
 
 // 전역 옵션 훅 — no-color: chalk 비활성화 / json·quiet: spinner 비활성화
 program.hook("preAction", () => {
@@ -69,7 +132,9 @@ program.hook("preAction", () => {
 program.addCommand(configureCommand);
 
 // logncrash 커맨드 그룹
-const logncrashCommand = new Command("logncrash").description("Log & Crash 관련 명령");
+const logncrashCommand = new Command("logncrash")
+  .description("Log & Crash 관련 명령")
+  .addHelpText("after", logncrashAgentWorkflow);
 logncrashCommand.addCommand(searchCommand);
 logncrashCommand.addCommand(sendCommand);
 logncrashCommand.addCommand(exportCommand);
@@ -77,7 +142,9 @@ logncrashCommand.addCommand(exportCommand);
 program.addCommand(logncrashCommand);
 
 // deploy 커맨드 그룹
-const deployCommand = new Command("deploy").description("NHN Cloud Deploy 관련 명령");
+const deployCommand = new Command("deploy")
+  .description("NHN Cloud Deploy 관련 명령")
+  .addHelpText("after", deployAgentWorkflow);
 deployCommand.addCommand(runCommand);
 deployCommand.addCommand(artifactsCommand);
 deployCommand.addCommand(serverGroupsCommand);
@@ -90,7 +157,9 @@ deployCommand.addCommand(downloadCommand);
 program.addCommand(deployCommand);
 
 // instance 커맨드 그룹
-const instanceCommand = new Command("instance").description("Compute 인스턴스 관련 명령");
+const instanceCommand = new Command("instance")
+  .description("Compute 인스턴스 관련 명령")
+  .addHelpText("after", instanceAgentWorkflow);
 instanceCommand.addCommand(listCommand);
 instanceCommand.addCommand(flavorsCommand);
 instanceCommand.addCommand(availabilityZonesCommand);
@@ -112,14 +181,18 @@ instanceCommand.addCommand(volumesCommand);        // instance volumes
 program.addCommand(instanceCommand);
 
 // network 커맨드 그룹
-const networkCommand = new Command("network").description("VPC·서브넷 조회");
+const networkCommand = new Command("network")
+  .description("VPC·서브넷 조회")
+  .addHelpText("after", networkAgentWorkflow);
 networkCommand.addCommand(networkListCommand);
 networkCommand.addCommand(subnetCommand);
 
 program.addCommand(networkCommand);
 
 // volume 커맨드 그룹
-const volumeCommand = new Command("volume").description("Block Storage 볼륨 관련 명령");
+const volumeCommand = new Command("volume")
+  .description("Block Storage 볼륨 관련 명령")
+  .addHelpText("after", volumeAgentWorkflow);
 volumeCommand.addCommand(volumeListCommand);
 volumeCommand.addCommand(volumeGetCommand);
 volumeCommand.addCommand(volumeCreateCommand);
@@ -129,7 +202,7 @@ program.addCommand(volumeCommand);
 // floatingip 커맨드 그룹
 const floatingipCommand = new Command("floatingip").description(
   "Floating IP(인스턴스 공인 IP) 관리",
-);
+).addHelpText("after", floatingIpAgentWorkflow);
 floatingipCommand.addCommand(fipListCommand);
 floatingipCommand.addCommand(fipCreateCommand);
 floatingipCommand.addCommand(fipDeleteCommand);
@@ -137,7 +210,9 @@ floatingipCommand.addCommand(fipDeleteCommand);
 program.addCommand(floatingipCommand);
 
 // ncr 커맨드 그룹
-const ncrCommand = new Command("ncr").description("NHN Container Registry 관련 명령");
+const ncrCommand = new Command("ncr")
+  .description("NHN Container Registry 관련 명령")
+  .addHelpText("after", ncrAgentWorkflow);
 ncrCommand.addCommand(ncrListCommand);
 ncrCommand.addCommand(ncrGetCommand);
 ncrCommand.addCommand(ncrImagesCommand);
@@ -146,7 +221,9 @@ ncrCommand.addCommand(ncrTagsCommand);
 program.addCommand(ncrCommand);
 
 // nks 커맨드 그룹
-const nksCommand = new Command("nks").description("NHN Kubernetes Service 관련 명령");
+const nksCommand = new Command("nks")
+  .description("NHN Kubernetes Service 관련 명령")
+  .addHelpText("after", nksAgentWorkflow);
 nksCommand.addCommand(nksSupportsCommand);
 nksCommand.addCommand(nksClusterCommand);
 nksCommand.addCommand(nksNodegroupCommand);
@@ -154,6 +231,7 @@ nksCommand.addCommand(nksAddonTypeCommand);
 nksCommand.addCommand(nksAddonCommand);
 
 program.addCommand(nksCommand);
+program.addCommand(createCommandsCommand(program));
 
 program.parseAsync().catch((err: unknown) => {
   const message = err instanceof Error ? err.message : String(err);
