@@ -4,6 +4,7 @@ import { output, type OutputOptions } from "../../formatters/table.js";
 import { resolveInstanceClient } from "./helpers.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
+import { parsePositiveIntegerOption } from "../parse-options.js";
 
 /** --visibility 허용값 — 검증·help 가 공유하는 단일 소스 (4-2 이중정의 회피). */
 const VISIBILITY_VALUES = ["public", "private", "shared"] as const;
@@ -17,16 +18,6 @@ interface ImagesGlobalOpts extends OutputOptions {
   status?: string;
   region?: string;
   profile?: string;
-}
-
-/** 옵션 문자열을 1 이상의 정수로 파싱. 비숫자·0·음수면 EXIT_PARAM_ERROR. */
-function parsePositiveInt(value: string | undefined, flag: string): number | undefined {
-  if (value === undefined) return undefined;
-  const n = Number(value);
-  if (!Number.isInteger(n) || n < 1) {
-    throw new NhnCloudCliError(`${flag} 는 1 이상의 정수여야 합니다 (입력: ${value}).`, EXIT_PARAM_ERROR);
-  }
-  return n;
 }
 
 export const imagesCommand = new Command("images")
@@ -43,7 +34,7 @@ export const imagesCommand = new Command("images")
     const opts = cmd.optsWithGlobals<ImagesGlobalOpts>();
 
     // ── 1. 파라미터 검증 (spinner·자격증명 resolve 전 — fail-fast) ──
-    const limit = parsePositiveInt(opts.limit, "--limit");
+    const limit = parsePositiveIntegerOption(opts.limit, "--limit");
     if (
       opts.visibility !== undefined &&
       !VISIBILITY_VALUES.includes(opts.visibility as (typeof VISIBILITY_VALUES)[number])

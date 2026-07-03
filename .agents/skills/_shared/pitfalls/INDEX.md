@@ -91,6 +91,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 | exitCode 누락·mismatch | code-review | [exitcode-missing](code-review/exitcode-missing.md), [mock-reject-value-mismatch](code-review/mock-reject-value-mismatch.md), [exit-code-literal-no-constant](code-review/exit-code-literal-no-constant.md) |
 | path-traversal (fileName basename) | code-review | [path-traversal-filename](code-review/path-traversal-filename.md) |
 | interactive 경고 vs 실제 동작 | code-review | [interactive-warning-mismatch](code-review/interactive-warning-mismatch.md), [noninteractive-trigger-dead-warning](plan/noninteractive-trigger-dead-warning.md) |
+| CLI option parser/helper 적용 | plan | [option-parse-before-side-effects](plan/option-parse-before-side-effects.md), [numeric-param-range-unverified](plan/numeric-param-range-unverified.md), [positive-int-number-only](code-review/positive-int-number-only.md) |
 | plan 작성 (phase 항목·검증 명령·완료 조건) | plan | [numeric-estimation](plan/numeric-estimation.md), [manual-verification-criterion](plan/manual-verification-criterion.md), [last-phase-completed-marking](plan/last-phase-completed-marking.md) |
 | 팀원 스폰·메시지 (build-with-teams) | team | [sendmessage-reply-missing](team/sendmessage-reply-missing.md), [member-premature-execution](team/member-premature-execution.md), [executor-premature-execution](plan/executor-premature-execution.md) |
 | worktree·cwd 격리 | team | [executor-cwd-isolation](team/executor-cwd-isolation.md), [execution-context-ambiguous](plan/execution-context-ambiguous.md), [cwd-tracking-dual-status](team/cwd-tracking-dual-status.md) |
@@ -98,7 +99,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 
 ## 카테고리별 패턴 목록
 
-### [plan/](plan/) (41)
+### [plan/](plan/) (42)
 
 - [cache-bypass-in-verify-helper](plan/cache-bypass-in-verify-helper.md)
 - [carve-out-conflicting-prohibition](plan/carve-out-conflicting-prohibition.md)
@@ -124,6 +125,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [numeric-estimation](plan/numeric-estimation.md)
 - [numeric-param-range-unverified](plan/numeric-param-range-unverified.md)
 - [on-disk-schema-multiple-options](plan/on-disk-schema-multiple-options.md)
+- [option-parse-before-side-effects](plan/option-parse-before-side-effects.md)
 - [path-migration-agents-missing](plan/path-migration-agents-missing.md)
 - [plan-and-build-commit-conflict](plan/plan-and-build-commit-conflict.md)
 - [prev-plan-interaction-missing](plan/prev-plan-interaction-missing.md)
