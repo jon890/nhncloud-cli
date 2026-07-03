@@ -272,8 +272,8 @@ nhncloud instance keypair delete <name> [opts]  # 키페어 삭제
 | `--region <r>` | 전체 | `iaas.region` override (kr1/kr2/kr3/jp1) |
 | `--profile <name>` | 전체 | profile 선택 |
 | `--detail` | flavors | `GET /flavors/detail` — vcpus·ram·disk 등 스펙 포함 (없으면 id·name 만) |
-| `--min-disk <gb>` | flavors | 최소 블록 스토리지 크기(GB) 이상만 필터 (양의 정수) |
-| `--min-ram <mb>` | flavors | 최소 RAM 크기(MB) 이상만 필터 (양의 정수) |
+| `--min-disk <gb>` | flavors | 최소 블록 스토리지 크기(GB) 이상만 필터 (0 이상의 정수) |
+| `--min-ram <mb>` | flavors | 최소 RAM 크기(MB) 이상만 필터 (0 이상의 정수) |
 | `--limit <n>` | images | 한 페이지 최대 개수 |
 | `--marker <id>` | images | 이 image id 다음부터 조회 (페이지네이션) |
 | `--visibility <v>` | images | 노출 범위 필터 (public/private/shared) |
