@@ -7,6 +7,7 @@ import { resolveInstanceClient } from "./helpers.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import type { Server } from "../../services/instance/types.js";
+import { parsePositiveIntegerOption } from "../parse-options.js";
 
 interface CreateGlobalOpts extends OutputOptions {
   name?: string;
@@ -109,7 +110,9 @@ export const createCommand = new Command("create")
       }
     }
 
-    const timeoutMs = parseInt(opts.timeout ?? "300", 10) * 1000;
+    const timeoutMs = parsePositiveIntegerOption(opts.timeout ?? "300", "--timeout") * 1000;
+    const bootVolumeSize = parsePositiveIntegerOption(opts.bootVolumeSize, "--boot-volume-size");
+    const ephemeralDiskSize = parsePositiveIntegerOption(opts.ephemeralDiskSize, "--ephemeral-disk-size");
 
     // ── 2. 자격증명 + token 획득 (spinner 시작 전) ──
     const { client } = await resolveInstanceClient(opts);
@@ -125,10 +128,10 @@ export const createCommand = new Command("create")
         flavorRef: opts.flavor!,
         imageRef: opts.image!,
         networks,
-        bootVolumeSize: opts.bootVolumeSize !== undefined ? parseInt(opts.bootVolumeSize, 10) : undefined,
+        bootVolumeSize,
         keyName: opts.keyName,
         securityGroups: opts.securityGroup && opts.securityGroup.length > 0 ? opts.securityGroup : undefined,
-        ephemeralDiskSize: opts.ephemeralDiskSize !== undefined ? parseInt(opts.ephemeralDiskSize, 10) : undefined,
+        ephemeralDiskSize,
         protect: opts.protect,
         userDataBase64,
       });

@@ -3,6 +3,7 @@ import { getDeployTarget } from "../../config/credentials.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { output, type OutputOptions } from "../../formatters/table.js";
 import { createDeployClient } from "./helpers.js";
+import { parsePositiveIntegerOption } from "../parse-options.js";
 
 interface RunGlobalOpts extends OutputOptions {
   appKey?: string;
@@ -32,6 +33,7 @@ export const runCommand = new Command("run")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (targetName: string, _opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<RunGlobalOpts>();
+    const concurrentNum = parsePositiveIntegerOption(opts.concurrent ?? "1", "--concurrent");
 
     // ── 1. 좌표 로드 + flag override (spinner 시작 전) ──
     const target = await getDeployTarget(targetName);
@@ -54,7 +56,7 @@ export const runCommand = new Command("run")
         serverGroupId,
         scenarioIds,
         targetHosts: opts.targetHosts,
-        concurrentNum: parseInt(opts.concurrent ?? "1", 10),
+        concurrentNum,
         nextWhenFail: opts.nextWhenFail ?? false,
         deployNote: opts.note,
         async: opts.async ?? false,
