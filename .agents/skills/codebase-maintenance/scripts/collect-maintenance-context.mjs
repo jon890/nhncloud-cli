@@ -81,7 +81,16 @@ if (includePrs) {
     "--json",
     "number,title,mergedAt,headRefName,additions,deletions,changedFiles",
   ]);
-  prs = gh.ok ? JSON.parse(gh.stdout) : { unavailable: true, command: gh.command, stderr: gh.stderr };
+  try {
+    prs = gh.ok ? JSON.parse(gh.stdout) : { unavailable: true, command: gh.command, stderr: gh.stderr };
+  } catch (error) {
+    prs = {
+      unavailable: true,
+      command: gh.command,
+      parseError: error instanceof Error ? error.message : String(error),
+      raw: gh.stdout.slice(0, 200),
+    };
+  }
 }
 
 const evidence = {
