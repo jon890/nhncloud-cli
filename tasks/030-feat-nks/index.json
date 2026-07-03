@@ -3,7 +3,7 @@
   "description": "NKS(NHN Kubernetes Service) 전체 public API 등록. NKS는 Container 카테고리지만 NCR 인증이 아니라 IaaS Keystone token + OpenStack-API-Version: container-infra latest 를 쓴다(ADR-019). endpoint 는 region 별 https://<region>-api-kubernetes-infrastructure.nhncloudservice.com/v1. 응답은 NHN 공통 봉투가 아닌 OpenStack 계열 평면 JSON/무본문이라 unwrap 금지. Phase 1은 endpoint/auth/client 골격 + supports/cluster list 로 최소 200 검증, Phase 2는 조회 전체, Phase 3은 cluster 쓰기, Phase 4는 nodegroup 쓰기, Phase 5는 addon 쓰기, Phase 6은 README/public skill 반영.",
   "created_at": "2026-07-03T00:00:00Z",
   "updated_at": "2026-07-03T00:00:00Z",
-  "status": "in_progress",
+  "status": "completed",
   "current_phase": 6,
   "total_phases": 6,
   "error_message": null,
@@ -53,7 +53,7 @@
       "number": 6,
       "title": "공개 docs — README + skills/nhncloud-cli/SKILL.md + 명령 수 확정",
       "file": "phase-06.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     }

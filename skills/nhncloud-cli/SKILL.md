@@ -1,12 +1,12 @@
 ---
 name: nhncloud-cli
-description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색·전송(logncrash search/send), Deploy 배포 실행·바이너리 그룹·바이너리 목록 조회·업로드·다운로드(deploy upload/download), Compute 인스턴스 관리(instance — 목록·발급·전원 제어·타입 변경(resize/resize-confirm/resize-revert)·키페어·이미지·가용성 영역 조회·볼륨 연결(instance volume attach/detach, instance volumes)), VPC·서브넷 조회(network list/subnet list), Block Storage 볼륨 관리(volume list/get/create), Floating IP 관리(floatingip list/create/delete), NHN Container Registry 레지스트리·이미지·태그 조회(ncr list/get/images/tags) 등 NHN Cloud PaaS API 를 터미널·AI 에이전트에서 호출한다.
+description: NHN Cloud 서비스 CLI. 자격증명 설정(configure), Log & Crash 로그 검색·전송(logncrash search/send/export), Deploy 배포 실행·바이너리 그룹·바이너리 목록 조회·업로드·다운로드(deploy upload/download), Compute 인스턴스 관리(instance), VPC·서브넷 조회(network), Block Storage(volume), Floating IP(floatingip), NHN Container Registry(ncr), NHN Kubernetes Service(nks supports/cluster/nodegroup/addon/kubeconfig) 등 NHN Cloud API 를 터미널·AI 에이전트에서 호출한다.
 ---
 
 # nhncloud-cli
 
 NHN Cloud PaaS 서비스를 AWS CLI 방식으로 호출하는 TypeScript CLI.
-`configure`, `logncrash search/send`, `deploy`, `instance` (전원 제어·keypair·볼륨 연결 포함), `network` (VPC·서브넷 조회), `volume` (Block Storage 볼륨 목록·조회·생성), `floatingip` (공인 IP 관리), `ncr` (NHN Container Registry 레지스트리·이미지·태그 조회) 명령을 지원한다.
+`configure`, `logncrash search/send/export`, `deploy`, `instance`, `network`, `volume`, `floatingip`, `ncr`, `nks` 명령을 지원한다.
 
 ## 설치
 
@@ -108,6 +108,12 @@ logncrash appkey 와 secret 은 콘솔 → Log & Crash Search → 프로젝트 �
 | `ncr get` | `registry` 래퍼를 언랩한 단일 registry 객체 |
 | `ncr images` | repository 배열 |
 | `ncr tags` | tag 배열 |
+| `nks supports` | 지원 Kubernetes version / event type 객체 |
+| `nks cluster list` | cluster 배열 |
+| `nks nodegroup list` | nodegroup 배열 |
+| `nks addon-type list` | addon type 배열 |
+| `nks addon list` | addon 배열 |
+| `nks cluster addon list` | cluster addon 배열 |
 
 예: `nhncloud instance get <instance-id> --json`은 `.server.status`가 아니라 `.status`를 읽는다.
 
@@ -133,6 +139,12 @@ logncrash appkey 와 secret 은 콘솔 → Log & Crash Search → 프로젝트 �
 | NCR 이미지 목록 (JSON) | `nhncloud ncr images <registry> --json` |
 | NCR 태그 목록 조회 | `nhncloud ncr tags <registry> <repository>` |
 | NCR 태그 목록 (JSON) | `nhncloud ncr tags <registry> <repository> --json` |
+| NKS 지원 버전 조회 | `nhncloud nks supports --json` |
+| NKS 클러스터 목록 조회 | `nhncloud nks cluster list --json` |
+| NKS kubeconfig 저장 | `nhncloud nks cluster kubeconfig <cluster> --output ./kubeconfig` |
+| NKS 노드 그룹 목록 조회 | `nhncloud nks nodegroup list <cluster> --json` |
+| NKS 애드온 목록 조회 | `nhncloud nks addon list --k8s-version v1.30.1 --json` |
+| NKS 클러스터 애드온 설치 | `nhncloud nks cluster addon install <cluster> --name coredns --version 1.0.0 --resolve-conflicts overwrite` |
 
 ## logncrash search 옵션
 
@@ -741,3 +753,78 @@ nhncloud ncr tags <registry> <repository> --json | jq 'sort_by(.push_time) | las
 | registry / repository 인수 공백·빈값 | 3 (PARAM_ERROR) |
 | UAK 인증 실패 (401/403) | 2 (AUTH_ERROR) |
 | NCR API 오류 | 1 (API_ERROR) |
+
+## nks — NHN Kubernetes Service 관리
+
+NKS는 `iaas` 자격증명으로 Keystone 토큰을 발급하고 `container-infra` API를 호출한다.
+AI 에이전트는 조회 작업에 `--json`을 우선 사용한다.
+지원 region은 `kr1`, `kr2`, `kr3` 이다.
+
+### 조회 시나리오
+
+| 의도 | 커맨드 |
+|------|--------|
+| 지원 Kubernetes version / event type 확인 | `nhncloud nks supports --json` |
+| 클러스터 목록 조회 | `nhncloud nks cluster list --json` |
+| 클러스터 상세 조회 | `nhncloud nks cluster get <cluster> --json` |
+| 작업 이력 조회 | `nhncloud nks cluster events <cluster> --json` |
+| kubeconfig stdout 출력 | `nhncloud nks cluster kubeconfig <cluster>` |
+| kubeconfig 파일 저장 | `nhncloud nks cluster kubeconfig <cluster> --output ./kubeconfig` |
+| 노드 그룹 목록 조회 | `nhncloud nks nodegroup list <cluster> --json` |
+| 노드 그룹 autoscale 조회 | `nhncloud nks nodegroup autoscale <cluster> <nodegroup> --json` |
+| 애드온 타입 조회 | `nhncloud nks addon-type list --json` |
+| 설치 가능 애드온 조회 | `nhncloud nks addon list --k8s-version v1.30.1 --json` |
+| 클러스터 설치 애드온 조회 | `nhncloud nks cluster addon list <cluster> --json` |
+
+### 쓰기 시나리오
+
+복잡한 생성·변경 작업은 공식 API payload를 JSON 파일로 전달한다.
+삭제·제거 명령은 비대화형 환경에서 `--yes` 가 필요하다.
+payload 원문에는 appkey 같은 민감값이 들어갈 수 있으므로 로그에 출력하지 않는다.
+
+```bash
+# 생성
+nhncloud nks cluster create --file ./cluster-create.json
+nhncloud nks nodegroup create <cluster> --file ./nodegroup-create.json
+
+# 클러스터 변경
+nhncloud nks cluster resize <cluster> --nodegroup worker --node-count 3
+nhncloud nks cluster set-ipacl <cluster> --file ./ipacl.json
+nhncloud nks cluster renew-certificate <cluster> --term-of-validity 3
+nhncloud nks cluster update-sgw <cluster> --ncr-sgw <uuid> --obs-sgw <uuid>
+nhncloud nks cluster set-control-plane-log <cluster> --file ./control-plane-log.json
+
+# 노드 그룹 변경
+nhncloud nks nodegroup stop-node <cluster> worker --nodes node-1,node-2
+nhncloud nks nodegroup start-node <cluster> worker --nodes node-1,node-2
+nhncloud nks nodegroup set-autoscale <cluster> worker --file ./autoscale.json
+nhncloud nks nodegroup set-metric-autoscale <cluster> worker --file ./metric-autoscale.json
+nhncloud nks nodegroup upgrade <cluster> worker --version v1.30.1
+nhncloud nks nodegroup set-userscript <cluster> worker --file ./userscript.sh
+nhncloud nks nodegroup update-flavor <cluster> worker --flavor <flavor-uuid>
+nhncloud nks nodegroup set-fip-auto-bind <cluster> worker --file ./fip-auto-bind.json
+nhncloud nks nodegroup set-labels <cluster> worker --file ./labels.json
+
+# 애드온 변경
+nhncloud nks cluster addon install <cluster> \
+  --name coredns \
+  --version 1.0.0 \
+  --resolve-conflicts overwrite
+
+nhncloud nks cluster addon update <cluster> coredns \
+  --version 1.0.1 \
+  --resolve-conflicts preserve
+
+nhncloud nks cluster addon remove <cluster> coredns --yes
+```
+
+### nks 에러 코드
+
+| 상황 | exit code |
+|------|-----------|
+| `iaas` 자격증명 누락·불완전 | 4 (CONFIG_ERROR) |
+| Keystone 또는 NKS 인증 실패 (401/403) | 2 (AUTH_ERROR) |
+| 지원하지 않는 NKS region | 3 (PARAM_ERROR) |
+| payload JSON 파일 파싱 실패 | 3 (PARAM_ERROR) |
+| 위험 명령에서 비대화형 `--yes` 누락 | 3 (PARAM_ERROR) |
+| NKS API 오류 / 응답 형식 불일치 | 1 (API_ERROR) |
