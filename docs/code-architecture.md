@@ -56,6 +56,7 @@ src/
   formatters/
     table.ts                # 테이블 / json / quiet 출력
   commands/
+    iaas.ts                 # IaaS command helper 공통 profile/region/token context 해석
     configure.ts            # nhncloud configure (대화형 + flag, 연결 테스트, adr-009)
     logncrash/
       search.ts             # nhncloud logncrash search
