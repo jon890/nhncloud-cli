@@ -55,7 +55,7 @@ export interface NksClusterIpAcl {
 
 export interface NksNodeGroupAutoscale {
   ca_enable: boolean | "true" | "false";
-  clusterautoscale: unknown;
+  clusterautoscale: string;
   [key: string]: unknown;
 }
 
@@ -141,7 +141,7 @@ export function isNksNodeGroupAutoscale(val: unknown): val is NksNodeGroupAutosc
     !("header" in val) &&
     !("body" in val) &&
     isBooleanLike(val["ca_enable"]) &&
-    "clusterautoscale" in val
+    typeof val["clusterautoscale"] === "string"
   );
 }
 

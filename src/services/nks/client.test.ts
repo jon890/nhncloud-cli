@@ -293,6 +293,20 @@ describe("NksClient", () => {
     });
   });
 
+  it("getNodeGroupAutoscale() 는 clusterautoscale 이 문자열이 아니면 거부한다", async () => {
+    vi.mocked(ky.get).mockReturnValue({
+      json: async () => ({
+        ca_enable: "true",
+        clusterautoscale: { unexpected: true },
+      }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    await expect(client.getNodeGroupAutoscale("cluster-a", "worker")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+
   it("listAddons() 는 query option 을 snake_case 로 전달한다", async () => {
     vi.mocked(ky.get).mockReturnValue({
       json: async () => ({
