@@ -22,6 +22,29 @@ export interface NksSupports {
   [key: string]: unknown;
 }
 
+export interface NksNamedResource {
+  uuid?: string;
+  id?: string;
+  name?: string;
+  status?: string;
+  [key: string]: unknown;
+}
+
+export interface NksNodeGroupSummary extends NksNamedResource {
+  uuid: string;
+  name: string;
+  status: string;
+}
+
+export interface NksAddonType extends NksNamedResource {
+  name: string;
+}
+
+export interface NksAddon extends NksNamedResource {
+  name: string;
+  version?: string;
+}
+
 export function isNksClusterSummary(val: unknown): val is NksClusterSummary {
   if (typeof val !== "object" || val === null) return false;
   const obj = val as Record<string, unknown>;
@@ -41,6 +64,35 @@ export function isNksSupports(val: unknown): val is NksSupports {
   return isPlainObject(obj["supported_k8s"]) && isPlainObject(obj["supported_event_type"]);
 }
 
-function isPlainObject(val: unknown): val is Record<string, unknown> {
+export function isPlainObject(val: unknown): val is Record<string, unknown> {
   return typeof val === "object" && val !== null && !Array.isArray(val);
+}
+
+export function isNksNamedResource(val: unknown): val is NksNamedResource {
+  if (!isPlainObject(val)) return false;
+  const uuid = val["uuid"];
+  const id = val["id"];
+  const name = val["name"];
+  return (
+    (uuid === undefined || typeof uuid === "string") &&
+    (id === undefined || typeof id === "string") &&
+    (name === undefined || typeof name === "string")
+  );
+}
+
+export function isNksNodeGroupSummary(val: unknown): val is NksNodeGroupSummary {
+  if (!isPlainObject(val)) return false;
+  return (
+    typeof val["uuid"] === "string" &&
+    typeof val["name"] === "string" &&
+    typeof val["status"] === "string"
+  );
+}
+
+export function isNksAddonType(val: unknown): val is NksAddonType {
+  return isPlainObject(val) && typeof val["name"] === "string";
+}
+
+export function isNksAddon(val: unknown): val is NksAddon {
+  return isPlainObject(val) && typeof val["name"] === "string";
 }

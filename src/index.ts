@@ -41,6 +41,8 @@ import { imagesCommand as ncrImagesCommand } from "./commands/ncr/images.js";
 import { tagsCommand as ncrTagsCommand } from "./commands/ncr/tags.js";
 import { supportsCommand as nksSupportsCommand } from "./commands/nks/supports.js";
 import { clusterCommand as nksClusterCommand } from "./commands/nks/cluster.js";
+import { nodegroupCommand as nksNodegroupCommand } from "./commands/nks/nodegroup.js";
+import { addonCommand as nksAddonCommand, addonTypeCommand as nksAddonTypeCommand } from "./commands/nks/addon.js";
 
 const program = new Command();
 
@@ -147,6 +149,9 @@ program.addCommand(ncrCommand);
 const nksCommand = new Command("nks").description("NHN Kubernetes Service 관련 명령");
 nksCommand.addCommand(nksSupportsCommand);
 nksCommand.addCommand(nksClusterCommand);
+nksCommand.addCommand(nksNodegroupCommand);
+nksCommand.addCommand(nksAddonTypeCommand);
+nksCommand.addCommand(nksAddonCommand);
 
 program.addCommand(nksCommand);
 

@@ -112,4 +112,87 @@ describe("NksClient", () => {
       exitCode: EXIT_AUTH_ERROR,
     });
   });
+
+  it("getCluster() 는 /clusters/{cluster} 평면 cluster 객체를 반환한다", async () => {
+    vi.mocked(ky.get).mockReturnValue({
+      json: async () => ({
+        cluster: { uuid: "cluster-uuid", name: "cluster-a", status: "CREATE_COMPLETE" },
+      }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    const result = await client.getCluster("cluster-a");
+
+    expect(result.uuid).toBe("cluster-uuid");
+    expect(ky.get).toHaveBeenCalledWith(
+      "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1/clusters/cluster-a",
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+  });
+
+  it("getClusterKubeconfig() 는 text body 를 반환한다", async () => {
+    vi.mocked(ky.get).mockReturnValue({
+      text: async () => "apiVersion: v1\nkind: Config\n",
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    const result = await client.getClusterKubeconfig("cluster-a");
+
+    expect(result).toContain("apiVersion");
+    expect(ky.get).toHaveBeenCalledWith(
+      "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1/clusters/cluster-a/config",
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+  });
+
+  it("listNodeGroups() 는 nodegroups 배열을 반환한다", async () => {
+    vi.mocked(ky.get).mockReturnValue({
+      json: async () => ({
+        nodegroups: [{ uuid: "nodegroup-uuid", name: "worker", status: "CREATE_COMPLETE" }],
+      }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    const result = await client.listNodeGroups("cluster-a");
+
+    expect(result[0].name).toBe("worker");
+  });
+
+  it("listAddons() 는 query option 을 snake_case 로 전달한다", async () => {
+    vi.mocked(ky.get).mockReturnValue({
+      json: async () => ({
+        addons: [{ uuid: "addon-uuid", name: "coredns", version: "1.0.0" }],
+      }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    const result = await client.listAddons({
+      k8sVersion: "v1.29.3",
+      image: "ubuntu",
+      platformVersion: "1.0",
+    });
+
+    expect(result[0].name).toBe("coredns");
+    expect(ky.get).toHaveBeenCalledWith(
+      "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1/addons",
+      expect.objectContaining({
+        searchParams: {
+          k8s_version: "v1.29.3",
+          image: "ubuntu",
+          platform_version: "1.0",
+        },
+      }),
+    );
+  });
+
+  it("cluster addon get 응답이 addon 객체가 아니면 EXIT_API_ERROR", async () => {
+    vi.mocked(ky.get).mockReturnValue({
+      json: async () => ({ addon: null }),
+    } as never);
+
+    const client = new NksClient("token-id", "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1");
+    await expect(client.getClusterAddon("cluster-a", "addon-a")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
 });
