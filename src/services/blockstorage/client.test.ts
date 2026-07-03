@@ -76,4 +76,20 @@ describe("BlockStorageClient.create", () => {
       exitCode: EXIT_API_ERROR,
     });
   });
+
+  it("availability_zone 응답 필드가 문자열이 아니면 EXIT_API_ERROR 로 throw 한다", async () => {
+    vi.mocked(ky.post).mockReturnValue({
+      json: async () => ({
+        volume: {
+          ...volumeResponse.volume,
+          availability_zone: 123,
+        },
+      }),
+    } as never);
+
+    const client = new BlockStorageClient("token", "https://example.com/v2/tenant");
+    await expect(client.create({ size: 10 })).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
 });

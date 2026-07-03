@@ -17,6 +17,7 @@ function isVolume(val: unknown): val is Volume {
     (typeof obj["name"] === "string" || obj["name"] === null) &&
     typeof obj["size"] === "number" &&
     typeof obj["status"] === "string" &&
+    (obj["availability_zone"] === undefined || typeof obj["availability_zone"] === "string") &&
     Array.isArray(obj["attachments"])
   );
 }
