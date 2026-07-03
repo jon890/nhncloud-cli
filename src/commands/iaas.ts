@@ -1,4 +1,4 @@
-import { getIaasToken } from "../api/keystone.js";
+import { getIaasToken, type IaasTokenEndpoints } from "../api/keystone.js";
 import { getIaasCredential, resolveProfileName } from "../config/credentials.js";
 
 export interface IaasResolverOpts {
@@ -6,15 +6,9 @@ export interface IaasResolverOpts {
   region?: string;
 }
 
-export interface IaasTokenContext {
+export type IaasTokenContext = {
   profileName: string;
-  tokenId: string;
-  computeEndpoint: string;
-  imageEndpoint: string;
-  networkEndpoint: string;
-  blockStorageEndpoint: string;
-  nksEndpoint: string;
-}
+} & IaasTokenEndpoints;
 
 export async function resolveIaasTokenContext(
   opts: IaasResolverOpts,

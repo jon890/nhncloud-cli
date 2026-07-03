@@ -1,4 +1,4 @@
-import { resolveIaasTokenContext } from "../iaas.js";
+import { resolveIaasTokenContext, type IaasResolverOpts } from "../iaas.js";
 import { NetworkClient } from "../../services/network/client.js";
 
 /**
@@ -6,10 +6,9 @@ import { NetworkClient } from "../../services/network/client.js";
  * Keystone 토큰·endpoint 해석은 instance 와 공유한다 (새 토큰 발급 없음).
  * spinner 시작 *전* (파라미터 검증·자격증명 로드 단계) 에 호출한다.
  */
-export async function resolveNetworkClient(opts: {
-  profile?: string;
-  region?: string;
-}): Promise<{ client: NetworkClient; profileName: string }> {
+export async function resolveNetworkClient(
+  opts: IaasResolverOpts,
+): Promise<{ client: NetworkClient; profileName: string }> {
   const { profileName, tokenId, networkEndpoint } = await resolveIaasTokenContext(opts);
   return { client: new NetworkClient(tokenId, networkEndpoint), profileName };
 }

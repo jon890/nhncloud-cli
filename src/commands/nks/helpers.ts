@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { resolveIaasTokenContext } from "../iaas.js";
+import { resolveIaasTokenContext, type IaasResolverOpts } from "../iaas.js";
 import { NksClient } from "../../services/nks/client.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
@@ -8,10 +8,9 @@ import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
  * profile 해석 → iaas 자격증명 로드 → region override → Keystone 토큰 교환 → NksClient 생성.
  * spinner 시작 *전* (파라미터 검증·자격증명 로드 단계) 에 호출한다.
  */
-export async function resolveNksClient(opts: {
-  profile?: string;
-  region?: string;
-}): Promise<{ client: NksClient; profileName: string }> {
+export async function resolveNksClient(
+  opts: IaasResolverOpts,
+): Promise<{ client: NksClient; profileName: string }> {
   const { profileName, tokenId, nksEndpoint } = await resolveIaasTokenContext(opts);
   return { client: new NksClient(tokenId, nksEndpoint), profileName };
 }
