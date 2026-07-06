@@ -484,6 +484,9 @@ nhncloud volume create --size 10
 # 이름·타입 지정
 nhncloud volume create --size 50 --name my-volume --volume-type "General SSD"
 
+# 인스턴스와 같은 가용성 영역에 생성
+nhncloud volume create --size 50 --volume-type "General SSD" --availability-zone kr-pub-a
+
 # 인스턴스에 연결된 볼륨 목록 조회
 nhncloud instance volumes <instance-id>
 

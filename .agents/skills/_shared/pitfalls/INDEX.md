@@ -86,11 +86,12 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 |---|---|---|
 | spinner·UX 순서 (validation 전 시작) | code-review | [spinner-before-validation](code-review/spinner-before-validation.md), [spinner-no-try-catch](code-review/spinner-no-try-catch.md), [resolver-after-editor](code-review/resolver-after-editor.md) |
 | 에러 처리 일관성 (exitCode·catch) | code-review | [bare-await-promise-never](code-review/bare-await-promise-never.md), [exitcode-param-error-in-api-path](code-review/exitcode-param-error-in-api-path.md), [exitcode-missing](code-review/exitcode-missing.md) |
-| 타입 안전성 (Map.get()! / 이중 단언) | code-review | [map-get-nonnull-assertion](code-review/map-get-nonnull-assertion.md), [double-assertion-unknown](code-review/double-assertion-unknown.md), [double-assertion-union-type](code-review/double-assertion-union-type.md) |
+| 타입 안전성 (Map.get()! / 이중 단언 / optional 응답 필드) | code-review | [map-get-nonnull-assertion](code-review/map-get-nonnull-assertion.md), [double-assertion-unknown](code-review/double-assertion-unknown.md), [double-assertion-union-type](code-review/double-assertion-union-type.md), [optional-response-field-guard](code-review/optional-response-field-guard.md) |
 | API/HTTP 패턴 (redirect·throwHttpErrors) | code-review | [redirect-manual-status-missing](code-review/redirect-manual-status-missing.md), [numeric-response-string-number-mixed](code-review/numeric-response-string-number-mixed.md) |
 | exitCode 누락·mismatch | code-review | [exitcode-missing](code-review/exitcode-missing.md), [mock-reject-value-mismatch](code-review/mock-reject-value-mismatch.md), [exit-code-literal-no-constant](code-review/exit-code-literal-no-constant.md) |
 | path-traversal (fileName basename) | code-review | [path-traversal-filename](code-review/path-traversal-filename.md) |
 | interactive 경고 vs 실제 동작 | code-review | [interactive-warning-mismatch](code-review/interactive-warning-mismatch.md), [noninteractive-trigger-dead-warning](plan/noninteractive-trigger-dead-warning.md) |
+| CLI option parser/helper 적용 | plan | [option-parse-before-side-effects](plan/option-parse-before-side-effects.md), [numeric-param-range-unverified](plan/numeric-param-range-unverified.md), [positive-int-number-only](code-review/positive-int-number-only.md) |
 | plan 작성 (phase 항목·검증 명령·완료 조건) | plan | [numeric-estimation](plan/numeric-estimation.md), [manual-verification-criterion](plan/manual-verification-criterion.md), [last-phase-completed-marking](plan/last-phase-completed-marking.md) |
 | 팀원 스폰·메시지 (build-with-teams) | team | [sendmessage-reply-missing](team/sendmessage-reply-missing.md), [member-premature-execution](team/member-premature-execution.md), [executor-premature-execution](plan/executor-premature-execution.md) |
 | worktree·cwd 격리 | team | [executor-cwd-isolation](team/executor-cwd-isolation.md), [execution-context-ambiguous](plan/execution-context-ambiguous.md), [cwd-tracking-dual-status](team/cwd-tracking-dual-status.md) |
@@ -98,7 +99,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 
 ## 카테고리별 패턴 목록
 
-### [plan/](plan/) (41)
+### [plan/](plan/) (42)
 
 - [cache-bypass-in-verify-helper](plan/cache-bypass-in-verify-helper.md)
 - [carve-out-conflicting-prohibition](plan/carve-out-conflicting-prohibition.md)
@@ -124,6 +125,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [numeric-estimation](plan/numeric-estimation.md)
 - [numeric-param-range-unverified](plan/numeric-param-range-unverified.md)
 - [on-disk-schema-multiple-options](plan/on-disk-schema-multiple-options.md)
+- [option-parse-before-side-effects](plan/option-parse-before-side-effects.md)
 - [path-migration-agents-missing](plan/path-migration-agents-missing.md)
 - [plan-and-build-commit-conflict](plan/plan-and-build-commit-conflict.md)
 - [prev-plan-interaction-missing](plan/prev-plan-interaction-missing.md)
@@ -155,7 +157,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [sendmessage-reply-missing](team/sendmessage-reply-missing.md)
 - [task-index-phase-count-mismatch](team/task-index-phase-count-mismatch.md)
 
-### [code-review/](code-review/) (53)
+### [code-review/](code-review/) (54)
 
 - [adjacent-command-pattern-missing](code-review/adjacent-command-pattern-missing.md)
 - [ambiguous-option-positional-silent-fallback](code-review/ambiguous-option-positional-silent-fallback.md)
@@ -193,6 +195,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [one-time-secret-silent-loss](code-review/one-time-secret-silent-loss.md)
 - [optional-credential-empty-fallback](code-review/optional-credential-empty-fallback.md)
 - [optional-field-as-cast-return](code-review/optional-field-as-cast-return.md)
+- [optional-response-field-guard](code-review/optional-response-field-guard.md)
 - [path-traversal-filename](code-review/path-traversal-filename.md)
 - [positive-int-number-only](code-review/positive-int-number-only.md)
 - [quiet-mode-identifier-missing](code-review/quiet-mode-identifier-missing.md)

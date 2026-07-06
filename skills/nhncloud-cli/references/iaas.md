@@ -93,12 +93,15 @@ subnet id가 아니다.
 nhncloud volume list --json
 nhncloud volume get <volume-id> --json
 nhncloud volume create --size 50 --name my-volume
+nhncloud volume create --size 50 --volume-type "General SSD" --availability-zone kr-pub-a
 nhncloud instance volumes <instance-id> --json
 nhncloud instance volume attach <instance-id> --volume <volume-id>
 nhncloud instance volume detach <instance-id> <volume-id>
 ```
 
 `volume create`, `attach`, `detach`는 쓰기 작업이다.
+`--availability-zone <az>`에는 `instance availability-zones`의 `zoneName`을 지정한다.
+인스턴스와 같은 AZ에 볼륨을 만들어 attach 시 AZ 불일치 400을 피할 수 있다.
 `attach`는 `--volume <id>` 플래그를 쓰고, `detach`는 `<instanceId> <volumeId>` 위치 인수를 쓴다.
 
 ## Floating IP

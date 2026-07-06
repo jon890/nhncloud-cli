@@ -44,7 +44,7 @@ TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 - `network subnet list` — 서브넷 목록 조회 (id·cidr·소속 VPC·gateway·가용 IP).
 - `volume list` — Block Storage 볼륨 목록 조회 (id·name·size·status, 전체 필드는 `--json`).
 - `volume get <id>` — 단일 볼륨 상태 조회.
-- `volume create --size <GB>` — 볼륨 발급 (Cinder volumev2, 쓰기. `--name`/`--description`/`--volume-type`).
+- `volume create --size <GB>` — 볼륨 발급 (Cinder volumev2, 쓰기. `--name`/`--description`/`--volume-type`/`--availability-zone`).
 - `floatingip list` — Floating IP(공인 IP) 목록 조회 (id·floating_ip_address·status·port_id·fixed_ip_address, 전체 필드는 `--json`).
 - `floatingip create` — Floating IP 발급 (network endpoint 재사용·쓰기. `--network` 미지정 시 `router:external=true` VPC 자동 조회).
 - `floatingip delete <id>` — Floating IP 삭제 (기본 confirm, `--yes` 즉시·쓰기). associate(인스턴스 연결)는 instance→port_id 매핑 실측 미확정으로 보류.
@@ -160,6 +160,7 @@ src/
 프로젝트 고유 예외가 필요할 때만 별도 문서를 추가한다.
 
 문서, 스킬, 리포트 템플릿, task 파일처럼 사람과 LLM이 함께 읽고 유지보수하는 산출물은 한국어로 작성한다.
+GitHub PR 본문, GitHub issue 본문, release note 처럼 외부에 게시되는 프로젝트 설명 텍스트도 한국어를 기본으로 작성한다.
 워크플로우 이름, CLI 명령, 파일 경로, 코드 식별자, API 필드, `agent_type`, `$workflow` 같은 기계 계약 토큰은 번역하지 않는다.
 영문 자료를 요약해 반영할 때도 최종 저장 문서는 한국어를 기본으로 하며, 필요한 경우에만 원문 용어를 괄호로 남긴다.
 

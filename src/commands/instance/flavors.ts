@@ -2,9 +2,8 @@ import { Command } from "commander";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { output, type OutputOptions } from "../../formatters/table.js";
 import { resolveInstanceClient } from "./helpers.js";
-import { NhnCloudCliError } from "../../utils/errors.js";
-import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import type { Flavor, FlavorDetail } from "../../services/instance/types.js";
+import { parseNonNegativeIntegerOption } from "../parse-options.js";
 
 interface FlavorsGlobalOpts extends OutputOptions {
   detail?: boolean;
@@ -12,16 +11,6 @@ interface FlavorsGlobalOpts extends OutputOptions {
   minRam?: string;
   region?: string;
   profile?: string;
-}
-
-/** 옵션 문자열을 0 이상의 정수로 파싱. 비숫자·음수면 EXIT_PARAM_ERROR. */
-function parseNonNegInt(value: string | undefined, flag: string): number | undefined {
-  if (value === undefined) return undefined;
-  const n = Number(value);
-  if (!Number.isInteger(n) || n < 0) {
-    throw new NhnCloudCliError(`${flag} 는 0 이상의 정수여야 합니다 (입력: ${value}).`, EXIT_PARAM_ERROR);
-  }
-  return n;
 }
 
 export const flavorsCommand = new Command("flavors")
@@ -35,8 +24,8 @@ export const flavorsCommand = new Command("flavors")
     const opts = cmd.optsWithGlobals<FlavorsGlobalOpts>();
 
     // ── 1. 파라미터 검증 (spinner 전, 자격증명 resolve 전 — fail-fast) ──
-    const minDisk = parseNonNegInt(opts.minDisk, "--min-disk");
-    const minRam = parseNonNegInt(opts.minRam, "--min-ram");
+    const minDisk = parseNonNegativeIntegerOption(opts.minDisk, "--min-disk");
+    const minRam = parseNonNegativeIntegerOption(opts.minRam, "--min-ram");
 
     // ── 2. 자격증명 + token 획득 (spinner 시작 전) ──
     const { client } = await resolveInstanceClient(opts);

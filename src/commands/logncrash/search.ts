@@ -7,6 +7,7 @@ import { resolveProfileName, getServiceCredential } from "../../config/credentia
 import { LogncrashClient } from "../../services/logncrash/client.js";
 import { output, truncate, type OutputOptions } from "../../formatters/table.js";
 import type { LogSearchResult } from "../../services/logncrash/types.js";
+import { parseIntegerOption, parseNonNegativeIntegerOption } from "../parse-options.js";
 
 interface SearchGlobalOpts extends OutputOptions {
   query?: string;
@@ -51,18 +52,8 @@ export const searchCommand = new Command("search")
     }
 
     // ── 2. page / size 숫자 검증 (spinner 시작 전) ──
-    const page = parseInt(opts.page ?? "0", 10);
-    const size = parseInt(opts.size ?? "10", 10);
-
-    if (isNaN(page) || page < 0) {
-      throw new NhnCloudCliError("--page 는 0 이상의 정수여야 합니다.", EXIT_PARAM_ERROR);
-    }
-    if (isNaN(size) || size < 1) {
-      throw new NhnCloudCliError("--size 는 1 이상의 정수여야 합니다.", EXIT_PARAM_ERROR);
-    }
-    if (size > 100) {
-      throw new NhnCloudCliError("--size 는 최대 100 이하여야 합니다.", EXIT_PARAM_ERROR);
-    }
+    const page = parseNonNegativeIntegerOption(opts.page ?? "0", "--page");
+    const size = parseIntegerOption(opts.size ?? "10", "--size", { min: 1, max: 100 });
 
     // ── 3. 시간 정규화 + 범위 검증 (spinner 시작 전) ──
     const fromIso = resolveTime(opts.from);
