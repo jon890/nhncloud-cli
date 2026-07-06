@@ -16,7 +16,7 @@ related: []
 
 ```bash
 # 검출: nonInteractive 조건에 추가한 옵션이 interactive else 안에 if 로도 등장하면 dead code
-grep -nE "if \(hasTagChange\)|if \(opts\.parent\)|if \(.*\.cc.*\)" src/commands/post/edit.ts
+grep -nE "if \(hasPayloadFile\)|if \(opts\.file\)|if \(opts\.yes\)" src/commands/<svc>/*.ts
 # 같은 옵션이 nonInteractive 조건 + interactive 분기 if 양쪽에 동시에 있으면 한쪽이 dead
 ```
 

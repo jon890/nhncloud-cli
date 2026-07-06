@@ -131,7 +131,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [prev-plan-interaction-missing](plan/prev-plan-interaction-missing.md)
 - [prose-migration-lossless-checklist](plan/prose-migration-lossless-checklist.md)
 - [punt-orphan-deliverable](plan/punt-orphan-deliverable.md)
-- [resolver-validation-policy-asymmetry](plan/resolver-validation-policy-asymmetry.md)
+- [input-validation-policy-asymmetry](plan/input-validation-policy-asymmetry.md)
 - [revise-string-change-cascade-missing](plan/revise-string-change-cascade-missing.md)
 - [router-index-count-mismatch](plan/router-index-count-mismatch.md)
 - [single-file-split-section-boundary-leak](plan/single-file-split-section-boundary-leak.md)
@@ -160,7 +160,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 ### [code-review/](code-review/) (54)
 
 - [adjacent-command-pattern-missing](code-review/adjacent-command-pattern-missing.md)
-- [adr020-silent-fallback](code-review/adr020-silent-fallback.md)
+- [ambiguous-option-positional-silent-fallback](code-review/ambiguous-option-positional-silent-fallback.md)
 - [bare-await-promise-never](code-review/bare-await-promise-never.md)
 - [cache-consistency](code-review/cache-consistency.md)
 - [cache-non-atomic-write](code-review/cache-non-atomic-write.md)

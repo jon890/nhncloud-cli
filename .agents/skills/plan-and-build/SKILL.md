@@ -177,23 +177,23 @@ tasks/
 8. **Blocked 조건**: 자동 복구 불가능한 상황의 마커 (`PHASE_BLOCKED: ...`)
 9. **성공 기준 bash 블록의 `# cwd:` 는 절대경로 금지 → `<레포 루트>` 플레이스홀더**: build-with-teams 로 실행하면 worktree(`feat/{plan}` branch) 에서 돌므로 main repo 절대경로를 박으면 executor 가 main working tree 를 오염시킨다. 실행 주체(team-lead)가 worktree 절대경로를 executor 스폰 프롬프트로 전달한다. (pitfall [[execution-context-ambiguous]] — PR #1/#2/#9 세 번 재발한 근원 패턴)
 
-## CLI 레이어 phase 가이드 (dooray-cli)
+## CLI 레이어 phase 가이드 (nhncloud-cli)
 
-CLI 도구의 레이어는 `commands/ → resolvers/ → cache/store + api/client`. 새 명령 추가 시 권장 phase 분리:
+CLI 도구의 레이어는 `commands/ → services/ → api/ + config/ + formatters/`. 새 명령 추가 시 권장 phase 분리:
 
 | Phase | 내용 | 모델 |
 |---|---|---|
-| 1 | API client 메서드 + 타입 (`src/api/client.ts`, `src/api/types.ts`) | sonnet |
-| 2 | Resolver (`src/resolvers/` — 캐시 + API 호출 통합) | sonnet |
-| 3 | Cache store 변경 (`src/cache/store.ts` — 필요 시에만) | sonnet |
+| 1 | 서비스 client 메서드 + 타입 (`src/services/<svc>/client.ts`, `src/services/<svc>/types.ts`) | sonnet |
+| 2 | API endpoint/auth/config 해석 (`src/api/`, `src/config/`) | sonnet |
+| 3 | 출력 formatter 변경 (`src/formatters/` — 필요 시에만) | sonnet |
 | 4 | Command 등록 (`src/commands/` — Commander.js) + Formatter (`src/formatters/`) | sonnet |
 | 5 | 벤치마크 (`scripts/benchmark.sh` — cold/warm 측정) | sonnet |
 | N-1 | `pnpm run build` + smoke test (`node dist/index.js {command} --help`) | haiku |
 | N | 커밋 + push (+ 필요 시 `npm publish`) | haiku |
 
-**레이어 역류 금지**: resolver가 command를 import하거나, cache가 resolver를 import하는 등 역방향 의존 금지. phase 1→5 순서는 의존 방향과 일치.
+**레이어 역류 금지**: service/client가 command를 import하거나, config/api가 command를 import하는 등 역방향 의존 금지. phase 1→5 순서는 의존 방향과 일치.
 
-**placeholder 치환값 (dooray-cli)**:
+**placeholder 치환값 (nhncloud-cli)**:
 
 | Placeholder | 값 |
 |---|---|

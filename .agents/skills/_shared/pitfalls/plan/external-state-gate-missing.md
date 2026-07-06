@@ -9,7 +9,7 @@ related: []
 ---
 
 **증상**: 외부 시스템 변경 (push, merge, PR comment, npm publish) 단계 앞에 상태 확인 명령 없음.
-**왜**: PR 이 close / merge 됐는데 force-push 하거나 CI 실패 모르고 "검증 완료" 댓글. dooray-cli 는 `npm publish` 가 추가 외부 동작.
+**왜**: PR 이 close / merge 됐는데 force-push 하거나 CI 실패 모르고 "검증 완료" 댓글. nhncloud-cli 는 GitHub Release / npm publish 가 추가 외부 동작.
 
 ```bash
 STATE=$(gh pr view {N} --json state -q .state)

@@ -15,7 +15,7 @@ description: |
 PR에 달린 코드 리뷰 댓글(주로 claude bot의 🔴/🟡 구조화 리뷰)을 분석하고,
 필수 수정 → 권장 수정 순으로 코드를 반영한 뒤 commit & push한다.
 
-## 프로젝트 컨벤션 (dooray-cli)
+## 프로젝트 컨벤션 (nhncloud-cli)
 
 - 패키지 매니저: **pnpm**
 - 빌드: `pnpm build` (tsup, dist/index.js 단일 번들)
@@ -59,7 +59,7 @@ gh run view $RUN_ID --log-failed 2>&1 | tail -80
 
 `--log-failed` 는 실패한 step 로그만 추출해 토큰 낭비 방지. tail 80 줄 이상 필요하면 점진적으로 늘린다.
 
-### CI 실패 흔한 원인 → 해결 매핑 (dooray-cli 컨텍스트)
+### CI 실패 흔한 원인 → 해결 매핑 (nhncloud-cli 컨텍스트)
 
 | 증상 (로그 키워드) | 원인 | 해결 |
 |---|---|---|
@@ -69,7 +69,7 @@ gh run view $RUN_ID --log-failed 2>&1 | tail -80
 | `SyntaxError: Unexpected token` 빌드 단계 | tsup target 불일치 또는 Node 버전 mismatch | 위 styleText 건과 유사 — Node 버전 점검 |
 | `Test Files X failed` / vitest assertion | 테스트 회귀 | 실패 테스트 파일 직접 읽고 픽스 |
 | `actions/X@vN: Unable to find action` | floating tag 가 cutoff 이후 제거되었거나 오타 | API 로 실존 확인 (`curl -s https://api.github.com/repos/actions/X/tags`) — 잘못된 알람일 수 있음 |
-| Lint/format 실패 (CI 가 lint 단계 가지고 있다면) | 코드 스타일 위반 | 로컬에서 `pnpm lint --fix` 후 커밋. dooray-cli 는 lint 단계 없음 — tsup 빌드가 타입 검증 |
+| Lint/format 실패 (CI 가 lint 단계 가지고 있다면) | 코드 스타일 위반 | 로컬에서 `pnpm lint --fix` 후 커밋. nhncloud-cli 는 lint 단계 없음 — tsup 빌드가 타입 검증 |
 | `gh-token` / secrets 접근 실패 | fork PR 또는 secret 미등록 | maintainer 가 base 컨텍스트로 트리거 또는 secret 등록 |
 
 표에 없는 증상은 사용자에게 "CI 로그 일부 + 의심 원인" 을 제시하고 진행 방향 확인.
@@ -277,7 +277,7 @@ if [ "$TESTS_BEFORE" != "$TESTS_AFTER" ]; then
 fi
 ```
 
-이후 빌드·테스트를 실행한다 (dooray-cli 는 별도 lint 단계 없음 — tsup 빌드가 타입 검증 포함):
+이후 빌드·테스트를 실행한다 (nhncloud-cli 는 별도 lint 단계 없음 — tsup 빌드가 타입 검증 포함):
 
 ```bash
 pnpm build && pnpm test
@@ -290,7 +290,7 @@ pnpm build && pnpm test
 
 ## 5단계: Commit & Push
 
-commit 메시지는 dooray-cli 컨벤션을 따른다 — **`type(scope): description`** (이모지 prefix 금지):
+commit 메시지는 nhncloud-cli 컨벤션을 따른다 — **`type(scope): description`** (이모지 prefix 금지):
 
 ```
 fix(<scope>): <변경 내용 요약>

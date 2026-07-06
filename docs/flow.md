@@ -43,6 +43,24 @@ nhncloud configure --profile playground \
 - ncr — kr1 레지스트리 목록 조회로 검증. 인증 secret 이 공통 UAK 라 UAK 가 없으면 검증을 건너뛰고 경고만 출력한다. configure verify 는 **kr1 가정** — kr2/kr3 만 쓰는 경우 첫 `ncr list --region kr2` 호출이 사실상의 검증이 된다.
 - 실패 시 저장 여부를 다시 확인 (또는 비대화형은 비-0 종료)
 
+## Agent command discovery 흐름
+
+AI 에이전트나 자동화 스크립트는 실행 전 command catalog를 먼저 읽는다.
+
+```bash
+nhncloud commands --json
+nhncloud commands --json | jq '.commands[] | select(.path=="nks cluster list")'
+```
+
+권장 순서:
+
+1. `nhncloud commands --json`으로 command path와 option을 확인한다.
+2. 필요한 서비스 reference(`skills/nhncloud-cli/references/*.md`)를 읽는다.
+3. discovery 명령을 `--json`으로 호출한다.
+4. 쓰기/삭제 명령은 `--yes`, payload file, region, profile을 명시한다.
+
+`commands`는 Commander tree metadata만 출력하며 외부 API를 호출하지 않는다.
+
 ## logncrash search 흐름
 
 ```bash

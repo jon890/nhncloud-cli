@@ -3,8 +3,8 @@
   "description": "Issue #45 — agent-friendly help 표면을 보강하고 공개 nhncloud-cli skill 문서를 router + 서비스별 reference 구조로 분리한다.",
   "created_at": "2026-07-03T00:00:00Z",
   "updated_at": "2026-07-03T00:00:00Z",
-  "status": "pending",
-  "current_phase": 1,
+  "status": "completed",
+  "current_phase": 3,
   "total_phases": 3,
   "error_message": null,
   "blocked_reason": null,
@@ -13,7 +13,7 @@
       "number": 1,
       "title": "공개 skill router + 서비스별 reference 분리",
       "file": "phase-01.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     },
@@ -21,7 +21,7 @@
       "number": 2,
       "title": "agent-friendly help와 command catalog 보강",
       "file": "phase-02.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     },
@@ -29,7 +29,7 @@
       "number": 3,
       "title": "사용자 가이드와 공개 skill 검증 동기화",
       "file": "phase-03.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     }

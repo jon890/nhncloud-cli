@@ -228,7 +228,6 @@ node dist/index.js commands --json | node -e "let s='';process.stdin.on('data',d
 - `src/index.ts`
 - `src/commands/commands.ts`
 - `src/commands/commands.test.ts`
-- `tasks/035-agent-friendly-help-and-skill-docs/index.json`
 
 ## 커밋
 

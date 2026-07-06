@@ -41,7 +41,7 @@ nhncloud-cli 도메인 지식 위에서 평가하는 것이다.
 | `docs/code-architecture.md` | 디렉터리 트리·레이어·API 전략 |
 
 `AGENTS.md` 는 코드 작업 가이드 + 상황별 ADR 참조 표.
-`README.md` + `skills/nhncloud-cli/SKILL.md` 는 사용자 가이드 (외부 facing).
+`README.md` + `skills/nhncloud-cli/SKILL.md` + `skills/nhncloud-cli/references/*.md` 는 사용자 가이드 (외부 facing).
 
 ## 2. ADR 인덱스
 
@@ -93,6 +93,10 @@ grep -nE "src/|commands/|services/|api/|config/|cache|formatters|utils" docs/cod
 
 # data-schema.md 토큰 캐시 vs src/cache/token-store.ts
 grep -nE "deploy-token|iaas-token|computeEndpoint|nksEndpoint" src/cache/token-store.ts docs/data-schema.md
+
+# AGENTS/README command count vs 실제 catalog count
+node dist/index.js commands --json | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>console.log(JSON.parse(s).commands.length))"
+grep -nE "지원 명령|command catalog" README.md AGENTS.md
 
 # PRD MVP 명령 vs 실제 CLI
 grep -oE "^- \`nhncloud [a-z][a-z -]*\`" docs/prd.md | sort -u
@@ -179,7 +183,7 @@ done
 `AGENTS.md` "docs / ADR 작성 형식" 6가지 패턴 위반 점검.
 정책 본문은 거기에 단일 소스 — 본 agent 는 검출 휴리스틱만 보유.
 
-대상: `docs/*.md` / `AGENTS.md` / `README.md` / `skills/nhncloud-cli/SKILL.md` / `tasks/**/*.md`.
+대상: `docs/*.md` / `AGENTS.md` / `README.md` / `skills/nhncloud-cli/SKILL.md` / `skills/nhncloud-cli/references/*.md` / `tasks/**/*.md`.
 코드 블록 / 표 / 디렉터리 트리는 미적용.
 
 검출 휴리스틱:
@@ -244,7 +248,7 @@ docs-check 호출 시: 위 형식 + Critical / Warning / Safe 분류.
 - **자기-면제 금지**: *"단순 변경이라 검증 생략 가능"* 같은 자기-면제 문구 회신 금지.
   team-lead 가 그대로 수용하면 OMC `<execution_protocols>` "Never self-approve" 위반.
 - **도메인 한정**: 본 agent 는 nhncloud-cli repo 만 검증. 다른 repo 호출 시 거부.
-- **사용자 가이드 docs 분리 시점**: `README.md` / `skills/nhncloud-cli/SKILL.md` 는
+- **사용자 가이드 docs 분리 시점**: `README.md` / `skills/nhncloud-cli/SKILL.md` / `skills/nhncloud-cli/references/*.md` 는
   phase N-1 (사용자 가이드 갱신) 에서만 변경 OK.
   phase 안 (1~N-2) 에서 변경되면 VIOLATION.
 - **개인 식별 정보 노출 발견 시 즉시 VIOLATION**: 도메인 5번 grep 명령으로 검출.

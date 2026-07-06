@@ -8,7 +8,7 @@ source: [PR46, PR64, PR6]
 related: []
 ---
 
-**증상**: `startSpinner` 직후 외부 API 호출 (`resolvePostInput`, `client.getXxx` 등) 을 평이하게 호출. 호출 중 예외 발생 시 `stopSpinner` 가 절대 호출 안 됨 → spinner 가 화면에 정지 상태로 잔존.
+**증상**: `startSpinner` 직후 외부 API 호출 (`resolveProfile`, `client.getXxx` 등) 을 평이하게 호출. 호출 중 예외 발생 시 `stopSpinner` 가 절대 호출 안 됨 → spinner 가 화면에 정지 상태로 잔존.
 **Good**: spinner 가 떠 있는 동안의 모든 외부 호출을 try/catch 로 감싸고 catch 에서 `stopSpinner(false)` 명시 호출 후 re-throw.
 
 ```ts
@@ -24,7 +24,7 @@ try {
 ```
 
 **검출**: `grep -A 20 "startSpinner" src/commands/` 결과에서 `try\s*\{` 가 같은 블록 내 없으면 의심.
-**Why**: PR #46 — `comment/get.ts` 의 `startSpinner` 후 `resolvePostInput` / `getPostComment` 가 try 없이 호출 → 에러 경로 spinner 잔존. [[numeric-estimation]] 과 다른 패턴 ([[numeric-estimation]] 은 호출 위치, [[file-scope-inaccurate]] 는 cleanup 누락).
+**Why**: service client 호출이 spinner 이후 try/catch 밖에 놓이면 에러 경로 spinner 잔존. [[numeric-estimation]] 과 다른 패턴 ([[numeric-estimation]] 은 호출 위치, [[file-scope-inaccurate]] 는 cleanup 누락).
 
 **기존 spinner 블록에 새 헬퍼 호출 추가 / 위치 이동 시 (재발 패턴)**: spinner 블록 내부에 새 헬퍼 (`readBodyInput`, `resolveTemplate`, `getProjectTemplateDetail` 등) 호출을 추가하거나 spinner 전에 있던 호출을 spinner 후로 이동하는 경우, 그 새 위치도 동일하게 try/catch 보호가 필요하다. spinner 전에 있을 때는 안전했던 호출 (예: `readBodyInput` 의 파일 부재 throw) 이 spinner 후 위치로 이동하면 leak 경로가 생긴다.
 

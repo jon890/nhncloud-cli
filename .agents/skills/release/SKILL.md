@@ -79,9 +79,9 @@ git log ${LAST_TAG}..HEAD --grep="#[0-9]" --oneline
 위에서 식별된 **신규 명령/옵션이 있다면**, 다음 두 위치에 반영되었는지 확인한다.
 
 ```bash
-# 신규 명령/옵션 키워드를 README.md / skills/nhncloud-cli/SKILL.md에서 grep
+# 신규 명령/옵션 키워드를 README.md / 공개 skill router + references에서 grep
 grep -nE "<신규 옵션|신규 명령>" README.md
-grep -nE "<신규 옵션|신규 명령>" skills/nhncloud-cli/SKILL.md
+grep -nE "<신규 옵션|신규 명령>" skills/nhncloud-cli/SKILL.md skills/nhncloud-cli/references/*.md
 ```
 
 **검증 기준**:
@@ -89,11 +89,11 @@ grep -nE "<신규 옵션|신규 명령>" skills/nhncloud-cli/SKILL.md
 | 위치 | 무엇을 확인 |
 |---|---|
 | `README.md` | "사용 예" 섹션에 신규 명령/옵션이 등장. 새 명령은 적절한 카테고리(### 배포(Deploy) / ### 인스턴스(Instance) / ### 로그 검색 등)에 추가 |
-| `skills/nhncloud-cli/SKILL.md` | AI 에이전트가 사용하는 공개 스킬. 신규 명령/옵션이 명령 카탈로그에 반영되어야 함 |
+| `skills/nhncloud-cli/SKILL.md`와 `skills/nhncloud-cli/references/*.md` | AI 에이전트가 사용하는 공개 스킬 router와 서비스별 reference. 신규 명령/옵션이 적절한 reference에 반영되어야 함 |
 
 **누락 발견 시**:
 - 사용자에게 누락 항목을 보고하고, 어느 위치에 어떤 문장으로 추가할지 제안
-- 보완 commit을 별도로 작성한 후 다음 단계 진행 (`docs(readme): document <feature>` 또는 `docs(skill): add <feature> to nhncloud-cli SKILL.md`)
+- 보완 commit을 별도로 작성한 후 다음 단계 진행 (`docs(readme): document <feature>` 또는 `docs(skill): add <feature> to nhncloud-cli references`)
 - 보완을 건너뛰면 사용자가 명시적으로 동의했을 때만 (예: "이번 릴리스는 인프라만, 기능 추가 없음")
 
 **버그 수정/리팩토링만 있는 릴리스**라면 본 단계는 통과 가능 — 사용자에게 그 사실을 명시하고 진행.
@@ -105,7 +105,7 @@ grep 패턴 정의는 거기에서 단일 소스로 관리 — 본 skill 은 실
 
 **히트가 있으면**:
 - 사용자에게 즉시 보고 + 위치 노출
-- AGENTS.md 개인 식별 정보 섹션의 placeholder 가이드 (`<project>` / `<tenant>` / `<postId>` 등) 또는 dummy 패턴으로 교체 후 보완 commit
+- AGENTS.md 개인 식별 정보 섹션의 placeholder 가이드 (`<tenant-id>` / `<instance-id>` / `<network-uuid>` 등) 또는 dummy 패턴으로 교체 후 보완 commit
 - 보완 commit 후 grep 재실행 → 0건 확인 후 다음 단계 진행
 - **사용자가 "내부 사용 OK" 로 명시 동의하지 않는 한 release 차단**
 

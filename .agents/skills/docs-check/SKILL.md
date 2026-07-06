@@ -106,7 +106,7 @@ ADR이 "왜"를 담고 있는가. "결정 / 맥락 / 대안 기각" 구조가 �
 `AGENTS.md` "docs / ADR 작성 형식" 6가지 패턴 위반을 점검.
 정책 본문은 거기에 단일 소스 — 본 섹션은 검출 휴리스틱만.
 
-대상: `docs/*.md` / `AGENTS.md` / `README.md` / `skills/nhncloud-cli/SKILL.md` / `tasks/**/*.md` / `.agents/skills/**/*.md`.
+대상: `docs/*.md` / `AGENTS.md` / `README.md` / `skills/nhncloud-cli/SKILL.md` / `skills/nhncloud-cli/references/*.md` / `tasks/**/*.md` / `.agents/skills/**/*.md`.
 코드 블록 / 표 / 디렉터리 트리는 미적용.
 
 검출 휴리스틱:
@@ -142,6 +142,7 @@ Agent({
 agent 가 수행하는 자동 grep 검증 (도메인 지식 박힌 단일 소스):
 - ADR Index sync + 본문 30줄 BLOAT + 구분선 누락
 - PRD MVP 명령 ↔ `node dist/index.js --help`
+- data-schema.md 자격증명·설정 파일 ↔ `src/config/` 의 파일 경로·schema 처리
 - data-schema.md 토큰 캐시 설명 ↔ `src/cache/token-store.ts`
 - flow.md 명령 ↔ 실제 명령 (변경 시 반영 누락 자동 감지)
 - code-architecture.md 디렉터리 설명 ↔ 실제 `src/` 트리

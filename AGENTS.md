@@ -5,9 +5,10 @@
 NHN Cloud 서비스를 AWS CLI 처럼 호출하는 통합 CLI.
 TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 
-## 지원 명령 (81개)
+## 지원 명령 (98개 command catalog 항목)
 
 - `configure` — 자격증명 설정 마법사 (대화형 + flag, UAK + 서비스별 키, 연결 테스트).
+- `commands` — Commander tree에서 command path·argument·option·description catalog를 출력하는 metadata 명령 (`--json` 권장, 외부 API 호출 없음).
 - `logncrash search` — Log & Crash 로그 검색 (시간 범위는 90일 이내·31일 이하로 제한, 초과 시 입력 오류).
 - `logncrash export` — Log & Crash 로그 scroll 대량 추출 (검색 결과 전체를 파일로, scrollKey 1분 만료 루프, pageSize 10~100, `--output` JSON Lines/`--format json`. search host·인증 재사용·읽기).
 - `logncrash send` — 로그를 Log & Crash 로 전송 (검색의 대칭 쓰기, collector host + appkey-only 인증·ADR-014). 본문은 `--body`/`--file`/stdin, 단일 로그 8MB 한도.
@@ -88,12 +89,13 @@ src/
   services/<svc>/   # 서비스별 client + types
   utils/            # errors, exit-codes, spinner, time
   formatters/       # table/json/quiet 출력
+  commands/commands.ts # Commander tree 기반 command catalog
   commands/<svc>/   # Commander 커맨드
 ```
 
 ## 스킬 폴더 구분
 
-- `skills/` — 공개 스킬 (사용자·AI 에이전트용 `skills/nhncloud-cli/SKILL.md`)
+- `skills/` — 공개 스킬 (사용자·AI 에이전트용 `skills/nhncloud-cli/SKILL.md` router + `skills/nhncloud-cli/references/` 서비스별 reference)
 - `.agents/skills/` — 내부 개발 워크플로우 스킬의 단일 원본 (planning, plan-and-build 등)
 - `.claude/skills` — Claude 진입점. `.agents/skills` 로 향하는 심링크로 유지한다.
 - `.codex/agents/`, `.claude/agents/` — custom agent adapter. 포맷이 달라 skill 처럼 단일 파일로 합치지 않는다.

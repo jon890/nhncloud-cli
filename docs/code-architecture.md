@@ -58,6 +58,7 @@ src/
   commands/
     iaas.ts                 # IaaS command helper 공통 profile/region/token context 해석
     configure.ts            # nhncloud configure (대화형 + flag, 연결 테스트, adr-009)
+    commands.ts             # nhncloud commands (Commander tree 기반 command path·argument·option metadata catalog, 외부 API 호출 없음)
     logncrash/
       search.ts             # nhncloud logncrash search
       export.ts             # nhncloud logncrash export (scroll 대량 추출 → 파일, search host·인증 재사용)
@@ -111,6 +112,9 @@ src/
       tags.ts               # nhncloud ncr tags <registry> <repository> (태그 목록, artifact tags flatten, [[adr-017]])
       helpers.ts            # createNcrClient (공통 UAK 정적 헤더 + appKey/region 해석, [[adr-016]])
 ```
+
+공개 skill은 `skills/nhncloud-cli/SKILL.md` router와 `skills/nhncloud-cli/references/` 서비스별 reference로 구성한다.
+`SKILL.md`는 routing과 공통 우선 규칙만 담고, 세부 명령 예시는 reference가 가진다.
 
 ## 단위 테스트 (vitest)
 

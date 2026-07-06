@@ -32,7 +32,7 @@ try { await client.getMemberDetail(input); } catch (err) {
 
 **검출**: catch 안의 exitCode 검사 패턴 + `EXIT_PARAM_ERROR` 사용 여부.
 ```bash
-grep -rnE "exitCode\s*===\s*EXIT_PARAM_ERROR" src/resolvers/ src/commands/ src/api/
+grep -rnE "exitCode\s*===\s*EXIT_PARAM_ERROR" src/commands/ src/services/ src/api/
 # 결과 있으면 → API 경로의 catch 인지 확인. API 경로면 → EXIT_API_ERROR 로 교체
 ```
 

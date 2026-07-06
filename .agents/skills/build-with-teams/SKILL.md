@@ -84,7 +84,7 @@ git log origin/main --oneline --grep "{NNN}\|{task-name}" | head -3
 
 1. **docs-first 경계**: planning 결정 docs 반영 + 커밋 → task 생성은 `/planning` 산출물이다.
    기존 `tasks/{plan}` 을 인자로 받은 실행에서는 그 task 와 이미 커밋된 planning docs 를 기준으로 삼고, phase 안에서 planning 결정 docs 를 새로 갱신하지 않는다.
-   `README.md` / `skills/nhncloud-cli/SKILL.md` 같은 사용자-facing docs 는 실제 코드 표면에 의존하므로 마지막 phase 에서만 갱신한다.
+   `README.md` / `skills/nhncloud-cli/SKILL.md` / `skills/nhncloud-cli/references/*.md` 같은 사용자-facing docs 는 실제 코드 표면에 의존하므로 마지막 phase 에서만 갱신한다.
 2. **가시적 협업**: 백그라운드 스크립트 대신 에이전트 팀이 각 단계를 명시적으로 수행
 3. **평가 통과 조건**: critic 승인 없이 실행 불가. REVISE면 계획 수정 후 재평가
 4. **docs 정합성**: 실행 완료 후 docs-verifier가 코드↔문서 일치 검증
@@ -98,7 +98,7 @@ git log origin/main --oneline --grep "{NNN}\|{task-name}" | head -3
 | **critic** | runtime별 critic role | opus | 계획 평가 (APPROVE/REVISE), 실제 코드 대조 |
 | **executor** | `executor` 또는 `nhncloud-cli-executor` adapter | sonnet | phase 순차 실행, 코드 수정 (커밋 제외). nhncloud-cli 도메인 self-check 임베드 (spinner 순서 / resolver 검증 / 타입 안전성 등 TOP 패턴) |
 | **code-reviewer** | `code-reviewer` / `critic` / verifier role | sonnet | 코드 품질 검사 (PASS/FIX_NEEDED), AI slop/금지사항 탐지 |
-| **docs-verifier** | `nhncloud-cli-docs-verifier` adapter 또는 verifier role | sonnet | 코드↔docs 정합성 검증 (PASS/UPDATE_NEEDED/VIOLATION). nhncloud-cli 도메인 지식 (ADR-001~024 / docs 영향 표 / 캐시 규약 / 개인 식별 정보 사전 점검) 자동 적용 — 매번 검사 항목 길게 전달 불요 |
+| **docs-verifier** | `nhncloud-cli-docs-verifier` adapter 또는 verifier role | sonnet | 코드↔docs 정합성 검증 (PASS/UPDATE_NEEDED/VIOLATION). nhncloud-cli 도메인 지식 (`docs/adr/INDEX.md` + 실제 ADR 파일 / docs 영향 표 / 캐시 규약 / 개인 식별 정보 사전 점검) 자동 적용 — 매번 검사 항목 길게 전달 불요 |
 
 ## Codex native adapter
 
@@ -136,7 +136,7 @@ Agent({
 })
 ```
 
-executor 스폰 시 `nhncloud-cli-executor` custom agent 사용 (dooray-cli 도메인 self-check 자동 적용):
+executor 스폰 시 `nhncloud-cli-executor` custom agent 사용 (nhncloud-cli 도메인 self-check 자동 적용):
 
 ```
 Agent({
@@ -440,15 +440,15 @@ executor (`nhncloud-cli-executor`) 는 phase 시작 직전 TOP 패턴 self-check
 5. **매직 넘버/문자열**: 상수 추출 필요한 하드코딩 값
 6. **에러 처리**: `Promise.all` vs `Promise.allSettled`, try-catch 누락
 
-**dooray-cli 특화 검사 항목 (CLI 변형 — 위 6 항목에 추가):**
+**nhncloud-cli 특화 검사 항목 (CLI 변형 — 위 6 항목에 추가):**
 
 7. **exitCode 누락**: catch 블록에서 `process.exit(N)` 또는 `throw new NhnCloudCliError(msg, N)` 누락 시 호출 스크립트가 실패 인지 못함 — grep으로 catch 패턴 검증
 8. **HTTP 클라이언트 (`ky` 외 금지)**: `axios` / `node-fetch` / `got` import → 번들 크기 증가 + 일관성 위반. `grep -rn "from ['\"]axios\|from ['\"]node-fetch\|from ['\"]got" src/`
 9. **stdout vs stderr 혼동**: 데이터는 stdout, 스피너/에러/진행 로그는 stderr. `console.error` vs `console.log` 오용 검증
 10. **캐시 atomic write**: `~/.nhncloud/cache/` 쓰기는 temp 파일 + rename 패턴 (race 방지). `writeFile` 직접 호출 금지
 11. **캐시 schema 검증**: 캐시 read 시 Zod 또는 타입 가드로 검증 — 이전 버전 스키마 오염 방지
-12. **`--subject` / `--body` non-interactive 옵션**: `post edit` / `comment edit` / `post create` 등에서 누락 — AI 에이전트·스크립트 호출 차단 방지
-13. **member resolver 모호성**: 이름 부분일치가 모호하면 에러 + 후보 목록 출력 (silent matching 금지)
+12. **쓰기 명령 non-interactive 안전장치**: 삭제·제거 명령은 `--yes`, 파일 기반 payload 명령은 `--file`, overwrite 가능 명령은 `--force` 정책이 docs와 코드에서 일치하는지 확인
+13. **IaaS/NKS resolver 모호성**: region/profile/credential 해석이 silent fallback 없이 명시 에러 또는 문서화된 기본값을 따르는지 확인
 
 **code-reviewer가 검사할 범위**: executor가 변경한 파일만 (`git diff --name-only` 기준).
 
@@ -488,7 +488,7 @@ executor 완료 후 team-lead → docs-verifier에게 검증 요청.
 5. 의사결정 의도 보존 여부
 6. **문서 부패 검증 (필수)**: 코드에서 제거/변경된 기능이 docs에 아직 남아 있는지
 
-**dooray-cli 특화 docs-verifier 검사 항목 (CLI 변형 — 위 6 항목에 추가):**
+**nhncloud-cli 특화 docs-verifier 검사 항목 (CLI 변형 — 위 6 항목에 추가):**
 
 7. **planning docs 영향 표 100% 적용 검증** — `.agents/skills/planning/SKILL.md` 8단계 A항 "변경 유형별 docs 영향 표" 의 해당 행 식별 + 표시된 모든 docs 갱신 확인
    - 단일 항목 (✓ 표시) 이라도 누락이면 UPDATE_NEEDED
@@ -499,9 +499,9 @@ executor 완료 후 team-lead → docs-verifier에게 검증 요청.
 
 9. **갱신 시점 분리 위반 없는가**
    - planning 결정 docs (`docs/adr/` / `code-architecture.md` / `AGENTS.md` / `data-schema.md` / `flow.md` / `prd.md`) 를 phase 안에서 변경하면 VIOLATION
-   - 사용자 가이드 docs (`README.md` / `skills/nhncloud-cli/SKILL.md`) 는 phase 마지막에서만 변경 OK
+   - 사용자 가이드 docs (`README.md` / `skills/nhncloud-cli/SKILL.md` / `skills/nhncloud-cli/references/*.md`) 는 phase 마지막에서만 변경 OK
 
-10. **`skills/nhncloud-cli/SKILL.md` (공개 스킬) dogfooding** — CLI 는 공개 스킬도 검증 대상
+10. **`skills/nhncloud-cli/SKILL.md` + `skills/nhncloud-cli/references/*.md` (공개 스킬) dogfooding** — CLI 는 공개 스킬도 검증 대상
     - 새/삭제/변경된 명령·옵션이 공개 스킬에 반영되지 않으면 외부 사용자가 오작동 경로를 따라감
     - docs 영향 표 행에 표시되어 있을 때 적용
 
@@ -653,7 +653,7 @@ executor가 phase 실패 보고 시:
 | 실패 복구 | `--from-phase` 재시작 | team-lead 판단 → executor 재지시 |
 | 적합 규모 | 소·중 | 중·대 |
 
-## dooray-cli 환경 가정 (프로젝트 변형)
+## nhncloud-cli 환경 가정 (프로젝트 변형)
 
 executor / code-reviewer / docs-verifier 프롬프트에 아래 컨텍스트를 함께 전달.
 
@@ -666,4 +666,4 @@ executor / code-reviewer / docs-verifier 프롬프트에 아래 컨텍스트를 
 - **코드 규칙 권위**: 프로젝트 루트 `AGENTS.md` (ky 강제 / stdout vs stderr / `NhnCloudCliError` / 캐시 디렉토리 규약)
 - **스킬 폴더 구분**: `skills/` = 공개 사용자 가이드, `.agents/skills/` = 내부 개발 스킬 단일 원본
   - 인사이트 이식·docs-verifier 모두 `.agents/skills/` 대상
-  - 공개 스킬 정합성 검사 (dooray-cli docs-verifier 항목 10) 만 예외적으로 `skills/nhncloud-cli/SKILL.md` 참조
+  - 공개 스킬 정합성 검사 (nhncloud-cli docs-verifier 항목 10) 만 예외적으로 `skills/nhncloud-cli/SKILL.md`와 `skills/nhncloud-cli/references/*.md` 참조
