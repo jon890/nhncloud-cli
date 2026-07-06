@@ -1,0 +1,37 @@
+{
+  "name": "036-2-feat-ncs-write-control",
+  "description": "NCS(NHN Container Service) 쓰기·실행제어 명령. 선행 task 036-feat-ncs-foundation-read 의 client/helpers 를 확장한다(ADR-020 — UAK OAuth Bearer 재사용, {region}-ncs.api.nhncloudservice.com/ncs/v1.0, 공통 봉투 unwrap). Phase 1은 template create/delete + template version create/delete, Phase 2는 workload pause/resume/restart/delete, Phase 3은 README/skills 갱신(쓰기 명령분).",
+  "created_at": "2026-07-06T00:00:00Z",
+  "updated_at": "2026-07-06T00:00:00Z",
+  "status": "pending",
+  "current_phase": 1,
+  "total_phases": 3,
+  "error_message": null,
+  "blocked_reason": null,
+  "phases": [
+    {
+      "number": 1,
+      "title": "템플릿 쓰기 — create/delete + version create/delete (--file JSON)",
+      "file": "phase-01.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    },
+    {
+      "number": 2,
+      "title": "워크로드 실행제어 — pause/resume/restart/delete",
+      "file": "phase-02.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    },
+    {
+      "number": 3,
+      "title": "공개 docs — README/skills 갱신 (쓰기 명령분)",
+      "file": "phase-03.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    }
+  ]
+}
