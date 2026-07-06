@@ -94,7 +94,7 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, appkey·
 3. `config.json` 의 `defaultProfile`
 4. 위 모두 없으면 `"default"`
 
-자격증명 누락 시 `NhnCloudCliError(EXIT_CONFIG_ERROR)` 로 설정 안내 후 종료.
+자격증명 누락 시 `NhnCloudCliError(EXIT_CONFIG_ERROR)` 로 설정을 안내한 뒤 종료한다.
 
 ## 캐시 범위
 

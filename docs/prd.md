@@ -2,7 +2,7 @@
 
 ## 한 줄 정의
 
-NHN Cloud 서비스를 AWS CLI 처럼 터미널·AI 에이전트가 쉽게 호출하는 통합 CLI.
+NHN Cloud 서비스를 AWS CLI 처럼 터미널·AI 에이전트가 쉽게 호출하도록 돕는 통합 CLI다.
 
 ## 문제
 

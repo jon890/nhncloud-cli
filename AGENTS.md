@@ -2,8 +2,8 @@
 
 ## 프로젝트 개요
 
-NHN Cloud 서비스를 AWS CLI 처럼 호출하는 통합 CLI.
-TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
+NHN Cloud 서비스를 AWS CLI 처럼 호출하는 통합 CLI다.
+TypeScript + Commander.js 기반이다. dooray-cli 의 기반과 하네스를 재사용한다.
 
 ## 지원 명령 (98개 command catalog 항목)
 
@@ -178,7 +178,7 @@ docs 는 task 생성 전에 commit (docs-first).
 
 ## 개인 식별 정보 / 사내 식별자 노출 금지 (public OSS)
 
-이 repo 는 GitHub public + npm public (`@bifos/nhncloud-cli`) 이므로 다음 식별자는 **README / skills / docs / AGENTS.md / CLAUDE.md / 이슈 본문 + src 코드 (테스트 fixture·에러 메시지 예시 포함) 어디에도 노출 금지**.
+이 repo 는 GitHub public + npm public (`@bifos/nhncloud-cli`) 이므로 다음 식별자는 **README / skills / docs / AGENTS.md / CLAUDE.md / 이슈 본문 + src 코드 (테스트 fixture·에러 메시지 예시 포함) 어디에도 노출하지 않는다**.
 코드 예시·시나리오·issue body 작성 시 항상 placeholder 를 쓴다.
 
 | 노출 금지 | 대체 |
