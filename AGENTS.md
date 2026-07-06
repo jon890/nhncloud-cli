@@ -54,6 +54,9 @@ TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 - `ncr tags <registry> <repository>` — 특정 이미지의 태그 목록 조회 (artifact 의 tags flatten·ADR-017, tag·push_time·size).
 - `nks` — NHN Kubernetes Service 명령군 (Keystone 토큰 + `container-infra` API·ADR-019).
   `supports`, cluster/nodegroup/addon 조회, kubeconfig, 작업 이력, IP 접근 제어, 생성·삭제·resize·upgrade·autoscale·설정 변경을 지원한다.
+- `ncs` — NHN Container Service 명령군 (Deploy OAuth Bearer 토큰 재사용 + appkey 경로·ADR-020, region kr1/kr3).
+  `template`(설계도)·`workload`(런타임 실행)·`malware`(악성코드 검사) 3개 리소스 그룹. 조회·생성·삭제·실행제어(pause/resume/restart)를 지원한다.
+  복잡한 생성·변경(template/workload create·update·patch)은 `--file <json>` spec 입력(ADR-019 선례). workload 는 비동기라 `create --wait` 로 ACTIVE 폴링.
 
 ## API 스펙 확인 절차
 
@@ -133,6 +136,7 @@ src/
 | NCR 이미지/태그 조회 (Harbor REST /api/v2.0 우회·UAK Basic Auth·봉투 미적용) | ADR-017, ADR-016, ADR-006 |
 | 하네스 누적 docs 구조 (ADR·pitfalls 디렉터리화·INDEX 라우터) | ADR-018 |
 | NKS(Container Kubernetes) endpoint·인증·봉투 미적용 | ADR-019, ADR-010, ADR-013, ADR-005 |
+| NCS(Container Service) endpoint·인증(Deploy OAuth 토큰 재사용)·appkey 경로 | ADR-020, ADR-007, ADR-006, ADR-005 |
 
 신규 ADR 추가 시 본 표에 행 추가.
 
@@ -147,11 +151,13 @@ src/
 | NKS (Kubernetes Infrastructure) | tenantId + username + API 비밀번호 | `X-Auth-Token: <tokenId>` + `OpenStack-API-Version: container-infra latest` (ADR-019) |
 | NCR (Container Registry, Harbor 기반) | 공통 UAK(id+secret) + NCR appkey | `X-TC-AUTHENTICATION-ID` + `X-TC-AUTHENTICATION-SECRET` (정적, 토큰 교환 없음·ADR-016) |
 | NCR 이미지/태그 (Harbor REST 데이터플레인) | 공통 UAK(id+secret) | HTTP Basic Auth (`Authorization: Basic base64(uak-id:uak-secret)`, 봉투 미적용·ADR-017) |
+| NCS (Container Service) | UAK(id+secret) + NCS appkey | `x-nhn-authorization: Bearer <token>` (Deploy OAuth 토큰 재사용, appkey 는 경로·ADR-020) |
 
 - Deploy 토큰은 정적이 아니라 OAuth `client_credentials` 로 교환한 단기 토큰 (ADR-007).
   - OAuth: `oauth.api.nhncloudservice.com/oauth2/token/create`
   - Deploy API: `api-deploy.nhncloudservice.com` (공식 docs 의 `api-tcd` 와 다른 현행 도메인 — 함정)
-- `resultCode` 타입이 서비스마다 다름 — Log & Crash 숫자, Deploy 문자열. 봉투 helper 는 둘 다 수용.
+- `resultCode` 타입이 서비스마다 다름 — Log & Crash·NCS 숫자, Deploy 문자열. 봉투 helper 는 둘 다 수용.
+- NCS 는 Deploy 와 같은 UAK OAuth 토큰(계정 단위 `client_credentials`)을 공유하므로 profile 토큰 캐시를 그대로 재사용 (ADR-020).
 
 ## 한국어 표현 정책 / 마크다운 가독성
 

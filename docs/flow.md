@@ -553,3 +553,65 @@ nhncloud nks cluster addon list|get|install|update|remove
 | `iaas` 자격증명 누락 / Keystone 발급 실패 | `EXIT_CONFIG_ERROR` 또는 `EXIT_AUTH_ERROR` |
 | 잘못된 region / payload 파일 파싱 실패 / 필수 인자 누락 | `EXIT_PARAM_ERROR` |
 | NKS API 4xx · 5xx / 응답 형식 불일치 | `EXIT_API_ERROR` |
+
+## ncs (NHN Container Service) 흐름
+
+NCS 는 Container 서비스지만 인증은 NKS(Keystone)·NCR(정적 헤더)이 아니라 Deploy 와 같은 UAK OAuth Bearer 토큰이다([[adr-020]]).
+profile 의 UAK 로 OAuth 토큰을 발급(Deploy 와 캐시 공유)하고, region 별 NCS endpoint 에 appkey 를 경로에 넣어 호출한다.
+응답은 NHN 공통 봉투(숫자 `resultCode`)이고 모든 API 가 HTTP 200 으로 응답하므로 성공·실패는 `header` 로 판별한다([[adr-006]]).
+
+### 인증 흐름
+
+1. profile 의 UAK(id·secret) 로 OAuth `access_token` 발급 — 캐시 유효하면 재사용([[adr-007]] Deploy 와 공유)
+2. profile 의 `ncs` 블록에서 appkey 로드(또는 `--app-key` override)
+3. `x-nhn-authorization: Bearer <token>` 헤더 + 경로 `/ncs/v1.0/appkeys/{appKey}/...` 로 NCS API 호출
+
+### 리소스 관계
+
+- **Template**: 컨테이너 실행 설계도(이미지·CPU/메모리·포트·네트워크). 자체 상태값 없음. 버전으로 관리한다.
+- **Workload**: 템플릿을 실제 실행하는 런타임(replica `desired` 개). LB·오토스케일·예약실행을 워크로드 레벨에서 설정. 개별 실행 단위는 task.
+- **History**: 워크로드 배포 이력. 악성코드 검사 결과가 history 에 붙는다.
+- 관계: Template → Version → Workload(task N개) → History.
+
+### 명령 시그니처
+
+```
+nhncloud ncs template list|get|create|delete
+nhncloud ncs template version list|get|create|delete
+nhncloud ncs workload list|get|logs|events|history|schedule-history
+nhncloud ncs workload create|update|patch|pause|resume|restart|delete
+nhncloud ncs malware config get|set
+nhncloud ncs malware result <workloadId> <historyId>
+```
+
+| 옵션 | 적용 | 설명 |
+|------|------|------|
+| `--region <r>` | 전체 | ncs region override (kr1/kr3, 기본 kr1) |
+| `--app-key <key>` | 전체 | profile `ncs.appkey` override |
+| `--profile <name>` | 전체 | profile 선택 |
+| `--file <json>` | template/workload create·update·patch | 공식 API payload 를 담은 JSON 파일 (patch 는 json-patch 배열) |
+| `--wait` | workload create | Running 상태까지 폴링 |
+| `--task <id>` / `--container <name>` | workload logs·events·restart | 대상 task·컨테이너 지정 |
+| `--yes` | delete 계열 | confirm 생략 |
+
+전역 옵션: `--json` / `--quiet` / `--no-color`.
+
+### 구현 순서
+
+- Phase(task 1): endpoint/auth/client 골격 + template 조회 4개 + workload 조회 7개.
+- Phase(task 2): template 생성·삭제·버전 쓰기 + workload 실행 제어(pause/resume/restart/delete).
+- Phase(task 3): workload create(`--wait`)·update·patch(`--file`) + malware 3개.
+
+### 쓰기 payload 정책
+
+workload·template 생성은 중첩 필드가 많아 `--file <json>` 을 기본 입력으로 둔다([[adr-020]], NKS 선례).
+workload patch 는 `application/json-patch+json` Content-Type 의 json-patch 배열 파일을 받는다.
+삭제 계열은 `instance delete` 와 같은 confirm + `--yes` 정책을 따른다.
+
+### ncs 에러 경로
+
+| 상황 | exit code |
+|------|-----------|
+| UAK 누락 / OAuth 발급 실패 | `EXIT_CONFIG_ERROR` 또는 `EXIT_AUTH_ERROR` |
+| appkey 누락 / 잘못된 region / payload 파일 파싱 실패 / 필수 인자 누락 | `EXIT_PARAM_ERROR` |
+| 봉투 `header.isSuccessful=false` (resultCode 10000번대) / 응답 형식 불일치 | `EXIT_API_ERROR` |
