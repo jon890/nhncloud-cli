@@ -312,3 +312,40 @@ export function isNcsMalwareConfig(val: unknown): val is NcsMalwareConfig {
   const obj = val as Record<string, unknown>;
   return typeof obj["enabled"] === "boolean";
 }
+
+/**
+ * NcsMalwareReport — `malware result` 응답의 reports[] 항목 (docs 예제 JSON 확정).
+ * result 는 `Clean`/`Infected` 값을 갖지만 향후 값 추가 가능성을 열어 string 으로 둔다(5-6 회피).
+ */
+export interface NcsMalwareReport {
+  image: string;
+  digest: string;
+  layer: string;
+  detection: string;
+  result: string;
+  [key: string]: unknown;
+}
+
+/** NcsMalwareReport 타입 가드 — 핵심 필드(image·result)만 검사. */
+export function isNcsMalwareReport(val: unknown): val is NcsMalwareReport {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  return typeof obj["image"] === "string" && typeof obj["result"] === "string";
+}
+
+/**
+ * NcsMalwareResult — `malware result` 응답 (named 필드 없이 header 와 나란히 flat top-level 필드,
+ * config get/set 과 동일한 flat 패턴 — docs 예제 JSON 확정).
+ * infectedFiles·scannedDirectories·scannedFiles 는 docs 형식 표기가 String 이나 예제 JSON 은
+ * quote 없는 숫자 리터럴(0, 689, 4210) — malware.enabled 와 동일한 docs 표기 오류 패턴이라
+ * 실제로는 number 로 오는 것이 유력하지만, 이 필드들은 CLI 출력에서 String() 캐스팅으로만 쓰여
+ * number|string 양쪽을 그대로 수용해도 안전하다(6-2 회피).
+ */
+export interface NcsMalwareResult {
+  scannedAt?: string;
+  infectedFiles?: number | string;
+  scannedDirectories?: number | string;
+  scannedFiles?: number | string;
+  reports?: NcsMalwareReport[];
+  [key: string]: unknown;
+}

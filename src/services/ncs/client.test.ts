@@ -815,3 +815,99 @@ describe("NcsClient.deleteWorkload", () => {
     );
   });
 });
+
+describe("NcsClient.getMalwareConfig", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("{ header, enabled: true } (named 필드 아닌 flat 응답) 에서 enabled 를 반환한다", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+        enabled: true,
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.getMalwareConfig();
+    expect(result.enabled).toBe(true);
+    expect(ky.get).toHaveBeenCalledWith(
+      expect.stringContaining("/malware/config"),
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+  });
+
+  it("enabled 필드 누락 시 형식 오류 throw (EXIT_API_ERROR)", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await expect(client.getMalwareConfig()).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+});
+
+describe("NcsClient.setMalwareConfig", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("POST /malware/config 로 { enabled: boolean } body 를 전송하고 결과를 반환한다", async () => {
+    vi.mocked(ky.post).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+        enabled: false,
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.setMalwareConfig(false);
+    expect(result.enabled).toBe(false);
+    expect(ky.post).toHaveBeenCalledWith(
+      expect.stringContaining("/malware/config"),
+      expect.objectContaining({ json: { enabled: false } }),
+    );
+  });
+});
+
+describe("NcsClient.getMalwareResult", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("{ header, scannedAt, infectedFiles, reports: [...] } (flat 응답) 에서 결과를 반환한다", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+        scannedAt: "2025-10-28T00:00:00Z",
+        infectedFiles: 0,
+        scannedDirectories: 689,
+        scannedFiles: 4210,
+        reports: [
+          { image: "nginx:latest", digest: "sha256:abc", layer: "sha256:def", detection: "-", result: "Clean" },
+        ],
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.getMalwareResult("wl-1", "hist-1");
+    expect(result.scannedAt).toBe("2025-10-28T00:00:00Z");
+    expect(result.reports).toHaveLength(1);
+    expect(result.reports?.[0].result).toBe("Clean");
+    expect(ky.get).toHaveBeenCalledWith(
+      expect.stringContaining("/workloads/wl-1/history/hist-1/malware"),
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+  });
+
+  it("reports 누락 시 빈 배열 반환 (방어)", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.getMalwareResult("wl-1", "hist-1");
+    expect(result.reports).toEqual([]);
+  });
+});

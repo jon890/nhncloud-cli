@@ -46,6 +46,7 @@ import { nodegroupCommand as nksNodegroupCommand } from "./commands/nks/nodegrou
 import { addonCommand as nksAddonCommand, addonTypeCommand as nksAddonTypeCommand } from "./commands/nks/addon.js";
 import { templateCommand as ncsTemplateCommand } from "./commands/ncs/template.js";
 import { workloadCommand as ncsWorkloadCommand } from "./commands/ncs/workload.js";
+import { malwareCommand as ncsMalwareCommand } from "./commands/ncs/malware.js";
 
 const rootAgentHints = `
 Agent hints:
@@ -247,6 +248,7 @@ const ncsCommand = new Command("ncs")
   .addHelpText("after", ncsAgentWorkflow);
 ncsCommand.addCommand(ncsTemplateCommand);
 ncsCommand.addCommand(ncsWorkloadCommand);
+ncsCommand.addCommand(ncsMalwareCommand);
 
 program.addCommand(ncsCommand);
 program.addCommand(createCommandsCommand(program));

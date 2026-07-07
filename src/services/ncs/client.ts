@@ -31,6 +31,10 @@ import {
   type NcsWorkloadHistoryDetail,
   isNcsWorkloadScheduleHistory,
   type NcsWorkloadScheduleHistory,
+  isNcsMalwareConfig,
+  type NcsMalwareConfig,
+  isNcsMalwareReport,
+  type NcsMalwareResult,
 } from "./types.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_API_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
@@ -102,6 +106,23 @@ interface NcsWorkloadHistoryGetResponse extends NhnEnvelope<unknown> {
 /** `workload schedule-history` 응답 — named 필드 `schedulehistory`. */
 interface NcsWorkloadScheduleHistoryResponse extends NhnEnvelope<unknown> {
   schedulehistory?: NcsWorkloadScheduleHistory[];
+}
+
+/**
+ * `malware config get/set` 응답 — named 필드가 아니라 header 와 나란히 top-level `enabled` 필드
+ * (docs 예제 JSON 확정 — template/workload 의 named 필드 패턴과 다름).
+ */
+interface NcsMalwareConfigResponse extends NhnEnvelope<unknown> {
+  enabled?: boolean;
+}
+
+/** `malware result` 응답 — config 와 동일하게 header 와 나란히 flat top-level 필드(docs 예제 JSON 확정). */
+interface NcsMalwareResultResponse extends NhnEnvelope<unknown> {
+  scannedAt?: string;
+  infectedFiles?: number | string;
+  scannedDirectories?: number | string;
+  scannedFiles?: number | string;
+  reports?: unknown[];
 }
 
 /**
@@ -854,6 +875,98 @@ export class NcsClient {
         timeout: DEFAULT_TIMEOUT_MS,
       });
     } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * 악성코드 검사 설정을 조회한다.
+   * GET /ncs/v1.0/appkeys/{appKey}/malware/config (appkey-scoped, docs 예제 실측 확정 — 계정 레벨 아님)
+   * 응답: { header, enabled: true|false } — named 필드 없이 header 와 나란히 flat 필드(docs 예제 실측 확정).
+   */
+  async getMalwareConfig(): Promise<NcsMalwareConfig> {
+    const url = `${this.baseUrl}/malware/config`;
+    try {
+      const res = await ky.get(url, {
+        headers: this.authHeaders(),
+        retry: 0,
+        timeout: DEFAULT_TIMEOUT_MS,
+      });
+      const body = await res.json<NcsMalwareConfigResponse>();
+
+      unwrapHeader(body);
+      if (!isNcsMalwareConfig(body)) {
+        throw new NhnCloudCliError(
+          "NCS API 응답 형식 오류: enabled 필드가 없거나 형식이 올바르지 않습니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return { enabled: body.enabled };
+    } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * 악성코드 검사 설정을 변경한다.
+   * POST /ncs/v1.0/appkeys/{appKey}/malware/config (method 는 POST — docs 예제 실측 확정, PUT 아님)
+   * 요청 body: { enabled: boolean } — docs 필드 표기는 "String" 이나 예제 JSON 이 quote 없는 boolean
+   * 리터럴이라 실제 wire 타입은 boolean(malware.enabled 실측 확정, ADR-020 트레이드오프 절 참조).
+   * 응답: { header, enabled: true|false } — getMalwareConfig 와 동일한 flat 패턴.
+   */
+  async setMalwareConfig(enabled: boolean): Promise<NcsMalwareConfig> {
+    const url = `${this.baseUrl}/malware/config`;
+    try {
+      const res = await ky.post(url, {
+        headers: this.authHeaders(),
+        json: { enabled },
+        retry: 0,
+        timeout: DEFAULT_TIMEOUT_MS,
+      });
+      const body = await res.json<NcsMalwareConfigResponse>();
+
+      unwrapHeader(body);
+      if (!isNcsMalwareConfig(body)) {
+        throw new NhnCloudCliError(
+          "NCS API 응답 형식 오류: enabled 필드가 없거나 형식이 올바르지 않습니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return { enabled: body.enabled };
+    } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * workload 실행 히스토리의 악성코드 검사 결과를 조회한다.
+   * GET /ncs/v1.0/appkeys/{appKey}/workloads/{workloadId}/history/{historyId}/malware
+   * 응답: { header, scannedAt, infectedFiles, scannedDirectories, scannedFiles, reports: [...] } —
+   * named 필드로 감싸지 않고 header 와 나란히 flat 필드(docs 예제 실측 확정, malware config 와 동일 패턴).
+   * 모든 top-level 필드가 docs 상 optional(미검사 워크로드는 누락 가능) — 존재하면 그대로 통과시킨다.
+   */
+  async getMalwareResult(workloadId: string, historyId: string): Promise<NcsMalwareResult> {
+    const url = `${this.baseUrl}/workloads/${encodeURIComponent(workloadId)}/history/${encodeURIComponent(historyId)}/malware`;
+    try {
+      const res = await ky.get(url, {
+        headers: this.authHeaders(),
+        retry: 0,
+        timeout: DEFAULT_TIMEOUT_MS,
+      });
+      const body = await res.json<NcsMalwareResultResponse>();
+
+      unwrapHeader(body);
+      return {
+        scannedAt: body.scannedAt,
+        infectedFiles: body.infectedFiles,
+        scannedDirectories: body.scannedDirectories,
+        scannedFiles: body.scannedFiles,
+        reports: Array.isArray(body.reports) ? body.reports.filter(isNcsMalwareReport) : [],
+      };
+    } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
       throw toNhnCloudCliError(err);
     }
   }
