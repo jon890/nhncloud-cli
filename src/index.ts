@@ -3,6 +3,8 @@ import chalk from "chalk";
 import { setQuiet } from "./utils/spinner.js";
 import { NhnCloudCliError } from "./utils/errors.js";
 import { configureCommand } from "./commands/configure.js";
+import { skillsCommand } from "./commands/skills.js";
+import { doctorCommand } from "./commands/doctor.js";
 import { searchCommand } from "./commands/logncrash/search.js";
 import { sendCommand } from "./commands/logncrash/send.js";
 import { exportCommand } from "./commands/logncrash/export.js";
@@ -251,6 +253,8 @@ ncsCommand.addCommand(ncsWorkloadCommand);
 ncsCommand.addCommand(ncsMalwareCommand);
 
 program.addCommand(ncsCommand);
+program.addCommand(skillsCommand);
+program.addCommand(doctorCommand);
 program.addCommand(createCommandsCommand(program));
 
 program.parseAsync().catch((err: unknown) => {

@@ -5,7 +5,7 @@
 NHN Cloud 서비스를 AWS CLI 처럼 호출하는 통합 CLI다.
 TypeScript + Commander.js 기반이다. dooray-cli 의 기반과 하네스를 재사용한다.
 
-## 지원 명령 (106개 command catalog 항목)
+## 지원 명령 (133개 command catalog 항목)
 
 - `configure` — 자격증명 설정 마법사 (대화형 + flag, UAK + 서비스별 키, 연결 테스트).
 - `commands` — Commander tree에서 command path·argument·option·description catalog를 출력하는 metadata 명령 (`--json` 권장, 외부 API 호출 없음).
@@ -60,6 +60,10 @@ TypeScript + Commander.js 기반이다. dooray-cli 의 기반과 하네스를 �
 - `ncs workload create|update|patch|pause|resume|restart|delete` — 워크로드 생성·변경·실행제어. `create --file <json> [--wait] [--timeout <sec>]` (비동기 생성, `--wait` 로 Running 상태 폴링), `update`(PUT 전체 교체)·`patch`(PATCH `application/json-patch+json` 부분 변경), `restart` 는 `--task <taskId>` 필수.
 - `ncs malware config get|set` — 악성코드 검사 설정 조회/변경 (`set --enabled <true|false>`, appkey-scoped).
 - `ncs malware result <workloadId> <historyId>` — 워크로드 실행 히스토리의 악성코드 검사 결과 조회.
+- `skills` — Claude Code 스킬(`~/.claude/skills/nhncloud-cli`) 설치 관리. 서브커맨드 없이 호출하면 설치 상태를 출력한다.
+- `skills install [--force]` — 패키지 동봉 스킬을 `~/.claude/skills` 에 심볼릭 링크로 설치 (npx 환경 가드, 기존 심링크는 갱신, 실제 디렉터리는 `--force` 필요·전역 설치 전제).
+- `skills uninstall` — 설치된 스킬 심볼릭 링크 제거 (심링크만 제거, 실제 디렉터리는 보호).
+- `doctor` — 자격증명·스킬 설치 상태 진단 (오프라인 — profile 목록·defaultProfile·심링크 유효성. 연결 테스트는 `configure`).
 
 ## API 스펙 확인 절차
 
