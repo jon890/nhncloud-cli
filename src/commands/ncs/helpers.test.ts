@@ -46,4 +46,29 @@ describe("readJsonPayload", () => {
       expect(err).toMatchObject({ exitCode: EXIT_PARAM_ERROR });
     }
   });
+
+  it("디렉터리 경로가 주어지면 EXIT_PARAM_ERROR (isFile 가드)", () => {
+    dir = mkdtempSync(join(tmpdir(), "ncs-helpers-test-"));
+
+    try {
+      readJsonPayload(dir);
+      throw new Error("should have thrown");
+    } catch (err) {
+      expect(err).toMatchObject({ exitCode: EXIT_PARAM_ERROR });
+    }
+  });
+
+  it("파일 크기가 한도를 초과하면 EXIT_PARAM_ERROR (size 가드)", () => {
+    dir = mkdtempSync(join(tmpdir(), "ncs-helpers-test-"));
+    const file = join(dir, "too-big.json");
+    // MAX_JSON_PAYLOAD_BYTES(1_000_000) 초과 — 실제 파싱 전에 statSync 크기 검사에서 차단돼야 한다.
+    writeFileSync(file, "x".repeat(1_000_001), "utf-8");
+
+    try {
+      readJsonPayload(file);
+      throw new Error("should have thrown");
+    } catch (err) {
+      expect(err).toMatchObject({ exitCode: EXIT_PARAM_ERROR });
+    }
+  });
 });

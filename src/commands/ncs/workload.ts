@@ -2,8 +2,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { output, type OutputOptions } from "../../formatters/table.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
-import { resolveNcsClient } from "./helpers.js";
-import { confirmDestructive } from "./template.js";
+import { resolveNcsClient, confirmDestructive } from "./helpers.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import type {

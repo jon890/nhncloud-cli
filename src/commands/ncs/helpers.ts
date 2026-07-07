@@ -1,9 +1,12 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { resolveProfileName, getUserAccessKey, getServiceCredential } from "../../config/credentials.js";
 import { getAccessToken } from "../../api/oauth.js";
 import { NcsClient } from "../../services/ncs/client.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
+
+/** `--file <json>` spec 파일 크기 상한 (1 MB) — deploy upload(512 MiB, 바이너리) 보다 훨씬 보수적. JSON spec 용도라 그 이상은 비정상 입력. */
+const MAX_JSON_PAYLOAD_BYTES = 1_000_000;
 
 /**
  * NCS appKey 를 해석한다.
@@ -64,20 +67,33 @@ export async function resolveNcsClient(opts: {
 /**
  * `--file <json>` 로 지정된 경로를 읽어 JSON 으로 파싱한다 (ADR-019 NKS 선례 — 복잡한 생성 입력은 파일 기반).
  * 순수 함수 — stdout/stderr 출력이나 confirm 로직을 섞지 않는다(io-throw-bundled-untestable 회피).
- * 파일 읽기 실패(존재하지 않음 등) 또는 JSON.parse 실패는 모두 EXIT_PARAM_ERROR 로 통일한다.
+ * 읽기 전에 statSync 로 errno·파일유형·크기를 차단한다 (deploy/upload.ts 선례,
+ * pitfall file-input-no-stat-guard — PR#8 지적 재발 방지). 파일 읽기 실패·디렉터리·크기초과·
+ * JSON.parse 실패 모두 EXIT_PARAM_ERROR 로 통일한다.
  */
 export function readJsonPayload(filePath: string): unknown {
-  let raw: string;
+  let stat: ReturnType<typeof statSync>;
   try {
-    raw = readFileSync(filePath, "utf-8");
+    stat = statSync(filePath);
   } catch (err) {
-    const detail = err instanceof Error ? err.message : String(err);
+    const reason =
+      (err as NodeJS.ErrnoException).code ?? (err instanceof Error ? err.message : String(err));
     throw new NhnCloudCliError(
-      `파일을 읽을 수 없습니다: ${filePath} (${detail})`,
+      `파일을 읽을 수 없습니다: ${filePath} (${reason})`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+  if (!stat.isFile()) {
+    throw new NhnCloudCliError(`--file 이 일반 파일이 아닙니다: ${filePath}`, EXIT_PARAM_ERROR);
+  }
+  if (stat.size > MAX_JSON_PAYLOAD_BYTES) {
+    throw new NhnCloudCliError(
+      `--file 이 너무 큽니다 (${stat.size} 바이트). JSON spec 한도 ${MAX_JSON_PAYLOAD_BYTES} 바이트.`,
       EXIT_PARAM_ERROR,
     );
   }
 
+  const raw = readFileSync(filePath, "utf-8");
   try {
     return JSON.parse(raw);
   } catch (err) {
@@ -87,4 +103,30 @@ export function readJsonPayload(filePath: string): unknown {
       EXIT_PARAM_ERROR,
     );
   }
+}
+
+/**
+ * 비대화형에서는 --yes 필수, TTY 에서는 @inquirer/prompts confirm 으로 확인한다
+ * (floatingip delete 패턴 재사용). template.ts·workload.ts 양쪽의 delete 커맨드가 공유하는
+ * 공용 함수라 helpers.ts 로 둔다(code-review FIX — template.ts 전용 export 비대칭 해소).
+ */
+export async function confirmDestructive(
+  message: string,
+  yes: boolean | undefined,
+): Promise<boolean> {
+  const isTTY = process.stdin.isTTY;
+
+  if (!isTTY && !yes) {
+    throw new NhnCloudCliError(
+      "비대화형 환경에서는 --yes 플래그가 필요합니다.",
+      EXIT_PARAM_ERROR,
+    );
+  }
+
+  if (isTTY && !yes) {
+    const { confirm } = await import("@inquirer/prompts");
+    return confirm({ message, default: false });
+  }
+
+  return true;
 }

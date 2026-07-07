@@ -2,7 +2,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { output, type OutputOptions } from "../../formatters/table.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
-import { resolveNcsClient, readJsonPayload } from "./helpers.js";
+import { resolveNcsClient, readJsonPayload, confirmDestructive } from "./helpers.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import type {
@@ -11,28 +11,6 @@ import type {
   NcsTemplateVersionSummary,
   NcsTemplateVersionDetail,
 } from "../../services/ncs/types.js";
-
-/**
- * 비대화형에서는 --yes 필수, TTY 에서는 @inquirer/prompts confirm 으로 확인한다
- * (floatingip delete 패턴 재사용). 순수 판단 로직만 분리해 단위테스트 가능하게 한다.
- */
-export async function confirmDestructive(message: string, yes: boolean | undefined): Promise<boolean> {
-  const isTTY = process.stdin.isTTY;
-
-  if (!isTTY && !yes) {
-    throw new NhnCloudCliError(
-      "비대화형 환경에서는 --yes 플래그가 필요합니다.",
-      EXIT_PARAM_ERROR,
-    );
-  }
-
-  if (isTTY && !yes) {
-    const { confirm } = await import("@inquirer/prompts");
-    return confirm({ message, default: false });
-  }
-
-  return true;
-}
 
 interface TemplateListOpts extends OutputOptions {
   region?: string;
