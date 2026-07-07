@@ -28,3 +28,5 @@
     `workload create` 는 `--wait` 로 폴링하고 기본은 즉시 반환한다([[adr-011]] instance create 선례).
   - `malware.enabled` 의 String(`"true"`)/Boolean 여부, `internalLoadBalancing.enalbed` docs 오타 여부는
     구현 phase 에서 실제 호출로 확정한다(추측한 채로 머지하지 않는다).
+  - 목록 조회는 `page`/`size` 를 노출해 silent truncation 을 막는다(ncr images/tags PR28 선례).
+    단 `workload schedulehistory` 는 실측/ docs 재확인 전까지 page/size 미노출(no-arg)로 두었다 — 대량 예약 이력이면 첫 페이지만 반환될 여지가 있어, 지원 확인 시 다른 목록 메서드와 동일 패턴으로 노출한다.
