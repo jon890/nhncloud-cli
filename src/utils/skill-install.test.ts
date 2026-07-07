@@ -89,9 +89,9 @@ describe("installSkillSymlink", () => {
     await expect(installSkillSymlink(src, dst, false)).rejects.toBeInstanceOf(NhnCloudCliError);
   });
 
-  it("실제 디렉터리도 force 면 심링크로 교체", async () => {
+  it("실제 디렉터리도 force 면 심링크로 교체 (replaced-copy)", async () => {
     await mkdir(dst, { recursive: true });
-    expect(await installSkillSymlink(src, dst, true)).toBe("relinked");
+    expect(await installSkillSymlink(src, dst, true)).toBe("replaced-copy");
     expect((await lstat(dst)).isSymbolicLink()).toBe(true);
   });
 });

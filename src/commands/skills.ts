@@ -1,6 +1,8 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { access } from "node:fs/promises";
+import { NhnCloudCliError } from "../utils/errors.js";
+import { EXIT_PARAM_ERROR } from "../utils/exit-codes.js";
 import {
   SKILL_NAME,
   claudeDir,
@@ -32,21 +34,26 @@ const installCommand = new Command("install")
   .action(async (opts: { force?: boolean }) => {
     const hasClaude = await access(claudeDir()).then(() => true).catch(() => false);
     if (!hasClaude) {
-      console.error(chalk.yellow(`Claude Code 설정 디렉터리(${claudeDir()})가 없습니다. Claude Code 설치 후 다시 시도하세요.`));
-      return;
+      throw new NhnCloudCliError(
+        `Claude Code 설정 디렉터리(${claudeDir()})가 없습니다. Claude Code 설치 후 다시 시도하세요.`,
+        EXIT_PARAM_ERROR,
+      );
     }
 
     if (isNpxRuntime(__dirname)) {
-      console.error(
-        chalk.yellow("npx 환경에서는 스킬 설치가 불가합니다(임시 경로). npm i -g @bifos/nhncloud-cli 후 다시 시도하세요."),
+      throw new NhnCloudCliError(
+        "npx 환경에서는 스킬 설치가 불가합니다(임시 경로). npm i -g @bifos/nhncloud-cli 후 다시 시도하세요.",
+        EXIT_PARAM_ERROR,
       );
-      return;
     }
 
     const src = skillSourceFrom(__dirname);
     const dst = skillDestPath();
     const result = await installSkillSymlink(src, dst, opts.force ?? false);
-    console.log(chalk.green(`✓ 스킬 ${result === "relinked" ? "재설치" : "설치"} 완료: ${dst}`));
+    if (result === "replaced-copy") {
+      console.error(chalk.yellow(`기존 실제 디렉터리를 제거하고 심볼릭 링크로 교체했습니다: ${dst}`));
+    }
+    console.log(chalk.green(`✓ 스킬 ${result === "linked" ? "설치" : "재설치"} 완료: ${dst}`));
   });
 
 const uninstallCommand = new Command("uninstall")

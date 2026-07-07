@@ -61,11 +61,12 @@ export async function getSkillStatus(dst: string): Promise<SkillStatus> {
   return targetExists ? { state: "installed-link", target } : { state: "broken-link", target };
 }
 
-export type InstallResult = "linked" | "relinked";
+export type InstallResult = "linked" | "relinked" | "replaced-copy";
 
 /**
  * skill 원본을 설치 대상에 심링크한다.
  * 기존 심링크는 조용히 갱신하고, 심링크가 아닌 실제 항목은 `force` 없이는 건드리지 않는다(사용자 데이터 보호).
+ * 반환값으로 설치 유형을 알려 호출부가 파괴적 교체(`replaced-copy`)를 사용자에게 경고할 수 있게 한다.
  */
 export async function installSkillSymlink(src: string, dst: string, force: boolean): Promise<InstallResult> {
   const srcExists = await access(src).then(() => true).catch(() => false);
@@ -81,13 +82,20 @@ export async function installSkillSymlink(src: string, dst: string, force: boole
     );
   }
 
-  const relinked = status.state !== "not-installed";
-  if (relinked) {
+  let result: InstallResult = "linked";
+  if (status.state === "installed-copy") {
+    // force === true 가 보장된 경로(위에서 throw). 실제 디렉터리라 재귀 삭제한다.
     await rm(dst, { recursive: true, force: true });
+    result = "replaced-copy";
+  } else if (status.state !== "not-installed") {
+    // 심링크/깨진 링크 — 링크 자체만 제거(재귀 불필요, 원본 보호).
+    await rm(dst, { force: true });
+    result = "relinked";
   }
+
   await mkdir(path.dirname(dst), { recursive: true });
   await symlink(src, dst);
-  return relinked ? "relinked" : "linked";
+  return result;
 }
 
 /**
