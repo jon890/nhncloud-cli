@@ -564,7 +564,9 @@ describe("NcsClient.deleteTemplate", () => {
   beforeEach(() => vi.resetAllMocks());
 
   it("DELETE /templates/{id} 를 호출한다", async () => {
-    vi.mocked(ky.delete).mockReturnValue({} as never);
+    vi.mocked(ky.delete).mockReturnValue(
+      mockKyResponse({ header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" } }),
+    );
 
     const client = new NcsClient("token", "kr1", "test-appkey");
     await client.deleteTemplate("tmpl-1");
@@ -573,6 +575,15 @@ describe("NcsClient.deleteTemplate", () => {
       expect.stringContaining("/templates/tmpl-1"),
       expect.objectContaining({ headers: expect.any(Object) }),
     );
+  });
+
+  it("isSuccessful=false 면 throw (봉투 실패 삼키지 않음, EXIT_API_ERROR)", async () => {
+    vi.mocked(ky.delete).mockReturnValue(
+      mockKyResponse({ header: { isSuccessful: false, resultCode: 500, resultMessage: "FAIL" } }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await expect(client.deleteTemplate("tmpl-1")).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
   });
 });
 
@@ -614,7 +625,9 @@ describe("NcsClient.deleteTemplateVersion", () => {
   beforeEach(() => vi.resetAllMocks());
 
   it("DELETE /templates/{id}/versions/{version} 를 호출한다", async () => {
-    vi.mocked(ky.delete).mockReturnValue({} as never);
+    vi.mocked(ky.delete).mockReturnValue(
+      mockKyResponse({ header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" } }),
+    );
 
     const client = new NcsClient("token", "kr1", "test-appkey");
     await client.deleteTemplateVersion("tmpl-1", "3");
@@ -623,6 +636,15 @@ describe("NcsClient.deleteTemplateVersion", () => {
       expect.stringContaining("/templates/tmpl-1/versions/3"),
       expect.objectContaining({ headers: expect.any(Object) }),
     );
+  });
+
+  it("isSuccessful=false 면 throw (EXIT_API_ERROR)", async () => {
+    vi.mocked(ky.delete).mockReturnValue(
+      mockKyResponse({ header: { isSuccessful: false, resultCode: 500, resultMessage: "FAIL" } }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await expect(client.deleteTemplateVersion("tmpl-1", "3")).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
   });
 });
 
@@ -756,7 +778,9 @@ describe("NcsClient.pauseWorkload", () => {
   beforeEach(() => vi.resetAllMocks());
 
   it("POST /workloads/{id}/pause 를 호출한다", async () => {
-    vi.mocked(ky.post).mockReturnValue({} as never);
+    vi.mocked(ky.post).mockReturnValue(
+      mockKyResponse({ header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" } }),
+    );
 
     const client = new NcsClient("token", "kr1", "test-appkey");
     await client.pauseWorkload("wl-1");
@@ -766,13 +790,24 @@ describe("NcsClient.pauseWorkload", () => {
       expect.objectContaining({ headers: expect.any(Object) }),
     );
   });
+
+  it("isSuccessful=false 면 throw (EXIT_API_ERROR)", async () => {
+    vi.mocked(ky.post).mockReturnValue(
+      mockKyResponse({ header: { isSuccessful: false, resultCode: 500, resultMessage: "FAIL" } }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await expect(client.pauseWorkload("wl-1")).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
+  });
 });
 
 describe("NcsClient.resumeWorkload", () => {
   beforeEach(() => vi.resetAllMocks());
 
   it("POST /workloads/{id}/resume 를 호출한다", async () => {
-    vi.mocked(ky.post).mockReturnValue({} as never);
+    vi.mocked(ky.post).mockReturnValue(
+      mockKyResponse({ header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" } }),
+    );
 
     const client = new NcsClient("token", "kr1", "test-appkey");
     await client.resumeWorkload("wl-1");
@@ -782,13 +817,24 @@ describe("NcsClient.resumeWorkload", () => {
       expect.objectContaining({ headers: expect.any(Object) }),
     );
   });
+
+  it("isSuccessful=false 면 throw (EXIT_API_ERROR)", async () => {
+    vi.mocked(ky.post).mockReturnValue(
+      mockKyResponse({ header: { isSuccessful: false, resultCode: 500, resultMessage: "FAIL" } }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await expect(client.resumeWorkload("wl-1")).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
+  });
 });
 
 describe("NcsClient.restartWorkloadTask", () => {
   beforeEach(() => vi.resetAllMocks());
 
   it("POST /workloads/{id}/tasks/{taskId}/restart 를 호출한다", async () => {
-    vi.mocked(ky.post).mockReturnValue({} as never);
+    vi.mocked(ky.post).mockReturnValue(
+      mockKyResponse({ header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" } }),
+    );
 
     const client = new NcsClient("token", "kr1", "test-appkey");
     await client.restartWorkloadTask("wl-1", "task-1");
@@ -798,13 +844,24 @@ describe("NcsClient.restartWorkloadTask", () => {
       expect.objectContaining({ headers: expect.any(Object) }),
     );
   });
+
+  it("isSuccessful=false 면 throw (EXIT_API_ERROR)", async () => {
+    vi.mocked(ky.post).mockReturnValue(
+      mockKyResponse({ header: { isSuccessful: false, resultCode: 500, resultMessage: "FAIL" } }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await expect(client.restartWorkloadTask("wl-1", "task-1")).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
+  });
 });
 
 describe("NcsClient.deleteWorkload", () => {
   beforeEach(() => vi.resetAllMocks());
 
   it("DELETE /workloads/{id} 를 호출한다", async () => {
-    vi.mocked(ky.delete).mockReturnValue({} as never);
+    vi.mocked(ky.delete).mockReturnValue(
+      mockKyResponse({ header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" } }),
+    );
 
     const client = new NcsClient("token", "kr1", "test-appkey");
     await client.deleteWorkload("wl-1");
@@ -813,6 +870,15 @@ describe("NcsClient.deleteWorkload", () => {
       expect.stringContaining("/workloads/wl-1"),
       expect.objectContaining({ headers: expect.any(Object) }),
     );
+  });
+
+  it("isSuccessful=false 면 throw (EXIT_API_ERROR)", async () => {
+    vi.mocked(ky.delete).mockReturnValue(
+      mockKyResponse({ header: { isSuccessful: false, resultCode: 500, resultMessage: "FAIL" } }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await expect(client.deleteWorkload("wl-1")).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
   });
 });
 
@@ -909,5 +975,17 @@ describe("NcsClient.getMalwareResult", () => {
     const client = new NcsClient("token", "kr1", "test-appkey");
     const result = await client.getMalwareResult("wl-1", "hist-1");
     expect(result.reports).toEqual([]);
+  });
+
+  it("reports 가 배열이 아니면 형식 오류 throw (조용히 삼키지 않음, EXIT_API_ERROR)", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+        reports: "not-an-array",
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await expect(client.getMalwareResult("wl-1", "hist-1")).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
   });
 });

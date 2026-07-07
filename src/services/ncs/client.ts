@@ -623,12 +623,14 @@ export class NcsClient {
   async deleteTemplate(id: string): Promise<void> {
     const url = `${this.baseUrl}/templates/${encodeURIComponent(id)}`;
     try {
-      await ky.delete(url, {
+      const res = await ky.delete(url, {
         headers: this.authHeaders(),
         retry: 0,
         timeout: DEFAULT_TIMEOUT_MS,
       });
+      unwrapHeader(await res.json<NhnEnvelope<unknown>>());
     } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
       throw toNhnCloudCliError(err);
     }
   }
@@ -672,12 +674,14 @@ export class NcsClient {
   async deleteTemplateVersion(id: string, version: string): Promise<void> {
     const url = `${this.baseUrl}/templates/${encodeURIComponent(id)}/versions/${encodeURIComponent(version)}`;
     try {
-      await ky.delete(url, {
+      const res = await ky.delete(url, {
         headers: this.authHeaders(),
         retry: 0,
         timeout: DEFAULT_TIMEOUT_MS,
       });
+      unwrapHeader(await res.json<NhnEnvelope<unknown>>());
     } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
       throw toNhnCloudCliError(err);
     }
   }
@@ -689,12 +693,14 @@ export class NcsClient {
   async pauseWorkload(id: string): Promise<void> {
     const url = `${this.baseUrl}/workloads/${encodeURIComponent(id)}/pause`;
     try {
-      await ky.post(url, {
+      const res = await ky.post(url, {
         headers: this.authHeaders(),
         retry: 0,
         timeout: DEFAULT_TIMEOUT_MS,
       });
+      unwrapHeader(await res.json<NhnEnvelope<unknown>>());
     } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
       throw toNhnCloudCliError(err);
     }
   }
@@ -706,12 +712,14 @@ export class NcsClient {
   async resumeWorkload(id: string): Promise<void> {
     const url = `${this.baseUrl}/workloads/${encodeURIComponent(id)}/resume`;
     try {
-      await ky.post(url, {
+      const res = await ky.post(url, {
         headers: this.authHeaders(),
         retry: 0,
         timeout: DEFAULT_TIMEOUT_MS,
       });
+      unwrapHeader(await res.json<NhnEnvelope<unknown>>());
     } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
       throw toNhnCloudCliError(err);
     }
   }
@@ -723,12 +731,14 @@ export class NcsClient {
   async restartWorkloadTask(id: string, taskId: string): Promise<void> {
     const url = `${this.baseUrl}/workloads/${encodeURIComponent(id)}/tasks/${encodeURIComponent(taskId)}/restart`;
     try {
-      await ky.post(url, {
+      const res = await ky.post(url, {
         headers: this.authHeaders(),
         retry: 0,
         timeout: DEFAULT_TIMEOUT_MS,
       });
+      unwrapHeader(await res.json<NhnEnvelope<unknown>>());
     } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
       throw toNhnCloudCliError(err);
     }
   }
@@ -869,12 +879,14 @@ export class NcsClient {
   async deleteWorkload(id: string): Promise<void> {
     const url = `${this.baseUrl}/workloads/${encodeURIComponent(id)}`;
     try {
-      await ky.delete(url, {
+      const res = await ky.delete(url, {
         headers: this.authHeaders(),
         retry: 0,
         timeout: DEFAULT_TIMEOUT_MS,
       });
+      unwrapHeader(await res.json<NhnEnvelope<unknown>>());
     } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
       throw toNhnCloudCliError(err);
     }
   }
@@ -958,12 +970,18 @@ export class NcsClient {
       const body = await res.json<NcsMalwareResultResponse>();
 
       unwrapHeader(body);
+      if (body.reports !== undefined && !Array.isArray(body.reports)) {
+        throw new NhnCloudCliError(
+          "NCS API 응답 형식 오류: reports 가 배열이 아닙니다.",
+          EXIT_API_ERROR,
+        );
+      }
       return {
         scannedAt: body.scannedAt,
         infectedFiles: body.infectedFiles,
         scannedDirectories: body.scannedDirectories,
         scannedFiles: body.scannedFiles,
-        reports: Array.isArray(body.reports) ? body.reports.filter(isNcsMalwareReport) : [],
+        reports: body.reports?.filter(isNcsMalwareReport) ?? [],
       };
     } catch (err) {
       if (err instanceof NhnCloudCliError) throw err;
