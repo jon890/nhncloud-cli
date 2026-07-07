@@ -560,4 +560,101 @@ export class NcsClient {
       throw toNhnCloudCliError(err);
     }
   }
+
+  /**
+   * 설계도(template) 를 생성한다.
+   * POST /ncs/v1.0/appkeys/{appKey}/templates
+   * 요청 body 는 `--file <json>` 로 읽은 값을 그대로 전달한다(필수값 검증은 API 오류에 위임).
+   * 응답: { header, template: {...} } — named 필드(getTemplate 과 동일 패턴).
+   */
+  async createTemplate(body: unknown): Promise<NcsTemplateDetail> {
+    const url = `${this.baseUrl}/templates`;
+    try {
+      const res = await ky.post(url, {
+        headers: this.authHeaders(),
+        json: body,
+        retry: 0,
+        timeout: DEFAULT_TIMEOUT_MS,
+      });
+      const resBody = await res.json<NcsTemplateGetResponse>();
+
+      unwrapHeader(resBody);
+      if (!isNcsTemplateDetail(resBody.template)) {
+        throw new NhnCloudCliError(
+          "NCS API 응답 형식 오류: template 필드가 없거나 형식이 올바르지 않습니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return resBody.template;
+    } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * 설계도(template) 를 삭제한다.
+   * DELETE /ncs/v1.0/appkeys/{appKey}/templates/{id}
+   */
+  async deleteTemplate(id: string): Promise<void> {
+    const url = `${this.baseUrl}/templates/${encodeURIComponent(id)}`;
+    try {
+      await ky.delete(url, {
+        headers: this.authHeaders(),
+        retry: 0,
+        timeout: DEFAULT_TIMEOUT_MS,
+      });
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * 설계도(template) 의 새 버전을 생성한다.
+   * POST /ncs/v1.0/appkeys/{appKey}/templates/{id}/versions
+   * body 에 `sourceVersion` 이 필수(docs 확정)이나 클라이언트는 그대로 전달하고
+   * 필수값 검증은 API 응답 오류에 위임한다(1-3 회피 — API 경로에서 EXIT_PARAM_ERROR 를 만들지 않음).
+   * 응답: { header, version: {...} } — named 필드(getTemplateVersion 과 동일 패턴).
+   */
+  async createTemplateVersion(id: string, body: unknown): Promise<NcsTemplateVersionDetail> {
+    const url = `${this.baseUrl}/templates/${encodeURIComponent(id)}/versions`;
+    try {
+      const res = await ky.post(url, {
+        headers: this.authHeaders(),
+        json: body,
+        retry: 0,
+        timeout: DEFAULT_TIMEOUT_MS,
+      });
+      const resBody = await res.json<NcsTemplateVersionGetResponse>();
+
+      unwrapHeader(resBody);
+      if (!isNcsTemplateVersionDetail(resBody.version)) {
+        throw new NhnCloudCliError(
+          "NCS API 응답 형식 오류: version 필드가 없거나 형식이 올바르지 않습니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return resBody.version;
+    } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * 설계도(template) 버전을 삭제한다.
+   * DELETE /ncs/v1.0/appkeys/{appKey}/templates/{id}/versions/{version}
+   */
+  async deleteTemplateVersion(id: string, version: string): Promise<void> {
+    const url = `${this.baseUrl}/templates/${encodeURIComponent(id)}/versions/${encodeURIComponent(version)}`;
+    try {
+      await ky.delete(url, {
+        headers: this.authHeaders(),
+        retry: 0,
+        timeout: DEFAULT_TIMEOUT_MS,
+      });
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
 }

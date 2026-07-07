@@ -525,3 +525,103 @@ describe("NcsClient.getWorkloadScheduleHistory", () => {
     expect(result.scheduleHistory).toEqual([]);
   });
 });
+
+describe("NcsClient.createTemplate", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("{ header, template: {...} } 에서 template 반환", async () => {
+    vi.mocked(ky.post).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+        template: { id: "tmpl-1", name: "nginx-template" },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.createTemplate({ name: "nginx-template" });
+    expect(result.id).toBe("tmpl-1");
+    expect(ky.post).toHaveBeenCalledWith(
+      expect.stringContaining("/templates"),
+      expect.objectContaining({ json: { name: "nginx-template" } }),
+    );
+  });
+
+  it("template 필드 누락 시 형식 오류 throw (EXIT_API_ERROR)", async () => {
+    vi.mocked(ky.post).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await expect(client.createTemplate({})).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+});
+
+describe("NcsClient.deleteTemplate", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("DELETE /templates/{id} 를 호출한다", async () => {
+    vi.mocked(ky.delete).mockReturnValue({} as never);
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await client.deleteTemplate("tmpl-1");
+
+    expect(ky.delete).toHaveBeenCalledWith(
+      expect.stringContaining("/templates/tmpl-1"),
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+  });
+});
+
+describe("NcsClient.createTemplateVersion", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("{ header, version: {...} } 에서 version 반환", async () => {
+    vi.mocked(ky.post).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+        version: { id: "tmpl-1", version: "3" },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.createTemplateVersion("tmpl-1", { sourceVersion: "2" });
+    expect(result.version).toBe("3");
+    expect(ky.post).toHaveBeenCalledWith(
+      expect.stringContaining("/templates/tmpl-1/versions"),
+      expect.objectContaining({ json: { sourceVersion: "2" } }),
+    );
+  });
+
+  it("version 필드 누락 시 형식 오류 throw (EXIT_API_ERROR)", async () => {
+    vi.mocked(ky.post).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await expect(client.createTemplateVersion("tmpl-1", { sourceVersion: "2" })).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+});
+
+describe("NcsClient.deleteTemplateVersion", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("DELETE /templates/{id}/versions/{version} 를 호출한다", async () => {
+    vi.mocked(ky.delete).mockReturnValue({} as never);
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await client.deleteTemplateVersion("tmpl-1", "3");
+
+    expect(ky.delete).toHaveBeenCalledWith(
+      expect.stringContaining("/templates/tmpl-1/versions/3"),
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+  });
+});

@@ -1,8 +1,9 @@
+import { readFileSync } from "node:fs";
 import { resolveProfileName, getUserAccessKey, getServiceCredential } from "../../config/credentials.js";
 import { getAccessToken } from "../../api/oauth.js";
 import { NcsClient } from "../../services/ncs/client.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
-import { EXIT_CONFIG_ERROR } from "../../utils/exit-codes.js";
+import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 
 /**
  * NCS appKey 를 해석한다.
@@ -58,4 +59,32 @@ export async function resolveNcsClient(opts: {
   const appKey = await resolveNcsAppKey(profileName, opts.appKey);
   const region = opts.region ?? "kr1";
   return { client: new NcsClient(accessToken, region, appKey), profileName };
+}
+
+/**
+ * `--file <json>` 로 지정된 경로를 읽어 JSON 으로 파싱한다 (ADR-019 NKS 선례 — 복잡한 생성 입력은 파일 기반).
+ * 순수 함수 — stdout/stderr 출력이나 confirm 로직을 섞지 않는다(io-throw-bundled-untestable 회피).
+ * 파일 읽기 실패(존재하지 않음 등) 또는 JSON.parse 실패는 모두 EXIT_PARAM_ERROR 로 통일한다.
+ */
+export function readJsonPayload(filePath: string): unknown {
+  let raw: string;
+  try {
+    raw = readFileSync(filePath, "utf-8");
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new NhnCloudCliError(
+      `파일을 읽을 수 없습니다: ${filePath} (${detail})`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new NhnCloudCliError(
+      `JSON 파싱에 실패했습니다: ${filePath} (${detail})`,
+      EXIT_PARAM_ERROR,
+    );
+  }
 }
