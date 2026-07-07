@@ -11,11 +11,11 @@ nhncloud configure --profile playground
 
 ### 대화형 흐름
 
-1. profile 이름 (기본 `default`)
-2. 개인 UAK — id, secret (password 입력)
-3. 서비스별 자격증명 — logncrash appkey·secret, ncr appkey (각 건너뛰기 가능)
-4. 연결 테스트 (UAK → OAuth 발급, logncrash → 최소 검색)
-5. 기존 값과 머지 저장 (`credentials.json` 0600, all-or-nothing)
+1. profile 이름 (기본 `default`). profile = 프로젝트 하나에 대응한다 — 여러 프로젝트는 profile 을 나눠 `--profile` 로 전환한다.
+2. 개인 UAK — id, secret (password 입력). 기존 profile 에 UAK 가 있으면 재사용할지 먼저 묻는다(멀티 프로젝트에서 계정 단위 UAK 중복 입력을 줄임).
+3. 서비스별 자격증명 — logncrash appkey·secret, ncr appkey, ncs appkey (각 건너뛰기 가능, appkey 는 빈값 검증).
+4. 연결 테스트 (UAK → OAuth 발급, logncrash → 최소 검색, ncr·ncs → kr1 목록 조회).
+5. 기존 값과 머지 저장 (`credentials.json` 0600, all-or-nothing).
 
 ### 비대화형 (flag — CI·자동화)
 
@@ -25,7 +25,7 @@ flag 가 하나라도 있으면 비대화형으로 동작한다.
 nhncloud configure --profile playground \
   --uak-id <id> --uak-secret <secret> \
   --logncrash-appkey <k> --logncrash-secret <s> \
-  [--ncr-appkey <appkey>] [--no-verify]
+  [--ncr-appkey <appkey>] [--ncs-appkey <appkey>] [--no-verify]
 ```
 
 | 옵션 | 설명 |
@@ -34,6 +34,7 @@ nhncloud configure --profile playground \
 | `--uak-id` / `--uak-secret` | 개인 UAK |
 | `--logncrash-appkey` / `--logncrash-secret` | logncrash 자격증명 |
 | `--ncr-appkey <key>` | NCR(Container Registry) appkey (인증 secret 은 공통 UAK 재사용) |
+| `--ncs-appkey <key>` | NCS(Container Service) appkey (인증 토큰은 공통 UAK OAuth 재사용) |
 | `--no-verify` | 연결 테스트 생략 |
 
 ### 연결 테스트
@@ -41,6 +42,7 @@ nhncloud configure --profile playground \
 - UAK — OAuth `token/create` 호출 성공 여부로 검증
 - logncrash — 짧은 범위(예: 1분) 검색 호출로 인증(401/403) 검증
 - ncr — kr1 레지스트리 목록 조회로 검증. 인증 secret 이 공통 UAK 라 UAK 가 없으면 검증을 건너뛰고 경고만 출력한다. configure verify 는 **kr1 가정** — kr2/kr3 만 쓰는 경우 첫 `ncr list --region kr2` 호출이 사실상의 검증이 된다.
+- ncs — kr1 template 목록 조회로 검증. 인증 토큰이 공통 UAK OAuth 라 UAK 가 없으면 검증을 건너뛰고 경고만 출력한다. ncr 과 동일하게 **kr1 가정**.
 - 실패 시 저장 여부를 다시 확인 (또는 비대화형은 비-0 종료)
 
 ## Agent command discovery 흐름
