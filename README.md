@@ -658,7 +658,8 @@ NCS는 template(설계도)과 workload(런타임 실행)를 조회한다.
 `configure` 마법사는 아직 ncs를 지원하지 않으므로 `--app-key` 옵션 또는 `~/.nhncloud/credentials.json`의
 `profiles.<profile>.ncs.appkey`를 직접 추가한다.
 
-이번 릴리스는 조회 명령만 지원한다 — 생성·변경·malware 검사는 후속 릴리스에서 추가된다.
+template(설계도)의 생성·삭제와 workload(런타임 실행)의 실행제어(일시정지/재개/재시작/삭제)를 지원한다.
+workload 신규 생성과 malware 검사는 후속 릴리스에서 추가된다.
 
 ```bash
 # template(설계도) 목록/단건/버전 조회
@@ -679,6 +680,25 @@ nhncloud ncs workload events <workload-id> --task <task-id> --app-key <appkey>
 nhncloud ncs workload history <workload-id> --app-key <appkey>
 nhncloud ncs workload history get <workload-id> <history-id> --app-key <appkey>
 nhncloud ncs workload schedule-history <workload-id> --app-key <appkey>
+```
+
+template 생성·버전 생성처럼 복잡한 입력은 공식 API payload를 JSON 파일로 전달한다.
+삭제 명령은 비대화형 환경에서 `--yes`가 필요하다.
+
+```bash
+# template(설계도) 생성 / 삭제
+nhncloud ncs template create --file ./template-create.json --app-key <appkey>
+nhncloud ncs template delete <template-id> --yes --app-key <appkey>
+
+# template 버전 생성 / 삭제 (--file 의 sourceVersion 필드가 필수)
+nhncloud ncs template version create <template-id> --file ./version-create.json --app-key <appkey>
+nhncloud ncs template version delete <template-id> <version> --yes --app-key <appkey>
+
+# workload 실행제어 — 일시정지 / 재개 / task 재시작 / 삭제
+nhncloud ncs workload pause <workload-id> --app-key <appkey>
+nhncloud ncs workload resume <workload-id> --app-key <appkey>
+nhncloud ncs workload restart <workload-id> --task <task-id> --app-key <appkey>
+nhncloud ncs workload delete <workload-id> --yes --app-key <appkey>
 ```
 
 ## 개발
