@@ -1,8 +1,8 @@
 # nhncloud-cli
 
 NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 통합 CLI.
-현재 98개 command catalog 항목을 지원한다.
-`configure`, `commands`, `logncrash search/send/export`, `deploy`, `instance`, `network`, `volume`, `floatingip`, `ncr`, `nks` 명령으로 NHN Cloud 서비스를 조회·운영할 수 있다.
+현재 106개 command catalog 항목을 지원한다.
+`configure`, `commands`, `logncrash search/send/export`, `deploy`, `instance`, `network`, `volume`, `floatingip`, `ncr`, `nks`, `ncs` 명령으로 NHN Cloud 서비스를 조회·운영할 수 있다.
 
 ## 설치
 
@@ -658,8 +658,7 @@ NCS는 template(설계도)과 workload(런타임 실행)를 조회한다.
 `configure` 마법사는 아직 ncs를 지원하지 않으므로 `--app-key` 옵션 또는 `~/.nhncloud/credentials.json`의
 `profiles.<profile>.ncs.appkey`를 직접 추가한다.
 
-template(설계도)의 생성·삭제와 workload(런타임 실행)의 실행제어(일시정지/재개/재시작/삭제)를 지원한다.
-workload 신규 생성과 malware 검사는 후속 릴리스에서 추가된다.
+template(설계도)의 생성·삭제, workload(런타임 실행)의 생성·변경·실행제어(일시정지/재개/재시작/삭제), 악성코드 검사(malware) 설정·결과 조회를 지원한다.
 
 ```bash
 # template(설계도) 목록/단건/버전 조회
@@ -699,6 +698,30 @@ nhncloud ncs workload pause <workload-id> --app-key <appkey>
 nhncloud ncs workload resume <workload-id> --app-key <appkey>
 nhncloud ncs workload restart <workload-id> --task <task-id> --app-key <appkey>
 nhncloud ncs workload delete <workload-id> --yes --app-key <appkey>
+```
+
+workload 생성은 비동기다.
+`--wait`를 주면 `Running` 상태가 될 때까지 폴링하고, `--timeout`(초, 기본 300)으로 대기 시간을 조절한다.
+변경은 `update`(PUT, 전체 교체)와 `patch`(PATCH, JSON Patch 배열로 부분 변경) 두 가지다.
+
+```bash
+# workload 생성 (--wait로 Running 대기)
+nhncloud ncs workload create --file ./workload-create.json --wait --app-key <appkey>
+
+# workload 전체 교체 / 부분 변경(JSON Patch 배열)
+nhncloud ncs workload update <workload-id> --file ./workload-update.json --app-key <appkey>
+nhncloud ncs workload patch <workload-id> --file ./workload-patch.json --app-key <appkey>
+```
+
+악성코드 검사(malware) 설정은 appkey 단위이고, 검사 결과는 workload 실행 히스토리 단위로 조회한다.
+
+```bash
+# 악성코드 검사 설정 조회 / 변경
+nhncloud ncs malware config get --app-key <appkey>
+nhncloud ncs malware config set --enabled true --app-key <appkey>
+
+# 악성코드 검사 결과 조회 (workload history get 응답의 id를 historyId로 사용)
+nhncloud ncs malware result <workload-id> <history-id> --app-key <appkey>
 ```
 
 ## 개발

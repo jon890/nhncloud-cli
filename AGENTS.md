@@ -5,7 +5,7 @@
 NHN Cloud 서비스를 AWS CLI 처럼 호출하는 통합 CLI다.
 TypeScript + Commander.js 기반이다. dooray-cli 의 기반과 하네스를 재사용한다.
 
-## 지원 명령 (98개 command catalog 항목)
+## 지원 명령 (106개 command catalog 항목)
 
 - `configure` — 자격증명 설정 마법사 (대화형 + flag, UAK + 서비스별 키, 연결 테스트).
 - `commands` — Commander tree에서 command path·argument·option·description catalog를 출력하는 metadata 명령 (`--json` 권장, 외부 API 호출 없음).
@@ -54,9 +54,12 @@ TypeScript + Commander.js 기반이다. dooray-cli 의 기반과 하네스를 �
 - `ncr tags <registry> <repository>` — 특정 이미지의 태그 목록 조회 (artifact 의 tags flatten·ADR-017, tag·push_time·size).
 - `nks` — NHN Kubernetes Service 명령군 (Keystone 토큰 + `container-infra` API·ADR-019).
   `supports`, cluster/nodegroup/addon 조회, kubeconfig, 작업 이력, IP 접근 제어, 생성·삭제·resize·upgrade·autoscale·설정 변경을 지원한다.
-- `ncs` — NHN Container Service 명령군 (Deploy OAuth Bearer 토큰 재사용 + appkey 경로·ADR-020, region kr1/kr3).
-  `template`(설계도)·`workload`(런타임 실행)·`malware`(악성코드 검사) 3개 리소스 그룹. 조회·생성·삭제·실행제어(pause/resume/restart)를 지원한다.
-  복잡한 생성·변경(template/workload create·update·patch)은 `--file <json>` spec 입력(ADR-019 선례). workload 는 비동기라 `create --wait` 로 ACTIVE 폴링.
+- `ncs template list|get|create|delete` — NCS(NHN Container Service) 설계도(template) 관리 (Deploy OAuth Bearer 토큰 재사용 + appkey 경로·ADR-020, region kr1/kr3). `create` 는 `--file <json>` spec 입력(ADR-019 선례).
+- `ncs template version list|get|create|delete` — 설계도 버전 관리. `version create` 의 `--file` payload 는 `sourceVersion` 필드 필수.
+- `ncs workload list|get|logs|events|history|schedule-history` — 워크로드(런타임 실행) 조회. `logs`/`events` 는 `--task <taskId>` 필수, `history get <id> <historyId>` 로 단건 조회.
+- `ncs workload create|update|patch|pause|resume|restart|delete` — 워크로드 생성·변경·실행제어. `create --file <json> [--wait] [--timeout <sec>]` (비동기 생성, `--wait` 로 Running 상태 폴링), `update`(PUT 전체 교체)·`patch`(PATCH `application/json-patch+json` 부분 변경), `restart` 는 `--task <taskId>` 필수.
+- `ncs malware config get|set` — 악성코드 검사 설정 조회/변경 (`set --enabled <true|false>`, appkey-scoped).
+- `ncs malware result <workloadId> <historyId>` — 워크로드 실행 히스토리의 악성코드 검사 결과 조회.
 
 ## API 스펙 확인 절차
 

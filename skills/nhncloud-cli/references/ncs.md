@@ -1,8 +1,7 @@
 # NCS Reference
 
 `ncs` 명령군은 NHN Container Service 의 template(설계도)과 workload(런타임 실행)를 조회·관리한다.
-template 의 생성·삭제와 workload 의 실행제어(일시정지/재개/재시작/삭제)를 지원한다.
-workload 신규 생성과 malware 검사 명령은 후속 릴리스에서 추가된다.
+template 의 생성·삭제, workload 의 생성·변경(update/patch)·실행제어(일시정지/재개/재시작/삭제), 악성코드 검사(malware) 설정·결과 조회를 지원한다.
 
 ## 설정
 
@@ -83,12 +82,48 @@ nhncloud ncs workload restart <workload-id> --task <task-id> --app-key <appkey>
 nhncloud ncs workload delete <workload-id> --yes --app-key <appkey>
 ```
 
+## Workload 생성/변경
+
+생성은 비동기다.
+`--wait`를 주면 `Running` 상태가 될 때까지 폴링하고, `--timeout <sec>`(기본 300)으로 대기 시간을 조절한다.
+변경은 `update`(PUT, 전체 교체)와 `patch`(PATCH, JSON Patch 배열 부분 변경) 두 가지다.
+
+```bash
+nhncloud ncs workload create --file ./workload-create.json --app-key <appkey> --json
+nhncloud ncs workload create --file ./workload-create.json --wait --timeout 600 --app-key <appkey> --json
+
+nhncloud ncs workload update <workload-id> --file ./workload-update.json --app-key <appkey> --json
+nhncloud ncs workload patch <workload-id> --file ./workload-patch.json --app-key <appkey> --json
+```
+
+`patch`의 `--file`은 JSON Patch(RFC 6902) 배열이다.
+
+```json
+[
+  { "op": "replace", "path": "/workload/desired", "value": 2 }
+]
+```
+
+## 악성코드 검사(malware)
+
+설정은 appkey 단위, 결과는 workload 실행 히스토리 단위로 조회한다.
+`historyId`는 `workload history` 목록 또는 `workload history get`의 `id`를 사용한다.
+
+```bash
+nhncloud ncs malware config get --app-key <appkey> --json
+nhncloud ncs malware config set --enabled true --app-key <appkey>
+nhncloud ncs malware config set --enabled false --app-key <appkey>
+
+nhncloud ncs malware result <workload-id> <history-id> --app-key <appkey> --json
+```
+
 ## 체이닝 예시
 
 ```bash
 nhncloud ncs template list --app-key <appkey> --json | jq -r '.[].id'
 nhncloud ncs workload list --app-key <appkey> --json | jq -r '.[] | select(.status=="Failed") | .id'
 nhncloud ncs workload get <workload-id> --app-key <appkey> --json | jq -r '.tasks[].id'
+nhncloud ncs workload history <workload-id> --app-key <appkey> --json | jq -r '.[0].id' # 최신 historyId
 ```
 
 ## 옵션
@@ -103,7 +138,9 @@ nhncloud ncs workload get <workload-id> --app-key <appkey> --json | jq -r '.task
 | `--task <taskId>` | `workload logs`·`workload events`·`workload restart` 필수 |
 | `--container <name>` | `workload logs` 필수 |
 | `--sort <sort>` | `workload history` 정렬 (역순은 필드명 앞에 `-`) |
-| `--file <path>` | `template create`·`template version create` 필수 — JSON payload 파일 경로 |
+| `--file <path>` | `template create`·`template version create`·`workload create`·`workload update`·`workload patch` 필수 — JSON payload 파일 경로 (`patch`는 JSON Patch 배열) |
+| `--wait` / `--timeout <sec>` | `workload create` — Running 상태 폴링(`--timeout` 기본 300초) |
+| `--enabled <value>` | `malware config set` 필수. `true` 또는 `false` |
 | `--yes` | `template delete`·`template version delete`·`workload delete` — 비대화형 환경 필수, TTY 는 생략 시 확인 프롬프트 |
 
 ## 주의사항
@@ -116,6 +153,9 @@ nhncloud ncs workload get <workload-id> --app-key <appkey> --json | jq -r '.task
 - `template version create`의 `--file` payload 는 `sourceVersion` 필드가 필수다 — 누락 시 API 오류로 반환된다(클라이언트가 사전 검증하지 않음).
 - `--file` 로 지정한 JSON payload 파일은 1MB 를 넘거나 디렉터리면 입력 오류다.
 - 삭제 명령(`template delete`·`template version delete`·`workload delete`)은 비대화형 환경에서 `--yes` 없이 실행하면 입력 오류다.
+- `workload create --wait`는 타임아웃까지 `Running` 상태에 도달하지 못하면 마지막 상태를 메시지에 포함해 API 오류로 반환한다.
+- `workload patch`는 `Content-Type: application/json-patch+json`으로 전송된다 — `--file`에는 JSON Patch 배열(`op`/`path`/`value`)을 담아야 한다.
+- `malware config set --enabled`는 `true`·`false` 외의 값이면 입력 오류다.
 
 ## 에러 코드
 
@@ -123,5 +163,5 @@ nhncloud ncs workload get <workload-id> --app-key <appkey> --json | jq -r '.task
 |------|-----------|
 | UAK 누락 또는 NCS appkey 미설정 | 4 |
 | UAK 인증 실패 | 2 |
-| 지원하지 않는 region, 빈 id 인수, `--task`/`--container` 누락, `--file` 파일 오류(누락·디렉터리·크기초과·JSON 파싱 실패), 비대화형 삭제 시 `--yes` 누락 | 3 |
-| NCS API 오류 (payload 필수값 누락 등 서버측 검증 포함) | 1 |
+| 지원하지 않는 region, 빈 id 인수, `--task`/`--container` 누락, `--file` 파일 오류(누락·디렉터리·크기초과·JSON 파싱 실패), `--enabled` 값 오류(`true`/`false` 외), 비대화형 삭제 시 `--yes` 누락 | 3 |
+| NCS API 오류 (payload 필수값 누락, `workload create --wait` 타임아웃 등 서버측 검증·폴링 실패 포함) | 1 |
