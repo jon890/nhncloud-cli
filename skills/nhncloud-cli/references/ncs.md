@@ -8,8 +8,7 @@ template 의 생성·삭제, workload 의 생성·변경(update/patch)·실행�
 공통 UAK와 NCS appkey가 필요하다.
 인증은 Deploy 와 같은 UAK OAuth Bearer 토큰을 재사용한다(profile 토큰 캐시 공유).
 
-`configure` 마법사는 아직 ncs를 지원하지 않는다.
-`--app-key` 옵션 또는 `~/.nhncloud/credentials.json` 의 `profiles.<profile>.ncs.appkey` 를 직접 추가한다.
+`nhncloud configure` (대화형 또는 `--ncs-appkey`) 로 설정하거나, `--app-key` 옵션으로 직접 넘긴다.
 
 ```bash
 nhncloud ncs template list --app-key <appkey>

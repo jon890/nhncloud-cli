@@ -6,8 +6,16 @@ import {
   setUserAccessKey,
   setServiceCredential,
   setIaasCredential,
+  listProfilesWithUak,
+  getUserAccessKey,
 } from "../config/credentials.js";
-import { verifyUserAccessKey, verifyLogncrash, verifyIaas, verifyNcr } from "./configure-verify.js";
+import {
+  verifyUserAccessKey,
+  verifyLogncrash,
+  verifyIaas,
+  verifyNcr,
+  verifyNcs,
+} from "./configure-verify.js";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_AUTH_ERROR, EXIT_PARAM_ERROR } from "../utils/exit-codes.js";
 import type { UserAccessKey, ServiceCredential, IaasCredential } from "../config/types.js";
@@ -23,6 +31,7 @@ interface ConfigureOptions {
   iaasPassword?: string;
   iaasRegion?: string;
   ncrAppkey?: string;
+  ncsAppkey?: string;
   verify: boolean;
 }
 
@@ -35,6 +44,7 @@ async function saveAndVerify(
   logncrash: ServiceCredential | undefined,
   iaas: IaasCredential | undefined,
   ncr: ServiceCredential | undefined,
+  ncs: ServiceCredential | undefined,
   doVerify: boolean,
 ): Promise<void> {
   // 연결 테스트
@@ -98,6 +108,30 @@ async function saveAndVerify(
         );
       }
     }
+
+    if (ncs) {
+      // NCS 도 인증 secret 으로 공통 UAK 를 쓰므로(ADR-020) UAK 없이는 검증 불가.
+      // ncr 과 동일한 비대칭 — UAK 가 없으면 skip 을 대칭 문구로 경고.
+      if (uak) {
+        const appkey = ncs.appkey ?? "";
+        const ok = await verifyNcs(uak, appkey);
+        if (ok) {
+          // verify 는 kr1 가정(verifyNcs) — 사용자가 region 을 인지하도록 표기.
+          process.stderr.write(chalk.green("  ✓ ncs 연결 성공 (kr1)\n"));
+        } else {
+          throw new NhnCloudCliError(
+            "ncs 인증 실패 — appkey 또는 UAK 를 확인하세요.",
+            EXIT_AUTH_ERROR,
+          );
+        }
+      } else {
+        process.stderr.write(
+          chalk.yellow(
+            "  ⚠ ncs verify 건너뜀 — 이번 설정에 UAK 가 없습니다. ncs 명령은 공통 UAK 가 필요하니 먼저 설정하세요.\n",
+          ),
+        );
+      }
+    }
   }
 
   // 머지 저장
@@ -113,6 +147,9 @@ async function saveAndVerify(
   if (ncr) {
     await setServiceCredential(profileName, "ncr", ncr);
   }
+  if (ncs) {
+    await setServiceCredential(profileName, "ncs", ncs);
+  }
 
   process.stderr.write(chalk.green(`\n✓ profile "${profileName}" 설정이 저장되었습니다.\n`));
 }
@@ -127,16 +164,43 @@ async function runInteractive(opts: ConfigureOptions): Promise<void> {
     default: defaultProfile,
   });
 
-  // 2. UAK
-  process.stderr.write(chalk.gray("\n— 개인 UAK (User Access Key) —\n"));
-  const uakId = await input({
-    message: "UAK ID",
-  });
-  const uakSecret = await password({
-    message: "UAK Secret",
-    mask: "*",
-  });
-  const uak: UserAccessKey = { id: uakId, secret: uakSecret };
+  // 2. UAK — 다른 profile 에 이미 있으면 재사용 여부 확인 (멀티 프로젝트 UAK 중복 완화)
+  let uak: UserAccessKey | undefined;
+  const profilesWithUak = (await listProfilesWithUak()).filter((p) => p !== profileName);
+
+  if (profilesWithUak.length > 0) {
+    const reuse = await confirm({
+      message:
+        profilesWithUak.length === 1
+          ? `기존 profile "${profilesWithUak[0]}" 의 UAK 를 재사용하시겠습니까?`
+          : "기존 profile 의 UAK 를 재사용하시겠습니까?",
+      default: true,
+    });
+
+    if (reuse) {
+      let sourceProfile = profilesWithUak[0]!;
+      if (profilesWithUak.length > 1) {
+        const { select } = await import("@inquirer/prompts");
+        sourceProfile = await select({
+          message: "어느 profile 의 UAK 를 사용하시겠습니까?",
+          choices: profilesWithUak.map((p) => ({ value: p, name: p })),
+        });
+      }
+      uak = await getUserAccessKey(sourceProfile);
+    }
+  }
+
+  if (!uak) {
+    process.stderr.write(chalk.gray("\n— 개인 UAK (User Access Key) —\n"));
+    const uakId = await input({
+      message: "UAK ID",
+    });
+    const uakSecret = await password({
+      message: "UAK Secret",
+      mask: "*",
+    });
+    uak = { id: uakId, secret: uakSecret };
+  }
 
   // 3. logncrash 설정 여부
   let logncrash: ServiceCredential | undefined;
@@ -147,7 +211,10 @@ async function runInteractive(opts: ConfigureOptions): Promise<void> {
 
   if (setupLogncrash) {
     process.stderr.write(chalk.gray("\n— logncrash 자격증명 —\n"));
-    const appkey = await input({ message: "logncrash appkey" });
+    const appkey = await input({
+      message: "logncrash appkey",
+      validate: (v) => v.trim().length > 0 || "logncrash appkey 를 입력하세요",
+    });
     const secret = await password({ message: "logncrash secret", mask: "*" });
     logncrash = { appkey, secret };
   }
@@ -199,7 +266,23 @@ async function runInteractive(opts: ConfigureOptions): Promise<void> {
     ncr = { appkey: ncrAppkey.trim() };
   }
 
-  // 6. 연결 테스트 + 저장
+  // 6. ncs 설정 여부
+  let ncs: ServiceCredential | undefined;
+  const setupNcs = await confirm({
+    message: "ncs 자격증명도 설정하시겠습니까?",
+    default: false,
+  });
+
+  if (setupNcs) {
+    process.stderr.write(chalk.gray("\n— ncs (Container Service) 자격증명 —\n"));
+    const ncsAppkey = await input({
+      message: "ncs appkey",
+      validate: (v) => v.trim().length > 0 || "ncs appkey 를 입력하세요",
+    });
+    ncs = { appkey: ncsAppkey.trim() };
+  }
+
+  // 7. 연결 테스트 + 저장
   if (opts.verify) {
     process.stderr.write(chalk.gray("\n— 연결 테스트 중… —\n"));
   }
@@ -207,7 +290,7 @@ async function runInteractive(opts: ConfigureOptions): Promise<void> {
   if (opts.verify) {
     // 대화형: 실패 시 저장 여부 재확인
     try {
-      await saveAndVerify(profileName, uak, logncrash, iaas, ncr, true);
+      await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, true);
     } catch (err) {
       if (err instanceof NhnCloudCliError && err.exitCode === EXIT_AUTH_ERROR) {
         process.stderr.write(chalk.red(`  ✗ ${err.message}\n`));
@@ -219,13 +302,13 @@ async function runInteractive(opts: ConfigureOptions): Promise<void> {
           process.stderr.write(chalk.yellow("저장이 취소되었습니다.\n"));
           return;
         }
-        await saveAndVerify(profileName, uak, logncrash, iaas, ncr, false);
+        await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, false);
       } else {
         throw err;
       }
     }
   } else {
-    await saveAndVerify(profileName, uak, logncrash, iaas, ncr, false);
+    await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, false);
   }
 }
 
@@ -259,11 +342,15 @@ async function runNonInteractive(opts: ConfigureOptions): Promise<void> {
     ? { appkey: opts.ncrAppkey.trim() }
     : undefined;
 
-  if (!uak && !logncrash && !iaas && !ncr) {
+  const ncs: ServiceCredential | undefined = opts.ncsAppkey?.trim()
+    ? { appkey: opts.ncsAppkey.trim() }
+    : undefined;
+
+  if (!uak && !logncrash && !iaas && !ncr && !ncs) {
     throw new NhnCloudCliError(
       "비대화형 모드: --uak-id + UAK secret, --logncrash-appkey + logncrash secret,\n" +
         "--iaas-tenant-id + --iaas-username + iaas password,\n" +
-        "또는 --ncr-appkey 중 하나가 필요합니다.\n" +
+        "--ncr-appkey, 또는 --ncs-appkey 중 하나가 필요합니다.\n" +
         "secret/password 는 노출 방지를 위해 환경변수 권장:\n" +
         "NHNCLOUD_UAK_SECRET / NHNCLOUD_LOGNCRASH_SECRET / NHNCLOUD_IAAS_PASSWORD.",
       EXIT_PARAM_ERROR,
@@ -274,7 +361,7 @@ async function runNonInteractive(opts: ConfigureOptions): Promise<void> {
     process.stderr.write(chalk.gray("연결 테스트 중…\n"));
   }
 
-  await saveAndVerify(profileName, uak, logncrash, iaas, ncr, opts.verify);
+  await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, opts.verify);
 }
 
 export const configureCommand = new Command("configure")
@@ -292,6 +379,7 @@ export const configureCommand = new Command("configure")
   )
   .option("--iaas-region <region>", "iaas region (기본: kr1)", "kr1")
   .option("--ncr-appkey <key>", "ncr appkey (비대화형)")
+  .option("--ncs-appkey <key>", "ncs appkey (비대화형)")
   .option("--no-verify", "연결 테스트 생략")
   .action(async (opts: ConfigureOptions) => {
     const hasFlag =
@@ -302,7 +390,8 @@ export const configureCommand = new Command("configure")
       opts.iaasTenantId ||
       opts.iaasUsername ||
       opts.iaasPassword ||
-      opts.ncrAppkey;
+      opts.ncrAppkey ||
+      opts.ncsAppkey;
 
     try {
       if (hasFlag) {

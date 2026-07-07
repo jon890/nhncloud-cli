@@ -102,6 +102,19 @@ async function loadConfig(): Promise<Config | null> {
 }
 
 /**
+ * userAccessKey 가 설정된 profile 이름 목록을 반환한다.
+ * `loadCredentialsOrEmpty` 재사용 — 자격증명 파일이 없으면 빈 배열(설정 전 최초 configure 시나리오),
+ * 파일이 손상(JSON 파싱 오류)됐으면 조용히 넘기지 않고 NhnCloudCliError 를 rethrow 한다.
+ * configure 대화형의 UAK 재사용 프롬프트 전용 — 비대화형 경로는 이 함수를 타지 않는다.
+ */
+export async function listProfilesWithUak(): Promise<string[]> {
+  const credentials = await loadCredentialsOrEmpty();
+  return Object.entries(credentials.profiles)
+    .filter(([, profile]) => isUserAccessKey(profile["userAccessKey"]))
+    .map(([name]) => name);
+}
+
+/**
  * profile 이름을 결정한다.
  * 우선순위: --profile 옵션 > NHNCLOUD_PROFILE env > config.defaultProfile > "default"
  */
