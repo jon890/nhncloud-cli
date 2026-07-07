@@ -92,6 +92,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 | path-traversal (fileName basename) | code-review | [path-traversal-filename](code-review/path-traversal-filename.md) |
 | interactive 경고 vs 실제 동작 | code-review | [interactive-warning-mismatch](code-review/interactive-warning-mismatch.md), [noninteractive-trigger-dead-warning](plan/noninteractive-trigger-dead-warning.md) |
 | CLI option parser/helper 적용 | plan | [option-parse-before-side-effects](plan/option-parse-before-side-effects.md), [numeric-param-range-unverified](plan/numeric-param-range-unverified.md), [positive-int-number-only](code-review/positive-int-number-only.md) |
+| 공용 helper 배치·중복 (DRY) | code-review | [shared-helper-in-command-file](code-review/shared-helper-in-command-file.md), [duplicate-map-block-no-helper](code-review/duplicate-map-block-no-helper.md), [noninteractive-interactive-duplication](code-review/noninteractive-interactive-duplication.md) |
 | plan 작성 (phase 항목·검증 명령·완료 조건) | plan | [numeric-estimation](plan/numeric-estimation.md), [manual-verification-criterion](plan/manual-verification-criterion.md), [last-phase-completed-marking](plan/last-phase-completed-marking.md) |
 | 팀원 스폰·메시지 (build-with-teams) | team | [sendmessage-reply-missing](team/sendmessage-reply-missing.md), [member-premature-execution](team/member-premature-execution.md), [executor-premature-execution](plan/executor-premature-execution.md) |
 | worktree·cwd 격리 | team | [executor-cwd-isolation](team/executor-cwd-isolation.md), [execution-context-ambiguous](plan/execution-context-ambiguous.md), [cwd-tracking-dual-status](team/cwd-tracking-dual-status.md) |
@@ -157,7 +158,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [sendmessage-reply-missing](team/sendmessage-reply-missing.md)
 - [task-index-phase-count-mismatch](team/task-index-phase-count-mismatch.md)
 
-### [code-review/](code-review/) (54)
+### [code-review/](code-review/) (55)
 
 - [adjacent-command-pattern-missing](code-review/adjacent-command-pattern-missing.md)
 - [ambiguous-option-positional-silent-fallback](code-review/ambiguous-option-positional-silent-fallback.md)
@@ -205,6 +206,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [resolver-boundary-empty-id](code-review/resolver-boundary-empty-id.md)
 - [sensitive-file-mode-missing](code-review/sensitive-file-mode-missing.md)
 - [sequential-endpoint-partial-failure](code-review/sequential-endpoint-partial-failure.md)
+- [shared-helper-in-command-file](code-review/shared-helper-in-command-file.md)
 - [spinner-before-validation](code-review/spinner-before-validation.md)
 - [spinner-no-try-catch](code-review/spinner-no-try-catch.md)
 - [test-regex-dotall-missing](code-review/test-regex-dotall-missing.md)
