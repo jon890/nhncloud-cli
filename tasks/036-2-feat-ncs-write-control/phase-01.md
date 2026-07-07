@@ -12,6 +12,7 @@
 
 선행 task `tasks/036-feat-ncs-foundation-read/` 의 `src/services/ncs/client.ts`, `src/commands/ncs/helpers.ts`, `src/commands/ncs/template.ts` 가 먼저 병합돼 있어야 한다.
 `docs/adr/020-ncs-container-service-api.md` 를 다시 확인한다 — 복잡한 생성 입력은 `--file <json>` 을 기본으로 삼는다(ADR-019 NKS 선례와 동일 원칙).
+봉투는 선행 task 에서 확정한 형태(`unwrapHeader`+named 필드 또는 `unwrap`)를 그대로 유지한다 — 재추측 금지.
 
 ## 구현 항목
 

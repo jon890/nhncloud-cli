@@ -1,8 +1,8 @@
-# Phase 03 — 공개 docs 반영 (조회 명령)
+# Phase 04 — 공개 docs 반영 (조회 명령)
 
 ## 목표
 
-Phase 1~2 에서 구현한 NCS 조회 명령을 사용자-facing docs 에 반영한다.
+Phase 1~3 에서 구현한 NCS 조회 명령을 사용자-facing docs 에 반영한다.
 NCS 는 이번 task 이후에도 write/malware 명령이 추가될 예정이므로, 이 phase 는 조회 명령 범위만 반영한다.
 
 ## 구현 범위
@@ -17,7 +17,7 @@ NCS 는 이번 task 이후에도 write/malware 명령이 추가될 예정이므�
   - template/workload 조회 명령 예시와 옵션 설명.
 - `tasks/036-feat-ncs-foundation-read/index.json`
   - `status` 를 `completed` 로 갱신.
-  - `current_phase` 를 `3` 으로 유지.
+  - `current_phase` 를 `4` 로 유지.
   - 모든 phase `status` 를 `completed` 로 갱신.
 
 ## 검증
