@@ -38,6 +38,9 @@ import { EXIT_API_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 /** 조회용 기본 timeout (30초) — export 하지 않는 모듈 로컬 const */
 const DEFAULT_TIMEOUT_MS = 30_000;
 
+/** waitForRunning 기본 폴링 간격 (5초) — instance client 의 DEFAULT_POLL_INTERVAL_MS 선례와 동일. */
+const DEFAULT_WAIT_POLL_INTERVAL_MS = 5_000;
+
 /**
  * NCS API 응답 봉투 (공식 docs 예제 JSON 확정 — ADR-020, docs.nhncloud.com/ko/Container/NCS/ko/public-api/).
  * 표준 NHN 봉투의 `body` 가 아니라 `header` 와 나란히 named 필드로 온다 — NCR 과 같은 패턴.
@@ -707,6 +710,135 @@ export class NcsClient {
     } catch (err) {
       throw toNhnCloudCliError(err);
     }
+  }
+
+  /**
+   * workload 를 생성한다.
+   * POST /ncs/v1.0/appkeys/{appKey}/workloads
+   * 요청 body 는 `--file <json>` 로 읽은 값을 그대로 전달한다(필수값 검증은 API 오류에 위임 — createTemplate 과 동일).
+   * 응답: { header, workload: {...} } — 생성된 workload 전체 객체(id 만 반환하는 축약 응답 아님, docs 예제 실측 확정).
+   */
+  async createWorkload(body: unknown): Promise<NcsWorkloadDetail> {
+    const url = `${this.baseUrl}/workloads`;
+    try {
+      const res = await ky.post(url, {
+        headers: this.authHeaders(),
+        json: body,
+        retry: 0,
+        timeout: DEFAULT_TIMEOUT_MS,
+      });
+      const resBody = await res.json<NcsWorkloadGetResponse>();
+
+      unwrapHeader(resBody);
+      if (!isNcsWorkloadDetail(resBody.workload)) {
+        throw new NhnCloudCliError(
+          "NCS API 응답 형식 오류: workload 필드가 없거나 형식이 올바르지 않습니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return resBody.workload;
+    } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * workload 를 전체 교체한다.
+   * PUT /ncs/v1.0/appkeys/{appKey}/workloads/{id}
+   * 응답: { header, workload: {...} } — createWorkload 와 동일한 전체 객체 응답(docs 예제 실측 확정).
+   */
+  async updateWorkload(id: string, body: unknown): Promise<NcsWorkloadDetail> {
+    const url = `${this.baseUrl}/workloads/${encodeURIComponent(id)}`;
+    try {
+      const res = await ky.put(url, {
+        headers: this.authHeaders(),
+        json: body,
+        retry: 0,
+        timeout: DEFAULT_TIMEOUT_MS,
+      });
+      const resBody = await res.json<NcsWorkloadGetResponse>();
+
+      unwrapHeader(resBody);
+      if (!isNcsWorkloadDetail(resBody.workload)) {
+        throw new NhnCloudCliError(
+          "NCS API 응답 형식 오류: workload 필드가 없거나 형식이 올바르지 않습니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return resBody.workload;
+    } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * workload 를 부분 변경한다 (JSON Patch 배열, RFC 6902).
+   * PATCH /ncs/v1.0/appkeys/{appKey}/workloads/{id}
+   * Content-Type 이 application/json-patch+json 이어야 한다(docs 확정) — authHeaders() 에 덮어써서 명시 지정.
+   * 응답: { header, workload: {...} } — createWorkload 와 동일한 전체 객체 응답(docs 예제 실측 확정).
+   * redirect/status 분기 불필요 — 공통 봉투 응답(HTTP 200 고정, ADR-006).
+   */
+  async patchWorkload(id: string, patch: unknown): Promise<NcsWorkloadDetail> {
+    const url = `${this.baseUrl}/workloads/${encodeURIComponent(id)}`;
+    try {
+      const res = await ky.patch(url, {
+        headers: { ...this.authHeaders(), "Content-Type": "application/json-patch+json" },
+        json: patch,
+        retry: 0,
+        timeout: DEFAULT_TIMEOUT_MS,
+      });
+      const resBody = await res.json<NcsWorkloadGetResponse>();
+
+      unwrapHeader(resBody);
+      if (!isNcsWorkloadDetail(resBody.workload)) {
+        throw new NhnCloudCliError(
+          "NCS API 응답 형식 오류: workload 필드가 없거나 형식이 올바르지 않습니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return resBody.workload;
+    } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * workload 가 `Running` 상태에 도달할 때까지 폴링한다 (instance client 의 waitForActive 선례, ADR-011).
+   * 데드라인을 고정해두고 매 반복 남은 시간만큼만 대기해 timeoutMs 를 초과하지 않는다.
+   * 타임아웃 시 마지막으로 조회한 상태를 메시지에 포함해 NhnCloudCliError(EXIT_API_ERROR) 를 던진다.
+   */
+  async waitForRunning(
+    id: string,
+    opts: { timeoutMs: number; intervalMs?: number },
+  ): Promise<NcsWorkloadDetail> {
+    const intervalMs = opts.intervalMs ?? DEFAULT_WAIT_POLL_INTERVAL_MS;
+    const deadline = Date.now() + opts.timeoutMs;
+
+    let lastWorkload: NcsWorkloadDetail | null = null;
+
+    while (Date.now() < deadline) {
+      const workload = await this.getWorkload(id);
+      lastWorkload = workload;
+
+      if (workload.status === "Running") {
+        return workload;
+      }
+
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) break;
+
+      await new Promise<void>((resolve) => setTimeout(resolve, Math.min(intervalMs, remaining)));
+    }
+
+    const lastStatus = lastWorkload ? lastWorkload.status : "unknown";
+    throw new NhnCloudCliError(
+      `NCS workload ${id} 가 Running 상태가 되지 않았습니다 (마지막 상태: ${lastStatus}). ` +
+        `--wait 타임아웃(${Math.round(opts.timeoutMs / 1000)}초) 초과.`,
+      EXIT_API_ERROR,
+    );
   }
 
   /**

@@ -626,6 +626,132 @@ describe("NcsClient.deleteTemplateVersion", () => {
   });
 });
 
+describe("NcsClient.createWorkload", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("{ header, workload: {...} } 에서 생성된 workload 전체를 반환한다 (id 만 반환하는 축약 응답 아님)", async () => {
+    vi.mocked(ky.post).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+        workload: {
+          id: "wl-1",
+          name: "ncs-workload",
+          status: "",
+          desired: 1,
+          templateId: "tmpl-1",
+        },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.createWorkload({ name: "ncs-workload", templateId: "tmpl-1", desired: 1 });
+    expect(result.id).toBe("wl-1");
+    expect(result.desired).toBe(1);
+    expect(ky.post).toHaveBeenCalledWith(
+      expect.stringContaining("/workloads"),
+      expect.objectContaining({ json: { name: "ncs-workload", templateId: "tmpl-1", desired: 1 } }),
+    );
+  });
+
+  it("workload 필드 누락 시 형식 오류 throw (EXIT_API_ERROR)", async () => {
+    vi.mocked(ky.post).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await expect(client.createWorkload({})).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+});
+
+describe("NcsClient.updateWorkload", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("PUT /workloads/{id} 로 교체된 workload 전체를 반환한다", async () => {
+    vi.mocked(ky.put).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+        workload: { id: "wl-1", name: "ncs-workload", status: "Running", desired: 2 },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.updateWorkload("wl-1", { name: "ncs-workload", desired: 2 });
+    expect(result.desired).toBe(2);
+    expect(ky.put).toHaveBeenCalledWith(
+      expect.stringContaining("/workloads/wl-1"),
+      expect.objectContaining({ json: { name: "ncs-workload", desired: 2 } }),
+    );
+  });
+});
+
+describe("NcsClient.patchWorkload", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("PATCH /workloads/{id} 를 application/json-patch+json Content-Type 으로 호출한다", async () => {
+    vi.mocked(ky.patch).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+        workload: { id: "wl-1", name: "ncs-workload", status: "Running", desired: 3 },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const patch = [{ op: "replace", path: "/workload/desired", value: 3 }];
+    const result = await client.patchWorkload("wl-1", patch);
+    expect(result.desired).toBe(3);
+    expect(ky.patch).toHaveBeenCalledWith(
+      expect.stringContaining("/workloads/wl-1"),
+      expect.objectContaining({
+        json: patch,
+        headers: expect.objectContaining({ "Content-Type": "application/json-patch+json" }),
+      }),
+    );
+  });
+});
+
+describe("NcsClient.waitForRunning", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("1회차 Pending → 2회차 Running 이면 Running 워크로드를 반환한다", async () => {
+    vi.mocked(ky.get)
+      .mockReturnValueOnce(
+        mockKyResponse({
+          header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+          workload: { id: "wl-1", name: "ncs-workload", status: "Pending" },
+        }),
+      )
+      .mockReturnValueOnce(
+        mockKyResponse({
+          header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+          workload: { id: "wl-1", name: "ncs-workload", status: "Running" },
+        }),
+      );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.waitForRunning("wl-1", { timeoutMs: 5_000, intervalMs: 5 });
+    expect(result.status).toBe("Running");
+    expect(ky.get).toHaveBeenCalledTimes(2);
+  });
+
+  it("타임아웃까지 Running 이 되지 않으면 EXIT_API_ERROR 를 throw 한다", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+        workload: { id: "wl-1", name: "ncs-workload", status: "Pending" },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await expect(
+      client.waitForRunning("wl-1", { timeoutMs: 30, intervalMs: 10 }),
+    ).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
+  });
+});
+
 describe("NcsClient.pauseWorkload", () => {
   beforeEach(() => vi.resetAllMocks());
 

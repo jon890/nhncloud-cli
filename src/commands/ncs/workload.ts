@@ -2,9 +2,10 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { output, type OutputOptions } from "../../formatters/table.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
-import { resolveNcsClient, confirmDestructive } from "./helpers.js";
+import { resolveNcsClient, readJsonPayload, confirmDestructive } from "./helpers.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
+import { parsePositiveIntegerOption } from "../parse-options.js";
 import type {
   NcsWorkloadSummary,
   NcsWorkloadDetail,
@@ -14,6 +15,21 @@ import type {
   NcsWorkloadHistoryDetail,
   NcsWorkloadScheduleHistory,
 } from "../../services/ncs/types.js";
+
+/** workload 요약 표 출력 공용 — create/update/patch 가 동일 형태로 결과를 보여준다. */
+function workloadRows(w: NcsWorkloadDetail): string[][] {
+  return [
+    [
+      w.id,
+      w.name,
+      w.type ?? "",
+      w.status,
+      String(w.desired ?? ""),
+      String(w.available ?? ""),
+    ],
+  ];
+}
+const WORKLOAD_HEADERS = ["id", "name", "type", "status", "desired", "available"];
 
 /** id 인수 공통 검증 — 빈값/공백 거절(1-3 회피: spinner 시작 전 검증). */
 function requireNonEmpty(value: string, label: string): void {
@@ -429,6 +445,159 @@ const scheduleHistoryCommand = new Command("schedule-history")
     });
   });
 
+interface WorkloadCreateOpts extends OutputOptions {
+  region?: string;
+  appKey?: string;
+  profile?: string;
+  file?: string;
+  wait?: boolean;
+  timeout?: string;
+}
+
+const createCommand = new Command("create")
+  .description("NCS workload(런타임 실행) 를 생성한다 (--file 로 JSON spec 전달)")
+  .requiredOption("--file <path>", "workload 생성 spec 이 담긴 JSON 파일 경로")
+  .option("--wait", "workload 가 Running 상태가 될 때까지 대기")
+  .option("--timeout <sec>", "wait 타임아웃 (초, 기본 300)", "300")
+  .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
+  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
+  .option("--profile <name>", "사용할 profile 이름")
+  .action(async (_opts: unknown, cmd: Command) => {
+    const opts = cmd.optsWithGlobals<WorkloadCreateOpts>();
+
+    // ── 1. 파일 파싱 + 옵션 검증 (spinner 시작 전, 순수 함수) ──
+    const payload = readJsonPayload(opts.file as string);
+    const timeoutMs = parsePositiveIntegerOption(opts.timeout ?? "300", "--timeout") * 1000;
+
+    // ── 2. 자격증명 + client 생성 (spinner 시작 전) ──
+    const { client } = await resolveNcsClient(opts);
+
+    // ── 3. 생성 요청 (spinner 내부) ──
+    startSpinner("NCS workload 생성 중...");
+
+    let workload: NcsWorkloadDetail;
+    try {
+      workload = await client.createWorkload(payload);
+    } catch (err) {
+      stopSpinner(false);
+      throw err;
+    }
+
+    stopSpinner(true);
+
+    // ── 4. --wait: Running 폴링 (create 와 별도 spinner — instance create 선례) ──
+    if (opts.wait) {
+      startSpinner(`NCS workload "${workload.id}" Running 대기 중...`);
+      try {
+        workload = await client.waitForRunning(workload.id, { timeoutMs });
+      } catch (err) {
+        stopSpinner(false);
+        throw err;
+      }
+      stopSpinner(true, `Running 확인 (id: ${workload.id})`);
+    }
+
+    // ── 5. 출력 ──
+    output(opts, {
+      headers: WORKLOAD_HEADERS,
+      rows: workloadRows(workload),
+      raw: workload,
+      ids: [workload.id],
+    });
+  });
+
+interface WorkloadUpdateOpts extends OutputOptions {
+  region?: string;
+  appKey?: string;
+  profile?: string;
+  file?: string;
+}
+
+const updateCommand = new Command("update")
+  .description("NCS workload 를 전체 교체한다 (--file 로 JSON spec 전달, PUT)")
+  .argument("<id>", "workload ID")
+  .requiredOption("--file <path>", "workload 교체 spec 이 담긴 JSON 파일 경로")
+  .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
+  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
+  .option("--profile <name>", "사용할 profile 이름")
+  .action(async (id: string, _opts: unknown, cmd: Command) => {
+    const opts = cmd.optsWithGlobals<WorkloadUpdateOpts>();
+
+    // ── 1. 파라미터 검증 + 파일 파싱 (spinner 시작 전) ──
+    requireNonEmpty(id, "id");
+    const payload = readJsonPayload(opts.file as string);
+
+    // ── 2. 자격증명 + client 생성 (spinner 시작 전) ──
+    const { client } = await resolveNcsClient(opts);
+
+    // ── 3. API 호출 (spinner 내부) ──
+    startSpinner(`NCS workload "${id}" 교체 중...`);
+
+    let workload: NcsWorkloadDetail;
+    try {
+      workload = await client.updateWorkload(id, payload);
+    } catch (err) {
+      stopSpinner(false);
+      throw err;
+    }
+
+    stopSpinner(true);
+
+    // ── 4. 출력 ──
+    output(opts, {
+      headers: WORKLOAD_HEADERS,
+      rows: workloadRows(workload),
+      raw: workload,
+      ids: [workload.id],
+    });
+  });
+
+interface WorkloadPatchOpts extends OutputOptions {
+  region?: string;
+  appKey?: string;
+  profile?: string;
+  file?: string;
+}
+
+const patchCommand = new Command("patch")
+  .description("NCS workload 를 부분 변경한다 (--file 로 JSON Patch 배열 전달, RFC 6902)")
+  .argument("<id>", "workload ID")
+  .requiredOption("--file <path>", "JSON Patch 배열(op/path/value)이 담긴 파일 경로")
+  .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
+  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
+  .option("--profile <name>", "사용할 profile 이름")
+  .action(async (id: string, _opts: unknown, cmd: Command) => {
+    const opts = cmd.optsWithGlobals<WorkloadPatchOpts>();
+
+    // ── 1. 파라미터 검증 + 파일 파싱 (spinner 시작 전) ──
+    requireNonEmpty(id, "id");
+    const payload = readJsonPayload(opts.file as string);
+
+    // ── 2. 자격증명 + client 생성 (spinner 시작 전) ──
+    const { client } = await resolveNcsClient(opts);
+
+    // ── 3. API 호출 (spinner 내부) ──
+    startSpinner(`NCS workload "${id}" 부분 변경 중...`);
+
+    let workload: NcsWorkloadDetail;
+    try {
+      workload = await client.patchWorkload(id, payload);
+    } catch (err) {
+      stopSpinner(false);
+      throw err;
+    }
+
+    stopSpinner(true);
+
+    // ── 4. 출력 ──
+    output(opts, {
+      headers: WORKLOAD_HEADERS,
+      rows: workloadRows(workload),
+      raw: workload,
+      ids: [workload.id],
+    });
+  });
+
 interface WorkloadControlOpts {
   region?: string;
   appKey?: string;
@@ -580,6 +749,9 @@ export const workloadCommand = new Command("workload")
   .addCommand(eventsCommand)
   .addCommand(historyCommand)
   .addCommand(scheduleHistoryCommand)
+  .addCommand(createCommand)
+  .addCommand(updateCommand)
+  .addCommand(patchCommand)
   .addCommand(pauseCommand)
   .addCommand(resumeCommand)
   .addCommand(restartCommand)

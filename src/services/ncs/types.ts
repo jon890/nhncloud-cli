@@ -281,3 +281,34 @@ export function isNcsWorkloadScheduleHistory(val: unknown): val is NcsWorkloadSc
   const obj = val as Record<string, unknown>;
   return typeof obj["id"] === "string" && typeof obj["status"] === "string";
 }
+
+/**
+ * NCS(NHN Container Service) workload 생성/변경 실측 확정 (Phase 3, ADR-020).
+ * 공식 docs 예제 JSON(https://docs.nhncloud.com/ko/Container/NCS/ko/public-api/, "워크로드 생성/변경/부분 변경" 섹션) 실측.
+ *
+ * - `POST /workloads`(create), `PUT /workloads/{id}`(update), `PATCH /workloads/{id}`(patch)
+ *   모두 응답이 named 필드 `workload` 로 전체 workload 객체를 반환한다(id 만 반환하는 축약 응답이 아니다).
+ *   기존 getWorkload 의 NcsWorkloadDetail·응답 타입을 그대로 재사용한다.
+ * - `status` enum 은 docs 예제 JSON 상 실제로 빈 문자열(`""`)로 관측되나(생성 직후 상태 미확정 구간으로 추정),
+ *   목록/조회 필드 설명에 명시된 전체 값은 `Pending`(진행중)·`Running`(완료)·`Failed`(실패)·`Terminated`(종료)·
+ *   `Paused`(중지)·`Active`(예약 실행 중)·`Suspend`(예약 중지) 7종이다 — 강타입 enum 화하지 않고 string 유지(5-6 회피).
+ * - `workload.internalLoadBalancing.enalbed` 는 docs 필드 표기가 오타이고, 실제 예제 JSON·응답 필드는
+ *   `enabled`(정상 철자)로 온다 — 코드에서 `enalbed` 를 참조하지 않는다.
+ */
+
+/**
+ * NcsMalwareConfig — `malware config get/set` 응답/요청 공용 (named 필드 없이 top-level `enabled`).
+ * docs 필드 표(형식=String)와 실제 JSON 예제(`"enabled": true` — quote 없는 리터럴)가 불일치한다.
+ * ADR-006 유사 함정과 동일하게 실제 wire 타입은 boolean 이다(docs 표기 오류, 실측 확정).
+ */
+export interface NcsMalwareConfig {
+  enabled: boolean;
+  [key: string]: unknown;
+}
+
+/** NcsMalwareConfig 타입 가드. */
+export function isNcsMalwareConfig(val: unknown): val is NcsMalwareConfig {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  return typeof obj["enabled"] === "boolean";
+}
