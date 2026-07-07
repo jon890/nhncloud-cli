@@ -3,6 +3,7 @@
 NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 통합 CLI.
 현재 106개 command catalog 항목을 지원한다.
 `configure`, `commands`, `logncrash search/send/export`, `deploy`, `instance`, `network`, `volume`, `floatingip`, `ncr`, `nks`, `ncs` 명령으로 NHN Cloud 서비스를 조회·운영할 수 있다.
+`skills`/`doctor` 로 Claude Code 스킬 설치와 상태 진단을 지원한다.
 
 ## 설치
 
@@ -47,6 +48,28 @@ NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
 저장 경로: `~/.nhncloud/credentials.json` (mode 0600), `~/.nhncloud/config.json`.
 
 profile 해석 우선순위: `--profile` 옵션 > `NHNCLOUD_PROFILE` 환경변수 > `config.defaultProfile` > `"default"`.
+
+### Claude Code 스킬 설치 (선택)
+
+Claude Code 에서 이 CLI 를 AI 에이전트 스킬로 쓰려면 스킬을 `~/.claude/skills` 에 설치한다.
+
+```bash
+# 심볼릭 링크로 설치 (전역 설치 전제 — npx 환경은 불가)
+nhncloud skills install
+
+# 설치 상태 확인
+nhncloud skills
+
+# 제거
+nhncloud skills uninstall
+```
+
+### 상태 진단
+
+```bash
+# 자격증명·스킬 설치 상태를 오프라인으로 진단
+nhncloud doctor
+```
 
 ## 사용 예
 

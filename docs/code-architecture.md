@@ -56,12 +56,15 @@ src/
     exit-codes.ts           # EXIT_* 상수
     spinner.ts              # ora 래퍼 (quiet 모드 no-op)
     time.ts                 # 상대시간 → ISO8601 변환
+    skill-install.ts        # ~/.claude/skills/nhncloud-cli 심링크 설치/상태/제거 (순수 IO, 출력·프롬프트 없음)
   formatters/
     table.ts                # 테이블 / json / quiet 출력
   commands/
     iaas.ts                 # IaaS command helper 공통 profile/region/token context 해석
     configure.ts            # nhncloud configure (대화형 + flag, 연결 테스트, adr-009)
     commands.ts             # nhncloud commands (Commander tree 기반 command path·argument·option metadata catalog, 외부 API 호출 없음)
+    skills.ts               # nhncloud skills install/uninstall + 상태 (Claude Code 스킬 심링크, utils/skill-install 경유)
+    doctor.ts               # nhncloud doctor (자격증명·스킬 설치 상태 오프라인 진단)
     logncrash/
       search.ts             # nhncloud logncrash search
       export.ts             # nhncloud logncrash export (scroll 대량 추출 → 파일, search host·인증 재사용)
