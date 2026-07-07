@@ -625,3 +625,67 @@ describe("NcsClient.deleteTemplateVersion", () => {
     );
   });
 });
+
+describe("NcsClient.pauseWorkload", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("POST /workloads/{id}/pause 를 호출한다", async () => {
+    vi.mocked(ky.post).mockReturnValue({} as never);
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await client.pauseWorkload("wl-1");
+
+    expect(ky.post).toHaveBeenCalledWith(
+      expect.stringContaining("/workloads/wl-1/pause"),
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+  });
+});
+
+describe("NcsClient.resumeWorkload", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("POST /workloads/{id}/resume 를 호출한다", async () => {
+    vi.mocked(ky.post).mockReturnValue({} as never);
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await client.resumeWorkload("wl-1");
+
+    expect(ky.post).toHaveBeenCalledWith(
+      expect.stringContaining("/workloads/wl-1/resume"),
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+  });
+});
+
+describe("NcsClient.restartWorkloadTask", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("POST /workloads/{id}/tasks/{taskId}/restart 를 호출한다", async () => {
+    vi.mocked(ky.post).mockReturnValue({} as never);
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await client.restartWorkloadTask("wl-1", "task-1");
+
+    expect(ky.post).toHaveBeenCalledWith(
+      expect.stringContaining("/workloads/wl-1/tasks/task-1/restart"),
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+  });
+});
+
+describe("NcsClient.deleteWorkload", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("DELETE /workloads/{id} 를 호출한다", async () => {
+    vi.mocked(ky.delete).mockReturnValue({} as never);
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await client.deleteWorkload("wl-1");
+
+    expect(ky.delete).toHaveBeenCalledWith(
+      expect.stringContaining("/workloads/wl-1"),
+      expect.objectContaining({ headers: expect.any(Object) }),
+    );
+  });
+});

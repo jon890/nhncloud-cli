@@ -16,7 +16,7 @@ import type {
  * 비대화형에서는 --yes 필수, TTY 에서는 @inquirer/prompts confirm 으로 확인한다
  * (floatingip delete 패턴 재사용). 순수 판단 로직만 분리해 단위테스트 가능하게 한다.
  */
-async function confirmDestructive(message: string, yes: boolean | undefined): Promise<boolean> {
+export async function confirmDestructive(message: string, yes: boolean | undefined): Promise<boolean> {
   const isTTY = process.stdin.isTTY;
 
   if (!isTTY && !yes) {

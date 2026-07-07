@@ -657,4 +657,72 @@ export class NcsClient {
       throw toNhnCloudCliError(err);
     }
   }
+
+  /**
+   * workload 를 일시정지한다.
+   * POST /ncs/v1.0/appkeys/{appKey}/workloads/{id}/pause
+   */
+  async pauseWorkload(id: string): Promise<void> {
+    const url = `${this.baseUrl}/workloads/${encodeURIComponent(id)}/pause`;
+    try {
+      await ky.post(url, {
+        headers: this.authHeaders(),
+        retry: 0,
+        timeout: DEFAULT_TIMEOUT_MS,
+      });
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * workload 를 재개한다.
+   * POST /ncs/v1.0/appkeys/{appKey}/workloads/{id}/resume
+   */
+  async resumeWorkload(id: string): Promise<void> {
+    const url = `${this.baseUrl}/workloads/${encodeURIComponent(id)}/resume`;
+    try {
+      await ky.post(url, {
+        headers: this.authHeaders(),
+        retry: 0,
+        timeout: DEFAULT_TIMEOUT_MS,
+      });
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * workload task 를 재시작한다.
+   * POST /ncs/v1.0/appkeys/{appKey}/workloads/{id}/tasks/{taskId}/restart
+   */
+  async restartWorkloadTask(id: string, taskId: string): Promise<void> {
+    const url = `${this.baseUrl}/workloads/${encodeURIComponent(id)}/tasks/${encodeURIComponent(taskId)}/restart`;
+    try {
+      await ky.post(url, {
+        headers: this.authHeaders(),
+        retry: 0,
+        timeout: DEFAULT_TIMEOUT_MS,
+      });
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /**
+   * workload 를 삭제한다.
+   * DELETE /ncs/v1.0/appkeys/{appKey}/workloads/{id}
+   */
+  async deleteWorkload(id: string): Promise<void> {
+    const url = `${this.baseUrl}/workloads/${encodeURIComponent(id)}`;
+    try {
+      await ky.delete(url, {
+        headers: this.authHeaders(),
+        retry: 0,
+        timeout: DEFAULT_TIMEOUT_MS,
+      });
+    } catch (err) {
+      throw toNhnCloudCliError(err);
+    }
+  }
 }

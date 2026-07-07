@@ -1,7 +1,9 @@
 import { Command } from "commander";
+import chalk from "chalk";
 import { output, type OutputOptions } from "../../formatters/table.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { resolveNcsClient } from "./helpers.js";
+import { confirmDestructive } from "./template.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import type {
@@ -428,6 +430,149 @@ const scheduleHistoryCommand = new Command("schedule-history")
     });
   });
 
+interface WorkloadControlOpts {
+  region?: string;
+  appKey?: string;
+  profile?: string;
+}
+
+const pauseCommand = new Command("pause")
+  .description("NCS workload 를 일시정지한다")
+  .argument("<id>", "workload ID")
+  .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
+  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
+  .option("--profile <name>", "사용할 profile 이름")
+  .action(async (id: string, _opts: unknown, cmd: Command) => {
+    const opts = cmd.optsWithGlobals<WorkloadControlOpts>();
+
+    // ── 1. 파라미터 검증 (spinner 시작 전) ──
+    requireNonEmpty(id, "id");
+
+    // ── 2. 자격증명 + client 생성 (spinner 시작 전) ──
+    const { client } = await resolveNcsClient(opts);
+
+    // ── 3. API 호출 (spinner 내부) ──
+    startSpinner(`NCS workload "${id}" 일시정지 중...`);
+    try {
+      await client.pauseWorkload(id);
+    } catch (err) {
+      stopSpinner(false);
+      throw err;
+    }
+    stopSpinner(true);
+
+    process.stderr.write(chalk.green(`✓ NCS workload "${id}" 가 일시정지되었습니다.\n`));
+  });
+
+const resumeCommand = new Command("resume")
+  .description("NCS workload 를 재개한다")
+  .argument("<id>", "workload ID")
+  .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
+  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
+  .option("--profile <name>", "사용할 profile 이름")
+  .action(async (id: string, _opts: unknown, cmd: Command) => {
+    const opts = cmd.optsWithGlobals<WorkloadControlOpts>();
+
+    // ── 1. 파라미터 검증 (spinner 시작 전) ──
+    requireNonEmpty(id, "id");
+
+    // ── 2. 자격증명 + client 생성 (spinner 시작 전) ──
+    const { client } = await resolveNcsClient(opts);
+
+    // ── 3. API 호출 (spinner 내부) ──
+    startSpinner(`NCS workload "${id}" 재개 중...`);
+    try {
+      await client.resumeWorkload(id);
+    } catch (err) {
+      stopSpinner(false);
+      throw err;
+    }
+    stopSpinner(true);
+
+    process.stderr.write(chalk.green(`✓ NCS workload "${id}" 가 재개되었습니다.\n`));
+  });
+
+interface WorkloadRestartOpts extends WorkloadControlOpts {
+  task?: string;
+}
+
+const restartCommand = new Command("restart")
+  .description("NCS workload task 를 재시작한다")
+  .argument("<id>", "workload ID")
+  .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
+  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
+  .option("--profile <name>", "사용할 profile 이름")
+  .option("--task <taskId>", "task ID (필수)")
+  .action(async (id: string, _opts: unknown, cmd: Command) => {
+    const opts = cmd.optsWithGlobals<WorkloadRestartOpts>();
+
+    // ── 1. 파라미터 검증 (spinner 시작 전) — task 누락은 EXIT_PARAM_ERROR ──
+    requireNonEmpty(id, "id");
+    if (!opts.task || !opts.task.trim()) {
+      throw new NhnCloudCliError(
+        "--task 옵션이 비어있습니다. task ID 를 지정하세요.",
+        EXIT_PARAM_ERROR,
+      );
+    }
+
+    // ── 2. 자격증명 + client 생성 (spinner 시작 전) ──
+    const { client } = await resolveNcsClient(opts);
+
+    // ── 3. API 호출 (spinner 내부) ──
+    startSpinner(`NCS workload "${id}" task "${opts.task}" 재시작 중...`);
+    try {
+      await client.restartWorkloadTask(id, opts.task);
+    } catch (err) {
+      stopSpinner(false);
+      throw err;
+    }
+    stopSpinner(true);
+
+    process.stderr.write(
+      chalk.green(`✓ NCS workload "${id}" task "${opts.task}" 가 재시작되었습니다.\n`),
+    );
+  });
+
+interface WorkloadDeleteOpts extends WorkloadControlOpts {
+  yes?: boolean;
+}
+
+const deleteCommand = new Command("delete")
+  .description("NCS workload 를 삭제한다")
+  .argument("<id>", "workload ID")
+  .option("--yes", "확인 프롬프트 생략 (CI/비대화형 필수)")
+  .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
+  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
+  .option("--profile <name>", "사용할 profile 이름")
+  .action(async (id: string, _opts: unknown, cmd: Command) => {
+    const opts = cmd.optsWithGlobals<WorkloadDeleteOpts>();
+
+    // ── 1. 파라미터 검증 (spinner 시작 전) ──
+    requireNonEmpty(id, "id");
+
+    // ── 2. 확인 (spinner 시작 전) ──
+    const ok = await confirmDestructive(`NCS workload "${id}" 를 삭제하시겠습니까?`, opts.yes);
+    if (!ok) {
+      process.stderr.write(chalk.yellow("삭제가 취소되었습니다.\n"));
+      return;
+    }
+
+    // ── 3. 자격증명 + client 생성 (spinner 시작 전) ──
+    const { client } = await resolveNcsClient(opts);
+
+    // ── 4. 삭제 (spinner 내부) ──
+    startSpinner(`NCS workload 삭제 중... (id: ${id})`);
+    try {
+      await client.deleteWorkload(id);
+    } catch (err) {
+      stopSpinner(false);
+      throw err;
+    }
+    stopSpinner(true);
+
+    process.stderr.write(chalk.green(`✓ NCS workload "${id}" 가 삭제되었습니다.\n`));
+  });
+
 export const workloadCommand = new Command("workload")
   .description("NCS workload(런타임 실행) 관리")
   .addCommand(listCommand)
@@ -435,4 +580,8 @@ export const workloadCommand = new Command("workload")
   .addCommand(logsCommand)
   .addCommand(eventsCommand)
   .addCommand(historyCommand)
-  .addCommand(scheduleHistoryCommand);
+  .addCommand(scheduleHistoryCommand)
+  .addCommand(pauseCommand)
+  .addCommand(resumeCommand)
+  .addCommand(restartCommand)
+  .addCommand(deleteCommand);
