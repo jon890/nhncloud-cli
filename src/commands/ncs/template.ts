@@ -2,9 +2,8 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { output, type OutputOptions } from "../../formatters/table.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
-import { resolveNcsClient, readJsonPayload, confirmDestructive } from "./helpers.js";
-import { NhnCloudCliError } from "../../utils/errors.js";
-import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
+import { resolveNcsClient, readJsonPayload, confirmDestructive, requireNonEmpty } from "./helpers.js";
+import { parsePositiveIntegerOption } from "../parse-options.js";
 import type {
   NcsTemplateSummary,
   NcsTemplateDetail,
@@ -40,8 +39,8 @@ const listCommand = new Command("list")
     let templates: NcsTemplateSummary[];
     try {
       const result = await client.listTemplates({
-        page: opts.page !== undefined ? Number(opts.page) : undefined,
-        size: opts.size !== undefined ? Number(opts.size) : undefined,
+        page: parsePositiveIntegerOption(opts.page, "--page"),
+        size: parsePositiveIntegerOption(opts.size, "--size"),
       });
       totalCount = result.totalCount;
       templates = result.templates;
@@ -83,12 +82,7 @@ const getCommand = new Command("get")
     const opts = cmd.optsWithGlobals<TemplateGetOpts>();
 
     // ── 1. 파라미터 검증 (spinner 시작 전) — 빈값/공백 거절 ──
-    if (!id.trim()) {
-      throw new NhnCloudCliError(
-        "id 인수가 비어있습니다. template ID 를 지정하세요.",
-        EXIT_PARAM_ERROR,
-      );
-    }
+    requireNonEmpty(id, "id");
 
     // ── 2. 자격증명 + client 생성 (spinner 시작 전) ──
     const { client } = await resolveNcsClient(opts);
@@ -193,12 +187,7 @@ const deleteCommand = new Command("delete")
     const opts = cmd.optsWithGlobals<TemplateDeleteOpts>();
 
     // ── 1. 파라미터 검증 (spinner 시작 전) ──
-    if (!id.trim()) {
-      throw new NhnCloudCliError(
-        "id 인수가 비어있습니다. template ID 를 지정하세요.",
-        EXIT_PARAM_ERROR,
-      );
-    }
+    requireNonEmpty(id, "id");
 
     // ── 2. 확인 (spinner 시작 전) ──
     const ok = await confirmDestructive(`NCS 설계도 "${id}" 를 삭제하시겠습니까?`, opts.yes);
@@ -247,12 +236,7 @@ const versionListCommand = new Command("list")
     const opts = cmd.optsWithGlobals<TemplateVersionListOpts>();
 
     // ── 1. 파라미터 검증 (spinner 시작 전) ──
-    if (!id.trim()) {
-      throw new NhnCloudCliError(
-        "id 인수가 비어있습니다. template ID 를 지정하세요.",
-        EXIT_PARAM_ERROR,
-      );
-    }
+    requireNonEmpty(id, "id");
 
     // ── 2. 자격증명 + client 생성 (spinner 시작 전) ──
     const { client } = await resolveNcsClient(opts);
@@ -266,8 +250,8 @@ const versionListCommand = new Command("list")
       const result = await client.listTemplateVersions(id, {
         q: opts.q,
         sort: opts.sort,
-        page: opts.page !== undefined ? Number(opts.page) : undefined,
-        size: opts.size !== undefined ? Number(opts.size) : undefined,
+        page: parsePositiveIntegerOption(opts.page, "--page"),
+        size: parsePositiveIntegerOption(opts.size, "--size"),
       });
       totalCount = result.totalCount;
       versions = result.versions;
@@ -303,18 +287,8 @@ const versionGetCommand = new Command("get")
     const opts = cmd.optsWithGlobals<TemplateGetOpts>();
 
     // ── 1. 파라미터 검증 (spinner 시작 전) ──
-    if (!id.trim()) {
-      throw new NhnCloudCliError(
-        "id 인수가 비어있습니다. template ID 를 지정하세요.",
-        EXIT_PARAM_ERROR,
-      );
-    }
-    if (!version.trim()) {
-      throw new NhnCloudCliError(
-        "version 인수가 비어있습니다. 버전 값을 지정하세요.",
-        EXIT_PARAM_ERROR,
-      );
-    }
+    requireNonEmpty(id, "id");
+    requireNonEmpty(version, "version");
 
     // ── 2. 자격증명 + client 생성 (spinner 시작 전) ──
     const { client } = await resolveNcsClient(opts);
@@ -359,12 +333,7 @@ const versionCreateCommand = new Command("create")
     const opts = cmd.optsWithGlobals<TemplateVersionCreateOpts>();
 
     // ── 1. 파라미터 검증 + 파일 파싱 (spinner 시작 전) ──
-    if (!id.trim()) {
-      throw new NhnCloudCliError(
-        "id 인수가 비어있습니다. template ID 를 지정하세요.",
-        EXIT_PARAM_ERROR,
-      );
-    }
+    requireNonEmpty(id, "id");
     const payload = readJsonPayload(opts.file as string);
 
     // ── 2. 자격증명 + client 생성 (spinner 시작 전) ──
@@ -411,18 +380,8 @@ const versionDeleteCommand = new Command("delete")
     const opts = cmd.optsWithGlobals<TemplateVersionDeleteOpts>();
 
     // ── 1. 파라미터 검증 (spinner 시작 전) ──
-    if (!id.trim()) {
-      throw new NhnCloudCliError(
-        "id 인수가 비어있습니다. template ID 를 지정하세요.",
-        EXIT_PARAM_ERROR,
-      );
-    }
-    if (!version.trim()) {
-      throw new NhnCloudCliError(
-        "version 인수가 비어있습니다. 버전 값을 지정하세요.",
-        EXIT_PARAM_ERROR,
-      );
-    }
+    requireNonEmpty(id, "id");
+    requireNonEmpty(version, "version");
 
     // ── 2. 확인 (spinner 시작 전) ──
     const ok = await confirmDestructive(

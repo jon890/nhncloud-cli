@@ -62,8 +62,8 @@ const listCommand = new Command("list")
     try {
       const result = await client.listWorkloads({
         q: opts.q,
-        page: opts.page !== undefined ? Number(opts.page) : undefined,
-        size: opts.size !== undefined ? Number(opts.size) : undefined,
+        page: parsePositiveIntegerOption(opts.page, "--page"),
+        size: parsePositiveIntegerOption(opts.size, "--size"),
       });
       totalCount = result.totalCount;
       workloads = result.workloads;
@@ -197,8 +197,8 @@ const logsCommand = new Command("logs")
         container: opts.container,
         from: opts.from,
         to: opts.to,
-        page: opts.page !== undefined ? Number(opts.page) : undefined,
-        size: opts.size !== undefined ? Number(opts.size) : undefined,
+        page: parsePositiveIntegerOption(opts.page, "--page"),
+        size: parsePositiveIntegerOption(opts.size, "--size"),
       });
       logs = result.logs;
     } catch (err) {
@@ -269,8 +269,8 @@ const eventsCommand = new Command("events")
         q: opts.q,
         from: opts.from,
         to: opts.to,
-        page: opts.page !== undefined ? Number(opts.page) : undefined,
-        size: opts.size !== undefined ? Number(opts.size) : undefined,
+        page: parsePositiveIntegerOption(opts.page, "--page"),
+        size: parsePositiveIntegerOption(opts.size, "--size"),
       });
       totalCount = result.totalCount;
       events = result.events;
@@ -371,8 +371,8 @@ const historyCommand = new Command("history")
     let history: NcsWorkloadHistorySummary[];
     try {
       const result = await client.listWorkloadHistory(id, {
-        page: opts.page !== undefined ? Number(opts.page) : undefined,
-        size: opts.size !== undefined ? Number(opts.size) : undefined,
+        page: parsePositiveIntegerOption(opts.page, "--page"),
+        size: parsePositiveIntegerOption(opts.size, "--size"),
         sort: opts.sort,
       });
       totalCount = result.totalCount;
