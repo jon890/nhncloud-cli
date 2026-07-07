@@ -1,6 +1,6 @@
 ---
 name: nhncloud-cli
-description: NHN Cloud 서비스 CLI. commands --json catalog, configure, Log & Crash(logncrash search/send/export), Deploy(deploy run/artifacts/server-groups/histories/binary-groups/binaries/upload/download), Compute(instance), VPC/network, Block Storage(volume), Floating IP(floatingip), NHN Container Registry(ncr), NHN Kubernetes Service(nks supports/cluster/nodegroup/addon/kubeconfig) 등 NHN Cloud API를 터미널과 AI 에이전트에서 호출한다.
+description: NHN Cloud 서비스 CLI. commands --json catalog, configure, Log & Crash(logncrash search/send/export), Deploy(deploy run/artifacts/server-groups/histories/binary-groups/binaries/upload/download), Compute(instance), VPC/network, Block Storage(volume), Floating IP(floatingip), NHN Container Registry(ncr), NHN Kubernetes Service(nks supports/cluster/nodegroup/addon/kubeconfig), NHN Container Service(ncs template/workload 조회) 등 NHN Cloud API를 터미널과 AI 에이전트에서 호출한다.
 ---
 
 # nhncloud-cli
@@ -20,6 +20,7 @@ NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 TypeScript CLI다.
 | Compute instance, network, volume, floatingip | [iaas.md](references/iaas.md) |
 | NCR 레지스트리, 이미지, 태그 조회 | [ncr.md](references/ncr.md) |
 | NKS 클러스터, 노드 그룹, 애드온, kubeconfig | [nks.md](references/nks.md) |
+| NCS template, workload 조회(생성·변경·malware 제외) | [ncs.md](references/ncs.md) |
 | 인증 실패, profile 누락, region mismatch, JSON shape 혼동, scroll 제한 | [troubleshooting.md](references/troubleshooting.md) |
 
 ## 공통 우선 규칙
@@ -53,6 +54,7 @@ nhncloud logncrash search --query '*' --from 1h --to now --json
 | `floatingip` | Floating IP 조회·발급·삭제 |
 | `ncr` | Container Registry registry/image/tag 조회 |
 | `nks` | Kubernetes cluster/nodegroup/addon/kubeconfig 관리 |
+| `ncs` | Container Service template/workload 조회(생성·변경·malware 후속 추가) |
 
 ## 안전한 탐색 순서
 

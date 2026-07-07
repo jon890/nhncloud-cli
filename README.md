@@ -650,6 +650,37 @@ nhncloud nks nodegroup set-fip-auto-bind <cluster> worker --file ./fip-auto-bind
 nhncloud nks nodegroup set-labels <cluster> worker --file ./labels.json
 ```
 
+### NHN Container Service (NCS)
+
+NCS는 template(설계도)과 workload(런타임 실행)를 조회한다.
+인증은 Deploy와 같은 UAK OAuth Bearer 토큰을 재사용하며(profile 토큰 캐시 공유), appkey는 경로에 포함한다.
+지원 region은 `kr1`(판교), `kr3`(광주)만이다.
+`configure` 마법사는 아직 ncs를 지원하지 않으므로 `--app-key` 옵션 또는 `~/.nhncloud/credentials.json`의
+`profiles.<profile>.ncs.appkey`를 직접 추가한다.
+
+이번 릴리스는 조회 명령만 지원한다 — 생성·변경·malware 검사는 후속 릴리스에서 추가된다.
+
+```bash
+# template(설계도) 목록/단건/버전 조회
+nhncloud ncs template list --app-key <appkey>
+nhncloud ncs template get <template-id> --app-key <appkey>
+nhncloud ncs template version list <template-id> --app-key <appkey>
+nhncloud ncs template version get <template-id> <version> --app-key <appkey>
+
+# workload(런타임 실행) 목록/단건 조회
+nhncloud ncs workload list --app-key <appkey>
+nhncloud ncs workload get <workload-id> --app-key <appkey>
+
+# task 컨테이너 로그/이벤트 조회 (--task는 workload get 응답의 tasks[].id)
+nhncloud ncs workload logs <workload-id> --task <task-id> --container <name> --app-key <appkey>
+nhncloud ncs workload events <workload-id> --task <task-id> --app-key <appkey>
+
+# 실행 히스토리 / 예약 실행 히스토리 조회
+nhncloud ncs workload history <workload-id> --app-key <appkey>
+nhncloud ncs workload history get <workload-id> <history-id> --app-key <appkey>
+nhncloud ncs workload schedule-history <workload-id> --app-key <appkey>
+```
+
 ## 개발
 
 ```bash
