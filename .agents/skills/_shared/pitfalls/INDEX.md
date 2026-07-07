@@ -88,6 +88,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 | 에러 처리 일관성 (exitCode·catch) | code-review | [bare-await-promise-never](code-review/bare-await-promise-never.md), [exitcode-param-error-in-api-path](code-review/exitcode-param-error-in-api-path.md), [exitcode-missing](code-review/exitcode-missing.md) |
 | 타입 안전성 (Map.get()! / 이중 단언 / optional 응답 필드) | code-review | [map-get-nonnull-assertion](code-review/map-get-nonnull-assertion.md), [double-assertion-unknown](code-review/double-assertion-unknown.md), [double-assertion-union-type](code-review/double-assertion-union-type.md), [optional-response-field-guard](code-review/optional-response-field-guard.md) |
 | API/HTTP 패턴 (redirect·throwHttpErrors) | code-review | [redirect-manual-status-missing](code-review/redirect-manual-status-missing.md), [numeric-response-string-number-mixed](code-review/numeric-response-string-number-mixed.md) |
+| 봉투 검사 (200-고정 API·isSuccessful) | code-review | [write-method-envelope-unchecked](code-review/write-method-envelope-unchecked.md), [new-endpoint-envelope-assumed](plan/new-endpoint-envelope-assumed.md) |
 | exitCode 누락·mismatch | code-review | [exitcode-missing](code-review/exitcode-missing.md), [mock-reject-value-mismatch](code-review/mock-reject-value-mismatch.md), [exit-code-literal-no-constant](code-review/exit-code-literal-no-constant.md) |
 | path-traversal (fileName basename) | code-review | [path-traversal-filename](code-review/path-traversal-filename.md) |
 | interactive 경고 vs 실제 동작 | code-review | [interactive-warning-mismatch](code-review/interactive-warning-mismatch.md), [noninteractive-trigger-dead-warning](plan/noninteractive-trigger-dead-warning.md) |
@@ -158,7 +159,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [sendmessage-reply-missing](team/sendmessage-reply-missing.md)
 - [task-index-phase-count-mismatch](team/task-index-phase-count-mismatch.md)
 
-### [code-review/](code-review/) (55)
+### [code-review/](code-review/) (56)
 
 - [adjacent-command-pattern-missing](code-review/adjacent-command-pattern-missing.md)
 - [ambiguous-option-positional-silent-fallback](code-review/ambiguous-option-positional-silent-fallback.md)
@@ -215,3 +216,4 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [union-overload-common-guard-only](code-review/union-overload-common-guard-only.md)
 - [unknown-array-object-entries-no-guard](code-review/unknown-array-object-entries-no-guard.md)
 - [user-data-markdown-codeblock](code-review/user-data-markdown-codeblock.md)
+- [write-method-envelope-unchecked](code-review/write-method-envelope-unchecked.md)
