@@ -13,9 +13,9 @@ const MAX_JSON_PAYLOAD_BYTES = 1_000_000;
  * 우선순위: --app-key 옵션 > profile 의 ncs.appkey.
  * 둘 다 없으면 EXIT_CONFIG_ERROR + 설정 안내(2-4 회피 — 빈문자열 fallback 금지).
  *
- * 안내 문구 주의: `configure` 마법사는 아직 ncs 를 지원하지 않는다(src/commands/configure.ts 에
- * ncs 블록 없음). 존재하지 않는 `--ncs-appkey` 플래그를 안내하지 않는다 — --app-key 옵션 또는
- * ~/.nhncloud/credentials.json 의 profiles.<profile>.ncs.appkey 수기 편집을 안내한다.
+ * 안내 문구 주의: `configure` 마법사(대화형 ncs 블록 또는 `--ncs-appkey` 비대화형 플래그)로
+ * ncs.appkey 를 설정할 수 있다(src/commands/configure.ts). appKey 가 없으면 `configure`
+ * (또는 `--ncs-appkey`) 실행 또는 --app-key 직접 지정을 안내한다.
  */
 export async function resolveNcsAppKey(
   profileName: string,
@@ -37,9 +37,8 @@ export async function resolveNcsAppKey(
 
   if (!cred?.appkey) {
     throw new NhnCloudCliError(
-      "NCS appKey 가 없습니다. --app-key 옵션으로 지정하거나\n" +
-        "~/.nhncloud/credentials.json 의 profiles.<profile>.ncs.appkey 를 직접 추가하세요.\n" +
-        "(nhncloud configure 는 아직 ncs 를 지원하지 않습니다.)",
+      "NCS appKey 가 없습니다. nhncloud configure (또는 --ncs-appkey) 로 설정하거나\n" +
+        "--app-key 로 직접 넘기세요.",
       EXIT_CONFIG_ERROR,
     );
   }

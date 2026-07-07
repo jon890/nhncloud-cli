@@ -19,15 +19,18 @@ npm install -g @bifos/nhncloud-cli
 nhncloud configure
 ```
 
-- profile → UAK(id/secret) → logncrash appkey/secret → iaas 자격증명 → ncr appkey 순으로 입력한다.
+- profile → UAK(id/secret) → logncrash appkey/secret → iaas 자격증명 → ncr appkey → ncs appkey 순으로 입력한다.
+- profile 은 프로젝트 단위다 — 여러 NHN Cloud 프로젝트를 쓰면 profile 을 분리하되, 같은 UAK 를 쓴다면
+  대화형 마법사가 기존 profile 의 UAK 재사용 여부를 먼저 물어 재입력을 줄여준다.
 - 저장 전 연결 테스트를 자동으로 수행한다 (`--no-verify` 로 생략 가능).
 - CI/자동화는 flag 로 비대화형 설정이 가능하다.
 
 ```bash
-# UAK + logncrash 비대화형 설정
+# UAK + logncrash + ncs 비대화형 설정
 nhncloud configure \
   --uak-id <id> --uak-secret <secret> \
   --logncrash-appkey <key> --logncrash-secret <secret> \
+  [--ncs-appkey <appkey>] \
   --no-verify
 
 # iaas (Compute) 비대화형 설정 — API 비밀번호는 env 권장
@@ -678,8 +681,7 @@ nhncloud nks nodegroup set-labels <cluster> worker --file ./labels.json
 NCS는 template(설계도)과 workload(런타임 실행)를 조회한다.
 인증은 Deploy와 같은 UAK OAuth Bearer 토큰을 재사용하며(profile 토큰 캐시 공유), appkey는 경로에 포함한다.
 지원 region은 `kr1`(판교), `kr3`(광주)만이다.
-`configure` 마법사는 아직 ncs를 지원하지 않으므로 `--app-key` 옵션 또는 `~/.nhncloud/credentials.json`의
-`profiles.<profile>.ncs.appkey`를 직접 추가한다.
+appkey는 `nhncloud configure` (대화형 또는 `--ncs-appkey`) 로 설정하거나 `--app-key` 옵션으로 직접 넘긴다.
 
 template(설계도)의 생성·삭제, workload(런타임 실행)의 생성·변경·실행제어(일시정지/재개/재시작/삭제), 악성코드 검사(malware) 설정·결과 조회를 지원한다.
 
