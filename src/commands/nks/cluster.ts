@@ -7,6 +7,7 @@ import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { parsePositiveInteger, readJsonFile, resolveNksClient } from "./helpers.js";
 import type { NksAddon, NksClusterIpAcl, NksClusterSummary, NksNamedResource, NksUuidResponse } from "../../services/nks/types.js";
+import { nksClusterKubeTag } from "../../services/nks/types.js";
 
 interface ClusterListGlobalOpts extends OutputOptions {
   region?: string;
@@ -41,7 +42,7 @@ const listCommand = new Command("list")
         cluster.status,
         cluster.health_status,
         String(cluster.node_count),
-        cluster.kube_tag,
+        nksClusterKubeTag(cluster),
       ]),
       raw: clusters,
       ids: clusters.map((cluster) => cluster.uuid),
