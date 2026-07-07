@@ -2,10 +2,10 @@
 
 ## 프로젝트 개요
 
-NHN Cloud 서비스를 AWS CLI 처럼 호출하는 통합 CLI.
-TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
+NHN Cloud 서비스를 AWS CLI 처럼 호출하는 통합 CLI다.
+TypeScript + Commander.js 기반이다. dooray-cli 의 기반과 하네스를 재사용한다.
 
-## 지원 명령 (98개 command catalog 항목)
+## 지원 명령 (106개 command catalog 항목)
 
 - `configure` — 자격증명 설정 마법사 (대화형 + flag, UAK + 서비스별 키, 연결 테스트).
 - `commands` — Commander tree에서 command path·argument·option·description catalog를 출력하는 metadata 명령 (`--json` 권장, 외부 API 호출 없음).
@@ -54,6 +54,12 @@ TypeScript + Commander.js 기반. dooray-cli 의 기반·하네스를 재사용.
 - `ncr tags <registry> <repository>` — 특정 이미지의 태그 목록 조회 (artifact 의 tags flatten·ADR-017, tag·push_time·size).
 - `nks` — NHN Kubernetes Service 명령군 (Keystone 토큰 + `container-infra` API·ADR-019).
   `supports`, cluster/nodegroup/addon 조회, kubeconfig, 작업 이력, IP 접근 제어, 생성·삭제·resize·upgrade·autoscale·설정 변경을 지원한다.
+- `ncs template list|get|create|delete` — NCS(NHN Container Service) 설계도(template) 관리 (Deploy OAuth Bearer 토큰 재사용 + appkey 경로·ADR-020, region kr1/kr3). `create` 는 `--file <json>` spec 입력(ADR-019 선례).
+- `ncs template version list|get|create|delete` — 설계도 버전 관리. `version create` 의 `--file` payload 는 `sourceVersion` 필드 필수.
+- `ncs workload list|get|logs|events|history|schedule-history` — 워크로드(런타임 실행) 조회. `logs`/`events` 는 `--task <taskId>` 필수, `history get <id> <historyId>` 로 단건 조회.
+- `ncs workload create|update|patch|pause|resume|restart|delete` — 워크로드 생성·변경·실행제어. `create --file <json> [--wait] [--timeout <sec>]` (비동기 생성, `--wait` 로 Running 상태 폴링), `update`(PUT 전체 교체)·`patch`(PATCH `application/json-patch+json` 부분 변경), `restart` 는 `--task <taskId>` 필수.
+- `ncs malware config get|set` — 악성코드 검사 설정 조회/변경 (`set --enabled <true|false>`, appkey-scoped).
+- `ncs malware result <workloadId> <historyId>` — 워크로드 실행 히스토리의 악성코드 검사 결과 조회.
 
 ## API 스펙 확인 절차
 
@@ -133,6 +139,7 @@ src/
 | NCR 이미지/태그 조회 (Harbor REST /api/v2.0 우회·UAK Basic Auth·봉투 미적용) | ADR-017, ADR-016, ADR-006 |
 | 하네스 누적 docs 구조 (ADR·pitfalls 디렉터리화·INDEX 라우터) | ADR-018 |
 | NKS(Container Kubernetes) endpoint·인증·봉투 미적용 | ADR-019, ADR-010, ADR-013, ADR-005 |
+| NCS(Container Service) endpoint·인증(Deploy OAuth 토큰 재사용)·appkey 경로 | ADR-020, ADR-007, ADR-006, ADR-005 |
 
 신규 ADR 추가 시 본 표에 행 추가.
 
@@ -147,11 +154,13 @@ src/
 | NKS (Kubernetes Infrastructure) | tenantId + username + API 비밀번호 | `X-Auth-Token: <tokenId>` + `OpenStack-API-Version: container-infra latest` (ADR-019) |
 | NCR (Container Registry, Harbor 기반) | 공통 UAK(id+secret) + NCR appkey | `X-TC-AUTHENTICATION-ID` + `X-TC-AUTHENTICATION-SECRET` (정적, 토큰 교환 없음·ADR-016) |
 | NCR 이미지/태그 (Harbor REST 데이터플레인) | 공통 UAK(id+secret) | HTTP Basic Auth (`Authorization: Basic base64(uak-id:uak-secret)`, 봉투 미적용·ADR-017) |
+| NCS (Container Service) | UAK(id+secret) + NCS appkey | `x-nhn-authorization: Bearer <token>` (Deploy OAuth 토큰 재사용, appkey 는 경로·ADR-020) |
 
 - Deploy 토큰은 정적이 아니라 OAuth `client_credentials` 로 교환한 단기 토큰 (ADR-007).
   - OAuth: `oauth.api.nhncloudservice.com/oauth2/token/create`
   - Deploy API: `api-deploy.nhncloudservice.com` (공식 docs 의 `api-tcd` 와 다른 현행 도메인 — 함정)
-- `resultCode` 타입이 서비스마다 다름 — Log & Crash 숫자, Deploy 문자열. 봉투 helper 는 둘 다 수용.
+- `resultCode` 타입이 서비스마다 다름 — Log & Crash·NCS 숫자, Deploy 문자열. 봉투 helper 는 둘 다 수용.
+- NCS 는 Deploy 와 같은 UAK OAuth 토큰(계정 단위 `client_credentials`)을 공유하므로 profile 토큰 캐시를 그대로 재사용 (ADR-020).
 
 ## 한국어 표현 정책 / 마크다운 가독성
 
@@ -172,7 +181,7 @@ docs 는 task 생성 전에 commit (docs-first).
 
 ## 개인 식별 정보 / 사내 식별자 노출 금지 (public OSS)
 
-이 repo 는 GitHub public + npm public (`@bifos/nhncloud-cli`) 이므로 다음 식별자는 **README / skills / docs / AGENTS.md / CLAUDE.md / 이슈 본문 + src 코드 (테스트 fixture·에러 메시지 예시 포함) 어디에도 노출 금지**.
+이 repo 는 GitHub public + npm public (`@bifos/nhncloud-cli`) 이므로 다음 식별자는 **README / skills / docs / AGENTS.md / CLAUDE.md / 이슈 본문 + src 코드 (테스트 fixture·에러 메시지 예시 포함) 어디에도 노출하지 않는다**.
 코드 예시·시나리오·issue body 작성 시 항상 placeholder 를 쓴다.
 
 | 노출 금지 | 대체 |

@@ -123,7 +123,7 @@ nhncloud logncrash search [options]
 ## logncrash export 흐름
 
 검색 결과 전체를 scroll API 로 순회해 파일로 추출한다 (search 단발 조회와 별도 명령).
-search 와 같은 host(`api-lncs-search`)·인증(`X-LNCS-SECRET`)·봉투 helper 를 재사용한다 — 새 endpoint·인증·ADR 없음.
+search 와 같은 host(`api-lncs-search`)·인증(`X-LNCS-SECRET`)·봉투 helper 를 재사용한다 — 새 endpoint·인증·ADR 이 없다.
 
 ### scroll 순회
 
@@ -146,7 +146,7 @@ scrollKey 유효기간은 1분이다. 한 페이지 처리 후 1분 안에 다�
 
 ## logncrash send 흐름
 
-검색의 대칭 쓰기. 검색과 **다른 collector host(`api-logncrash`) + appkey-only 인증(secret 불요)** 을 쓴다 ([[adr-014]]).
+검색에 대칭되는 쓰기 명령이다. 검색과 **다른 collector host(`api-logncrash`) + appkey-only 인증(secret 불요)** 을 쓴다 ([[adr-014]]).
 
 ```bash
 nhncloud logncrash send --body "결제 완료" --level INFO
@@ -212,7 +212,7 @@ nhncloud deploy upload <target> --file <p> --binary-group <key>   # 바이너리
 nhncloud deploy download <target> --binary-group <k> --binary-key <bk> -o <f>  # 바이너리 다운로드 (--force)
 ```
 
-`<target>` 은 config.json 의 deploy target 이름. target 이 좌표(appKey·artifactId·serverGroupId·scenarioIds)를 공급하며, 아래 flag 로 개별 override.
+`<target>` 은 config.json 의 deploy target 이름이다. target 이 좌표(appKey·artifactId·serverGroupId·scenarioIds)를 공급하며, 아래 flag 로 개별 override 한다.
 
 | 옵션 | 적용 | 설명 |
 |------|------|------|
@@ -258,7 +258,7 @@ OpenStack Nova v2 호환 Compute 명령군. Keystone 토큰을 발급해 region 
 2. 캐시된 Keystone token 이 만료 전이면 재사용, 아니면 발급 후 캐시
 3. `X-Auth-Token: <tokenId>` 헤더로 region 별 compute API 호출
 
-`password` 는 NHN 콘솔 IAM 의 API 비밀번호 (로그인 비번 아님).
+`password` 는 NHN 콘솔 IAM 의 API 비밀번호다 (로그인 비밀번호가 아니다).
 
 ### 명령 시그니처
 
@@ -383,7 +383,7 @@ VPC 목록은 `instance create --network <uuid>` 에 넣을 **VPC id** 를 고�
 
 ### 인증 흐름
 
-instance 와 동일하다 — `iaas` 블록 + Keystone `X-Auth-Token` 재사용(새 토큰 발급 없음).
+instance 와 동일하다 — `iaas` 블록 + Keystone `X-Auth-Token` 을 재사용한다(새 토큰 발급이 없다).
 endpoint 만 network host(`<region>-api-network-infrastructure...`, tenant segment 없음)로 다르다.
 
 ### 명령 시그니처
@@ -440,7 +440,7 @@ nhncloud volume create --size <GB> [options]   # 볼륨 발급 (쓰기 — --nam
 
 ## floatingip (공인 IP) 흐름
 
-Floating IP 명령군. network(VPC) 와 같은 catalog type `network` 라 [[adr-013]] 의 `networkEndpoint`(host·`/v2.0` 경로, tenant segment 없음)를 그대로 재사용한다 — 새 host·새 endpoint·새 ADR 없음.
+Floating IP 명령군이다. network(VPC) 와 같은 catalog type `network` 라 [[adr-013]] 의 `networkEndpoint`(host·`/v2.0` 경로, tenant segment 없음)를 그대로 재사용한다 — 새 host·새 endpoint·새 ADR 이 없다.
 
 ```
 nhncloud floatingip list [options]               # Floating IP 목록 (id·공인 IP·status·port_id·fixed_ip_address)
@@ -450,8 +450,13 @@ nhncloud floatingip delete <id> [options]        # 삭제 (쓰기 — 기본 con
 
 두 가지 비자명한 흐름:
 
-- **create 의 외부 네트워크 자동 조회**: `--network` 미지정 시 `GET /v2.0/vpcs?router:external=true` 로 외부 VPC id 를 찾아 `floating_network_id` 로 쓴다. `router:external` 은 콜론 포함 리터럴 키라 bracket 접근. 외부 VPC 가 없으면 `--network` 직접 지정을 요구한다(`EXIT_PARAM_ERROR`). external VPC 가 둘 이상이면 첫 매칭을 쓰고, 선택된 id 를 발급 spinner 에 노출한다.
-- **associate 보류**: 연결 API(`PUT /v2.0/floatingips/{id}`)는 인스턴스 id 가 아니라 port_id 를 요구하는데, instance→port_id 매핑 경로(`GET /v2.0/ports?device_id`)를 실측할 instance id 가 없어 보류했다. 실측 확정 후 후속 task 에서 `floatingip associate` 를 추가한다.
+- **create 의 외부 네트워크 자동 조회**: `--network` 미지정 시 `GET /v2.0/vpcs?router:external=true` 로 외부 VPC id 를 찾아 `floating_network_id` 로 쓴다.
+  `router:external` 은 콜론 포함 리터럴 키라 bracket 으로 접근한다.
+  외부 VPC 가 없으면 `--network` 직접 지정을 요구한다(`EXIT_PARAM_ERROR`).
+  external VPC 가 둘 이상이면 첫 매칭을 쓰고, 선택된 id 를 발급 spinner 에 노출한다.
+- **associate 보류**: 연결 API(`PUT /v2.0/floatingips/{id}`)는 인스턴스 id 가 아니라 port_id 를 요구한다.
+  instance→port_id 매핑 경로(`GET /v2.0/ports?device_id`)를 실측할 instance id 가 없어 보류했다.
+  실측 확정 후 후속 task 에서 `floatingip associate` 를 추가한다.
 
 ### floatingip 에러 경로
 
@@ -481,7 +486,11 @@ nhncloud ncr tags <registry> <repository> [options]  # 특정 이미지의 태�
 두 가지 비자명한 흐름:
 
 - **appKey 해석 순서**: `--app-key` 옵션 > profile 의 `ncr` 블록(`{ appkey }`). 둘 다 없으면 설정 안내와 함께 `EXIT_CONFIG_ERROR`. 인증 비밀은 공통 UAK secret 을 재사용하므로 ncr 블록에 secret 을 따로 두지 않는다.
-- **이미지/태그 조회 경로**: NCR Management API 에는 이미지·태그 목록 endpoint 가 없어, 레지스트리 데이터플레인 host 의 **Harbor REST `/api/v2.0`** 을 직접 호출한다([[adr-017]]). host 는 `ncr get` 의 `registry.uri` 에서 추출, 인증은 UAK `Basic Auth`(Management API 의 X-TC 헤더와 다른 모델), 응답은 NHN 봉투가 아닌 Harbor 평면 JSON. 당초 가정한 Docker Registry v2 `/v2/_catalog` 는 admin 전용 401 이라 기각했다(실측).
+- **이미지/태그 조회 경로**: NCR Management API 에는 이미지·태그 목록 endpoint 가 없어, 레지스트리 데이터플레인 host 의 **Harbor REST `/api/v2.0`** 을 직접 호출한다([[adr-017]]).
+  host 는 `ncr get` 의 `registry.uri` 에서 추출한다.
+  인증은 UAK `Basic Auth` 로, Management API 의 X-TC 헤더와 다른 모델이다.
+  응답은 NHN 봉투가 아닌 Harbor 평면 JSON 이다.
+  당초 가정한 Docker Registry v2 `/v2/_catalog` 는 admin 전용 401 이라 기각했다(실측).
   - `ncr images <registry>`: `/api/v2.0/projects/{registry}/repositories` → repository 목록(name·artifact_count·pull_count).
   - `ncr tags <registry> <repository>`: `/api/v2.0/projects/{registry}/repositories/{repo}/artifacts` → 각 artifact 의 `tags` 를 flatten(tag·push_time·size).
 
@@ -553,3 +562,65 @@ nhncloud nks cluster addon list|get|install|update|remove
 | `iaas` 자격증명 누락 / Keystone 발급 실패 | `EXIT_CONFIG_ERROR` 또는 `EXIT_AUTH_ERROR` |
 | 잘못된 region / payload 파일 파싱 실패 / 필수 인자 누락 | `EXIT_PARAM_ERROR` |
 | NKS API 4xx · 5xx / 응답 형식 불일치 | `EXIT_API_ERROR` |
+
+## ncs (NHN Container Service) 흐름
+
+NCS 는 Container 서비스지만 인증은 NKS(Keystone)·NCR(정적 헤더)이 아니라 Deploy 와 같은 UAK OAuth Bearer 토큰이다([[adr-020]]).
+profile 의 UAK 로 OAuth 토큰을 발급(Deploy 와 캐시 공유)하고, region 별 NCS endpoint 에 appkey 를 경로에 넣어 호출한다.
+응답은 NHN 공통 봉투(숫자 `resultCode`)이고 모든 API 가 HTTP 200 으로 응답하므로 성공·실패는 `header` 로 판별한다([[adr-006]]).
+
+### 인증 흐름
+
+1. profile 의 UAK(id·secret) 로 OAuth `access_token` 발급 — 캐시 유효하면 재사용([[adr-007]] Deploy 와 공유)
+2. profile 의 `ncs` 블록에서 appkey 로드(또는 `--app-key` override)
+3. `x-nhn-authorization: Bearer <token>` 헤더 + 경로 `/ncs/v1.0/appkeys/{appKey}/...` 로 NCS API 호출
+
+### 리소스 관계
+
+- **Template**: 컨테이너 실행 설계도(이미지·CPU/메모리·포트·네트워크). 자체 상태값 없음. 버전으로 관리한다.
+- **Workload**: 템플릿을 실제 실행하는 런타임(replica `desired` 개). LB·오토스케일·예약실행을 워크로드 레벨에서 설정. 개별 실행 단위는 task.
+- **History**: 워크로드 배포 이력. 악성코드 검사 결과가 history 에 붙는다.
+- 관계: Template → Version → Workload(task N개) → History.
+
+### 명령 시그니처
+
+```
+nhncloud ncs template list|get|create|delete
+nhncloud ncs template version list|get|create|delete
+nhncloud ncs workload list|get|logs|events|history|schedule-history
+nhncloud ncs workload create|update|patch|pause|resume|restart|delete
+nhncloud ncs malware config get|set
+nhncloud ncs malware result <workloadId> <historyId>
+```
+
+| 옵션 | 적용 | 설명 |
+|------|------|------|
+| `--region <r>` | 전체 | ncs region override (kr1/kr3, 기본 kr1) |
+| `--app-key <key>` | 전체 | profile `ncs.appkey` override |
+| `--profile <name>` | 전체 | profile 선택 |
+| `--file <json>` | template/workload create·update·patch | 공식 API payload 를 담은 JSON 파일 (patch 는 json-patch 배열) |
+| `--wait` | workload create | Running 상태까지 폴링 |
+| `--task <id>` / `--container <name>` | workload logs·events·restart | 대상 task·컨테이너 지정 |
+| `--yes` | delete 계열 | confirm 생략 |
+
+전역 옵션: `--json` / `--quiet` / `--no-color`.
+
+### 구현 순서
+
+- Phase(task 1): endpoint/auth/client 골격 + template 조회 4개 + workload 조회 7개.
+- Phase(task 2): template 생성·삭제·버전 쓰기 + workload 실행 제어(pause/resume/restart/delete).
+- Phase(task 3): workload create(`--wait`)·update·patch(`--file`) + malware 3개.
+
+### 쓰기 payload 정책
+
+workload·template 생성은 중첩 필드가 많아 `--file <json>` 을 기본 입력으로 둔다([[adr-020]], NKS 선례).
+workload patch 는 `application/json-patch+json` Content-Type 의 json-patch 배열 파일을 받는다.
+삭제 계열은 `instance delete` 와 같은 confirm + `--yes` 정책을 따른다.
+
+### ncs 에러 경로
+
+| 상황 | exit code |
+|------|-----------|
+| UAK 누락 / OAuth 발급 실패 | `EXIT_CONFIG_ERROR` 또는 `EXIT_AUTH_ERROR` |
+| appkey 누락 / 잘못된 region / payload 파일 파싱 실패 / 필수 인자 누락 | `EXIT_PARAM_ERROR` |
+| 봉투 `header.isSuccessful=false` (resultCode 10000번대) / 응답 형식 불일치 | `EXIT_API_ERROR` |

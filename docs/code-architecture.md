@@ -18,7 +18,7 @@ src/
     credentials.ts          # ~/.nhncloud/ 로드 + 머지 쓰기, profile 해석
     types.ts                # Credentials(profile.userAccessKey + 서비스 블록) / Config 타입
   api/
-    endpoints.ts            # 서비스별 엔드포인트 맵 + image·network·blockstorage·nks·ncr host 맵 + logncrash-collector 키 (adr-005, adr-013, adr-014, adr-016, adr-019)
+    endpoints.ts            # 서비스별 엔드포인트 맵 + image·network·blockstorage·nks·ncr·ncs host 맵 + logncrash-collector 키 (adr-005, adr-013, adr-014, adr-016, adr-019, adr-020)
     envelope.ts             # NHN 공통 봉투 unwrap + 에러 매핑 (adr-006)
     httpError.ts            # ky HTTPError → NhnCloudCliError (status별 exit code)
     oauth.ts                # UAK → access_token 교환 + 캐시 (adr-007)
@@ -48,6 +48,9 @@ src/
       client.ts             # NcrClient — listRegistries / getRegistry (Management API, 공통 UAK 정적 헤더 X-TC-AUTHENTICATION-*, region 별 host, [[adr-016]])
       harbor-client.ts      # HarborClient — listRepositories / listArtifacts (데이터플레인 Harbor REST /api/v2.0, UAK Basic Auth, 봉투 미적용, [[adr-017]])
       types.ts              # Registry / Repository / Artifact (Harbor 파생 snake_case) / RegistryListParams
+    ncs/
+      client.ts             # NcsClient — template / workload / malware 조회·쓰기 (Deploy OAuth Bearer 토큰 재사용 + appkey 경로 + 숫자 봉투, waitForRunning, [[adr-020]])
+      types.ts              # Template / TemplateVersion / Workload / WorkloadTask / WorkloadHistory / MalwareConfig 응답 가드
   utils/
     errors.ts               # NhnCloudCliError(message, exitCode)
     exit-codes.ts           # EXIT_* 상수
@@ -111,6 +114,11 @@ src/
       images.ts             # nhncloud ncr images <registry> (이미지/repository 목록, Harbor REST, [[adr-017]])
       tags.ts               # nhncloud ncr tags <registry> <repository> (태그 목록, artifact tags flatten, [[adr-017]])
       helpers.ts            # createNcrClient (공통 UAK 정적 헤더 + appKey/region 해석, [[adr-016]])
+    ncs/
+      template.ts           # nhncloud ncs template list|get|create|delete + version list|get|create|delete
+      workload.ts           # nhncloud ncs workload list|get|logs|events|history|create|update|patch|pause|resume|restart|delete
+      malware.ts            # nhncloud ncs malware config get|set / result
+      helpers.ts            # resolveNcsClient (Deploy OAuth 토큰 + appKey/region 해석, [[adr-020]])
 ```
 
 공개 skill은 `skills/nhncloud-cli/SKILL.md` router와 `skills/nhncloud-cli/references/` 서비스별 reference로 구성한다.
@@ -140,8 +148,9 @@ dooray-cli 는 단일 `config + client` 로 충분했지만, NHN Cloud 는 서�
 - `config/credentials.ts` — profile 해석 후 서비스 자격증명 블록 반환 ([[adr-004]])
 - `api/endpoints.ts` — 서비스명 → 엔드포인트 (gov 분기는 후속, [[adr-005]])
 - `api/envelope.ts` — `{ header, body }` 봉투 검사, `resultCode` 타입 혼재 흡수 ([[adr-006]])
-- `api/oauth.ts` + `cache/token-store.ts` — deploy 전용. UAK → access_token 교환 후 단기 캐시 ([[adr-007]])
-- `api/keystone.ts` + `cache/token-store.ts` — instance·network·blockstorage·nks 등 IaaS 전용. Keystone token + region 별 compute·image·network·blockstorage·nks endpoint 캐시 ([[adr-010]], [[adr-013]], [[adr-019]])
+- `api/oauth.ts` + `cache/token-store.ts` — deploy·ncs 공용. UAK → access_token 교환 후 단기 캐시 (계정 단위 토큰이라 profile 캐시 공유, [[adr-007]], [[adr-020]])
+- `api/keystone.ts` + `cache/token-store.ts` — instance·network·blockstorage·nks 등 IaaS 전용.
+  Keystone token + region 별 compute·image·network·blockstorage·nks endpoint 를 캐시한다 ([[adr-010]], [[adr-013]], [[adr-019]])
 - 각 `services/<svc>/client.ts` — 위 조각을 조합해 서비스 고유 헤더 부착
   - logncrash: `X-LNCS-SECRET`
   - deploy: `X-NHN-AUTHORIZATION: Bearer <token>` + config target 좌표 ([[adr-008]])
@@ -150,6 +159,7 @@ dooray-cli 는 단일 `config + client` 로 충분했지만, NHN Cloud 는 서�
   - nks: `X-Auth-Token: <tokenId>` + `OpenStack-API-Version: container-infra latest` + region 별 kubernetes infrastructure endpoint ([[adr-019]])
   - ncr: `X-TC-AUTHENTICATION-ID/SECRET` 공통 UAK 정적 헤더 + region 별 ncr host (토큰 교환 없음, [[adr-016]])
   - ncr 이미지/태그: 데이터플레인 host 에 UAK `Basic Auth` + Harbor REST `/api/v2.0` (봉투 미적용, [[adr-017]])
+  - ncs: `x-nhn-authorization: Bearer <token>` (Deploy OAuth 토큰 재사용) + appkey 경로 + region 별 ncs host + 숫자 봉투 ([[adr-020]])
 
 ## 커맨드 실행 흐름 (예: `nhncloud logncrash search`)
 

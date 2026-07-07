@@ -1,0 +1,45 @@
+{
+  "name": "036-feat-ncs-foundation-read",
+  "description": "NCS(NHN Container Service) 기반 등록 + 전체 조회 명령. ADR-020에 따라 Deploy 와 같은 UAK OAuth Bearer 토큰(src/api/oauth.ts getAccessToken)을 재사용하고, endpoint 는 region 별 {region}-ncs.api.nhncloudservice.com/ncs/v1.0 (kr1·kr3 만)이며 appkey 를 경로에 포함한다. 응답은 NHN 공통 header 봉투(header.resultCode 숫자)이고, body 래핑 여부는 구현 phase 에서 docs/실측으로 확정한다(실측 결과 template 은 NCR 처럼 named 필드 — unwrapHeader). Phase 1은 endpoint/client 골격 + template list 최소 동작(봉투 형태 확정 포함), Phase 2는 template 조회 완성(get/versions), Phase 3은 workload 조회 전체, Phase 4는 README/skills 반영.",
+  "created_at": "2026-07-06T00:00:00Z",
+  "updated_at": "2026-07-07T00:00:00Z",
+  "status": "completed",
+  "current_phase": 4,
+  "total_phases": 4,
+  "error_message": null,
+  "blocked_reason": null,
+  "phases": [
+    {
+      "number": 1,
+      "title": "기반 — NCS endpoint/client 골격 + template list + 단위테스트",
+      "file": "phase-01.md",
+      "status": "completed",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    },
+    {
+      "number": 2,
+      "title": "template 조회 완성 — get/versions/version-get",
+      "file": "phase-02.md",
+      "status": "completed",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    },
+    {
+      "number": 3,
+      "title": "workload 조회 전체 — list/get/logs/events/history/history-get/schedule-history",
+      "file": "phase-03.md",
+      "status": "completed",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    },
+    {
+      "number": 4,
+      "title": "공개 docs — README 사용 예 + skills/nhncloud-cli 반영 (조회 명령)",
+      "file": "phase-04.md",
+      "status": "completed",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    }
+  ]
+}

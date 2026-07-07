@@ -1,8 +1,8 @@
 # nhncloud-cli
 
 NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 통합 CLI.
-현재 98개 command catalog 항목을 지원한다.
-`configure`, `commands`, `logncrash search/send/export`, `deploy`, `instance`, `network`, `volume`, `floatingip`, `ncr`, `nks` 명령으로 NHN Cloud 서비스를 조회·운영할 수 있다.
+현재 106개 command catalog 항목을 지원한다.
+`configure`, `commands`, `logncrash search/send/export`, `deploy`, `instance`, `network`, `volume`, `floatingip`, `ncr`, `nks`, `ncs` 명령으로 NHN Cloud 서비스를 조회·운영할 수 있다.
 
 ## 설치
 
@@ -648,6 +648,80 @@ nhncloud nks nodegroup set-userscript <cluster> worker --file ./userscript.sh
 nhncloud nks nodegroup update-flavor <cluster> worker --flavor <flavor-uuid>
 nhncloud nks nodegroup set-fip-auto-bind <cluster> worker --file ./fip-auto-bind.json
 nhncloud nks nodegroup set-labels <cluster> worker --file ./labels.json
+```
+
+### NHN Container Service (NCS)
+
+NCS는 template(설계도)과 workload(런타임 실행)를 조회한다.
+인증은 Deploy와 같은 UAK OAuth Bearer 토큰을 재사용하며(profile 토큰 캐시 공유), appkey는 경로에 포함한다.
+지원 region은 `kr1`(판교), `kr3`(광주)만이다.
+`configure` 마법사는 아직 ncs를 지원하지 않으므로 `--app-key` 옵션 또는 `~/.nhncloud/credentials.json`의
+`profiles.<profile>.ncs.appkey`를 직접 추가한다.
+
+template(설계도)의 생성·삭제, workload(런타임 실행)의 생성·변경·실행제어(일시정지/재개/재시작/삭제), 악성코드 검사(malware) 설정·결과 조회를 지원한다.
+
+```bash
+# template(설계도) 목록/단건/버전 조회
+nhncloud ncs template list --app-key <appkey>
+nhncloud ncs template get <template-id> --app-key <appkey>
+nhncloud ncs template version list <template-id> --app-key <appkey>
+nhncloud ncs template version get <template-id> <version> --app-key <appkey>
+
+# workload(런타임 실행) 목록/단건 조회
+nhncloud ncs workload list --app-key <appkey>
+nhncloud ncs workload get <workload-id> --app-key <appkey>
+
+# task 컨테이너 로그/이벤트 조회 (--task는 workload get 응답의 tasks[].id)
+nhncloud ncs workload logs <workload-id> --task <task-id> --container <name> --app-key <appkey>
+nhncloud ncs workload events <workload-id> --task <task-id> --app-key <appkey>
+
+# 실행 히스토리 / 예약 실행 히스토리 조회
+nhncloud ncs workload history <workload-id> --app-key <appkey>
+nhncloud ncs workload history get <workload-id> <history-id> --app-key <appkey>
+nhncloud ncs workload schedule-history <workload-id> --app-key <appkey>
+```
+
+template 생성·버전 생성처럼 복잡한 입력은 공식 API payload를 JSON 파일로 전달한다.
+삭제 명령은 비대화형 환경에서 `--yes`가 필요하다.
+
+```bash
+# template(설계도) 생성 / 삭제
+nhncloud ncs template create --file ./template-create.json --app-key <appkey>
+nhncloud ncs template delete <template-id> --yes --app-key <appkey>
+
+# template 버전 생성 / 삭제 (--file 의 sourceVersion 필드가 필수)
+nhncloud ncs template version create <template-id> --file ./version-create.json --app-key <appkey>
+nhncloud ncs template version delete <template-id> <version> --yes --app-key <appkey>
+
+# workload 실행제어 — 일시정지 / 재개 / task 재시작 / 삭제
+nhncloud ncs workload pause <workload-id> --app-key <appkey>
+nhncloud ncs workload resume <workload-id> --app-key <appkey>
+nhncloud ncs workload restart <workload-id> --task <task-id> --app-key <appkey>
+nhncloud ncs workload delete <workload-id> --yes --app-key <appkey>
+```
+
+workload 생성은 비동기다.
+`--wait`를 주면 `Running` 상태가 될 때까지 폴링하고, `--timeout`(초, 기본 300)으로 대기 시간을 조절한다.
+변경은 `update`(PUT, 전체 교체)와 `patch`(PATCH, JSON Patch 배열로 부분 변경) 두 가지다.
+
+```bash
+# workload 생성 (--wait로 Running 대기)
+nhncloud ncs workload create --file ./workload-create.json --wait --app-key <appkey>
+
+# workload 전체 교체 / 부분 변경(JSON Patch 배열)
+nhncloud ncs workload update <workload-id> --file ./workload-update.json --app-key <appkey>
+nhncloud ncs workload patch <workload-id> --file ./workload-patch.json --app-key <appkey>
+```
+
+악성코드 검사(malware) 설정은 appkey 단위이고, 검사 결과는 workload 실행 히스토리 단위로 조회한다.
+
+```bash
+# 악성코드 검사 설정 조회 / 변경
+nhncloud ncs malware config get --app-key <appkey>
+nhncloud ncs malware config set --enabled true --app-key <appkey>
+
+# 악성코드 검사 결과 조회 (workload history get 응답의 id를 historyId로 사용)
+nhncloud ncs malware result <workload-id> <history-id> --app-key <appkey>
 ```
 
 ## 개발

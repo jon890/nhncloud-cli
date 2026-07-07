@@ -2,7 +2,7 @@
 
 ## 한 줄 정의
 
-NHN Cloud 서비스를 AWS CLI 처럼 터미널·AI 에이전트가 쉽게 호출하는 통합 CLI.
+NHN Cloud 서비스를 AWS CLI 처럼 터미널·AI 에이전트가 쉽게 호출하도록 돕는 통합 CLI다.
 
 ## 문제
 
@@ -40,6 +40,9 @@ AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트�
 - `nhncloud nks` — NHN Kubernetes Service 관리 (Keystone 토큰 + container-infra API·ADR-019)
   - 클러스터, 노드 그룹, 애드온, 지원 Kubernetes 버전과 작업 종류를 조회한다.
   - 생성·삭제·resize·upgrade·autoscale 등 쓰기 작업을 지원하며, 복잡한 payload 는 JSON 파일 입력을 기본으로 한다.
+- `nhncloud ncs` — NHN Container Service 관리 (Deploy OAuth 토큰 재사용 + appkey 경로·ADR-020, region kr1/kr3)
+  - `template`(컨테이너 실행 설계도)·`workload`(런타임 실행)·`malware`(악성코드 검사) 3개 리소스를 조회·생성·삭제·실행제어한다.
+  - workload 는 비동기라 `create --wait` 로 Running 을 대기하고, 복잡한 생성·변경은 `--file <json>` 입력을 기본으로 한다.
 - profile 기반 자격증명 (`~/.nhncloud/credentials.json` + `~/.nhncloud/config.json`)
 - 출력 3모드 — 테이블 / `--json` / `--quiet`
 - `--profile` 로 profile 전환
