@@ -44,6 +44,7 @@ import { supportsCommand as nksSupportsCommand } from "./commands/nks/supports.j
 import { clusterCommand as nksClusterCommand } from "./commands/nks/cluster.js";
 import { nodegroupCommand as nksNodegroupCommand } from "./commands/nks/nodegroup.js";
 import { addonCommand as nksAddonCommand, addonTypeCommand as nksAddonTypeCommand } from "./commands/nks/addon.js";
+import { templateCommand as ncsTemplateCommand } from "./commands/ncs/template.js";
 
 const rootAgentHints = `
 Agent hints:
@@ -104,6 +105,11 @@ Agent workflow:
   1. nhncloud nks supports --json
   2. nhncloud nks cluster list --json
   3. nhncloud nks cluster get <cluster> --json
+`;
+
+const ncsAgentWorkflow = `
+Agent workflow:
+  1. nhncloud ncs template list --json
 `;
 
 const program = new Command();
@@ -231,6 +237,14 @@ nksCommand.addCommand(nksAddonTypeCommand);
 nksCommand.addCommand(nksAddonCommand);
 
 program.addCommand(nksCommand);
+
+// ncs 커맨드 그룹
+const ncsCommand = new Command("ncs")
+  .description("NHN Container Service 관련 명령")
+  .addHelpText("after", ncsAgentWorkflow);
+ncsCommand.addCommand(ncsTemplateCommand);
+
+program.addCommand(ncsCommand);
 program.addCommand(createCommandsCommand(program));
 
 program.parseAsync().catch((err: unknown) => {

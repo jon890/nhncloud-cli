@@ -207,3 +207,29 @@ export function nksHost(region: string): string {
   }
   return host;
 }
+
+// ── NCS (NHN Container Service) ────────────────────────────────────────────────
+
+/**
+ * region → NCS API host 맵 (ADR-020).
+ * 공식 NCS Public API 문서가 제시한 region 은 kr1(판교)·kr3(광주)뿐이다 — kr2·jp1 은 없다.
+ */
+const NCS_HOST: Record<string, string> = {
+  kr1: "kr1-ncs.api.nhncloudservice.com",
+  kr3: "kr3-ncs.api.nhncloudservice.com",
+};
+
+/**
+ * region 에 해당하는 NCS API host 를 반환한다.
+ * 미등록 region 은 사용 가능한 region 목록 안내와 함께 EXIT_PARAM_ERROR 를 던진다.
+ */
+export function ncsHost(region: string): string {
+  const host = NCS_HOST[region];
+  if (!host) {
+    throw new NhnCloudCliError(
+      `지원하지 않는 NCS region 입니다: "${region}". 사용 가능한 region: ${Object.keys(NCS_HOST).join(", ")}`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+  return host;
+}
