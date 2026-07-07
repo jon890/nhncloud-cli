@@ -85,3 +85,199 @@ export interface NcsTemplateVersionDetail extends NcsTemplateVersionSummary {
 export function isNcsTemplateVersionDetail(val: unknown): val is NcsTemplateVersionDetail {
   return isNcsTemplateVersionSummary(val);
 }
+
+/**
+ * NCS(NHN Container Service) workload 타입 (Phase 3, ADR-020).
+ * 공식 docs 예제 JSON(https://docs.nhncloud.com/ko/Container/NCS/ko/public-api/, "워크로드" 섹션) 실측 확정 필드.
+ */
+
+/** workload list query 옵션. */
+export interface NcsWorkloadListParams {
+  q?: string;
+  page?: number;
+  size?: number;
+}
+
+/**
+ * NcsWorkloadSummary — `workload list` 목록 항목.
+ * status 는 docs 예제 확정 상태값(Pending/Running/Failed/Terminated/Paused/Active/Suspend).
+ */
+export interface NcsWorkloadSummary {
+  id: string;
+  name: string;
+  type?: string;
+  templateId?: string;
+  templateVersion?: string;
+  createdAt?: string;
+  desired?: number;
+  available?: number;
+  status: string;
+  url?: string;
+  [key: string]: unknown;
+}
+
+/** NcsWorkloadSummary 타입 가드 — 핵심 식별 필드(id·name·status)만 검사. */
+export function isNcsWorkloadSummary(val: unknown): val is NcsWorkloadSummary {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  return (
+    typeof obj["id"] === "string" &&
+    typeof obj["name"] === "string" &&
+    typeof obj["status"] === "string"
+  );
+}
+
+/**
+ * NcsWorkloadTaskContainer — task 내 컨테이너 런타임 상태(docs 예제 JSON 실측 확정).
+ * spec 필드(env·probe·volumes 등)는 CLI 출력에 쓰이지 않아 타입을 좁히지 않고 catch-all 로 남긴다.
+ */
+export interface NcsWorkloadTaskContainer {
+  name?: string;
+  type?: string;
+  image?: string;
+  ip?: string;
+  state?: string;
+  startedAt?: string;
+  finishedAt?: string;
+  restartCount?: number | string;
+  [key: string]: unknown;
+}
+
+/** NcsWorkloadTask — workload 의 작업(task) 단위. containers[] 가 실제 런타임 상태를 가진다. */
+export interface NcsWorkloadTask {
+  id: string;
+  containers?: NcsWorkloadTaskContainer[];
+  [key: string]: unknown;
+}
+
+/**
+ * NcsWorkloadDetail — `workload get` 단건 조회 응답 (named 필드 `workload`).
+ * Summary 와 동일 핵심 필드 + tasks[](런타임 상태, docs 예제 확정).
+ */
+export interface NcsWorkloadDetail extends NcsWorkloadSummary {
+  tasks?: NcsWorkloadTask[];
+}
+
+/** NcsWorkloadDetail 타입 가드 — Summary 와 동일 필수 필드만 검사. */
+export function isNcsWorkloadDetail(val: unknown): val is NcsWorkloadDetail {
+  return isNcsWorkloadSummary(val);
+}
+
+/**
+ * workload logs query 옵션.
+ * wire 쿼리 키는 docs 확정상 `containerName` 이지만(6-2 유사 함정), CLI/client 시그니처는
+ * 다른 명령(--container)과의 일관성을 위해 `container` 로 받고 client 내부에서 매핑한다.
+ * container 누락 시 EXIT_PARAM_ERROR(docs: containerName 필수).
+ */
+export interface NcsWorkloadLogsParams {
+  container: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  size?: number;
+}
+
+/** NcsWorkloadLog — `workload logs` 응답 항목 (named 필드 `logs`, docs 예제 확정). */
+export interface NcsWorkloadLog {
+  log: string;
+  time: string;
+  [key: string]: unknown;
+}
+
+/** NcsWorkloadLog 타입 가드. */
+export function isNcsWorkloadLog(val: unknown): val is NcsWorkloadLog {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  return typeof obj["log"] === "string" && typeof obj["time"] === "string";
+}
+
+/** workload events query 옵션 (docs 확정: type/q/from/to/page/size). */
+export interface NcsWorkloadEventsParams {
+  type?: string;
+  q?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  size?: number;
+}
+
+/** NcsWorkloadEvent — `workload events` 응답 항목 (named 필드 `events`, docs 예제 확정). */
+export interface NcsWorkloadEvent {
+  type: string;
+  reason: string;
+  message: string;
+  createTimestamp: string;
+  lastTimestamp: string;
+  count: number;
+  [key: string]: unknown;
+}
+
+/** NcsWorkloadEvent 타입 가드 — 핵심 필드(type·reason·message)만 검사. */
+export function isNcsWorkloadEvent(val: unknown): val is NcsWorkloadEvent {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  return (
+    typeof obj["type"] === "string" &&
+    typeof obj["reason"] === "string" &&
+    typeof obj["message"] === "string"
+  );
+}
+
+/** workload history list query 옵션 (docs 확정: page/size/sort). */
+export interface NcsWorkloadHistoryListParams {
+  page?: number;
+  size?: number;
+  sort?: string;
+}
+
+/** NcsWorkloadHistorySummary — `workload history` 목록 항목 (named 필드 `history`, docs 예제 확정). */
+export interface NcsWorkloadHistorySummary {
+  id: number;
+  createdAt: string;
+  deletedAt?: string | null;
+  templateId?: string;
+  templateVersion?: string;
+  name?: string;
+  status: string;
+  [key: string]: unknown;
+}
+
+/** NcsWorkloadHistorySummary 타입 가드 — 핵심 필드(id·status)만 검사. */
+export function isNcsWorkloadHistorySummary(val: unknown): val is NcsWorkloadHistorySummary {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  return typeof obj["id"] === "number" && typeof obj["status"] === "string";
+}
+
+/**
+ * NcsWorkloadHistoryDetail — `workload history get` 단건 응답.
+ * docs 예제 JSON 은 named 필드 `history`(요약과 동일 필드) 옆에 `template`(당시 사용한 템플릿 스냅샷)을
+ * sibling 필드로 반환한다 — history 객체 안에 중첩되지 않는다. CLI 소비 편의를 위해 하나의 타입으로 합친다.
+ */
+export interface NcsWorkloadHistoryDetail extends NcsWorkloadHistorySummary {
+  template?: unknown;
+}
+
+/** NcsWorkloadHistoryDetail 타입 가드 — Summary 와 동일 필수 필드만 검사. */
+export function isNcsWorkloadHistoryDetail(val: unknown): val is NcsWorkloadHistoryDetail {
+  return isNcsWorkloadHistorySummary(val);
+}
+
+/**
+ * NcsWorkloadScheduleHistory — `workload schedule-history` 응답 항목
+ * (named 필드 `schedulehistory`, docs 예제 확정).
+ */
+export interface NcsWorkloadScheduleHistory {
+  id: string;
+  createdAt: string;
+  finishedAt?: string;
+  status: string;
+  [key: string]: unknown;
+}
+
+/** NcsWorkloadScheduleHistory 타입 가드 — 핵심 필드(id·status)만 검사. */
+export function isNcsWorkloadScheduleHistory(val: unknown): val is NcsWorkloadScheduleHistory {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  return typeof obj["id"] === "string" && typeof obj["status"] === "string";
+}

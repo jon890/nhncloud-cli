@@ -4,7 +4,7 @@
   "created_at": "2026-07-06T00:00:00Z",
   "updated_at": "2026-07-07T00:00:00Z",
   "status": "pending",
-  "current_phase": 3,
+  "current_phase": 4,
   "total_phases": 4,
   "error_message": null,
   "blocked_reason": null,
@@ -29,7 +29,7 @@
       "number": 3,
       "title": "workload 조회 전체 — list/get/logs/events/history/history-get/schedule-history",
       "file": "phase-03.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     },

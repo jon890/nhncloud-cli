@@ -250,3 +250,278 @@ describe("NcsClient.getTemplateVersion", () => {
     });
   });
 });
+
+describe("NcsClient.listWorkloads", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("{ header, workloads: [...] } 에서 workloads 반환 + X-Total-Count 헤더 파싱", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse(
+        {
+          header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+          workloads: [
+            { id: "wl-1", name: "nginx", status: "Running", type: "deployment" },
+            { id: "wl-2", name: "redis", status: "Pending" },
+          ],
+        },
+        { "x-total-count": "2" },
+      ),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.listWorkloads();
+    expect(result.totalCount).toBe(2);
+    expect(result.workloads).toHaveLength(2);
+    expect(result.workloads[0].id).toBe("wl-1");
+  });
+
+  it("workloads 누락 시 빈 배열 반환 (방어)", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.listWorkloads();
+    expect(result.workloads).toEqual([]);
+    expect(result.totalCount).toBe(0);
+  });
+
+  it("workloads 가 비배열(키 형태 변경)이면 형식 오류 throw", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+        workloads: { unexpected: "object" },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await expect(client.listWorkloads()).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+});
+
+describe("NcsClient.getWorkload", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("{ header, workload: {...tasks} } 에서 workload 반환", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+        workload: {
+          id: "wl-1",
+          name: "nginx",
+          status: "Running",
+          tasks: [
+            {
+              id: "task-1",
+              containers: [{ name: "nginx", state: "Running", startedAt: "2024-10-27T22:29:23Z" }],
+            },
+          ],
+        },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.getWorkload("wl-1");
+    expect(result.id).toBe("wl-1");
+    expect(result.tasks?.[0]?.containers?.[0]?.state).toBe("Running");
+  });
+
+  it("workload 필드 누락 시 형식 오류 throw (EXIT_API_ERROR)", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await expect(client.getWorkload("wl-1")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+});
+
+describe("NcsClient.getWorkloadLogs", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("{ header, logs: [...] } 에서 logs 반환 + containerName 쿼리 전달", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+        logs: [{ log: "starting", time: "2024-10-27T22:29:23Z" }],
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.getWorkloadLogs("wl-1", "task-1", { container: "nginx" });
+    expect(result.logs).toHaveLength(1);
+    expect(ky.get).toHaveBeenCalledWith(
+      expect.stringContaining("/workloads/wl-1/tasks/task-1/logs"),
+      expect.objectContaining({
+        searchParams: expect.objectContaining({ containerName: "nginx" }),
+      }),
+    );
+  });
+
+  it("container 쿼리 누락 시 EXIT_PARAM_ERROR 던짐 (API 호출 전)", async () => {
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await expect(
+      client.getWorkloadLogs("wl-1", "task-1", { container: "" }),
+    ).rejects.toMatchObject({ exitCode: EXIT_PARAM_ERROR });
+    expect(ky.get).not.toHaveBeenCalled();
+  });
+});
+
+describe("NcsClient.getWorkloadEvents", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("{ header, events: [...] } 에서 events 반환", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse(
+        {
+          header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+          events: [
+            {
+              type: "Normal",
+              reason: "Scheduled",
+              message: "Successfully assigned",
+              createTimestamp: "2024-10-27T22:29:06Z",
+              lastTimestamp: "2024-10-27T22:29:06Z",
+              count: 1,
+            },
+          ],
+        },
+        { "x-total-count": "1" },
+      ),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.getWorkloadEvents("wl-1", "task-1");
+    expect(result.totalCount).toBe(1);
+    expect(result.events).toHaveLength(1);
+    expect(result.events[0].reason).toBe("Scheduled");
+  });
+
+  it("events 누락 시 빈 배열 반환 (방어)", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.getWorkloadEvents("wl-1", "task-1");
+    expect(result.events).toEqual([]);
+    expect(result.totalCount).toBe(0);
+  });
+});
+
+describe("NcsClient.listWorkloadHistory", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("{ header, history: [...] } 에서 history 반환", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse(
+        {
+          header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+          history: [
+            {
+              id: 1,
+              createdAt: "2024-10-27T22:29:05.996Z",
+              deletedAt: null,
+              templateId: "tmpl-1",
+              templateVersion: "first",
+              name: "nginx-template",
+              status: "Succeeded",
+            },
+          ],
+        },
+        { "x-total-count": "1" },
+      ),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.listWorkloadHistory("wl-1");
+    expect(result.totalCount).toBe(1);
+    expect(result.history[0].status).toBe("Succeeded");
+  });
+});
+
+describe("NcsClient.getWorkloadHistory", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("{ header, history: {...}, template: {...} } 에서 history+template 병합 반환", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+        history: {
+          id: 1,
+          createdAt: "2024-10-27T22:29:05.996Z",
+          deletedAt: null,
+          templateId: "tmpl-1",
+          name: "nginx-template",
+          status: "Succeeded",
+        },
+        template: { id: "tmpl-1", name: "nginx-template" },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.getWorkloadHistory("wl-1", "1");
+    expect(result.id).toBe(1);
+    expect(result.template).toMatchObject({ id: "tmpl-1" });
+  });
+
+  it("history 필드 누락 시 형식 오류 throw (EXIT_API_ERROR)", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await expect(client.getWorkloadHistory("wl-1", "1")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+});
+
+describe("NcsClient.getWorkloadScheduleHistory", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("{ header, schedulehistory: [...] } 에서 scheduleHistory 반환", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+        schedulehistory: [
+          {
+            id: "job-1",
+            createdAt: "2024-10-27T22:48:00Z",
+            finishedAt: "2024-10-27T22:48:45Z",
+            status: "Completed",
+          },
+        ],
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.getWorkloadScheduleHistory("wl-1");
+    expect(result.scheduleHistory).toHaveLength(1);
+    expect(result.scheduleHistory[0].status).toBe("Completed");
+  });
+
+  it("schedulehistory 누락 시 빈 배열 반환 (방어)", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.getWorkloadScheduleHistory("wl-1");
+    expect(result.scheduleHistory).toEqual([]);
+  });
+});
