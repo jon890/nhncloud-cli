@@ -106,6 +106,17 @@ export function readJsonPayload(filePath: string): unknown {
 }
 
 /**
+ * id/historyId 등 인수 공통 검증 — 빈값/공백 거절(1-3 회피: spinner 시작 전 검증).
+ * template.ts·workload.ts·malware.ts 가 공유하는 공용 함수라 helpers.ts 로 둔다
+ * (code-review LOW dedup — workload.ts·malware.ts 동일 함수 중복 정의 해소).
+ */
+export function requireNonEmpty(value: string, label: string): void {
+  if (!value.trim()) {
+    throw new NhnCloudCliError(`${label} 인수가 비어있습니다.`, EXIT_PARAM_ERROR);
+  }
+}
+
+/**
  * 비대화형에서는 --yes 필수, TTY 에서는 @inquirer/prompts confirm 으로 확인한다
  * (floatingip delete 패턴 재사용). template.ts·workload.ts 양쪽의 delete 커맨드가 공유하는
  * 공용 함수라 helpers.ts 로 둔다(code-review FIX — template.ts 전용 export 비대칭 해소).

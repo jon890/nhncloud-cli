@@ -2,7 +2,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { output, type OutputOptions } from "../../formatters/table.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
-import { resolveNcsClient, readJsonPayload, confirmDestructive } from "./helpers.js";
+import { resolveNcsClient, readJsonPayload, confirmDestructive, requireNonEmpty } from "./helpers.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { parsePositiveIntegerOption } from "../parse-options.js";
@@ -30,13 +30,6 @@ function workloadRows(w: NcsWorkloadDetail): string[][] {
   ];
 }
 const WORKLOAD_HEADERS = ["id", "name", "type", "status", "desired", "available"];
-
-/** id 인수 공통 검증 — 빈값/공백 거절(1-3 회피: spinner 시작 전 검증). */
-function requireNonEmpty(value: string, label: string): void {
-  if (!value.trim()) {
-    throw new NhnCloudCliError(`${label} 인수가 비어있습니다.`, EXIT_PARAM_ERROR);
-  }
-}
 
 interface WorkloadListOpts extends OutputOptions {
   region?: string;
