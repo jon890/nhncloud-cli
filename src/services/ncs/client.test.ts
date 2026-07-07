@@ -136,3 +136,117 @@ describe("NcsClient.listTemplates", () => {
     );
   });
 });
+
+describe("NcsClient.getTemplate", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("{ header, template: {...} } 에서 template 반환", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+        template: { id: "tmpl-1", name: "nginx-template", versionCount: 2 },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.getTemplate("tmpl-1");
+    expect(result.id).toBe("tmpl-1");
+    expect(result.name).toBe("nginx-template");
+  });
+
+  it("template 필드 누락 시 형식 오류 throw (EXIT_API_ERROR)", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await expect(client.getTemplate("tmpl-1")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+});
+
+describe("NcsClient.listTemplateVersions", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("{ header, versions: [...] } 에서 versions 반환 + X-Total-Count 헤더 파싱", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse(
+        {
+          header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+          versions: [
+            { id: "v-1", version: "1", workloadCount: 1 },
+            { id: "v-2", version: "second" },
+          ],
+        },
+        { "x-total-count": "2" },
+      ),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.listTemplateVersions("tmpl-1");
+    expect(result.totalCount).toBe(2);
+    expect(result.versions).toHaveLength(2);
+    expect(result.versions[1].version).toBe("second");
+  });
+
+  it("versions 누락 시 빈 배열 반환 (방어)", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.listTemplateVersions("tmpl-1");
+    expect(result.versions).toEqual([]);
+    expect(result.totalCount).toBe(0);
+  });
+
+  it("versions 가 비배열(키 형태 변경)이면 형식 오류 throw", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+        versions: { unexpected: "object" },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await expect(client.listTemplateVersions("tmpl-1")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+});
+
+describe("NcsClient.getTemplateVersion", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("{ header, version: {...} } 에서 version 반환", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+        version: { id: "v-1", version: "1", workloadCount: 3 },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    const result = await client.getTemplateVersion("tmpl-1", "1");
+    expect(result.id).toBe("v-1");
+    expect(result.version).toBe("1");
+  });
+
+  it("version 필드 누락 시 형식 오류 throw (EXIT_API_ERROR)", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await expect(client.getTemplateVersion("tmpl-1", "1")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+});

@@ -31,3 +31,57 @@ export interface NcsTemplateListParams {
   size?: number;
   disableContainers?: boolean;
 }
+
+/**
+ * NcsTemplateDetail — `template get` 단건 조회 응답 (named 필드 `template`).
+ * Summary 와 동일 핵심 필드 + containers(컨테이너 spec 배열, 정확한 필드는 실측 미확정이라 unknown[]).
+ */
+export interface NcsTemplateDetail extends NcsTemplateSummary {
+  containers?: unknown[];
+}
+
+/** NcsTemplateDetail 타입 가드 — Summary 와 동일 필수 필드(id·name)만 검사. */
+export function isNcsTemplateDetail(val: unknown): val is NcsTemplateDetail {
+  return isNcsTemplateSummary(val);
+}
+
+/**
+ * NcsTemplateVersionSummary — `template version list` 목록 항목.
+ * version 은 숫자형 문자열("1")뿐 아니라 라벨형("second")도 관측되어 string 으로 둔다.
+ */
+export interface NcsTemplateVersionSummary {
+  id: string;
+  version: string;
+  description?: string | null;
+  createdAt?: string;
+  workloadCount?: number | string;
+  [key: string]: unknown;
+}
+
+/** NcsTemplateVersionSummary 타입 가드 — 핵심 식별 필드(id·version)만 string 요구. */
+export function isNcsTemplateVersionSummary(val: unknown): val is NcsTemplateVersionSummary {
+  if (typeof val !== "object" || val === null) return false;
+  const obj = val as Record<string, unknown>;
+  return typeof obj["id"] === "string" && typeof obj["version"] === "string";
+}
+
+/** template version list query 옵션. */
+export interface NcsTemplateVersionListParams {
+  q?: string;
+  sort?: string;
+  page?: number;
+  size?: number;
+}
+
+/**
+ * NcsTemplateVersionDetail — `template version get` 단건 조회 응답 (named 필드 `version`).
+ * Summary 와 동일 핵심 필드 + containers(컨테이너 spec, 정확한 필드는 실측 미확정이라 unknown[]).
+ */
+export interface NcsTemplateVersionDetail extends NcsTemplateVersionSummary {
+  containers?: unknown[];
+}
+
+/** NcsTemplateVersionDetail 타입 가드 — Summary 와 동일 필수 필드(id·version)만 검사. */
+export function isNcsTemplateVersionDetail(val: unknown): val is NcsTemplateVersionDetail {
+  return isNcsTemplateVersionSummary(val);
+}
