@@ -2,6 +2,7 @@ import { getAccessToken } from "../api/oauth.js";
 import { getIaasToken } from "../api/keystone.js";
 import { LogncrashClient } from "../services/logncrash/client.js";
 import { NcrClient } from "../services/ncr/client.js";
+import { NcsClient } from "../services/ncs/client.js";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_AUTH_ERROR } from "../utils/exit-codes.js";
 import type { UserAccessKey, ServiceCredential, IaasCredential } from "../config/types.js";
@@ -70,6 +71,40 @@ export async function verifyNcr(uak: UserAccessKey, appkey: string): Promise<boo
   const client = new NcrClient(uak.id, uak.secret, "kr1");
   try {
     await client.listRegistries(appkey);
+    return true;
+  } catch (err) {
+    if (err instanceof NhnCloudCliError && err.exitCode === EXIT_AUTH_ERROR) {
+      return false;
+    }
+    throw err;
+  }
+}
+
+/**
+ * NCS appkey 와 공통 UAK 로 설계도(template) 목록 조회를 시도해 유효성을 검증한다.
+ *
+ * - 성공(0건 포함): true
+ * - 401/403 인증 실패: false
+ * - 그 외 에러: throw
+ *
+ * NCS 는 NCR(정적 UAK, ADR-016)과 달리 OAuth 토큰 인증이다(ADR-020) — Deploy 와 같은
+ * UAK client_credentials 토큰을 재사용하므로, NcsClient 를 만들기 전에 OAuth 토큰
+ * 교환이 먼저 필요하다(exemplar 는 verifyNcr 가 아니라 verifyUserAccessKey).
+ *
+ * 캐시를 반드시 우회한다(forceRefresh=true, "__verify__" profile) — 그렇지 않으면
+ * 틀린 UAK 인데도 옛 유효 토큰 캐시 히트로 false-positive 가 발생한다
+ * (verifyUserAccessKey 와 동일한 사유).
+ *
+ * region 은 kr1 을 가정한다 — configure 에 ncs region 입력 통로가 없기 때문
+ * (verifyNcr 과 동일한 한계).
+ */
+export async function verifyNcs(uak: UserAccessKey, appkey: string): Promise<boolean> {
+  if (!appkey) return false;
+
+  try {
+    const token = await getAccessToken("__verify__", uak.id, uak.secret, true);
+    const client = new NcsClient(token, "kr1", appkey);
+    await client.listTemplates({ size: 1 });
     return true;
   } catch (err) {
     if (err instanceof NhnCloudCliError && err.exitCode === EXIT_AUTH_ERROR) {
