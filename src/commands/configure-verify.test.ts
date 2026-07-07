@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import ky from "ky";
 import { verifyNcs } from "./configure-verify.js";
 import { NhnCloudCliError } from "../utils/errors.js";
-import { EXIT_AUTH_ERROR } from "../utils/exit-codes.js";
+import { EXIT_AUTH_ERROR, EXIT_API_ERROR } from "../utils/exit-codes.js";
 
 vi.mock("ky");
 
@@ -55,5 +55,16 @@ describe("verifyNcs", () => {
 
     const ok = await verifyNcs({ id: "uak-id", secret: "uak-secret" }, "test-appkey");
     expect(ok).toBe(false);
+  });
+
+  it("non-auth 에러(5xx)는 삼키지 않고 throw", async () => {
+    // 401/403 이 아닌 그 외 에러는 검증 자체가 불가하므로 boolean 으로 뭉개지 않고 rethrow 해야 한다.
+    vi.mocked(ky.post).mockImplementation(() => {
+      throw new NhnCloudCliError("API 호출 실패 (500)", EXIT_API_ERROR);
+    });
+
+    await expect(
+      verifyNcs({ id: "uak-id", secret: "uak-secret" }, "test-appkey"),
+    ).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
   });
 });
