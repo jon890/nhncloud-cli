@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ky from "ky";
 import { NksClient } from "./client.js";
+import { nksClusterKubeTag } from "./types.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_API_ERROR, EXIT_AUTH_ERROR } from "../../utils/exit-codes.js";
 
@@ -24,17 +25,17 @@ describe("NksClient", () => {
     expect(result.supported_event_type["CLUSTER_CREATE"]).toBe("Cluster create");
   });
 
-  it("listClusters() 는 평면 JSON clusters 배열을 반환한다", async () => {
+  it("listClusters() 는 kube_tag 가 labels 안에만 있어도 통과한다 (이슈 #47)", async () => {
     vi.mocked(ky.get).mockReturnValue({
       json: async () => ({
         clusters: [
           {
             uuid: "cluster-uuid",
             name: "cluster-a",
-            status: "CREATE_COMPLETE",
-            health_status: "HEALTHY",
-            node_count: 3,
-            kube_tag: "v1.29.3",
+            status: "UPDATE_COMPLETE",
+            health_status: "FRESH",
+            node_count: 2,
+            labels: { kube_tag: "v1.31.4" },
           },
         ],
       }),
@@ -45,7 +46,7 @@ describe("NksClient", () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].uuid).toBe("cluster-uuid");
-    expect(result[0].node_count).toBe(3);
+    expect(result[0].node_count).toBe(2);
   });
 
   it("모든 요청에 OpenStack-API-Version header 를 포함한다", async () => {
@@ -630,5 +631,45 @@ describe("NksClient", () => {
       "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1/clusters/cluster-a/addons/coredns",
       expect.objectContaining({ headers: expect.any(Object) }),
     );
+  });
+});
+
+describe("nksClusterKubeTag (이슈 #47)", () => {
+  it("labels.kube_tag 를 우선한다", () => {
+    expect(
+      nksClusterKubeTag({
+        uuid: "u",
+        name: "n",
+        status: "s",
+        health_status: "h",
+        node_count: 1,
+        labels: { kube_tag: "v1.31.4" },
+      }),
+    ).toBe("v1.31.4");
+  });
+
+  it("labels 가 없으면 최상위 kube_tag 로 fallback 한다", () => {
+    expect(
+      nksClusterKubeTag({
+        uuid: "u",
+        name: "n",
+        status: "s",
+        health_status: "h",
+        node_count: 1,
+        kube_tag: "v1.29.3",
+      }),
+    ).toBe("v1.29.3");
+  });
+
+  it("둘 다 없으면 '-' 를 반환한다", () => {
+    expect(
+      nksClusterKubeTag({
+        uuid: "u",
+        name: "n",
+        status: "s",
+        health_status: "h",
+        node_count: 1,
+      }),
+    ).toBe("-");
   });
 });

@@ -1,0 +1,28 @@
+{
+  "name": "037-fix-nks-cluster-list-kube-tag",
+  "description": "이슈 #47 — nks cluster list 가 항상 '응답 형식이 올바르지 않습니다' 로 실패. isNksClusterSummary 가 cluster 최상위 kube_tag: string 을 요구하지만 실제 GET /v1/clusters 응답은 labels.kube_tag 에 위치. 가드에서 kube_tag 최상위 요구 제거 + list 출력을 labels.kube_tag 우선 + 최상위 fallback + '-' 로 변경. getCluster 등 다른 명령은 느슨한 가드라 영향 없음(격리 확인). 코드 + 테스트만 (ADR/docs 불요).",
+  "created_at": "2026-07-07T00:00:00Z",
+  "updated_at": "2026-07-07T00:00:00Z",
+  "status": "completed",
+  "current_phase": 1,
+  "total_phases": 1,
+  "error_message": null,
+  "blocked_reason": null,
+  "phases": [
+    {
+      "number": 1,
+      "title": "isNksClusterSummary kube_tag 최상위 요구 제거 + list 출력 labels.kube_tag 우선",
+      "file": "phase-01.md",
+      "status": "completed",
+      "allowedTools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep"
+      ],
+      "model": "sonnet"
+    }
+  ]
+}

@@ -8,7 +8,9 @@ export interface NksClusterSummary {
   status: string;
   health_status: string;
   node_count: number | string;
-  kube_tag: string;
+  /** 실제 응답은 `labels.kube_tag` 에 담긴다. 최상위는 구형/일부 응답 호환용 optional (이슈 #47). */
+  kube_tag?: string;
+  labels?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -72,9 +74,20 @@ export function isNksClusterSummary(val: unknown): val is NksClusterSummary {
     typeof obj["name"] === "string" &&
     typeof obj["status"] === "string" &&
     typeof obj["health_status"] === "string" &&
-    (typeof obj["node_count"] === "number" || typeof obj["node_count"] === "string") &&
-    typeof obj["kube_tag"] === "string"
+    (typeof obj["node_count"] === "number" || typeof obj["node_count"] === "string")
   );
+}
+
+/**
+ * cluster 요약에서 kube_tag 를 꺼낸다.
+ * 실제 `GET /v1/clusters` 응답은 `labels.kube_tag` 에 두므로 그쪽을 우선하고,
+ * 구형/일부 응답 호환을 위해 최상위 `kube_tag` 로 fallback 한다 (이슈 #47).
+ */
+export function nksClusterKubeTag(cluster: NksClusterSummary): string {
+  const fromLabels = cluster.labels?.["kube_tag"];
+  if (typeof fromLabels === "string") return fromLabels;
+  if (typeof cluster.kube_tag === "string") return cluster.kube_tag;
+  return "-";
 }
 
 export function isNksSupports(val: unknown): val is NksSupports {
