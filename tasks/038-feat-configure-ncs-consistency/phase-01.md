@@ -18,11 +18,20 @@ configure 를 일관 규칙(각 자격증명 블록 = confirm+입력 / validate 
 
 ### 1. verifyNcs (`src/commands/configure-verify.ts`)
 
-- `verifyNcr` 를 그대로 본떠 `verifyNcs(uak: UserAccessKey, appkey: string): Promise<boolean>` 추가.
-  - `appkey` 빈값이면 `false`.
-  - `NcsClient` 를 UAK OAuth 토큰 + kr1 로 구성해 template 목록을 1건 조회.
-  - `getServiceCredential`/토큰 해석은 configure 전용이라 `resolveNcsClient` 대신 client 직접 구성(verify 는 캐시 우회 성격 — `verifyNcr` 패턴 준수).
-  - 401/403(`EXIT_AUTH_ERROR`)이면 `false`, 그 외는 throw.
+`verifyNcs(uak: UserAccessKey, appkey: string): Promise<boolean>` 추가.
+
+**exemplar 는 `verifyNcr` 이 아니라 `verifyUserAccessKey` 다** — NCS 는 OAuth 토큰 인증(ADR-020), NCR 은 정적 UAK(ADR-016)라 인증 모델이 다르다.
+`NcsClient` 생성자는 `(accessToken: string, region: string, appKey: string)` (src/services/ncs/client.ts:136) — id/secret 이 아니라 **OAuth access_token 이 먼저 필요**하다. `new NcsClient(uak.id, uak.secret, "kr1")` 로 흉내내면 tsc 는 통과하나 region="<secret>"·appKey="kr1" 로 런타임 의미가 깨진다(mock 테스트로 안 잡힘 — function-signature-unverified pitfall).
+
+- `appkey` 빈값이면 `false`.
+- **캐시 우회 필수** — `verifyUserAccessKey` 와 동일하게 `getAccessToken("__verify__", uak.id, uak.secret, true)` (forceRefresh=true, `__verify__` profile). 기본값(cache-first, 실제 profile 명)으로 호출하면 틀린 UAK 인데도 옛 유효 토큰 캐시 히트로 false-positive 발생(cache-bypass-in-verify-helper pitfall, PR3).
+- 정확한 구성:
+  ```ts
+  const token = await getAccessToken("__verify__", uak.id, uak.secret, true);
+  const client = new NcsClient(token, "kr1", appkey);
+  await client.listTemplates({ size: 1 });
+  ```
+- 401/403(`EXIT_AUTH_ERROR`)이면 `false`, 그 외는 throw.
 - 주석에 ncr 과 동일한 **kr1 가정** 한계를 남긴다.
 
 ### 2. configure ncs 블록 (`src/commands/configure.ts`)
@@ -63,6 +72,7 @@ configure 를 일관 규칙(각 자격증명 블록 = confirm+입력 / validate 
 ## 회피 항목
 
 - `grep -nE "NhnCloudCliError\([^,]+,\s*[0-9]+" src/commands/configure.ts src/commands/configure-verify.ts` → 0건 (리터럴 exit code 금지, `EXIT_*` 상수).
+- verifyNcs 가 캐시 우회(`forceRefresh=true`, `__verify__` profile)로 토큰 교환하는지 — `grep -n "forceRefresh\|__verify__" src/commands/configure-verify.ts` 에 verifyNcs 라인 포함 (cache-bypass-in-verify-helper 회피).
 - ncs verify skip 경고 문구가 ncr 문구와 대칭인지 확인 (interactive-warning-mismatch 회피).
 - 대화형/비대화형 양쪽에 ncs 가 추가됐는지 (noninteractive-interactive-duplication — 저장/verify 는 saveAndVerify 로 공유).
 - verify 함수가 stderr 출력·프롬프트 없이 boolean 만 반환하는지 (io-throw-bundled 회피).
@@ -71,9 +81,10 @@ configure 를 일관 규칙(각 자격증명 블록 = confirm+입력 / validate 
 
 1. `pnpm tsc --noEmit` 0.
 2. `pnpm run build` 정상.
-3. `pnpm test` 정상(verifyNcs 테스트 포함).
+3. `pnpm test` 정상(verifyNcs 성공/401/빈 appkey 테스트 포함).
 4. `node dist/index.js configure --help` stdout 에 `--ncs-appkey` 포함.
-5. index.json Phase 2 대기로 갱신.
+5. `grep -n "forceRefresh" src/commands/configure-verify.ts` 에 verifyNcs 의 캐시 우회 라인 존재.
+6. index.json Phase 2 대기로 갱신.
 
 ## 변경 파일 (정확)
 

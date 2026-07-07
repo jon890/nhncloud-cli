@@ -26,10 +26,11 @@ README·skill 은 코드 산출물(실제 flag)에 의존하므로 이 마지막
 - 초기 설정 섹션의 비대화형 예시에 `[--ncs-appkey <appkey>]` 추가.
 - 대화형 안내에 ncs appkey 입력 단계와 profile=프로젝트(멀티 프로젝트는 profile 분리 + UAK 재사용) 한 줄 추가.
 
-### 3. 공개 skill (`skills/nhncloud-cli/`)
+### 3. 공개 skill (`skills/nhncloud-cli/references/ncs.md`)
 
-- ncs reference 또는 SKILL.md 에 "자격증명은 `configure` 또는 `--app-key`" 안내가 어긋난 곳이 있으면 정정.
-- 없으면 변경 없음(과잉 수정 금지).
+- `ncs.md:11` "`configure` 마법사는 아직 ncs를 지원하지 않는다." 는 확정 오류 — **필수 정정**. `configure`/`--ncs-appkey` 지원을 반영.
+- 그 외 "자격증명은 `configure` 또는 `--app-key`" 안내가 어긋난 곳이 있으면 함께 정정.
+- 위 두 곳 외에는 변경 없음(과잉 수정 금지).
 
 ### 4. task 상태
 
@@ -51,7 +52,7 @@ README·skill 은 코드 산출물(실제 flag)에 의존하므로 이 마지막
 
 - `src/commands/ncs/helpers.ts`
 - `README.md`
-- `skills/nhncloud-cli/references/ncs.md` (안내 어긋남 있을 때만)
+- `skills/nhncloud-cli/references/ncs.md` (ncs.md:11 필수 정정)
 - `tasks/038-feat-configure-ncs-consistency/index.json`
 
 ## 커밋
