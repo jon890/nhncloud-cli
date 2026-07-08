@@ -1,5 +1,10 @@
 # nhncloud-cli
 
+[![npm version](https://img.shields.io/npm/v/@bifos/nhncloud-cli.svg)](https://www.npmjs.com/package/@bifos/nhncloud-cli)
+[![npm downloads](https://img.shields.io/npm/dm/@bifos/nhncloud-cli.svg)](https://www.npmjs.com/package/@bifos/nhncloud-cli)
+[![CI](https://github.com/jon890/nhncloud-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/jon890/nhncloud-cli/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/@bifos/nhncloud-cli.svg)](https://github.com/jon890/nhncloud-cli/blob/main/LICENSE)
+
 NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 통합 CLI.
 현재 106개 command catalog 항목을 지원한다.
 `configure`, `commands`, `logncrash search/send/export`, `deploy`, `instance`, `network`, `volume`, `floatingip`, `ncr`, `nks`, `ncs` 명령으로 NHN Cloud 서비스를 조회·운영할 수 있다.
