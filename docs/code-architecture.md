@@ -151,9 +151,9 @@ dooray-cli 는 단일 `config + client` 로 충분했지만, NHN Cloud 는 서�
 - `config/credentials.ts` — profile 해석 후 서비스 자격증명 블록 반환 ([[adr-004]])
 - `api/endpoints.ts` — 서비스명 → 엔드포인트 (gov 분기는 후속, [[adr-005]])
 - `api/envelope.ts` — `{ header, body }` 봉투 검사, `resultCode` 타입 혼재 흡수 ([[adr-006]])
-- `api/oauth.ts` + `cache/token-store.ts` — deploy·ncs 공용. UAK → access_token 교환 후 단기 캐시 (계정 단위 토큰이라 profile 캐시 공유, [[adr-007]], [[adr-020]])
+- `api/oauth.ts` + `cache/token-store.ts` — deploy·ncs 공용. UAK → access_token 교환 후 단기 캐시 (계정 단위 토큰이라 profile 캐시 공유, [[adr-007]], [[adr-020]]). 캐시에 자격 지문을 저장해 자격 변경 시 무효화 ([[adr-021]])
 - `api/keystone.ts` + `cache/token-store.ts` — instance·network·blockstorage·nks 등 IaaS 전용.
-  Keystone token + region 별 compute·image·network·blockstorage·nks endpoint 를 캐시한다 ([[adr-010]], [[adr-013]], [[adr-019]])
+  Keystone token + region 별 compute·image·network·blockstorage·nks endpoint 를 캐시한다 ([[adr-010]], [[adr-013]], [[adr-019]]). 캐시에 자격 지문을 저장해 자격 변경 시 무효화 ([[adr-021]])
 - 각 `services/<svc>/client.ts` — 위 조각을 조합해 서비스 고유 헤더 부착
   - logncrash: `X-LNCS-SECRET`
   - deploy: `X-NHN-AUTHORIZATION: Bearer <token>` + config target 좌표 ([[adr-008]])
