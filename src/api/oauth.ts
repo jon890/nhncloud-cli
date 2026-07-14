@@ -1,5 +1,5 @@
 import ky from "ky";
-import { readToken, writeToken } from "../cache/token-store.js";
+import { credentialFingerprint, readToken, writeToken } from "../cache/token-store.js";
 import { toNhnCloudCliError } from "./httpError.js";
 
 const OAUTH_ENDPOINT = "https://oauth.api.nhncloudservice.com/oauth2/token/create";
@@ -31,9 +31,11 @@ export async function getAccessToken(
   uakSecret: string,
   forceRefresh = false,
 ): Promise<string> {
+  const credentialHash = credentialFingerprint(`${uakId}:${uakSecret}`);
+
   // 캐시 확인 (forceRefresh 시 건너뜀)
   if (!forceRefresh) {
-    const cached = await readToken(profile);
+    const cached = await readToken(profile, credentialHash);
     if (cached !== null) {
       return cached.accessToken;
     }
@@ -65,7 +67,7 @@ export async function getAccessToken(
   // forceRefresh 시 캐시에 저장하지 않음 (임시 검증 용도)
   if (!forceRefresh) {
     const expiresAt = new Date(Date.now() + raw.expires_in * 1000);
-    await writeToken(profile, raw.access_token, expiresAt);
+    await writeToken(profile, raw.access_token, expiresAt, credentialHash);
   }
 
   return raw.access_token;
