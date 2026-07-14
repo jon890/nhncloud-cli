@@ -1,5 +1,5 @@
 import ky from "ky";
-import { readIaasToken, writeIaasToken } from "../cache/token-store.js";
+import { credentialFingerprint, readIaasToken, writeIaasToken } from "../cache/token-store.js";
 import { keystoneIdentityUrl, instanceHost, imageHost, networkHost, blockStorageHost, nksHost } from "./endpoints.js";
 import { toNhnCloudCliError } from "./httpError.js";
 import { NhnCloudCliError } from "../utils/errors.js";
@@ -49,9 +49,13 @@ export async function getIaasToken(
   iaas: IaasCredential,
   forceRefresh = false,
 ): Promise<IaasTokenEndpoints> {
+  const credentialHash = credentialFingerprint(
+    JSON.stringify([iaas.tenantId, iaas.username, iaas.password]),
+  );
+
   // 캐시 확인 (forceRefresh 시 건너뜀)
   if (!forceRefresh) {
-    const cached = await readIaasToken(profile, iaas.region);
+    const cached = await readIaasToken(profile, iaas.region, credentialHash);
     if (cached !== null) {
       return {
         tokenId: cached.tokenId,
@@ -116,7 +120,7 @@ export async function getIaasToken(
 
   // forceRefresh 시 캐시에 저장하지 않음 (임시 검증 용도)
   if (!forceRefresh) {
-    await writeIaasToken(profile, iaas.region, { tokenId, expiresAt, computeEndpoint, imageEndpoint, networkEndpoint, blockStorageEndpoint, nksEndpoint });
+    await writeIaasToken(profile, iaas.region, { tokenId, expiresAt, credentialHash, computeEndpoint, imageEndpoint, networkEndpoint, blockStorageEndpoint, nksEndpoint });
   }
 
   return { tokenId, computeEndpoint, imageEndpoint, networkEndpoint, blockStorageEndpoint, nksEndpoint };

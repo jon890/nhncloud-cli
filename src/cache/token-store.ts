@@ -1,9 +1,14 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 
 const CACHE_DIR = join(homedir(), ".nhncloud", "cache");
+
+/** 발급 자격의 SHA-256 지문. 캐시 무효화 비교용 — 자격 평문을 저장하지 않는다 (ADR-021). */
+export function credentialFingerprint(material: string): string {
+  return createHash("sha256").update(material).digest("hex");
+}
 
 // ── iaas token cache ──────────────────────────────────────────────────────────
 
@@ -14,6 +19,7 @@ function iaasCachePath(profile: string, region: string): string {
 interface IaasTokenCache {
   tokenId: string;
   expiresAt: string; // ISO 8601
+  credentialHash: string;
   computeEndpoint: string;
   imageEndpoint: string;
   networkEndpoint: string;
@@ -21,13 +27,14 @@ interface IaasTokenCache {
   nksEndpoint: string;
 }
 
-// 하위호환: 구버전 캐시는 endpoint 필드가 없어 가드 실패 → readIaasToken 이 null 반환 → 토큰 재발급으로 자연 복구.
+// 하위호환: 구버전 캐시는 endpoint/credentialHash 필드가 없어 가드 실패 → readIaasToken 이 null 반환 → 토큰 재발급으로 자연 복구.
 function isIaasTokenCache(val: unknown): val is IaasTokenCache {
   if (typeof val !== "object" || val === null) return false;
   const obj = val as Record<string, unknown>;
   return (
     typeof obj["tokenId"] === "string" &&
     typeof obj["expiresAt"] === "string" &&
+    typeof obj["credentialHash"] === "string" &&
     typeof obj["computeEndpoint"] === "string" &&
     typeof obj["imageEndpoint"] === "string" &&
     typeof obj["networkEndpoint"] === "string" &&
@@ -38,11 +45,12 @@ function isIaasTokenCache(val: unknown): val is IaasTokenCache {
 
 /**
  * 저장된 iaas 토큰 캐시를 읽어 반환한다.
- * 파일 없음 / 파싱 실패 / 만료(60초 여유) 시 null 반환.
+ * 파일 없음 / 파싱 실패 / 만료(60초 여유) / 자격 지문 불일치(자격 변경) 시 null 반환.
  */
 export async function readIaasToken(
   profile: string,
   region: string,
+  credentialHash: string,
 ): Promise<{ tokenId: string; expiresAt: string; computeEndpoint: string; imageEndpoint: string; networkEndpoint: string; blockStorageEndpoint: string; nksEndpoint: string } | null> {
   const filePath = iaasCachePath(profile, region);
   try {
@@ -53,6 +61,8 @@ export async function readIaasToken(
     const expiresAt = new Date(parsed.expiresAt).getTime();
     const BUFFER_MS = 60_000;
     if (expiresAt - Date.now() < BUFFER_MS) return null;
+
+    if (parsed.credentialHash !== credentialHash) return null;
 
     return {
       tokenId: parsed.tokenId,
@@ -74,7 +84,7 @@ export async function readIaasToken(
 export async function writeIaasToken(
   profile: string,
   region: string,
-  data: { tokenId: string; expiresAt: string; computeEndpoint: string; imageEndpoint: string; networkEndpoint: string; blockStorageEndpoint: string; nksEndpoint: string },
+  data: { tokenId: string; expiresAt: string; credentialHash: string; computeEndpoint: string; imageEndpoint: string; networkEndpoint: string; blockStorageEndpoint: string; nksEndpoint: string },
 ): Promise<void> {
   const filePath = iaasCachePath(profile, region);
   await mkdir(dirname(filePath), { recursive: true });
@@ -82,6 +92,7 @@ export async function writeIaasToken(
   const cache: IaasTokenCache = {
     tokenId: data.tokenId,
     expiresAt: data.expiresAt,
+    credentialHash: data.credentialHash,
     computeEndpoint: data.computeEndpoint,
     imageEndpoint: data.imageEndpoint,
     networkEndpoint: data.networkEndpoint,
@@ -95,26 +106,32 @@ export async function writeIaasToken(
 }
 
 function tokenCachePath(profile: string): string {
-  return join(CACHE_DIR, `deploy-token-${profile}.json`);
+  return join(CACHE_DIR, `user-access-token-${profile}.json`);
 }
 
 interface TokenCache {
   accessToken: string;
   expiresAt: string; // ISO 8601
+  credentialHash: string;
 }
 
 function isTokenCache(val: unknown): val is TokenCache {
   if (typeof val !== "object" || val === null) return false;
   const obj = val as Record<string, unknown>;
-  return typeof obj["accessToken"] === "string" && typeof obj["expiresAt"] === "string";
+  return (
+    typeof obj["accessToken"] === "string" &&
+    typeof obj["expiresAt"] === "string" &&
+    typeof obj["credentialHash"] === "string"
+  );
 }
 
 /**
  * 저장된 토큰을 읽어 반환한다.
- * 파일 없음 / 파싱 실패 / 만료(60초 여유 포함) 시 null 반환.
+ * 파일 없음 / 파싱 실패 / 만료(60초 여유 포함) / 자격 지문 불일치(자격 변경) 시 null 반환.
  */
 export async function readToken(
   profile: string,
+  credentialHash: string,
 ): Promise<{ accessToken: string; expiresAt: string } | null> {
   const filePath = tokenCachePath(profile);
   try {
@@ -126,6 +143,8 @@ export async function readToken(
     const now = Date.now();
     const BUFFER_MS = 60_000; // 만료 60초 전부터 갱신
     if (expiresAt - now < BUFFER_MS) return null;
+
+    if (parsed.credentialHash !== credentialHash) return null;
 
     return { accessToken: parsed.accessToken, expiresAt: parsed.expiresAt };
   } catch {
@@ -141,6 +160,7 @@ export async function writeToken(
   profile: string,
   accessToken: string,
   expiresAt: Date,
+  credentialHash: string,
 ): Promise<void> {
   const filePath = tokenCachePath(profile);
   await mkdir(dirname(filePath), { recursive: true });
@@ -148,6 +168,7 @@ export async function writeToken(
   const data: TokenCache = {
     accessToken,
     expiresAt: expiresAt.toISOString(),
+    credentialHash,
   };
 
   // 비원자 쓰기 방지: temp 파일에 먼저 쓴 뒤 rename 으로 원자적 교체

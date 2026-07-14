@@ -144,6 +144,7 @@ src/
 | 하네스 누적 docs 구조 (ADR·pitfalls 디렉터리화·INDEX 라우터) | ADR-018 |
 | NKS(Container Kubernetes) endpoint·인증·봉투 미적용 | ADR-019, ADR-010, ADR-013, ADR-005 |
 | NCS(Container Service) endpoint·인증(Deploy OAuth 토큰 재사용)·appkey 경로 | ADR-020, ADR-007, ADR-006, ADR-005 |
+| 토큰 캐시 무효화 (자격 변경 시 stale 토큰·캐시 파일명) | ADR-021, ADR-007, ADR-010, ADR-020 |
 
 신규 ADR 추가 시 본 표에 행 추가.
 

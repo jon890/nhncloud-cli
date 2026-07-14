@@ -79,12 +79,13 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, appkey·
 ## 토큰 캐시
 
 ```
-~/.nhncloud/cache/deploy-token-<profile>.json   # { accessToken, expiresAt } — mode 0600
-~/.nhncloud/cache/iaas-token-<profile>-<region>.json   # { tokenId, expiresAt, computeEndpoint, imageEndpoint, networkEndpoint, blockStorageEndpoint, nksEndpoint } — mode 0600
+~/.nhncloud/cache/user-access-token-<profile>.json   # { accessToken, expiresAt, credentialHash } — mode 0600
+~/.nhncloud/cache/iaas-token-<profile>-<region>.json   # { tokenId, expiresAt, credentialHash, computeEndpoint, imageEndpoint, networkEndpoint, blockStorageEndpoint, nksEndpoint } — mode 0600
 ```
 
-- deploy — OAuth `access_token` 을 만료시각과 함께 저장 ([[adr-007]]). ncs 가 같은 계정 토큰이라 이 캐시를 공유 ([[adr-020]])
+- user-access-token — OAuth `access_token` 을 만료시각과 함께 저장 ([[adr-007]]). deploy·ncs 가 같은 계정 토큰이라 이 캐시를 공유 ([[adr-020]])
 - iaas — Keystone token + region 별 정적 host 맵으로 구성한 compute·image·network·blockStorage·nks endpoint 캐시 ([[adr-005]], [[adr-010]], [[adr-013]], [[adr-019]])
+- `credentialHash` — 발급 자격의 SHA-256 지문. 현재 자격과 다르면 캐시 무효화·재발급 ([[adr-021]]). user-access-token 은 `sha256(uakId:uakSecret)`, iaas 는 `sha256(tenantId:username:password)`
 - 만료 전 재사용, 만료 시 재발급. logncrash 는 토큰 캐시 불필요
 
 ## profile 해석 순서
@@ -99,6 +100,6 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, appkey·
 ## 캐시 범위
 
 - logncrash search — 캐시 없음 (매 호출 실시간 검색)
-- deploy — OAuth access_token 만 캐시 (위 "토큰 캐시")
+- deploy·ncs — OAuth access_token 만 캐시 (위 "토큰 캐시")
 - instance — Keystone token + compute endpoint 캐시 (위 "토큰 캐시")
 - 목록성 데이터 캐시는 필요 시 후속 도입

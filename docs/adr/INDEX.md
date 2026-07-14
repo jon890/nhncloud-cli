@@ -28,3 +28,4 @@ ADR-NNN 내용은 `docs/adr/NNN-*.md` 로 찾는다(번호 glob — slug 몰라�
 - [ADR-018](018-harness-docs-directory.md): 하네스 누적 docs 디렉터리 구조 — 단일 파일 → 파일 per 항목 + INDEX (ADR·pitfalls)
 - [ADR-019](019-nks-container-infra-api.md): NKS API — Keystone 토큰 + container-infra endpoint
 - [ADR-020](020-ncs-container-service-api.md): NCS API — Deploy OAuth 토큰 재사용 + appkey 경로 + region host(kr1/kr3)
+- [ADR-021](021-token-cache-credential-fingerprint.md): 토큰 캐시 자격 지문 비교 — 자격 변경 시 stale 토큰 무효화 + OAuth 캐시 파일명 정정
