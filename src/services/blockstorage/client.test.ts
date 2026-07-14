@@ -154,6 +154,7 @@ describe("BlockStorageClient.list", () => {
     const client = new BlockStorageClient("token", "https://example.com/v2/tenant");
     await expect(client.list()).rejects.toMatchObject({
       exitCode: EXIT_API_ERROR,
+      message: expect.stringContaining("볼륨 항목 형식이 예상과 다릅니다"),
     });
   });
 
@@ -165,6 +166,7 @@ describe("BlockStorageClient.list", () => {
     const client = new BlockStorageClient("token", "https://example.com/v2/tenant");
     await expect(client.list()).rejects.toMatchObject({
       exitCode: EXIT_API_ERROR,
+      message: expect.stringContaining("volumes 배열이 없습니다"),
     });
   });
 
