@@ -160,7 +160,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [sendmessage-reply-missing](team/sendmessage-reply-missing.md)
 - [task-index-phase-count-mismatch](team/task-index-phase-count-mismatch.md)
 
-### [code-review/](code-review/) (56)
+### [code-review/](code-review/) (57)
 
 - [adjacent-command-pattern-missing](code-review/adjacent-command-pattern-missing.md)
 - [ambiguous-option-positional-silent-fallback](code-review/ambiguous-option-positional-silent-fallback.md)
@@ -170,6 +170,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [client-dep-in-utils](code-review/client-dep-in-utils.md)
 - [commander-reserved-flag-conflict](code-review/commander-reserved-flag-conflict.md)
 - [dead-field-function-name-mismatch](code-review/dead-field-function-name-mismatch.md)
+- [delimiter-concat-hash-collision](code-review/delimiter-concat-hash-collision.md)
 - [docs-regex-digit-range-mismatch](code-review/docs-regex-digit-range-mismatch.md)
 - [double-assertion-union-type](code-review/double-assertion-union-type.md)
 - [double-assertion-unknown](code-review/double-assertion-unknown.md)
