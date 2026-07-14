@@ -49,7 +49,9 @@ export async function getIaasToken(
   iaas: IaasCredential,
   forceRefresh = false,
 ): Promise<IaasTokenEndpoints> {
-  const credentialHash = credentialFingerprint(`${iaas.tenantId}:${iaas.username}:${iaas.password}`);
+  const credentialHash = credentialFingerprint(
+    JSON.stringify([iaas.tenantId, iaas.username, iaas.password]),
+  );
 
   // 캐시 확인 (forceRefresh 시 건너뜀)
   if (!forceRefresh) {

@@ -31,7 +31,7 @@ export async function getAccessToken(
   uakSecret: string,
   forceRefresh = false,
 ): Promise<string> {
-  const credentialHash = credentialFingerprint(`${uakId}:${uakSecret}`);
+  const credentialHash = credentialFingerprint(JSON.stringify([uakId, uakSecret]));
 
   // 캐시 확인 (forceRefresh 시 건너뜀)
   if (!forceRefresh) {
