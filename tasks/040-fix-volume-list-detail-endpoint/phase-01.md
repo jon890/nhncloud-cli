@@ -34,6 +34,7 @@
 - `volumes` 는 배열인데 element 가 `isVolume` 를 통과 못 하면 → 별도 문구 (예: "volume list 응답의 볼륨 항목 형식이 예상과 다릅니다 — API 응답 필드를 확인하세요.").
 - 두 분기 모두 `EXIT_API_ERROR`. raw 본문 전체를 stderr 로 덤프하지는 않는다 (크기·민감정보 우려) — 메시지 구분까지만.
 - 구현은 `isVolumesResponse` 대신 `list()` 안에서 `Array.isArray((raw as any)?.volumes)` 먼저 판정 후 `.every(isVolume)` 를 나눠 검사하는 형태로. 타입 가드는 유지하되 메시지 분기를 위해 조건을 풀어 쓴다.
+- **`isVolumesResponse` 함수(client.ts:25-29)는 제거한다** — 유일 호출부가 list() 이고 인라인 검사로 대체되므로 orphan dead code 로 남는다 (CLAUDE.md orphan-identifier 정리 규칙). `isVolume`·`isVolumeResponse` 는 유지 (get()/create() 에서 사용 중).
 
 ### 3. tests — src/services/blockstorage/client.test.ts (list describe 추가)
 

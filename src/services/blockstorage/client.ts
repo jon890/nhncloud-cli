@@ -22,12 +22,6 @@ function isVolume(val: unknown): val is Volume {
   );
 }
 
-function isVolumesResponse(val: unknown): val is { volumes: Volume[] } {
-  if (typeof val !== "object" || val === null) return false;
-  const obj = val as Record<string, unknown>;
-  return Array.isArray(obj["volumes"]) && obj["volumes"].every(isVolume);
-}
-
 function isVolumeResponse(val: unknown): val is { volume: Volume } {
   if (typeof val !== "object" || val === null) return false;
   const obj = val as Record<string, unknown>;
@@ -50,7 +44,9 @@ export class BlockStorageClient {
   }
 
   async list(params?: VolumeListParams): Promise<Volume[]> {
-    const url = `${this.endpoint}/volumes`;
+    // summary(`/volumes`)는 id·name·links 만 반환해 size·status·attachments 가 없다 → isVolume 가드 실패.
+    // instance 의 `/servers/detail` 선례와 동일하게 detail 엔드포인트를 쓴다.
+    const url = `${this.endpoint}/volumes/detail`;
     const searchParams: Record<string, string | number> = {};
     if (params?.sort !== undefined) searchParams["sort"] = params.sort;
     if (params?.limit !== undefined) searchParams["limit"] = params.limit;
@@ -60,13 +56,20 @@ export class BlockStorageClient {
       const raw = await ky
         .get(url, { headers: this.authHeaders(), searchParams, retry: 0, timeout: DEFAULT_TIMEOUT_MS })
         .json();
-      if (!isVolumesResponse(raw)) {
+      const obj = raw as Record<string, unknown>;
+      if (!Array.isArray(obj?.["volumes"])) {
         throw new NhnCloudCliError(
           "volume list 응답 형식이 올바르지 않습니다 — volumes 배열이 없습니다.",
           EXIT_API_ERROR,
         );
       }
-      return raw.volumes;
+      if (!obj["volumes"].every(isVolume)) {
+        throw new NhnCloudCliError(
+          "volume list 응답의 볼륨 항목 형식이 예상과 다릅니다 — API 응답 필드를 확인하세요.",
+          EXIT_API_ERROR,
+        );
+      }
+      return obj["volumes"] as Volume[];
     } catch (err) {
       throw toNhnCloudCliError(err);
     }
