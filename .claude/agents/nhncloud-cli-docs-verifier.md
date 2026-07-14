@@ -54,13 +54,13 @@ ADR 번호와 제목은 `docs/adr/INDEX.md`와 `docs/adr/[0-9]*.md`를 동적으
 - `iaas-token-<profile>-<region>.json` — Keystone token과 compute/image/network/blockStorage/nks endpoint.
 - 파일은 `~/.nhncloud/cache/` 아래에 owner-only 권한으로 저장한다.
 
-## 4. 문서 단일 출처 원칙 (planning 8단계 A항)
+## 4. 문서 단일 출처 원칙 (planning 오버레이 "변경 유형별 docs 영향 표")
 
-planning SKILL 의 docs 영향 표가 docs 갱신 기준의 **단일 출처**이다.
+planning 오버레이의 docs 영향 표가 docs 갱신 기준의 **단일 출처**이다.
 본 agent 의 검증 항목은 그 표를 참조만 하며, 별도 점검 항목을 추가하지 않는다.
 표 수정 시 본 agent 와 함께 검토한다.
 
-상세: `.agents/skills/planning/SKILL.md` "문서 단일 출처 원칙" 섹션.
+상세: `.claude/planning-overlay.md` "docs 컨벤션 → 변경 유형별 docs 영향 표" 섹션.
 
 ## 5. 개인 식별 정보 / 사내 식별자 노출 금지
 

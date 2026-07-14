@@ -1,0 +1,21 @@
+{
+  "name": "040-fix-volume-list-detail-endpoint",
+  "description": "GitHub 이슈 #52 — volume list 가 'volumes 배열이 없습니다' 로 실패. 원인: BlockStorageClient.list() 가 Cinder summary 엔드포인트 GET /volumes 를 호출하는데, summary 는 id·name·links 만 반환하고 size·status·attachments 를 생략한다(OpenStack API 레퍼런스 확정). isVolume 가드가 size·status·attachments 를 요구하므로 볼륨이 1개 이상이면 .every(isVolume) 가 false → 배열이 있는데도 오해 소지 에러. (0개면 empty every=true 로 통과 — 증상 일치.) 수정: GET /volumes/detail 로 전환(instance list 의 /servers/detail 선례와 동일). 부수: isVolumesResponse 실패 시 'volumes 키 없음' 과 'element 형식 이상' 을 구분해 향후 필드 변동 진단 가능하게 개선. 출력 컬럼·명령·옵션 무변경이라 ADR·결정 docs·README/SKILL 미해당 — 코드+테스트 전용.",
+  "created_at": "2026-07-14T00:00:00Z",
+  "updated_at": "2026-07-14T00:00:00Z",
+  "status": "completed",
+  "current_phase": 1,
+  "total_phases": 1,
+  "error_message": null,
+  "blocked_reason": null,
+  "phases": [
+    {
+      "number": 1,
+      "title": "volume list 를 /volumes/detail 로 전환 + 에러 메시지 구분 + list 테스트",
+      "file": "phase-01.md",
+      "status": "completed",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    }
+  ]
+}

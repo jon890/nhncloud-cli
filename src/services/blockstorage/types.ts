@@ -34,7 +34,7 @@ export interface CreateVolumeParams {
   snapshot_id?: string;
 }
 
-/** `GET /volumes` 쿼리 파라미터 */
+/** `GET /volumes/detail` 쿼리 파라미터 */
 export interface VolumeListParams {
   sort?: string;
   limit?: number;
