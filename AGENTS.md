@@ -106,7 +106,7 @@ src/
 ## 스킬 폴더 구분
 
 - `skills/` — 공개 스킬 (사용자·AI 에이전트용 `skills/nhncloud-cli/SKILL.md` router + `skills/nhncloud-cli/references/` 서비스별 reference)
-- `.agents/skills/` — 내부 개발 워크플로우 스킬의 단일 원본 (planning, plan-and-build 등)
+- `.agents/skills/` — 내부 개발 워크플로우 스킬의 단일 원본 (planning, build-with-teams 등)
 - `.claude/skills` — Claude 진입점. `.agents/skills` 로 향하는 심링크로 유지한다.
 - `.codex/agents/`, `.claude/agents/` — custom agent adapter. 포맷이 달라 skill 처럼 단일 파일로 합치지 않는다.
 
@@ -181,7 +181,7 @@ GitHub PR 본문, GitHub issue 본문, release note 처럼 외부에 게시되�
 ## planning / 구현 워크플로우
 
 새 기능은 `/planning` (8단계, CLI 는 4단계 압축) 으로 설계 후 docs 반영,
-`/plan-and-build` 또는 `/build-with-teams` 로 구현.
+`/build-with-teams` 로 구현.
 docs 는 task 생성 전에 commit (docs-first).
 
 ## 개인 식별 정보 / 사내 식별자 노출 금지 (public OSS)
