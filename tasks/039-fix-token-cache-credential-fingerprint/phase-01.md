@@ -72,7 +72,10 @@ const credentialHash = credentialFingerprint(`${iaas.tenantId}:${iaas.username}:
 
 ### 6. tests — `src/cache/token-store.test.ts` (신규)
 
-`CACHE_DIR` 이 모듈 로드 시 `homedir()` 로 고정되므로 `node:os` 의 `homedir` 를 per-run temp dir 로 mock 한다 (`skill-install.test.ts` 의 mkdtemp 패턴 참조 + `vi.hoisted`).
+`CACHE_DIR = join(homedir(), ...)` 이 `token-store.ts` 모듈 **최상위 const 로 import 시점에 1회 평가**된다.
+따라서 `node:os` 의 `homedir` 를 per-run temp dir 로 mock 하되, **SUT(`token-store.js`)를 파일 상단에서 정적 import 하면 안 된다** — 정적 import 는 `beforeAll` 보다 먼저 실행되어 `home.dir` 가 아직 `""` 인 채로 `CACHE_DIR` 이 상대경로(`.nhncloud/cache`)로 굳어, repo 작업트리에 untracked 파일을 남기고 테스트는 거짓 통과한다(critic 실측 재현).
+
+**필수**: `home.dir` 를 `beforeAll` 에서 set 한 **직후 동적 `await import("./token-store.js")`** 로 SUT 를 로드하고, 그 반환 module 의 함수를 테스트에서 호출한다. `skill-install.test.ts` 는 함수에 경로를 인자로 넘겨 homedir 비의존이라 정적 import 로 충분했지만, token-store 함수는 `CACHE_DIR` 을 내부 사용하므로 이 패턴이 필수다.
 
 ```ts
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -86,8 +89,14 @@ vi.mock("node:os", async (orig) => {
   return { ...actual, homedir: () => home.dir };
 });
 
-beforeAll(async () => { home.dir = await mkdtemp(path.join(tmpdir(), "ncc-token-")); });
+// SUT 는 정적 import 금지 — home.dir set 후 동적 로드해야 CACHE_DIR 이 temp dir 로 굳는다.
+let store: typeof import("./token-store.js");
+beforeAll(async () => {
+  home.dir = await mkdtemp(path.join(tmpdir(), "ncc-token-"));
+  store = await import("./token-store.js");
+});
 afterAll(async () => { await rm(home.dir, { recursive: true, force: true }); });
+// 테스트 내에서 store.readToken / store.writeToken / store.readIaasToken / store.writeIaasToken 호출.
 ```
 
 테스트 케이스(OAuth + iaas 각각 최소):
