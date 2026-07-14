@@ -101,7 +101,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 
 ## 카테고리별 패턴 목록
 
-### [plan/](plan/) (42)
+### [plan/](plan/) (43)
 
 - [cache-bypass-in-verify-helper](plan/cache-bypass-in-verify-helper.md)
 - [carve-out-conflicting-prohibition](plan/carve-out-conflicting-prohibition.md)
@@ -142,6 +142,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [structure-migration-frontmatter-placeholder](plan/structure-migration-frontmatter-placeholder.md)
 - [success-criterion-no-enforcement](plan/success-criterion-no-enforcement.md)
 - [test-expected-value-guessed](plan/test-expected-value-guessed.md)
+- [test-module-const-mock-timing](plan/test-module-const-mock-timing.md)
 - [type-change-tsc-missing](plan/type-change-tsc-missing.md)
 - [type-optional-cascade-grep-missing](plan/type-optional-cascade-grep-missing.md)
 - [write-command-executor-live-call](plan/write-command-executor-live-call.md)
