@@ -56,8 +56,15 @@ export class BlockStorageClient {
       const raw = await ky
         .get(url, { headers: this.authHeaders(), searchParams, retry: 0, timeout: DEFAULT_TIMEOUT_MS })
         .json();
+      // isVolume 가드와 동일하게 캐스팅 전 object/null 을 명시 precheck (파일 내 컨벤션 일치).
+      if (typeof raw !== "object" || raw === null) {
+        throw new NhnCloudCliError(
+          "volume list 응답 형식이 올바르지 않습니다 — volumes 배열이 없습니다.",
+          EXIT_API_ERROR,
+        );
+      }
       const obj = raw as Record<string, unknown>;
-      if (!Array.isArray(obj?.["volumes"])) {
+      if (!Array.isArray(obj["volumes"])) {
         throw new NhnCloudCliError(
           "volume list 응답 형식이 올바르지 않습니다 — volumes 배열이 없습니다.",
           EXIT_API_ERROR,
