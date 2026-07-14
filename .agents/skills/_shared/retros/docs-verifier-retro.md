@@ -13,7 +13,7 @@
 
 ## 갱신 위치 (데이터 단일 소스)
 
-- `planning/SKILL.md` 8단계 A항 "변경 유형별 docs 영향 표" 에 행 추가 또는 기존 행 보강.
+- `.claude/planning-overlay.md` "docs 컨벤션 → 변경 유형별 docs 영향 표" 에 행 추가 또는 기존 행 보강.
 - **별도 docs 신설 금지** — `_shared/docs-verifier-pitfalls.md` 등 별도 파일 생성은 문서 단일 출처 원칙 위반.
 - 문서 단일 출처 원칙: docs-verifier 는 docs 갱신 누락만 잡으므로 영향 표 자체가 곧 회피 docs.
   별도 파일이 생기는 순간 두 곳에 같은 정의가 존재하게 되어 한쪽만 갱신되는 부패가 반드시 발생한다.
