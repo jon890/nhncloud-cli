@@ -3,7 +3,7 @@
   "description": "GitHub 이슈 #53 — configure 로 User Access Key 를 교체해도 profile 로만 keying 된 토큰 캐시가 stale 토큰을 재사용해 OAuth 인증 명령(ncs·deploy)이 10005 No permissions 로 실패. 캐시 파일에 발급 자격의 SHA-256 지문(credentialHash)을 함께 저장하고 읽을 때 현재 자격 지문과 비교해 다르면 무효화(재발급). OAuth 캐시 파일명을 deploy-token → user-access-token 으로 정정(deploy·ncs 공용 반영). iaas Keystone 캐시도 같은 부류 버그라 동일 적용. 결정은 ADR-021 로 확정·docs-first commit 됨(코드 전용 phase). 사용자 노출 표면 변화 없음 — 새 명령·옵션·출력 무변경이라 README/SKILL 미해당.",
   "created_at": "2026-07-14T00:00:00Z",
   "updated_at": "2026-07-14T00:00:00Z",
-  "status": "completed",
+  "status": "pending",
   "current_phase": 1,
   "total_phases": 1,
   "error_message": null,
@@ -13,7 +13,7 @@
       "number": 1,
       "title": "token-store 자격 지문 저장·비교 + 파일명 정정 + oauth/keystone 주입 + 테스트",
       "file": "phase-01.md",
-      "status": "completed",
+      "status": "pending",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "model": "sonnet"
     }
