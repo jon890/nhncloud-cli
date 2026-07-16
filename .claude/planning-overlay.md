@@ -98,8 +98,8 @@ planning 결정 docs 를 phase 안에서 고치면 critic REVISE 또는 docs-ver
 - **docs-verifier 흡수 원칙**: `nhncloud-cli-docs-verifier`(`.claude/agents/nhncloud-cli-docs-verifier.md` / `.codex/agents/nhncloud-cli-docs-verifier.toml`)의 반복 지적은
   별도 회고 docs 를 신설하지 않는다.
   - 위 "변경 유형별 docs 영향 표"에 행 추가/보강으로 흡수한다.
-  - `.agents/skills/build-with-teams/SKILL.md`의 docs-verifier 검증 항목 7~10(CLI 특화)은 이 표를 거울처럼 참조한다.
-    표 수정 시 그쪽도 자연스럽게 커버되는지 확인한다.
+  - `nhncloud-cli-docs-verifier` agent 본문(4절)이 이 표를 거울처럼 참조한다 — 별도 체크리스트를 두지 않는다.
+    표 수정 시 agent 본문도 자연스럽게 커버되는지 확인한다.
   - 새 반복 지적 발생 시 절차는 `.agents/skills/_shared/retros/docs-verifier-retro.md` 참조.
 - **개인 식별 정보 / 사내 식별자 노출 금지 (public OSS — 필수)**: 이 repo 는 GitHub·npm(`@bifos/nhncloud-cli`) 양쪽 모두 public 이다.
   `README.md`/`skills/`/`docs/`/`AGENTS.md`/`CLAUDE.md`/이슈 본문/`src/`(테스트 fixture·에러 메시지 예시 포함) 어디에도
