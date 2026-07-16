@@ -143,9 +143,9 @@ gh pr list --state open --json number,headRefName,title --jq '.[] | "\(.headRefN
 (예: `036-feat-ncs-foundation-read` → `036-2-feat-ncs-write-control` → `036-3-feat-ncs-create-malware`).
 서로 다른 도메인/독립 실행 가능이면 별도 번호.
 
-### index.json 스키마 (레포 특화 — `run-phases.py` `validate_task` 강제)
+### index.json 스키마 (레포 특화)
 
-`.agents/skills/plan-and-build/run-phases.py`가 아래 필드를 엄격히 강제한다. 코어 예시(`related_docs`/`depends_on`)와 다른 점:
+아래 필드가 필수다. 코어 예시(`related_docs`/`depends_on`)와 다른 점:
 
 - task 레벨 — `updated_at`/`current_phase`/`error_message`/`blocked_reason` 필수
 - phase 레벨 — `allowedTools` 필수 (`model` 은 선택)
@@ -155,7 +155,7 @@ gh pr list --state open --json number,headRefName,title --jq '.[] | "\(.headRefN
   "name": "{NNN}-{task-name}",          // 디렉터리명과 일치
   "description": "무엇을 구현하는 task인지 한 줄 설명",
   "created_at": "2026-07-14T00:00:00Z",  // ISO 8601
-  "updated_at": "2026-07-14T00:00:00Z",  // run-phases.py 자동 갱신
+  "updated_at": "2026-07-14T00:00:00Z",  // 실행 중 갱신
   "status": "pending",                   // pending | running | completed | failed | blocked
   "current_phase": 0,                    // 0 = 미시작
   "total_phases": 3,                     // phases 배열 길이와 일치
@@ -207,6 +207,4 @@ gh pr list --state open --json number,headRefName,title --jq '.[] | "\(.headRefN
     - 과거 `maintenance-` 접두 폴더도 `feat/` branch 로 진행된 사례가 있다
   - 신규 task 는 폴더명 접두와 branch category 를 일치시키는 쪽을 기본으로 하되, 예외가 필요하면 이유를 커밋 로그에 남긴다
 - **PR 제목 형식**: `type(scope): description` (예: `chore(task): add 040 volume list /volumes/detail 전환`).
-- **핸드오프**: 아래 둘 중 하나를 선택해 안내한다. 두 스킬 모두 `tasks/{NNN}-{task-name}` 디렉터리를 인자로 받는다.
-  - `/plan-and-build` — 백그라운드 `run-phases.py` 순차 실행
-  - `/build-with-teams` — Agent Teams 가시적 협업 (team-lead·critic·executor·docs-verifier)
+- **핸드오프**: `/build-with-teams` 로 안내한다 (`tasks/{NNN}-{task-name}` 디렉터리를 인자로 받는다) — Agent Teams 가시적 협업 (team-lead·critic·executor·docs-verifier).
