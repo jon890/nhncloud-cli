@@ -110,6 +110,8 @@ Agent workflow:
   1. nhncloud loadbalancer list --json
   2. nhncloud loadbalancer ipacl list --json
   3. nhncloud loadbalancer ipacl target list <group> --json
+  4. 쓰기 전에는 --profile, --region, --yes, --json을 명시한다.
+  5. 대상 변경은 기본으로 재바인딩한다. exit code 1이면 rebind.failed[].retry_argv를 읽는다.
 `;
 
 const ncrAgentWorkflow = `
