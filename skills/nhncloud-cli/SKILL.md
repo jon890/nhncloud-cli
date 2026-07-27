@@ -1,6 +1,14 @@
 ---
 name: nhncloud-cli
-description: NHN Cloud 서비스 CLI. commands --json catalog, configure, Log & Crash(logncrash search/send/export), Deploy(deploy run/artifacts/server-groups/histories/binary-groups/binaries/upload/download), Compute(instance), VPC/network, Block Storage(volume), Floating IP(floatingip), Load Balancer와 IP ACL(loadbalancer 조회), NHN Container Registry(ncr), NHN Kubernetes Service(nks supports/cluster/nodegroup/addon/kubeconfig), NHN Container Service(ncs template/workload 조회·생성·변경·실행제어, malware 검사 설정·결과 조회) 등 NHN Cloud API를 터미널과 AI 에이전트에서 호출한다.
+description: >-
+  NHN Cloud 서비스 CLI. commands --json catalog, configure,
+  Log & Crash(logncrash search/send/export),
+  Deploy(deploy run/artifacts/server-groups/histories/binary-groups/binaries/upload/download),
+  Compute(instance), VPC/network, Block Storage(volume), Floating IP(floatingip),
+  Load Balancer와 IP ACL(loadbalancer 조회), NHN Container Registry(ncr),
+  NHN Kubernetes Service(nks supports/cluster/nodegroup/addon/kubeconfig),
+  NHN Container Service(ncs template/workload 조회·생성·변경·실행제어,
+  malware 검사 설정·결과 조회) 등 NHN Cloud API를 터미널과 AI 에이전트에서 호출한다.
 ---
 
 # nhncloud-cli

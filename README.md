@@ -7,7 +7,8 @@
 
 NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 통합 CLI.
 현재 141개 command catalog 항목을 지원한다.
-`configure`, `commands`, `logncrash search/send/export`, `deploy`, `instance`, `network`, `volume`, `floatingip`, `loadbalancer`, `ncr`, `nks`, `ncs` 명령으로 NHN Cloud 서비스를 조회·운영할 수 있다.
+`configure`, `commands`, `logncrash search/send/export`, `deploy`, `instance`, `network`, `volume`, `floatingip` 명령을 지원한다.
+`loadbalancer`, `ncr`, `nks`, `ncs` 명령으로 NHN Cloud 서비스를 조회·운영할 수 있다.
 `skills`/`doctor` 로 Claude Code 스킬 설치와 상태 진단을 지원한다.
 
 ## 설치

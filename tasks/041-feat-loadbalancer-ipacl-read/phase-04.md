@@ -71,6 +71,16 @@ node dist/index.js commands --json | jq -e '
   | all(. as $path | ([ $paths[] | select(. == $path) ] | length) == 1)
 '
 node dist/index.js loadbalancer --help | grep -E "Agent workflow|loadbalancer list --json|loadbalancer ipacl list --json"
+node dist/index.js loadbalancer list --help | grep -q -- "--json"
+node dist/index.js loadbalancer list --help | grep -q -- "--quiet"
+node dist/index.js loadbalancer get --help | grep -q -- "--json"
+node dist/index.js loadbalancer get --help | grep -q -- "--quiet"
+node dist/index.js loadbalancer ipacl list --help | grep -q -- "--json"
+node dist/index.js loadbalancer ipacl list --help | grep -q -- "--quiet"
+node dist/index.js loadbalancer ipacl get --help | grep -q -- "--json"
+node dist/index.js loadbalancer ipacl get --help | grep -q -- "--quiet"
+node dist/index.js loadbalancer ipacl target list --help | grep -q -- "--json"
+node dist/index.js loadbalancer ipacl target list --help | grep -q -- "--quiet"
 git diff --check
 ```
 
