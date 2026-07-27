@@ -38,6 +38,26 @@ pnpm run build
 node dist/index.js ncs workload logs --help
 node dist/index.js ncs workload events --help
 node dist/index.js commands --json | jq -e '.commands | length == 147'
+node dist/index.js commands --json | jq -e '
+  [
+    "ncs workload",
+    "ncs workload create",
+    "ncs workload delete",
+    "ncs workload events",
+    "ncs workload get",
+    "ncs workload history",
+    "ncs workload history get",
+    "ncs workload list",
+    "ncs workload logs",
+    "ncs workload patch",
+    "ncs workload pause",
+    "ncs workload restart",
+    "ncs workload resume",
+    "ncs workload schedule-history",
+    "ncs workload update"
+  ] as $expected
+  | ([.commands[].path | select(startswith("ncs workload"))] | sort) == ($expected | sort)
+'
 git diff --check
 ```
 
@@ -91,7 +111,7 @@ git push origin fix/042-fix-ncs-events-time-filter
 ## 완료 조건
 
 - `tasks/042-fix-ncs-events-time-filter/index.json`의 최상위와 세 phase `status`가 `completed`다.
-- 타입 검사, 테스트, build, 두 도움말 검증이 통과한다.
+- 타입 검사, 테스트, build, 두 도움말, catalog 항목 수와 `ncs workload` path 집합 검증이 통과한다.
 - 커밋에는 #54 범위 파일만 포함된다.
 - 원격 브랜치와 local HEAD가 같다.
 
