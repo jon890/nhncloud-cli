@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ky, { HTTPError } from "ky";
 import { LoadBalancerClient } from "./client.js";
-import { EXIT_API_ERROR, EXIT_AUTH_ERROR } from "../../utils/exit-codes.js";
+import {
+  EXIT_API_ERROR,
+  EXIT_AUTH_ERROR,
+  EXIT_PARAM_ERROR,
+} from "../../utils/exit-codes.js";
 
 vi.mock("ky", async (importOriginal) => {
   const actual = await importOriginal<typeof import("ky")>();
@@ -9,7 +13,10 @@ vi.mock("ky", async (importOriginal) => {
     ...actual,
     default: {
       ...actual.default,
+      delete: vi.fn(),
       get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
     },
   };
 });
@@ -41,6 +48,18 @@ const ipAclTarget = {
 
 function mockJsonResponse(response: unknown): void {
   vi.mocked(ky.get).mockReturnValue({
+    json: async () => response,
+  } as never);
+}
+
+function mockPostJsonResponse(response: unknown): void {
+  vi.mocked(ky.post).mockReturnValue({
+    json: async () => response,
+  } as never);
+}
+
+function mockPutJsonResponse(response: unknown): void {
+  vi.mocked(ky.put).mockReturnValue({
     json: async () => response,
   } as never);
 }
@@ -228,6 +247,216 @@ describe("LoadBalancerClient", () => {
 
     const client = new LoadBalancerClient("token-id", "https://example.com/v2.0");
     await expect(client.listLoadBalancers()).rejects.toMatchObject({
+      exitCode: EXIT_AUTH_ERROR,
+    });
+  });
+
+  it("IP ACL 그룹 생성 payload와 응답 wrapper를 처리한다", async () => {
+    mockPostJsonResponse({ ipacl_group: ipAclGroup });
+    const client = new LoadBalancerClient("token-id", "https://example.com/v2.0");
+
+    await expect(
+      client.createIpAclGroup({
+        name: "blocked-networks",
+        action: "DENY",
+        description: "blocked",
+      }),
+    ).resolves.toEqual(ipAclGroup);
+    expect(ky.post).toHaveBeenCalledWith(
+      "https://example.com/v2.0/lbaas/ipacl-groups",
+      {
+        headers: { "X-Auth-Token": "token-id" },
+        json: {
+          ipacl_group: {
+            name: "blocked-networks",
+            action: "DENY",
+            description: "blocked",
+          },
+        },
+        retry: 0,
+        timeout: 30_000,
+      },
+    );
+  });
+
+  it("IP ACL 그룹과 대상 생성 응답의 wrapper·항목 오류를 구분한다", async () => {
+    const client = new LoadBalancerClient("token-id", "https://example.com/v2.0");
+
+    mockPostJsonResponse({ unexpected: ipAclGroup });
+    await expect(
+      client.createIpAclGroup({ name: "blocked", action: "DENY" }),
+    ).rejects.toMatchObject({
+      message: expect.stringContaining("ipacl_group 객체가 없습니다"),
+      exitCode: EXIT_API_ERROR,
+    });
+
+    mockPostJsonResponse({ ipacl_group: null });
+    await expect(
+      client.createIpAclGroup({ name: "blocked", action: "DENY" }),
+    ).rejects.toMatchObject({
+      message: expect.stringContaining("항목 형식이 예상과 다릅니다"),
+      exitCode: EXIT_API_ERROR,
+    });
+
+    mockPostJsonResponse({ ipacl_target: null });
+    await expect(
+      client.createIpAclTarget({
+        ipacl_group_id: "group-1",
+        cidr_address: "198.51.100.0/24",
+      }),
+    ).rejects.toMatchObject({
+      message: expect.stringContaining("항목 형식이 예상과 다릅니다"),
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+
+  it("IP ACL 그룹 삭제는 빈 본문을 JSON 파싱하지 않고 식별자를 인코딩한다", async () => {
+    vi.mocked(ky.delete).mockResolvedValue({} as never);
+    const client = new LoadBalancerClient("token-id", "https://example.com/v2.0");
+
+    await expect(client.deleteIpAclGroup("group/id")).resolves.toBeUndefined();
+    expect(ky.delete).toHaveBeenCalledWith(
+      "https://example.com/v2.0/lbaas/ipacl-groups/group%2Fid",
+      {
+        headers: { "X-Auth-Token": "token-id" },
+        retry: 0,
+        timeout: 30_000,
+      },
+    );
+  });
+
+  it("IP ACL 대상 단건 조회와 생성 payload를 처리한다", async () => {
+    const client = new LoadBalancerClient("token-id", "https://example.com/v2.0");
+
+    mockJsonResponse({ ipacl_target: ipAclTarget });
+    await expect(client.getIpAclTarget("target/id")).resolves.toEqual(ipAclTarget);
+    expect(ky.get).toHaveBeenCalledWith(
+      "https://example.com/v2.0/lbaas/ipacl-targets/target%2Fid",
+      expect.objectContaining({
+        headers: { "X-Auth-Token": "token-id" },
+        retry: 0,
+        timeout: 30_000,
+      }),
+    );
+
+    mockPostJsonResponse({ ipacl_target: ipAclTarget });
+    await expect(
+      client.createIpAclTarget({
+        ipacl_group_id: "group-1",
+        cidr_address: "198.51.100.0/24",
+        description: "example network",
+      }),
+    ).resolves.toEqual(ipAclTarget);
+    expect(ky.post).toHaveBeenCalledWith(
+      "https://example.com/v2.0/lbaas/ipacl-targets",
+      {
+        headers: { "X-Auth-Token": "token-id" },
+        json: {
+          ipacl_target: {
+            ipacl_group_id: "group-1",
+            cidr_address: "198.51.100.0/24",
+            description: "example network",
+          },
+        },
+        retry: 0,
+        timeout: 30_000,
+      },
+    );
+  });
+
+  it("IP ACL 대상 삭제는 빈 본문을 JSON 파싱하지 않는다", async () => {
+    vi.mocked(ky.delete).mockResolvedValue({} as never);
+    const client = new LoadBalancerClient("token-id", "https://example.com/v2.0");
+
+    await expect(client.deleteIpAclTarget("target-1")).resolves.toBeUndefined();
+    expect(ky.delete).toHaveBeenCalledWith(
+      "https://example.com/v2.0/lbaas/ipacl-targets/target-1",
+      {
+        headers: { "X-Auth-Token": "token-id" },
+        retry: 0,
+        timeout: 30_000,
+      },
+    );
+  });
+
+  it("IP ACL binding 순서와 빈 배열을 보존하고 응답 항목을 검증한다", async () => {
+    const client = new LoadBalancerClient("token-id", "https://example.com/v2.0");
+    const bindings = [
+      { loadbalancer_id: "lb-1", ipacl_group_id: "group-2" },
+      { loadbalancer_id: "lb-1", ipacl_group_id: "group-1" },
+    ];
+
+    mockPutJsonResponse(bindings);
+    await expect(
+      client.bindIpAclGroups("lb/id", ["group-2", "group-1"]),
+    ).resolves.toEqual(bindings);
+    expect(ky.put).toHaveBeenCalledWith(
+      "https://example.com/v2.0/lbaas/loadbalancers/lb%2Fid/bind_ipacl_groups",
+      {
+        headers: { "X-Auth-Token": "token-id" },
+        json: {
+          ipacl_groups_binding: [
+            { ipacl_group_id: "group-2" },
+            { ipacl_group_id: "group-1" },
+          ],
+        },
+        retry: 0,
+        timeout: 30_000,
+      },
+    );
+
+    mockPutJsonResponse([]);
+    await expect(client.bindIpAclGroups("lb-1", [])).resolves.toEqual([]);
+    expect(ky.put).toHaveBeenLastCalledWith(
+      "https://example.com/v2.0/lbaas/loadbalancers/lb-1/bind_ipacl_groups",
+      expect.objectContaining({ json: { ipacl_groups_binding: [] } }),
+    );
+
+    mockPutJsonResponse([{ loadbalancer_id: "lb-1", ipacl_group_id: "" }]);
+    await expect(client.bindIpAclGroups("lb-1", ["group-1"])).rejects.toMatchObject({
+      message: expect.stringContaining("binding 항목 형식이 예상과 다릅니다"),
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+
+  it("쓰기 path의 빈 식별자를 HTTP 호출 전에 거부한다", async () => {
+    const client = new LoadBalancerClient("token-id", "https://example.com/v2.0");
+
+    await expect(client.deleteIpAclGroup(" ")).rejects.toMatchObject({
+      exitCode: EXIT_PARAM_ERROR,
+    });
+    await expect(client.getIpAclTarget("")).rejects.toMatchObject({
+      exitCode: EXIT_PARAM_ERROR,
+    });
+    await expect(client.deleteIpAclTarget(" ")).rejects.toMatchObject({
+      exitCode: EXIT_PARAM_ERROR,
+    });
+    await expect(client.bindIpAclGroups("", [])).rejects.toMatchObject({
+      exitCode: EXIT_PARAM_ERROR,
+    });
+    await expect(client.bindIpAclGroups("lb-1", [" "])).rejects.toMatchObject({
+      exitCode: EXIT_PARAM_ERROR,
+    });
+
+    expect(ky.get).not.toHaveBeenCalled();
+    expect(ky.delete).not.toHaveBeenCalled();
+    expect(ky.put).not.toHaveBeenCalled();
+  });
+
+  it("쓰기 HTTP 401 오류를 EXIT_AUTH_ERROR로 변환한다", async () => {
+    const response = new Response(null, { status: 401, statusText: "Unauthorized" });
+    const request = new Request("https://example.com/v2.0/lbaas/ipacl-groups");
+    const error = new HTTPError(response, request, {} as never);
+    vi.mocked(ky.post).mockReturnValue({
+      json: async () => {
+        throw error;
+      },
+    } as never);
+    const client = new LoadBalancerClient("token-id", "https://example.com/v2.0");
+
+    await expect(
+      client.createIpAclGroup({ name: "blocked", action: "DENY" }),
+    ).rejects.toMatchObject({
       exitCode: EXIT_AUTH_ERROR,
     });
   });

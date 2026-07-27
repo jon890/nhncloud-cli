@@ -53,6 +53,10 @@ import { listCommand as loadBalancerListCommand } from "./commands/loadbalancer/
 import { getCommand as loadBalancerGetCommand } from "./commands/loadbalancer/get.js";
 import { ipaclCommand as loadBalancerIpAclCommand } from "./commands/loadbalancer/ipacl.js";
 import { configureLoadBalancerHelp } from "./commands/loadbalancer/help.js";
+import {
+  clearIpAclCommand as loadBalancerClearIpAclCommand,
+  setIpAclCommand as loadBalancerSetIpAclCommand,
+} from "./commands/loadbalancer/binding.js";
 
 const rootAgentHints = `
 Agent hints:
@@ -106,6 +110,8 @@ Agent workflow:
   1. nhncloud loadbalancer list --json
   2. nhncloud loadbalancer ipacl list --json
   3. nhncloud loadbalancer ipacl target list <group> --json
+  4. 쓰기 전에는 --profile, --region, --yes, --json을 명시한다.
+  5. 대상 변경은 기본으로 재바인딩한다. exit code 1이면 rebind.failed[].retry_argv를 읽는다.
 `;
 
 const ncrAgentWorkflow = `
@@ -234,11 +240,13 @@ program.addCommand(floatingipCommand);
 
 // loadbalancer 커맨드 그룹
 const loadbalancerCommand = new Command("loadbalancer")
-  .description("Load Balancer·IP ACL 조회")
+  .description("Load Balancer·IP ACL 조회·관리")
   .addHelpText("after", loadbalancerAgentWorkflow);
 loadbalancerCommand.addCommand(loadBalancerListCommand);
 loadbalancerCommand.addCommand(loadBalancerGetCommand);
 loadbalancerCommand.addCommand(loadBalancerIpAclCommand);
+loadbalancerCommand.addCommand(loadBalancerSetIpAclCommand);
+loadbalancerCommand.addCommand(loadBalancerClearIpAclCommand);
 configureLoadBalancerHelp(loadbalancerCommand);
 
 program.addCommand(loadbalancerCommand);

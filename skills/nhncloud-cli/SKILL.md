@@ -5,7 +5,7 @@ description: >-
   Log & Crash(logncrash search/send/export),
   Deploy(deploy run/artifacts/server-groups/histories/binary-groups/binaries/upload/download),
   Compute(instance), VPC/network, Block Storage(volume), Floating IP(floatingip),
-  Load Balancer와 IP ACL(loadbalancer 조회), NHN Container Registry(ncr),
+  Load Balancer와 IP ACL(loadbalancer 조회·쓰기·재바인딩 복구), NHN Container Registry(ncr),
   NHN Kubernetes Service(nks supports/cluster/nodegroup/addon/kubeconfig),
   NHN Container Service(ncs template/workload 조회·생성·변경·실행제어,
   malware 검사 설정·결과 조회) 등 NHN Cloud API를 터미널과 AI 에이전트에서 호출한다.
@@ -26,7 +26,7 @@ NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 TypeScript CLI다.
 | Log & Crash 검색, scroll export, 로그 전송 | [logncrash.md](references/logncrash.md) |
 | Deploy 실행, 배포 조회, 바이너리 업로드/다운로드 | [deploy.md](references/deploy.md) |
 | Compute instance, network, volume, floatingip | [iaas.md](references/iaas.md) |
-| Load Balancer와 IP ACL 그룹·대상 조회 | [loadbalancer.md](references/loadbalancer.md) |
+| Load Balancer와 IP ACL 그룹·대상 조회·쓰기·재바인딩 복구 | [loadbalancer.md](references/loadbalancer.md) |
 | NCR 레지스트리, 이미지, 태그 조회 | [ncr.md](references/ncr.md) |
 | NKS 클러스터, 노드 그룹, 애드온, kubeconfig | [nks.md](references/nks.md) |
 | NCS template, workload 조회·생성·변경·실행제어, malware 검사 설정·결과 조회 | [ncs.md](references/ncs.md) |
@@ -39,8 +39,12 @@ NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 TypeScript CLI다.
 - profile은 기본값에 의존하지 말고 가능하면 `--profile <name>`을 명시한다.
 - IaaS 계열(`instance`, `network`, `volume`, `floatingip`, `loadbalancer`, `nks`)은 region이 중요하면 `--region <region>`을 명시한다.
 - 삭제, 제거, 비용 발생, 리소스 생성 같은 파괴적/쓰기 명령은 `--yes` 없으면 대화형 confirm이 있을 수 있다.
-- 데이터는 stdout, 진행 상황과 에러는 stderr에 출력한다.
+- 데이터는 stdout, 진행 상황·운영 경고·에러는 stderr에 출력한다.
 - 비밀값, appkey, tenantId, 실제 instance/network id는 문서나 이슈에 그대로 쓰지 않고 placeholder를 사용한다.
+- Load Balancer IP ACL 쓰기는 `--profile`, `--region`, `--json`을 명시하고, 삭제·연결 교체·대상 변경에는 `--yes`도 명시한다.
+- IP ACL 대상 변경은 기본 재바인딩을 유지한다.
+- 대상 변경의 종료 코드가 1이면 stdout JSON의 `rebind.failed[]`를 확인한다.
+- 복구에는 `retry_argv` 배열을 그대로 사용하고, `retry_command`는 사람 확인용으로만 사용한다.
 
 ## 빠른 시작
 
@@ -61,7 +65,7 @@ nhncloud logncrash search --query '*' --from 1h --to now --json
 | `network` | VPC와 subnet 조회 |
 | `volume` | Block Storage volume 조회·생성 |
 | `floatingip` | Floating IP 조회·발급·삭제 |
-| `loadbalancer` | Load Balancer와 IP ACL 그룹·대상 조회 |
+| `loadbalancer` | Load Balancer와 IP ACL 그룹·대상 조회·쓰기·재바인딩 복구 |
 | `ncr` | Container Registry registry/image/tag 조회 |
 | `nks` | Kubernetes cluster/nodegroup/addon/kubeconfig 관리 |
 | `ncs` | Container Service template/workload 조회·생성·변경·실행제어, malware 검사 설정·결과 조회 |

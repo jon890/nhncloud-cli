@@ -3,7 +3,10 @@ import { output, type OutputOptions } from "../../formatters/table.js";
 import type { IpAclGroup } from "../../services/loadbalancer/types.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import {
+  optionalTrimmed,
+  parseIpAclAction,
   requireResourceInput,
+  requireYes,
   resolveIpAclGroupId,
   resolveLoadBalancerClient,
 } from "./helpers.js";
@@ -12,6 +15,10 @@ import { targetCommand } from "./target.js";
 interface IpAclGlobalOpts extends OutputOptions {
   region?: string;
   profile?: string;
+  name?: string;
+  action?: string;
+  description?: string;
+  yes?: boolean;
 }
 
 const listCommand = new Command("list")
@@ -90,7 +97,91 @@ const getCommand = new Command("get")
     });
   });
 
+const createCommand = new Command("create")
+  .description("IP ACL 그룹을 생성한다")
+  .requiredOption("--name <name>", "IP ACL 그룹 이름")
+  .requiredOption("--action <ALLOW|DENY>", "IP 접근 제어 동작")
+  .option("--description <text>", "IP ACL 그룹 설명")
+  .option("--region <region>", "region override (기본: iaas 자격증명의 region)")
+  .option("--profile <name>", "사용할 profile 이름")
+  .action(async (_opts: unknown, cmd: Command) => {
+    const opts = cmd.optsWithGlobals<IpAclGlobalOpts>();
+    const parsedName = requireResourceInput(opts.name ?? "", "IP ACL 그룹");
+    const parsedAction = parseIpAclAction(opts.action ?? "");
+    const parsedDescription = optionalTrimmed(opts.description);
+    const { client } = await resolveLoadBalancerClient(opts);
+
+    startSpinner("IP ACL 그룹 생성 중...");
+    let group: IpAclGroup;
+    try {
+      group = await client.createIpAclGroup({
+        name: parsedName,
+        action: parsedAction,
+        ...(parsedDescription === undefined ? {} : { description: parsedDescription }),
+      });
+    } catch (error) {
+      stopSpinner(false);
+      throw error;
+    }
+    stopSpinner(true);
+
+    const result = {
+      operation: "ipacl-group-create",
+      status: "succeeded",
+      ipacl_group_id: group.id,
+    };
+    output(opts, {
+      headers: ["field", "value"],
+      rows: Object.entries(result).map(([key, value]) => [key, value]),
+      raw: result,
+      ids: [group.id],
+    });
+  });
+
+const deleteCommand = new Command("delete")
+  .description("IP ACL 그룹과 하위 대상을 삭제한다")
+  .argument("<group>", "IP ACL 그룹 이름 또는 UUID")
+  .option("--yes", "삭제와 연결 규칙 제거 확인")
+  .option("--region <region>", "region override (기본: iaas 자격증명의 region)")
+  .option("--profile <name>", "사용할 profile 이름")
+  .action(async (groupInput: string, _opts: unknown, cmd: Command) => {
+    const opts = cmd.optsWithGlobals<IpAclGlobalOpts>();
+    const confirmedYes = requireYes(opts.yes, "IP ACL 그룹 삭제");
+    const parsedGroup = requireResourceInput(groupInput, "IP ACL 그룹");
+    if (confirmedYes) {
+      process.stderr.write(
+        "경고: 그룹의 모든 대상과 Load Balancer 연결 규칙이 함께 제거됩니다.\n",
+      );
+    }
+    const { client } = await resolveLoadBalancerClient(opts);
+
+    startSpinner("IP ACL 그룹 삭제 중...");
+    let groupId: string;
+    try {
+      groupId = await resolveIpAclGroupId(client, parsedGroup);
+      await client.deleteIpAclGroup(groupId);
+    } catch (error) {
+      stopSpinner(false);
+      throw error;
+    }
+    stopSpinner(true);
+
+    const result = {
+      operation: "ipacl-group-delete",
+      status: "succeeded",
+      ipacl_group_id: groupId,
+    };
+    output(opts, {
+      headers: ["field", "value"],
+      rows: Object.entries(result).map(([key, value]) => [key, value]),
+      raw: result,
+      ids: [groupId],
+    });
+  });
+
 export const ipaclCommand = new Command("ipacl").description("IP ACL 그룹·대상 조회");
 ipaclCommand.addCommand(listCommand);
 ipaclCommand.addCommand(getCommand);
+ipaclCommand.addCommand(createCommand);
+ipaclCommand.addCommand(deleteCommand);
 ipaclCommand.addCommand(targetCommand);

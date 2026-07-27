@@ -6,7 +6,7 @@
 [![license](https://img.shields.io/npm/l/@bifos/nhncloud-cli.svg)](https://github.com/jon890/nhncloud-cli/blob/main/LICENSE)
 
 NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 통합 CLI.
-현재 141개 command catalog 항목을 지원한다.
+현재 147개 command catalog 항목을 지원한다.
 `configure`, `commands`, `logncrash search/send/export`, `deploy`, `instance`, `network`, `volume`, `floatingip` 명령을 지원한다.
 `loadbalancer`, `ncr`, `nks`, `ncs` 명령으로 NHN Cloud 서비스를 조회·운영할 수 있다.
 `skills`/`doctor` 로 Claude Code 스킬 설치와 상태 진단을 지원한다.
@@ -275,6 +275,9 @@ root와 주요 service group의 `--help`에는 짧은 agent hint가 포함된다
 | `loadbalancer ipacl list` | IP ACL 그룹 배열 |
 | `loadbalancer ipacl get` | 단일 IP ACL 그룹 객체 |
 | `loadbalancer ipacl target list` | IP ACL 대상 배열 |
+| `loadbalancer ipacl create/delete` | 작업 상태와 IP ACL 그룹 UUID 객체 |
+| `loadbalancer ipacl target add/remove` | 대상 UUID와 재바인딩 결과 객체 |
+| `loadbalancer set-ipacl/clear-ipacl` | 작업 상태와 Load Balancer UUID·그룹 UUID 객체 |
 | `ncr list` | `registries` 래퍼를 언랩한 registry 배열 |
 | `ncr get` | `registry` 래퍼를 언랩한 단일 registry 객체 |
 | `ncr images` | repository 배열 |
@@ -561,7 +564,7 @@ nhncloud floatingip delete <floatingip-id> --yes
 
 ### Load Balancer와 IP ACL
 
-Load Balancer와 IP ACL 그룹·대상을 조회한다.
+Load Balancer와 IP ACL 그룹·대상을 조회하고 관리한다.
 `loadbalancer` 명령군은 `network`와 같은 `iaas` 자격증명·Keystone 토큰·network endpoint를 공유한다.
 
 자동화에서는 profile과 region을 명시하고 `--json`으로 조회한다.
@@ -580,6 +583,47 @@ nhncloud loadbalancer ipacl target list <group> \
   --profile <profile> \
   --region <region> \
   --json
+
+# IP ACL 그룹 생성과 삭제
+nhncloud loadbalancer ipacl create \
+  --name <group-name> \
+  --action ALLOW \
+  --description <description> \
+  --profile <profile> \
+  --region <region> \
+  --json
+nhncloud loadbalancer ipacl delete <group> \
+  --profile <profile> \
+  --region <region> \
+  --yes \
+  --json
+
+# Load Balancer의 IP ACL 그룹 전체 교체와 전체 해제
+nhncloud loadbalancer set-ipacl <loadbalancer> \
+  --group <group> \
+  --group <other-group> \
+  --profile <profile> \
+  --region <region> \
+  --yes \
+  --json
+nhncloud loadbalancer clear-ipacl <loadbalancer> \
+  --profile <profile> \
+  --region <region> \
+  --yes \
+  --json
+
+# IP ACL 대상 추가와 삭제
+nhncloud loadbalancer ipacl target add <group> \
+  --cidr <ip-or-cidr> \
+  --profile <profile> \
+  --region <region> \
+  --yes \
+  --json
+nhncloud loadbalancer ipacl target remove <target-id> \
+  --profile <profile> \
+  --region <region> \
+  --yes \
+  --json
 ```
 
 `<loadbalancer>`와 `<group>`에는 이름 또는 UUID를 넣는다.
@@ -590,7 +634,33 @@ UUID가 정확히 일치하면 바로 선택하고, 이름은 정확히 하나�
 IP ACL 그룹 목록 컬럼은 `id`, `name`, `action`, `ipacl_target_count`, `loadbalancer_count`다.
 IP ACL 대상 목록 컬럼은 `id`, `cidr_address`, `description`, `ipacl_group_id`다.
 `--json`은 응답 래퍼를 제거한 객체 또는 배열을 stdout에 출력하고, `--quiet`는 리소스 UUID만 한 줄에 하나씩 stdout에 출력한다.
-조회 진행 상황과 오류는 stderr로 분리된다.
+진행 상황, 운영 경고, 오류는 stderr로 분리된다.
+
+쓰기 명령은 대화형 확인을 열지 않는다.
+삭제, 연결 교체, 대상 변경에는 `--yes`가 필수다.
+`set-ipacl`은 지정한 그룹 목록으로 기존 연결을 전체 교체하고, `clear-ipacl`은 모든 연결을 해제한다.
+
+대상 추가·삭제는 변경 전에 연결 상태를 수집한 뒤 관련 Load Balancer를 순차 재바인딩한다.
+`--no-rebind`를 쓰면 재바인딩을 생략하지만 데이터 영역에 규칙이 즉시 반영되지 않을 수 있다.
+대상 변경은 반영까지 약 10–20초가 걸릴 수 있다.
+`ALLOW` 그룹에는 Load Balancer가 속한 VPC의 private CIDR을 사용한다.
+
+재바인딩이 일부 실패하면 대상 변경은 되돌리지 않는다.
+명령은 `status: "partial"`과 `rebind.failed[].retry_argv`를 stdout JSON에 먼저 출력한 뒤 종료 코드 1을 반환한다.
+AI 에이전트는 문자열인 `retry_command`보다 배열인 `retry_argv`를 우선 사용한다.
+사용자가 명시한 `--profile`과 `--region`도 복구 배열에 보존된다.
+
+```bash
+result_file="$(mktemp)"
+if ! nhncloud loadbalancer ipacl target add <group> \
+  --cidr <ip-or-cidr> \
+  --profile <profile> \
+  --region <region> \
+  --yes \
+  --json >"$result_file"; then
+  jq '.rebind.failed[] | {error, retry_argv}' "$result_file"
+fi
+```
 
 ### NHN Container Registry (NCR)
 
