@@ -1,6 +1,6 @@
 # Phase 04 — 브랜치 검증과 commit·push
 
-**Execution profile**: fast  
+**Execution profile**: fast
 **Status**: pending
 
 ---

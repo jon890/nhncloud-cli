@@ -1,6 +1,6 @@
 # Phase 02 — 조회 명령과 이름·UUID 해석기
 
-**Execution profile**: standard  
+**Execution profile**: standard
 **Status**: pending
 
 ---

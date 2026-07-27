@@ -1,6 +1,6 @@
 # Phase 03 — 통합 검증과 공개 사용 문서
 
-**Execution profile**: fast  
+**Execution profile**: fast
 **Status**: pending
 
 ---
