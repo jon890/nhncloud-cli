@@ -5,7 +5,7 @@
 NHN Cloud 서비스를 AWS CLI 처럼 호출하는 통합 CLI다.
 TypeScript + Commander.js 기반이다. dooray-cli 의 기반과 하네스를 재사용한다.
 
-## 지원 명령 (133개 command catalog 항목)
+## 지원 명령 (147개 command catalog 항목)
 
 - `configure` — 자격증명 설정 마법사 (대화형 + flag, UAK + 서비스별 키, 연결 테스트).
 - `commands` — Commander tree에서 command path·argument·option·description catalog를 출력하는 metadata 명령 (`--json` 권장, 외부 API 호출 없음).
@@ -48,6 +48,13 @@ TypeScript + Commander.js 기반이다. dooray-cli 의 기반과 하네스를 �
 - `floatingip list` — Floating IP(공인 IP) 목록 조회 (id·floating_ip_address·status·port_id·fixed_ip_address, 전체 필드는 `--json`).
 - `floatingip create` — Floating IP 발급 (network endpoint 재사용·쓰기. `--network` 미지정 시 `router:external=true` VPC 자동 조회).
 - `floatingip delete <id>` — Floating IP 삭제 (기본 confirm, `--yes` 즉시·쓰기). associate(인스턴스 연결)는 instance→port_id 매핑 실측 미확정으로 보류.
+- `loadbalancer list|get` — Load Balancer 목록과 단일 상태 조회. 이름 또는 UUID를 받고, IP ACL 적용 그룹과 action을 함께 표시한다.
+- `loadbalancer ipacl list|get` — IP ACL 그룹 목록과 상세 조회. 그룹 이름 또는 UUID를 받고, 대상 수와 적용된 Load Balancer를 표시한다.
+- `loadbalancer ipacl target list <group>` — 그룹의 IP ACL 대상 목록 조회.
+- `loadbalancer ipacl create|delete` — IP ACL 그룹 생성·삭제. 삭제는 대상과 적용 규칙까지 연쇄 삭제하므로 `--yes`가 필수다.
+- `loadbalancer ipacl target add|remove` — IP ACL 대상 추가·삭제. `--yes`가 필수이며, 기본으로 관련 Load Balancer를 모두 재바인딩하고 `--no-rebind`로만 생략한다.
+- `loadbalancer set-ipacl <lb> --group <group>` — Load Balancer의 IP ACL 그룹 전체 교체. `--group` 반복과 `--yes`가 필수다.
+- `loadbalancer clear-ipacl <lb>` — 빈 그룹 배열을 적용해 IP ACL을 모두 해제한다. `--yes`가 필수다.
 - `ncr list` — NHN Container Registry 레지스트리 목록 조회 (공통 UAK 정적 헤더 인증·ADR-016, `--region` 기본 kr1, `--app-key` 또는 ncr 자격증명). Harbor 파생 필드 name·repo_count·uri.
 - `ncr get <registry>` — 단일 레지스트리 조회 (이름 또는 id).
 - `ncr images <registry>` — 레지스트리의 이미지(repository) 목록 조회 (Harbor REST `/api/v2.0` 우회·UAK Basic Auth·ADR-017, name·artifact_count·pull_count).
@@ -115,6 +122,7 @@ src/
 - HTTP: `ky` 전용 (axios 금지)
 - 에러: `NhnCloudCliError(message, exitCode)` — exit code 는 `src/utils/exit-codes.ts`
 - 출력: 데이터 = stdout / 스피너·에러 = stderr
+- AI 에이전트 우선: 새 명령은 대화형 입력을 기다리지 않는다. 위험한 변경은 `--yes`를 API 호출 전에 검증하고, `--json`·`--quiet` 결과와 종료 코드를 결정적으로 유지한다.
 - 자격증명: `~/.nhncloud/credentials.json` (mode 0600) + `~/.nhncloud/config.json`
 - profile: `--profile` > `NHNCLOUD_PROFILE` env > `config.defaultProfile` > `"default"`
 - 패키지 매니저: `pnpm`
@@ -145,6 +153,7 @@ src/
 | NKS(Container Kubernetes) endpoint·인증·봉투 미적용 | ADR-019, ADR-010, ADR-013, ADR-005 |
 | NCS(Container Service) endpoint·인증(Deploy OAuth 토큰 재사용)·appkey 경로 | ADR-020, ADR-007, ADR-006, ADR-005 |
 | 토큰 캐시 무효화 (자격 변경 시 stale 토큰·캐시 파일명) | ADR-021, ADR-007, ADR-010, ADR-020 |
+| Load Balancer IP ACL 전체 교체·자동 재바인딩·부분 실패 복구 | ADR-022, ADR-002, ADR-010, ADR-013 |
 
 신규 ADR 추가 시 본 표에 행 추가.
 
@@ -156,6 +165,7 @@ src/
 | Log & Crash 전송(collector) | appkey (secret 불요) | 인증 헤더 없음 — body 의 projectName=appkey |
 | Deploy v2.1 | UAK(id+secret) | `X-NHN-AUTHORIZATION: Bearer <token>` |
 | Instance (OpenStack Nova v2) | tenantId + username + API 비밀번호 | `X-Auth-Token: <tokenId>` (Keystone v2 발급, ADR-010) |
+| Load Balancer / IP ACL | tenantId + username + API 비밀번호 | `X-Auth-Token: <tokenId>` + network endpoint 재사용 (ADR-022, ADR-013) |
 | NKS (Kubernetes Infrastructure) | tenantId + username + API 비밀번호 | `X-Auth-Token: <tokenId>` + `OpenStack-API-Version: container-infra latest` (ADR-019) |
 | NCR (Container Registry, Harbor 기반) | 공통 UAK(id+secret) + NCR appkey | `X-TC-AUTHENTICATION-ID` + `X-TC-AUTHENTICATION-SECRET` (정적, 토큰 교환 없음·ADR-016) |
 | NCR 이미지/태그 (Harbor REST 데이터플레인) | 공통 UAK(id+secret) | HTTP Basic Auth (`Authorization: Basic base64(uak-id:uak-secret)`, 봉투 미적용·ADR-017) |

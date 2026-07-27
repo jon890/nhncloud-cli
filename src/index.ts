@@ -49,6 +49,10 @@ import { addonCommand as nksAddonCommand, addonTypeCommand as nksAddonTypeComman
 import { templateCommand as ncsTemplateCommand } from "./commands/ncs/template.js";
 import { workloadCommand as ncsWorkloadCommand } from "./commands/ncs/workload.js";
 import { malwareCommand as ncsMalwareCommand } from "./commands/ncs/malware.js";
+import { listCommand as loadBalancerListCommand } from "./commands/loadbalancer/list.js";
+import { getCommand as loadBalancerGetCommand } from "./commands/loadbalancer/get.js";
+import { ipaclCommand as loadBalancerIpAclCommand } from "./commands/loadbalancer/ipacl.js";
+import { configureLoadBalancerHelp } from "./commands/loadbalancer/help.js";
 
 const rootAgentHints = `
 Agent hints:
@@ -95,6 +99,13 @@ const floatingIpAgentWorkflow = `
 Agent workflow:
   1. nhncloud floatingip list --json
   2. nhncloud floatingip create --json
+`;
+
+const loadbalancerAgentWorkflow = `
+Agent workflow:
+  1. nhncloud loadbalancer list --json
+  2. nhncloud loadbalancer ipacl list --json
+  3. nhncloud loadbalancer ipacl target list <group> --json
 `;
 
 const ncrAgentWorkflow = `
@@ -220,6 +231,17 @@ floatingipCommand.addCommand(fipCreateCommand);
 floatingipCommand.addCommand(fipDeleteCommand);
 
 program.addCommand(floatingipCommand);
+
+// loadbalancer 커맨드 그룹
+const loadbalancerCommand = new Command("loadbalancer")
+  .description("Load Balancer·IP ACL 조회")
+  .addHelpText("after", loadbalancerAgentWorkflow);
+loadbalancerCommand.addCommand(loadBalancerListCommand);
+loadbalancerCommand.addCommand(loadBalancerGetCommand);
+loadbalancerCommand.addCommand(loadBalancerIpAclCommand);
+configureLoadBalancerHelp(loadbalancerCommand);
+
+program.addCommand(loadbalancerCommand);
 
 // ncr 커맨드 그룹
 const ncrCommand = new Command("ncr")

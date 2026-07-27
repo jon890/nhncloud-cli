@@ -6,8 +6,9 @@
 [![license](https://img.shields.io/npm/l/@bifos/nhncloud-cli.svg)](https://github.com/jon890/nhncloud-cli/blob/main/LICENSE)
 
 NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 통합 CLI.
-현재 106개 command catalog 항목을 지원한다.
-`configure`, `commands`, `logncrash search/send/export`, `deploy`, `instance`, `network`, `volume`, `floatingip`, `ncr`, `nks`, `ncs` 명령으로 NHN Cloud 서비스를 조회·운영할 수 있다.
+현재 141개 command catalog 항목을 지원한다.
+`configure`, `commands`, `logncrash search/send/export`, `deploy`, `instance`, `network`, `volume`, `floatingip` 명령을 지원한다.
+`loadbalancer`, `ncr`, `nks`, `ncs` 명령으로 NHN Cloud 서비스를 조회·운영할 수 있다.
 `skills`/`doctor` 로 Claude Code 스킬 설치와 상태 진단을 지원한다.
 
 ## 설치
@@ -269,6 +270,11 @@ root와 주요 service group의 `--help`에는 짧은 agent hint가 포함된다
 | `volume create` | 단일 volume 객체 |
 | `floatingip list` | floating IP 배열 |
 | `floatingip create` | 단일 floating IP 객체 |
+| `loadbalancer list` | Load Balancer 배열 |
+| `loadbalancer get` | 단일 Load Balancer 객체 |
+| `loadbalancer ipacl list` | IP ACL 그룹 배열 |
+| `loadbalancer ipacl get` | 단일 IP ACL 그룹 객체 |
+| `loadbalancer ipacl target list` | IP ACL 대상 배열 |
 | `ncr list` | `registries` 래퍼를 언랩한 registry 배열 |
 | `ncr get` | `registry` 래퍼를 언랩한 단일 registry 객체 |
 | `ncr images` | repository 배열 |
@@ -552,6 +558,39 @@ nhncloud floatingip delete <floatingip-id> --yes
 
 > **associate**: `floatingip associate <floatingip-id> <instance-id>` 는 instance→port_id 매핑 경로 미확정으로 보류 중.
 > 실측으로 경로가 확정되면 후속 task 에서 추가한다.
+
+### Load Balancer와 IP ACL
+
+Load Balancer와 IP ACL 그룹·대상을 조회한다.
+`loadbalancer` 명령군은 `network`와 같은 `iaas` 자격증명·Keystone 토큰·network endpoint를 공유한다.
+
+자동화에서는 profile과 region을 명시하고 `--json`으로 조회한다.
+
+```bash
+# Load Balancer 목록과 단건 조회
+nhncloud loadbalancer list --profile <profile> --region <region> --json
+nhncloud loadbalancer get <loadbalancer> --profile <profile> --region <region> --json
+
+# IP ACL 그룹 목록과 단건 조회
+nhncloud loadbalancer ipacl list --profile <profile> --region <region> --json
+nhncloud loadbalancer ipacl get <group> --profile <profile> --region <region> --json
+
+# 그룹에 속한 IP ACL 대상 조회
+nhncloud loadbalancer ipacl target list <group> \
+  --profile <profile> \
+  --region <region> \
+  --json
+```
+
+`<loadbalancer>`와 `<group>`에는 이름 또는 UUID를 넣는다.
+UUID가 정확히 일치하면 바로 선택하고, 이름은 정확히 하나만 일치해야 한다.
+같은 이름이 여러 개면 오류에 표시되는 후보 UUID를 사용한다.
+
+기본 테이블의 Load Balancer 목록 컬럼은 `id`, `name`, `vip_address`, `provisioning_status`, `operating_status`, `ipacl_group_action`이다.
+IP ACL 그룹 목록 컬럼은 `id`, `name`, `action`, `ipacl_target_count`, `loadbalancer_count`다.
+IP ACL 대상 목록 컬럼은 `id`, `cidr_address`, `description`, `ipacl_group_id`다.
+`--json`은 응답 래퍼를 제거한 객체 또는 배열을 stdout에 출력하고, `--quiet`는 리소스 UUID만 한 줄에 하나씩 stdout에 출력한다.
+조회 진행 상황과 오류는 stderr로 분리된다.
 
 ### NHN Container Registry (NCR)
 
