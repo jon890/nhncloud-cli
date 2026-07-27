@@ -1,3 +1,4 @@
+import { isIP } from "node:net";
 import { resolveIaasTokenContext, type IaasResolverOpts } from "../iaas.js";
 import { LoadBalancerClient } from "../../services/loadbalancer/client.js";
 import type {
@@ -55,6 +56,30 @@ export function requireResourceInputs(values: string[], label: string): string[]
     throw new NhnCloudCliError(`${label}을(를) 한 개 이상 지정해야 합니다.`, EXIT_PARAM_ERROR);
   }
   return values.map((value) => requireResourceInput(value, label));
+}
+
+export function parseIpOrCidr(value: string): string {
+  const normalized = value.trim();
+  const parts = normalized.split("/");
+  const address = parts[0] ?? "";
+  const version = isIP(address);
+  if (version === 0 || parts.length > 2) {
+    throw new NhnCloudCliError(
+      `--cidr은 IP 주소 또는 CIDR이어야 합니다: ${JSON.stringify(value)}`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+  if (parts.length === 2) {
+    const prefix = parts[1] ?? "";
+    const maxPrefix = version === 4 ? 32 : 128;
+    if (!/^\d+$/.test(prefix) || Number(prefix) > maxPrefix) {
+      throw new NhnCloudCliError(
+        `--cidr prefix가 올바르지 않습니다: ${JSON.stringify(value)}`,
+        EXIT_PARAM_ERROR,
+      );
+    }
+  }
+  return normalized;
 }
 
 function resolvedId(resource: { id: string }, label: string): string {
