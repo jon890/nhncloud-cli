@@ -1,11 +1,18 @@
 import ky from "ky";
 import { toNhnCloudCliError } from "../../api/httpError.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
-import { EXIT_API_ERROR } from "../../utils/exit-codes.js";
+import { EXIT_API_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import {
+  isIpAclBinding,
   isIpAclGroup,
   isIpAclTarget,
   isLoadBalancer,
+  type BindIpAclGroupsRequest,
+  type CreateIpAclGroupInput,
+  type CreateIpAclGroupRequest,
+  type CreateIpAclTargetInput,
+  type CreateIpAclTargetRequest,
+  type IpAclBinding,
   type IpAclGroup,
   type IpAclTarget,
   type LoadBalancer,
@@ -15,6 +22,14 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function requireNonEmptyId(id: string, label: string): string {
+  const normalized = id.trim();
+  if (!normalized) {
+    throw new NhnCloudCliError(`${label}가 필요합니다.`, EXIT_PARAM_ERROR);
+  }
+  return normalized;
 }
 
 function readArrayField<T>(
@@ -121,6 +136,84 @@ export class LoadBalancerClient {
     );
   }
 
+  async createIpAclGroup(input: CreateIpAclGroupInput): Promise<IpAclGroup> {
+    const request: CreateIpAclGroupRequest = { ipacl_group: input };
+    const raw = await this.postJson("/ipacl-groups", request);
+    return readObjectField(
+      raw,
+      "ipacl_group",
+      isIpAclGroup,
+      "loadbalancer ipacl create 응답 형식이 올바르지 않습니다 — ipacl_group 객체가 없습니다.",
+      "loadbalancer ipacl create 응답의 IP ACL 그룹 항목 형식이 예상과 다릅니다 — API 응답 필드를 확인하세요.",
+    );
+  }
+
+  async deleteIpAclGroup(id: string): Promise<void> {
+    const normalizedId = requireNonEmptyId(id, "IP ACL 그룹 ID");
+    await this.deleteNoContent(`/ipacl-groups/${encodeURIComponent(normalizedId)}`);
+  }
+
+  async getIpAclTarget(id: string): Promise<IpAclTarget> {
+    const normalizedId = requireNonEmptyId(id, "IP ACL 대상 ID");
+    const raw = await this.getJson(`/ipacl-targets/${encodeURIComponent(normalizedId)}`);
+    return readObjectField(
+      raw,
+      "ipacl_target",
+      isIpAclTarget,
+      "loadbalancer ipacl target get 응답 형식이 올바르지 않습니다 — ipacl_target 객체가 없습니다.",
+      "loadbalancer ipacl target get 응답의 IP ACL 대상 항목 형식이 예상과 다릅니다 — API 응답 필드를 확인하세요.",
+    );
+  }
+
+  async createIpAclTarget(input: CreateIpAclTargetInput): Promise<IpAclTarget> {
+    const request: CreateIpAclTargetRequest = { ipacl_target: input };
+    const raw = await this.postJson("/ipacl-targets", request);
+    return readObjectField(
+      raw,
+      "ipacl_target",
+      isIpAclTarget,
+      "loadbalancer ipacl target add 응답 형식이 올바르지 않습니다 — ipacl_target 객체가 없습니다.",
+      "loadbalancer ipacl target add 응답의 IP ACL 대상 항목 형식이 예상과 다릅니다 — API 응답 필드를 확인하세요.",
+    );
+  }
+
+  async deleteIpAclTarget(id: string): Promise<void> {
+    const normalizedId = requireNonEmptyId(id, "IP ACL 대상 ID");
+    await this.deleteNoContent(`/ipacl-targets/${encodeURIComponent(normalizedId)}`);
+  }
+
+  async bindIpAclGroups(
+    loadBalancerId: string,
+    ipAclGroupIds: string[],
+  ): Promise<IpAclBinding[]> {
+    const normalizedLoadBalancerId = requireNonEmptyId(
+      loadBalancerId,
+      "Load Balancer ID",
+    );
+    const request: BindIpAclGroupsRequest = {
+      ipacl_groups_binding: ipAclGroupIds.map((id) => ({
+        ipacl_group_id: requireNonEmptyId(id, "IP ACL 그룹 ID"),
+      })),
+    };
+    const raw = await this.putJson(
+      `/loadbalancers/${encodeURIComponent(normalizedLoadBalancerId)}/bind_ipacl_groups`,
+      request,
+    );
+    if (!Array.isArray(raw)) {
+      throw new NhnCloudCliError(
+        "loadbalancer set-ipacl 응답 형식이 올바르지 않습니다 — binding 배열이 없습니다.",
+        EXIT_API_ERROR,
+      );
+    }
+    if (!raw.every(isIpAclBinding)) {
+      throw new NhnCloudCliError(
+        "loadbalancer set-ipacl 응답의 binding 항목 형식이 예상과 다릅니다 — API 응답 필드를 확인하세요.",
+        EXIT_API_ERROR,
+      );
+    }
+    return raw;
+  }
+
   private async getJson(path: string, searchParams?: Record<string, string>): Promise<unknown> {
     const url = `${this.endpoint}${path}`;
     try {
@@ -132,6 +225,51 @@ export class LoadBalancerClient {
           timeout: DEFAULT_TIMEOUT_MS,
         })
         .json();
+    } catch (error) {
+      throw toNhnCloudCliError(error);
+    }
+  }
+
+  private async postJson(path: string, json: unknown): Promise<unknown> {
+    const url = `${this.endpoint}${path}`;
+    try {
+      return await ky
+        .post(url, {
+          headers: this.authHeaders(),
+          json,
+          retry: 0,
+          timeout: DEFAULT_TIMEOUT_MS,
+        })
+        .json();
+    } catch (error) {
+      throw toNhnCloudCliError(error);
+    }
+  }
+
+  private async putJson(path: string, json: unknown): Promise<unknown> {
+    const url = `${this.endpoint}${path}`;
+    try {
+      return await ky
+        .put(url, {
+          headers: this.authHeaders(),
+          json,
+          retry: 0,
+          timeout: DEFAULT_TIMEOUT_MS,
+        })
+        .json();
+    } catch (error) {
+      throw toNhnCloudCliError(error);
+    }
+  }
+
+  private async deleteNoContent(path: string): Promise<void> {
+    const url = `${this.endpoint}${path}`;
+    try {
+      await ky.delete(url, {
+        headers: this.authHeaders(),
+        retry: 0,
+        timeout: DEFAULT_TIMEOUT_MS,
+      });
     } catch (error) {
       throw toNhnCloudCliError(error);
     }

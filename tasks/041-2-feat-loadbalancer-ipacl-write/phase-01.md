@@ -1,7 +1,7 @@
 # Phase 01 — 선행 기반 검증과 IP ACL 쓰기 client
 
 **Execution profile**: standard
-**Status**: pending
+**Status**: completed
 
 ---
 

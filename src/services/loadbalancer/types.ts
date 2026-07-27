@@ -33,6 +33,39 @@ export interface IpAclTarget {
   ipacl_group_id: string;
 }
 
+export interface CreateIpAclGroupInput {
+  name: string;
+  action: IpAclAction;
+  description?: string;
+}
+
+export interface CreateIpAclGroupRequest {
+  ipacl_group: CreateIpAclGroupInput;
+}
+
+export interface CreateIpAclTargetInput {
+  ipacl_group_id: string;
+  cidr_address: string;
+  description?: string;
+}
+
+export interface CreateIpAclTargetRequest {
+  ipacl_target: CreateIpAclTargetInput;
+}
+
+export interface IpAclGroupBinding {
+  ipacl_group_id: string;
+}
+
+export interface BindIpAclGroupsRequest {
+  ipacl_groups_binding: IpAclGroupBinding[];
+}
+
+export interface IpAclBinding {
+  loadbalancer_id: string;
+  ipacl_group_id: string;
+}
+
 export interface LoadBalancersResponse {
   loadbalancers: LoadBalancer[];
 }
@@ -51,6 +84,10 @@ export interface IpAclGroupResponse {
 
 export interface IpAclTargetsResponse {
   ipacl_targets: IpAclTarget[];
+}
+
+export interface IpAclTargetResponse {
+  ipacl_target: IpAclTarget;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -105,6 +142,14 @@ export function isIpAclTarget(value: unknown): value is IpAclTarget {
     isNonEmptyString(value["id"]) &&
     typeof value["cidr_address"] === "string" &&
     typeof value["description"] === "string" &&
+    isNonEmptyString(value["ipacl_group_id"])
+  );
+}
+
+export function isIpAclBinding(value: unknown): value is IpAclBinding {
+  return (
+    isRecord(value) &&
+    isNonEmptyString(value["loadbalancer_id"]) &&
     isNonEmptyString(value["ipacl_group_id"])
   );
 }
