@@ -15,6 +15,7 @@ import {
 import { listCommand } from "./list.js";
 import { getCommand } from "./get.js";
 import { ipaclCommand } from "./ipacl.js";
+import { clearIpAclCommand, setIpAclCommand } from "./binding.js";
 import { configureLoadBalancerHelp } from "./help.js";
 
 vi.mock("./helpers.js", async (importOriginal) => {
@@ -186,7 +187,9 @@ describe("loadbalancer 조회 commands", () => {
     const loadbalancerCommand = new Command("loadbalancer")
       .addCommand(listCommand)
       .addCommand(getCommand)
-      .addCommand(ipaclCommand);
+      .addCommand(ipaclCommand)
+      .addCommand(setIpAclCommand)
+      .addCommand(clearIpAclCommand);
     new Command("nhncloud")
       .option("--json", "JSON 형식으로 출력")
       .option("--quiet", "최소 출력 (자동화용)")
@@ -198,7 +201,13 @@ describe("loadbalancer 조회 commands", () => {
       ["get"],
       ["ipacl", "list"],
       ["ipacl", "get"],
+      ["ipacl", "create"],
+      ["ipacl", "delete"],
       ["ipacl", "target", "list"],
+      ["ipacl", "target", "add"],
+      ["ipacl", "target", "remove"],
+      ["set-ipacl"],
+      ["clear-ipacl"],
     ];
 
     for (const path of leafPaths) {
