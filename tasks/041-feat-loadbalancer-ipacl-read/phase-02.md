@@ -18,6 +18,7 @@ Load Balancer와 IP ACL 그룹·대상 조회 명령을 Commander 트리에 등�
 
 - Phase 01의 `src/services/loadbalancer/client.ts`와 `types.ts`가 존재해야 한다.
 - `docs/flow.md`의 “Load Balancer IP ACL 흐름”과 `docs/adr/022-loadbalancer-ipacl-safety.md`를 먼저 읽는다.
+  생성·삭제·연결·재연결 내용은 후속 쓰기 plan의 배경으로만 읽고 이번 phase에 구현하지 않는다.
 - 기존 IaaS command의 profile 해석, endpoint 조립, spinner 정리, formatter 패턴을 재사용한다.
 
 ---
@@ -65,7 +66,8 @@ table 열은 `id`, `cidr_address`, `description`, `ipacl_group_id` 순서로 고
 
 ### 5. 등록·출력·명령 테스트
 
-`src/index.ts`에 `loadbalancer` 명령군을 등록한다.
+`src/index.ts`에 `loadbalancer` 명령군과 `loadbalancerAgentWorkflow` 도움말을 등록한다.
+도움말에는 `loadbalancer list --json`, `loadbalancer ipacl list --json`, `loadbalancer ipacl target list <group> --json` 순서의 비대화형 조회 흐름을 넣는다.
 각 명령은 입력 검증 후 spinner를 시작하고 `try/catch/finally`로 stderr 상태를 정리한다.
 
 - `--json`: API 의미를 보존한 JSON만 stdout에 출력한다.
@@ -100,13 +102,15 @@ pnpm test -- src/commands/loadbalancer
 pnpm run build
 node dist/index.js loadbalancer --help
 node dist/index.js loadbalancer ipacl target list --help
+node dist/index.js loadbalancer --help | grep -E "Agent workflow|loadbalancer list --json|loadbalancer ipacl list --json"
 ```
 
 성공 기준:
 
 - 모든 명령 종료 코드가 0이다.
 - help에 `list`, `get`, `ipacl`, `target`, `<group>`, `--json`, `--quiet`가 해당 경로별로 나타난다.
-- 현재 133개 catalog 항목에 이 plan의 8개 노드가 더해져 `commands --json` 항목 수가 141이다.
+- 구현 직전 `commands --json` 실측 133개에 이 plan의 Commander node 8개가 더해져 항목 수가 141이다.
+  `AGENTS.md`의 147개는 docs-first로 확정한 후속 쓰기 plan까지 완료된 최종 목표이며 이번 읽기 PR의 실행 기준이 아니다.
 
 ## 의도 메모
 

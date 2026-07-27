@@ -22,7 +22,8 @@
 - OpenStack 응답은 NHN 공통 봉투가 없는 일반 JSON이다.
 - 목록 API에는 공개 페이지네이션 옵션을 추가하지 않고 각 명령이 한 번만 요청한다.
 - 경로 식별자는 `encodeURIComponent`로 인코딩하고 HTTP 오류는 기존 `toNhnCloudCliError` 패턴으로 변환한다.
-- `docs/adr/022-loadbalancer-ipacl-safety.md`, `docs/flow.md`, `docs/code-architecture.md`의 확정 계약을 따른다.
+- `docs/adr/022-loadbalancer-ipacl-safety.md`, `docs/flow.md`, `docs/code-architecture.md` 중 조회 client·출력에 해당하는 계약을 따른다.
+  같은 문서의 생성·삭제·연결·재연결 섹션은 후속 `041-2-feat-loadbalancer-ipacl-write`의 확정 배경이며 이번 phase의 구현·완료 조건이 아니다.
 
 ---
 

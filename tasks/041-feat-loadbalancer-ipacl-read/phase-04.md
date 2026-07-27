@@ -7,9 +7,10 @@
 
 ## 목표
 
-Phase 01–03 산출물과 검증 근거를 확인하고 지정 브랜치에 관심사별 변경만 commit한 뒤 원격에 push한다.
+Phase 01–03 산출물과 검증 근거를 확인하고 task 완료 상태와 실행 기록을 갱신한다.
+executor는 commit·push하지 않고 team-lead에게 검증 결과와 변경 경로를 인계한다.
 
-**범위 외**: PR 생성, merge, 후속 쓰기 plan 실행은 이 phase에서 하지 않는다.
+**범위 외**: PR 생성, merge, 후속 쓰기 plan 실행은 executor가 수행하지 않는다.
 
 ---
 
@@ -36,11 +37,12 @@ Phase 03의 타입 검사, 테스트, build, catalog 검사, 개인 식별 정�
 - `updated_at`: 실제 완료 UTC 시각
 - `error_message`, `blocked_reason`: `null`
 
-### 4. commit과 push
+### 4. 실행 기록과 team-lead 인계
 
 `git status --porcelain`로 변경 파일을 확인한다.
-이 task의 코드, 테스트, README, skill reference, task 상태 파일만 경로를 명시해 `git add`한다.
-`git add -A`와 관련 없는 파일 추가를 금지한다.
+`docs/retrospectives/RUNS.md`에 `build-with-teams` 실행 기록 한 줄을 추가한다.
+이번 task의 코드, 테스트, README, skill reference, task 상태와 실행 기록 경로를 team-lead에게 보고한다.
+team-lead는 phase별 atomic commit과 최종 push를 소유하며 `git add -A`를 사용하지 않는다.
 
 ---
 
@@ -50,48 +52,52 @@ Phase 03의 타입 검사, 테스트, build, catalog 검사, 개인 식별 정�
 |---|---|
 | Phase 01–03의 Critical Files | 최종 확인 |
 | `tasks/041-feat-loadbalancer-ipacl-read/index.json` | completed 마킹 |
+| `docs/retrospectives/RUNS.md` | build-with-teams 실행 기록 |
 
-## 검증과 commit
+## 최종 검증
 
 ```bash
 # cwd: <repo root>
+set -e
 git branch --show-current
 git status --porcelain
 pnpm tsc --noEmit
 pnpm test
 pnpm run build
 node dist/index.js commands --json | jq -e '.commands | length == 141'
+node dist/index.js commands --json | jq -e '
+  .commands | map(.path) as $paths
+  | ["loadbalancer list", "loadbalancer get", "loadbalancer ipacl list", "loadbalancer ipacl get", "loadbalancer ipacl target list"]
+  | all(. as $path | ([ $paths[] | select(. == $path) ] | length) == 1)
+'
+node dist/index.js loadbalancer --help | grep -E "Agent workflow|loadbalancer list --json|loadbalancer ipacl list --json"
 git diff --check
 ```
 
 ```bash
 # cwd: <repo root>
-git add \
-  src/services/loadbalancer \
-  src/commands/loadbalancer \
-  src/index.ts \
-  README.md \
-  skills/nhncloud-cli/SKILL.md \
-  skills/nhncloud-cli/references/loadbalancer.md \
-  tasks/041-feat-loadbalancer-ipacl-read
-git diff --cached --check
-git commit -m "feat(loadbalancer): add IP ACL read commands"
-git push origin feat/041-feat-loadbalancer-ipacl-read
+if grep -rnoE "(https?://|@)[A-Za-z0-9.-]+\.(com|co\.kr|net)" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ 2>/dev/null \
+  | grep -vE "nhncloud\.com|nhncloudservice\.com|github\.com|npmjs\.com|example\.com|openai\.com|anthropic\.com"; then
+  exit 1
+fi
+if grep -rnE "(secret|password|appkey)['\"]?[[:space:]]*[:=][[:space:]]*['\"][A-Za-z0-9]{16,}" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ 2>/dev/null; then
+  exit 1
+fi
 ```
 
 성공 기준:
 
 - 첫 명령 출력이 `feat/041-feat-loadbalancer-ipacl-read`다.
-- 검증 명령과 commit·push가 종료 코드 0이다.
+- 검증 명령이 종료 코드 0이다.
 - `git status --porcelain`에 이 task가 소유한 미반영 변경이 없다.
 - `index.json`이 `status: "completed"`이고 모든 phase가 `completed`다.
 
 ## 의도 메모
 
 - 계획 문서 commit `af3b72c`는 확정 설계 근거이므로 수정하거나 squash하지 않는다.
-- 제품 코드와 task 상태는 한 구현 commit에 포함하되 관련 없는 작업은 분리한다.
+- executor는 커밋하지 않고 team-lead가 phase별 관심사 경계를 확인해 원자적으로 커밋한다.
 
 ## Blocked 조건
 
 - 예상 브랜치가 아니면 `PHASE_BLOCKED: 예상 외 브랜치 — feat/041-feat-loadbalancer-ipacl-read 필요`를 보고한다.
-- push가 실패하면 `PHASE_BLOCKED: push 실패 — 원격 상태 확인 필요`를 보고하고 완료를 주장하지 않는다.
+- 최종 검증이 실패하면 `PHASE_BLOCKED: 최종 검증 실패 — 관련 phase 수정 필요`를 보고하고 완료를 주장하지 않는다.

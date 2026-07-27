@@ -41,6 +41,7 @@ catalog node 수 기준은 plan 시작 시 측정한 133개와 이 plan의 신�
 - `skills/nhncloud-cli/references/loadbalancer.md`: 명령 표, 이름·UUID 규칙, table·JSON·quiet 출력, stdout·stderr 계약을 기록한다.
 
 placeholder만 사용하고 실제 credential, 사내 도메인, 리소스 UUID를 넣지 않는다.
+`AGENTS.md`와 `CLAUDE.md`의 147개는 읽기·쓰기 두 plan의 docs-first 최종 목표이므로 141로 되돌리지 않는다.
 
 ### 4. 문서·task 상태 검증
 
@@ -73,14 +74,19 @@ node dist/index.js commands --json | jq -e '
 '
 node dist/index.js loadbalancer --help
 node dist/index.js loadbalancer ipacl target list --help
+node dist/index.js loadbalancer --help | grep -E "Agent workflow|loadbalancer list --json|loadbalancer ipacl list --json"
 git diff --check
 ```
 
 ```bash
 # cwd: <repo root>
-grep -rnoE "(https?://|@)[A-Za-z0-9.-]+\.(com|co\.kr|net)" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ 2>/dev/null \
-  | grep -vE "nhncloud\.com|nhncloudservice\.com|github\.com|npmjs\.com|example\.com|openai\.com|anthropic\.com"
-grep -rnE "(secret|password|appkey)['\"]?[[:space:]]*[:=][[:space:]]*['\"][A-Za-z0-9]{16,}" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ 2>/dev/null
+if grep -rnoE "(https?://|@)[A-Za-z0-9.-]+\.(com|co\.kr|net)" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ 2>/dev/null \
+  | grep -vE "nhncloud\.com|nhncloudservice\.com|github\.com|npmjs\.com|example\.com|openai\.com|anthropic\.com"; then
+  exit 1
+fi
+if grep -rnE "(secret|password|appkey)['\"]?[[:space:]]*[:=][[:space:]]*['\"][A-Za-z0-9]{16,}" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ 2>/dev/null; then
+  exit 1
+fi
 ```
 
 성공 기준:
