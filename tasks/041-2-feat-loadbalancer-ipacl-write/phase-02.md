@@ -32,6 +32,11 @@ IP ACL 그룹 생성·삭제와 Load Balancer 연결·해제 명령을 비대화
 - 이름·설명은 기존 CLI 정책에 맞게 trim하고 필수 이름의 빈 문자열을 거부한다.
 - `requireYes`는 `--yes`가 없으면 `EXIT_PARAM_ERROR`를 내고 다른 side effect를 시작하지 않는다.
 - 반복 `--group`을 배열로 수집하고 한 개 이상인지 검사한다.
+- 각 command는 `opts` 추출 직후 아래 값을 먼저 파싱하고, 검증된 변수만 resolver·spinner·client에 전달한다.
+  - create: `parsedName`, `parsedAction`, `parsedDescription`
+  - delete: `confirmedYes`, `parsedGroup`
+  - set-ipacl: `confirmedYes`, `parsedLoadBalancer`, `parsedGroups`
+  - clear-ipacl: `confirmedYes`, `parsedLoadBalancer`
 
 ### 2. 그룹 생성·삭제
 
@@ -73,6 +78,9 @@ Load Balancer와 그룹을 이름 또는 UUID로 해석한다.
 - 기본 table: 같은 의미 필드를 사람이 읽을 수 있게 표시.
 
 command 테스트는 `--yes` 선검증, action·빈 입력·중복 ID·action 불일치, set과 clear payload 차이, 이름 중복 후보, stdout·stderr 분리를 검증한다.
+invalid action·빈 name/group·`--yes` 누락에서는 `resolveLoadBalancerClient`, 리소스 resolver, client method, `startSpinner`가 모두 호출되지 않아야 한다.
+기존 leaf help 회귀 테스트에 `ipacl create`, `ipacl delete`, `set-ipacl`, `clear-ipacl`을 추가한다.
+각 help가 전역 `--json`·`--quiet`, 지역 `--region`·`--profile`, 해당 쓰기 명령의 `--yes`·`--group` 옵션을 실제 계약대로 노출하는지 검증한다.
 phase 완료 시 Phase 2를 `completed`, `current_phase`를 `3`으로 갱신한다.
 
 ---
@@ -104,7 +112,8 @@ node dist/index.js loadbalancer clear-ipacl --help
 
 - 모든 명령 종료 코드가 0이다.
 - help에 확정 옵션과 위치 인자가 나타난다.
-- `--yes` 누락 테스트에서 token resolver와 client가 호출되지 않는다.
+- 잘못된 입력과 `--yes` 누락 테스트에서 token resolver, 리소스 resolver, client, spinner가 호출되지 않는다.
+- 신규 4개 leaf help에 전역·지역·쓰기 안전 옵션이 실제 명령 계약대로 나타난다.
 
 ## 의도 메모
 

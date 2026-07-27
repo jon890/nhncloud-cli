@@ -38,6 +38,8 @@ IP ACL 대상 추가·삭제 후 연결된 모든 Load Balancer를 기본으로 
 
 remove는 이름 해석을 하지 않고 target ID만 받는다.
 두 명령 모두 prompt를 열지 않으며 `--yes` 누락은 인증 전에 실패한다.
+`opts` 추출 직후 add는 `confirmedYes`, `parsedGroup`, `parsedCidr`, `parsedDescription`을,
+remove는 `confirmedYes`, `parsedTargetId`를 먼저 만들고 검증된 변수만 resolver·spinner·client에 전달한다.
 
 ### 2. `src/commands/loadbalancer/rebind.ts` — snapshot과 재바인딩
 
@@ -74,7 +76,17 @@ remove는 이름 해석을 하지 않고 target ID만 받는다.
         "loadbalancer_id": "<loadbalancer-id>",
         "ipacl_group_ids": ["<group-id>"],
         "error": "<message>",
-        "retry_command": "nhncloud loadbalancer set-ipacl <loadbalancer-id> --group <group-id> --yes --json"
+        "retry_argv": [
+          "nhncloud",
+          "loadbalancer",
+          "set-ipacl",
+          "<loadbalancer-id>",
+          "--group",
+          "<group-id>",
+          "--yes",
+          "--json"
+        ],
+        "retry_command": "nhncloud loadbalancer set-ipacl '<loadbalancer-id>' --group '<group-id>' --yes --json"
       }
     ]
   }
@@ -83,7 +95,9 @@ remove는 이름 해석을 하지 않고 target ID만 받는다.
 
 - `operation`: add는 `ipacl-target-add`, remove는 `ipacl-target-remove`.
 - `status`: 재바인딩 실패가 없으면 `succeeded`, 하나라도 있으면 `partial`.
-- `retry_command`: snapshot의 그룹 ID를 모두 반복 `--group`으로 넣은 비대화형 명령.
+- `retry_argv`: snapshot의 그룹 ID를 모두 반복 `--group`으로 넣은 비대화형 argv 배열이며 AI 에이전트용 canonical 복구 계약이다.
+- `retry_command`: 같은 argv를 POSIX 단일 인용 helper로 안전하게 표시한 사람이 복사 가능한 명령이다.
+  외부 문자열을 이어 붙이지 않고 작은따옴표는 `'"'"'` 형태로 이스케이프한다.
 - partial에서도 JSON을 stdout에 먼저 출력하고 `process.exitCode = EXIT_API_ERROR`로 설정한다.
 - stderr에는 부분 실패 요약과 복구 필요성을 출력한다.
 - `--quiet`은 target ID를 stdout에 출력하며 partial이면 같은 비정상 종료 코드와 stderr 복구 정보를 유지한다.
@@ -100,12 +114,15 @@ remove는 이름 해석을 하지 않고 target ID만 받는다.
 모의 client로 아래를 고정한다.
 
 - add/remove의 `--yes` 선검증과 target ID 전용 remove.
+- invalid CIDR·빈 group/target ID·`--yes` 누락에서 client resolver, 리소스 resolver, client method, spinner 호출 0회.
 - snapshot 실패 시 target 변경 호출 0회.
 - snapshot 완료 후 target 변경 1회.
 - 중간 재바인딩 실패 뒤 후속 Load Balancer 호출 계속.
-- partial JSON schema, retry command, stdout 출력 후 `EXIT_API_ERROR`.
+- partial JSON schema, `retry_argv`, shell-safe `retry_command`, stdout 출력 후 `EXIT_API_ERROR`.
 - `--no-rebind`, quiet, 경고 stream.
 - 자동 rollback 호출 부재.
+- 공백·작은따옴표가 포함된 모의 ID와 control char가 포함된 오류 메시지로 argv 보존, command 인용, stderr terminal sanitize를 검증한다.
+- 기존 leaf help 회귀 테스트에 `ipacl target add/remove`를 추가하고 전역 `--json`·`--quiet`, 지역 `--region`·`--profile`, `--yes`·`--no-rebind` 노출을 검증한다.
 
 executor는 실제 NHN Cloud 쓰기 API를 호출하거나 credential을 사용하지 않는다.
 phase 완료 시 Phase 3을 `completed`, `current_phase`를 `4`로 갱신한다.
@@ -138,6 +155,8 @@ node dist/index.js loadbalancer ipacl target remove --help
 - 타입 검사·테스트·build가 종료 코드 0이다.
 - 테스트가 partial 결과와 후속 재바인딩 지속을 검증한다.
 - 테스트가 target 변경 전에 snapshot을 끝냈음을 호출 순서로 검증한다.
+- 테스트가 잘못된 입력에서 credential·resolver·spinner·API 접근이 0회임을 검증한다.
+- 두 신규 leaf help가 전역·지역·쓰기 안전 옵션을 노출한다.
 
 ## 의도 메모
 

@@ -8,7 +8,8 @@
 ## 목표
 
 Phase 01–04의 산출물과 검증 근거를 확인한다.
-지정 브랜치에 이 task가 소유한 변경만 commit하고 원격에 push한다.
+지정 브랜치에 이 task가 소유한 변경만 team-lead가 commit하고 원격에 push한다.
+executor는 commit·push하지 않고 최종 검증 결과와 stage 대상 경로만 team-lead에게 보고한다.
 
 **범위 외**: PR 생성, merge, 실제 cloud 쓰기 smoke는 이 phase에서 하지 않는다.
 
@@ -38,10 +39,12 @@ Phase 04의 타입 검사, 테스트, build, catalog 검사, 개인 식별 정�
 - `updated_at`: 실제 완료 UTC 시각
 - `error_message`, `blocked_reason`: `null`
 
-### 4. commit과 push
+### 4. 실행 기록과 team-lead commit·push
 
 `git status --porcelain`로 변경 파일을 확인한다.
-이 task의 코드, 테스트, README, skill reference, task 상태 파일만 경로를 명시해 `git add`한다.
+`docs/retrospectives/RUNS.md`에 이번 실행을 `build-with-teams`, 대상 `041-2-feat-loadbalancer-ipacl-write`, 모드 `A`, phase `5`로 기록한다.
+REVISE·FIX·DOCS·BLOCK·개입은 실제 집계값을 쓰고, PR 생성 전 결과는 `PR 준비`로 기록한다.
+이 task의 코드, 테스트, README, skill reference, task 상태, 실행 기록만 경로를 명시해 team-lead가 `git add`한다.
 `git add -A`와 관련 없는 파일 추가를 금지한다.
 
 ---
@@ -52,8 +55,9 @@ Phase 04의 타입 검사, 테스트, build, catalog 검사, 개인 식별 정�
 |---|---|
 | Phase 01–04의 Critical Files | 최종 확인 |
 | `tasks/041-2-feat-loadbalancer-ipacl-write/index.json` | completed 마킹 |
+| `docs/retrospectives/RUNS.md` | build-with-teams 실행 기록 |
 
-## 검증과 commit
+## 검증과 team-lead commit
 
 ```bash
 # cwd: <repo root>
@@ -77,6 +81,7 @@ git add \
   README.md \
   skills/nhncloud-cli/SKILL.md \
   skills/nhncloud-cli/references/loadbalancer.md \
+  docs/retrospectives/RUNS.md \
   tasks/041-2-feat-loadbalancer-ipacl-write
 git diff --cached --check
 git commit -m "feat(loadbalancer): add IP ACL write safety"
@@ -90,11 +95,13 @@ git push origin feat/041-2-feat-loadbalancer-ipacl-write
 - 검증 명령과 commit·push가 종료 코드 0이다.
 - `git status --porcelain`에 이 task가 소유한 미반영 변경이 없다.
 - `index.json`이 `status: "completed"`이고 모든 phase가 `completed`다.
+- RUNS 행이 실제 집계값과 `PR 준비` 결과를 담는다.
 
 ## 의도 메모
 
 - 후속 branch는 읽기 PR 병합 후 rebase하는 의존 순서를 지킨다.
 - 제품 변경과 공개 문서는 한 기능 PR로 묶되 관련 없는 작업은 포함하지 않는다.
+- phase별 atomic commit과 최종 push는 team-lead가 소유한다.
 
 ## Blocked 조건
 

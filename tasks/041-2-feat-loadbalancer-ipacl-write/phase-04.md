@@ -20,6 +20,7 @@ README와 공개 skill에 비대화형 안전 옵션, 재바인딩, 부분 실�
 
 타입 검사, 단위 테스트, bundle build를 순서대로 실행한다.
 실패하면 원인을 고치고 같은 검증을 다시 실행한다.
+`src/commands/loadbalancer/commands.test.ts`의 leaf help 회귀 테스트가 신규 6개 쓰기 경로까지 포함하는지 확인한다.
 
 ### 2. command catalog 검증
 
@@ -72,6 +73,29 @@ node dist/index.js commands --json | jq -e '
   | ["loadbalancer ipacl create", "loadbalancer ipacl delete", "loadbalancer ipacl target add", "loadbalancer ipacl target remove", "loadbalancer set-ipacl", "loadbalancer clear-ipacl"]
   | all(. as $path | ([ $paths[] | select(. == $path) ] | length) == 1)
 '
+assert_help_flags() {
+  help_output="$(node dist/index.js "$@" --help)"
+  for flag in --json --quiet --region --profile; do
+    printf '%s\n' "$help_output" | grep -q -- "$flag"
+  done
+}
+assert_help_flags loadbalancer ipacl create
+assert_help_flags loadbalancer ipacl delete
+assert_help_flags loadbalancer ipacl target add
+assert_help_flags loadbalancer ipacl target remove
+assert_help_flags loadbalancer set-ipacl
+assert_help_flags loadbalancer clear-ipacl
+for command_path in \
+  "loadbalancer ipacl delete" \
+  "loadbalancer ipacl target add" \
+  "loadbalancer ipacl target remove" \
+  "loadbalancer set-ipacl" \
+  "loadbalancer clear-ipacl"; do
+  node dist/index.js $command_path --help | grep -q -- "--yes"
+done
+node dist/index.js loadbalancer ipacl target add --help | grep -q -- "--no-rebind"
+node dist/index.js loadbalancer ipacl target remove --help | grep -q -- "--no-rebind"
+node dist/index.js loadbalancer set-ipacl --help | grep -q -- "--group"
 git diff --check
 ```
 
@@ -85,6 +109,7 @@ grep -rnE "(secret|password|appkey)['\"]?[[:space:]]*[:=][[:space:]]*['\"][A-Za-
 성공 기준:
 
 - 타입 검사·테스트·build·catalog·`git diff --check`가 통과한다.
+- 신규 6개 leaf help가 전역·지역·쓰기 안전 옵션을 실제 계약대로 노출한다.
 - 개인 식별 정보 검사는 출력이 0줄이다.
 - 실제 NHN Cloud 쓰기 요청은 0회다.
 
