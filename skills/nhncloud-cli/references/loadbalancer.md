@@ -164,8 +164,13 @@ nhncloud loadbalancer ipacl target remove <target-id> \
 | `--profile <name>` | 사용할 profile |
 | `--json` | 객체 또는 배열을 JSON으로 stdout에 출력 |
 | `--quiet` | 리소스 UUID만 stdout에 출력 |
-| `--yes` | 삭제·연결 교체·대상 변경을 비대화형으로 확인 |
-| `--no-rebind` | 대상 추가·삭제 후 자동 재바인딩 생략 |
+
+## 쓰기 전용 옵션
+
+| 옵션 | 적용 명령 | 설명 |
+|------|-----------|------|
+| `--yes` | `ipacl delete`, `ipacl target add/remove`, `set-ipacl`, `clear-ipacl` | 삭제·연결 교체·대상 변경을 비대화형으로 확인 |
+| `--no-rebind` | `ipacl target add/remove` | 대상 변경 후 자동 재바인딩 생략 |
 
 ## stdout과 stderr
 

@@ -39,10 +39,12 @@ NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 TypeScript CLI다.
 - profile은 기본값에 의존하지 말고 가능하면 `--profile <name>`을 명시한다.
 - IaaS 계열(`instance`, `network`, `volume`, `floatingip`, `loadbalancer`, `nks`)은 region이 중요하면 `--region <region>`을 명시한다.
 - 삭제, 제거, 비용 발생, 리소스 생성 같은 파괴적/쓰기 명령은 `--yes` 없으면 대화형 confirm이 있을 수 있다.
-- 데이터는 stdout, 진행 상황과 에러는 stderr에 출력한다.
+- 데이터는 stdout, 진행 상황·운영 경고·에러는 stderr에 출력한다.
 - 비밀값, appkey, tenantId, 실제 instance/network id는 문서나 이슈에 그대로 쓰지 않고 placeholder를 사용한다.
 - Load Balancer IP ACL 쓰기는 `--profile`, `--region`, `--json`을 명시하고, 삭제·연결 교체·대상 변경에는 `--yes`도 명시한다.
-- IP ACL 대상 변경은 기본 재바인딩을 유지한다. 종료 코드 1이면 stdout JSON의 `rebind.failed[].retry_argv`를 배열 그대로 실행하고, `retry_command`는 사람 확인용으로만 사용한다.
+- IP ACL 대상 변경은 기본 재바인딩을 유지한다.
+- 대상 변경의 종료 코드가 1이면 stdout JSON의 `rebind.failed[]`를 확인한다.
+- 복구에는 `retry_argv` 배열을 그대로 사용하고, `retry_command`는 사람 확인용으로만 사용한다.
 
 ## 빠른 시작
 

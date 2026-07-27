@@ -634,7 +634,7 @@ UUID가 정확히 일치하면 바로 선택하고, 이름은 정확히 하나�
 IP ACL 그룹 목록 컬럼은 `id`, `name`, `action`, `ipacl_target_count`, `loadbalancer_count`다.
 IP ACL 대상 목록 컬럼은 `id`, `cidr_address`, `description`, `ipacl_group_id`다.
 `--json`은 응답 래퍼를 제거한 객체 또는 배열을 stdout에 출력하고, `--quiet`는 리소스 UUID만 한 줄에 하나씩 stdout에 출력한다.
-조회 진행 상황과 오류는 stderr로 분리된다.
+진행 상황, 운영 경고, 오류는 stderr로 분리된다.
 
 쓰기 명령은 대화형 확인을 열지 않는다.
 삭제, 연결 교체, 대상 변경에는 `--yes`가 필수다.
