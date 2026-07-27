@@ -38,6 +38,9 @@ src/
     network/
       client.ts             # NetworkClient — listVpcs / listSubnets / listFloatingIps / createFloatingIp / deleteFloatingIp / findExternalNetworkId (instance 와 Keystone 토큰 공유, [[adr-013]])
       types.ts              # Vpc / VpcSubnet / FloatingIp / CreateFloatingIpParams ("router:external" 콜론 키)
+    loadbalancer/
+      client.ts             # LoadBalancerClient — LB·IP ACL 그룹·대상 조회/변경 + bindIpAclGroups (network endpoint 재사용, [[adr-022]])
+      types.ts              # LoadBalancer / IpAclGroup / IpAclTarget / binding 요청·응답
     blockstorage/
       client.ts             # BlockStorageClient — list / get / create (volume, Cinder volumev2, [[adr-013]])
       types.ts              # Volume (name·volume_type nullable) / VolumeAttachment / CreateVolumeParams
@@ -100,6 +103,14 @@ src/
       list.ts               # nhncloud floatingip list (공인 IP 목록)
       create.ts             # nhncloud floatingip create (쓰기, 외부 VPC 자동 조회, network endpoint 재사용 [[adr-013]])
       delete.ts             # nhncloud floatingip delete <id> (쓰기, confirm·--yes)
+    loadbalancer/
+      list.ts               # nhncloud loadbalancer list
+      get.ts                # nhncloud loadbalancer get <lb>
+      ipacl.ts              # nhncloud loadbalancer ipacl list/get/create/delete
+      target.ts             # nhncloud loadbalancer ipacl target list/add/remove
+      binding.ts            # nhncloud loadbalancer set-ipacl/clear-ipacl
+      rebind.ts             # 대상 변경 전 binding snapshot + 전체 재바인딩 + 부분 실패 결과 타입
+      helpers.ts            # LoadBalancerClient 생성 + 이름/UUID resolver
     volume/
       list.ts               # nhncloud volume list (Block Storage)
       get.ts                # nhncloud volume get <id>
@@ -159,6 +170,7 @@ dooray-cli 는 단일 `config + client` 로 충분했지만, NHN Cloud 는 서�
   - deploy: `X-NHN-AUTHORIZATION: Bearer <token>` + config target 좌표 ([[adr-008]])
   - instance: `X-Auth-Token: <tokenId>` + region 별 compute endpoint
   - network: `X-Auth-Token: <tokenId>` + region 별 network endpoint (instance 와 토큰 공유, [[adr-013]])
+  - loadbalancer: `X-Auth-Token: <tokenId>` + network endpoint의 `/lbaas` 경로 재사용. 그룹 변경 후 자동 재바인딩과 부분 실패 복구는 [[adr-022]]
   - nks: `X-Auth-Token: <tokenId>` + `OpenStack-API-Version: container-infra latest` + region 별 kubernetes infrastructure endpoint ([[adr-019]])
   - ncr: `X-TC-AUTHENTICATION-ID/SECRET` 공통 UAK 정적 헤더 + region 별 ncr host (토큰 교환 없음, [[adr-016]])
   - ncr 이미지/태그: 데이터플레인 host 에 UAK `Basic Auth` + Harbor REST `/api/v2.0` (봉투 미적용, [[adr-017]])
@@ -178,6 +190,7 @@ dooray-cli 는 단일 `config + client` 로 충분했지만, NHN Cloud 는 서�
 - 모든 에러는 `NhnCloudCliError(message, exitCode)` 로 통일.
 - HTTP 에러는 `api/httpError.ts` 에서 status → exit code 매핑 (401/403 = AUTH, 그 외 = API).
 - 데이터는 stdout, 스피너·에러는 stderr.
+- Load Balancer 대상 재바인딩이 일부 실패하면 구조화된 부분 결과를 stdout에 남기고 실패 종료 코드를 설정한다. stderr에는 진단과 복구 요약만 쓴다([[adr-022]]).
 
 ## 빌드·배포
 

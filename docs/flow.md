@@ -468,6 +468,79 @@ nhncloud floatingip delete <id> [options]        # 삭제 (쓰기 — 기본 con
 | 외부 네트워크 미발견(create `--network` 미지정) / 비대화형 delete `--yes` 누락 | `EXIT_PARAM_ERROR` |
 | Floating IP API 4xx · 5xx | `EXIT_API_ERROR` |
 
+## loadbalancer IP ACL 흐름
+
+Load Balancer와 IP ACL은 network endpoint와 Keystone `X-Auth-Token`을 재사용한다([[adr-013]], [[adr-022]]).
+그룹·대상 목록과 Load Balancer 적용 상태를 먼저 조회한 뒤, 별도 변경 명령으로 전체 교체와 재바인딩을 수행한다.
+
+### 명령 시그니처
+
+```text
+nhncloud loadbalancer list
+nhncloud loadbalancer get <lb>
+
+nhncloud loadbalancer ipacl list
+nhncloud loadbalancer ipacl get <group>
+nhncloud loadbalancer ipacl create --name <name> --action <ALLOW|DENY> [--description <text>]
+nhncloud loadbalancer ipacl delete <group> --yes
+
+nhncloud loadbalancer ipacl target list <group>
+nhncloud loadbalancer ipacl target add <group> --cidr <ip-or-cidr> [--description <text>] [--no-rebind] --yes
+nhncloud loadbalancer ipacl target remove <target-id> [--no-rebind] --yes
+
+nhncloud loadbalancer set-ipacl <lb> --group <group> [--group <group>...] --yes
+nhncloud loadbalancer clear-ipacl <lb> --yes
+```
+
+모든 명령은 `--region`, `--profile`, 전역 `--json`·`--quiet`를 지원한다.
+`<lb>`와 `<group>`은 UUID 또는 이름을 받는다.
+동일한 이름이 둘 이상이면 임의로 선택하지 않고 후보 UUID를 포함한 입력 오류를 반환한다.
+IP ACL 대상에는 이름이 없으므로 `target remove`는 UUID만 받는다.
+
+### 조회 흐름
+
+1. profile과 region을 해석하고 기존 IaaS Keystone 토큰과 network endpoint를 재사용한다.
+2. Load Balancer, IP ACL 그룹, 대상 API를 한 번 호출한다.
+   공식 API에 페이지 입력이나 다음 페이지 응답이 없어 CLI 페이지 옵션을 추가하지 않는다.
+3. 빈 목록은 기본 출력에서 `결과 없음`, `--json`에서 `[]`, `--quiet`에서 빈 stdout으로 반환한다.
+4. 기본 표는 자동화에 필요한 식별자와 상태만 보여주고, 전체 원본 필드는 `--json`으로 반환한다.
+
+### 전체 교체와 해제
+
+- `set-ipacl`은 `--group`을 한 번 이상 요구하며 기존 적용 그룹을 전부 입력 목록으로 교체한다.
+- `clear-ipacl`만 빈 배열을 전송해 모든 그룹을 해제한다.
+- 두 명령은 대화형 확인을 열지 않는다.
+  `--yes`가 없으면 자격증명 해석과 API 호출 전에 `EXIT_PARAM_ERROR`로 실패한다.
+- 여러 그룹의 action이 섞이면 API 호출 전에 차단한다.
+
+### 대상 변경과 자동 재바인딩
+
+`target add`와 `target remove`는 기본으로 대상 그룹이 적용된 모든 Load Balancer를 재바인딩한다.
+자동 재바인딩을 생략하려면 `--no-rebind`를 명시해야 하며, 이 경우 규칙이 즉시 반영되지 않을 수 있음을 stderr로 경고한다.
+
+1. `--yes`, CIDR, 필수 인자를 먼저 검증한다.
+2. 그룹과 적용된 Load Balancer를 해석한다.
+3. 각 Load Balancer의 전체 IP ACL 그룹 ID 목록을 변경 전에 저장한다.
+4. 대상을 추가하거나 삭제한다.
+5. 저장한 전체 목록으로 관련 Load Balancer를 모두 재바인딩한다.
+   한 건이 실패해도 나머지는 계속 시도한다.
+6. 실패한 Load Balancer가 있으면 자동 원복하지 않는다.
+   성공·실패 ID, 원래 그룹 ID, 재시도 명령을 구조화해 반환하고 실패 종료 코드를 설정한다.
+
+API 성공은 데이터 경로 반영 완료를 뜻하지 않는다.
+실측으로 반영 시점이 Load Balancer마다 다르고 10~20초가 걸릴 수 있어, CLI는 고정 대기나 조회 API 폴링을 성공 판정으로 사용하지 않는다.
+ALLOW 그룹은 외부 주소뿐 아니라 Load Balancer가 속한 VPC 사설 대역이 없으면 전체 차단될 수 있음을 변경 전에 stderr로 경고한다.
+
+### 출력과 오류
+
+- `stdout`: 조회 데이터와 변경 결과. 부분 실패의 `--json` 결과에는 성공·실패 Load Balancer, 그룹 목록, 재시도 명령을 포함한다.
+- `stderr`: 진행 상태, 안전 경고, 사람이 읽는 실패 요약.
+- 변경 전 실패는 stdout을 비운다.
+  대상 변경 뒤 재바인딩 일부가 실패하면 구조화된 결과를 stdout에 남기고 `EXIT_API_ERROR`로 종료한다.
+- 모든 위험 변경은 `--yes`가 필수이며 대화형 입력을 기다리지 않는다.
+
+[[adr-022]]가 전체 교체, 자동 재바인딩, 자동 원복 금지의 근거를 소유한다.
+
 ## ncr (NHN Container Registry) 흐름
 
 레지스트리 조회 명령군. NCR Management API 는 공통 UAK 를 정적 헤더(`X-TC-AUTHENTICATION-ID/SECRET`)로 받고 region 별 host 를 쓴다([[adr-016]]) — deploy 의 OAuth 토큰 교환이 없다.

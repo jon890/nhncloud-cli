@@ -43,6 +43,7 @@ AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트�
 - `nhncloud ncs` — NHN Container Service 관리 (Deploy OAuth 토큰 재사용 + appkey 경로·ADR-020, region kr1/kr3)
   - `template`(컨테이너 실행 설계도)·`workload`(런타임 실행)·`malware`(악성코드 검사) 3개 리소스를 조회·생성·삭제·실행제어한다.
   - workload 는 비동기라 `create --wait` 로 Running 을 대기하고, 복잡한 생성·변경은 `--file <json>` 입력을 기본으로 한다.
+- `nhncloud loadbalancer` — Load Balancer와 IP ACL 그룹·대상을 조회하고 안전하게 변경한다([[adr-022]], [사용 흐름](flow.md#loadbalancer-ip-acl-흐름)).
 - profile 기반 자격증명 (`~/.nhncloud/credentials.json` + `~/.nhncloud/config.json`)
 - 출력 3모드 — 테이블 / `--json` / `--quiet`
 - `--profile` 로 profile 전환
