@@ -25,7 +25,7 @@ Phase 01–03의 신규 파일과 공개 문서가 존재하는지 확인한다.
 ### 2. 최종 검증
 
 Phase 03의 타입 검사, 테스트, build, catalog 검사, 개인 식별 정보 검사, `git diff --check`를 다시 실행한다.
-실패가 남아 있으면 commit하지 않는다.
+실패가 남아 있으면 완료를 주장하지 않고 실패 명령과 원인을 team-lead에게 인계한다.
 
 ### 3. task 완료 상태
 
@@ -89,7 +89,7 @@ fi
 
 - 첫 명령 출력이 `feat/041-feat-loadbalancer-ipacl-read`다.
 - 검증 명령이 종료 코드 0이다.
-- `git status --porcelain`에 이 task가 소유한 미반영 변경이 없다.
+- `git status --porcelain`의 변경 경로가 이 task 소유 범위와 실행 기록뿐이며 모두 team-lead 인계 목록에 포함된다.
 - `index.json`이 `status: "completed"`이고 모든 phase가 `completed`다.
 
 ## 의도 메모

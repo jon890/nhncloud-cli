@@ -103,6 +103,12 @@ pnpm run build
 node dist/index.js loadbalancer --help
 node dist/index.js loadbalancer ipacl target list --help
 node dist/index.js loadbalancer --help | grep -E "Agent workflow|loadbalancer list --json|loadbalancer ipacl list --json"
+node dist/index.js commands --json | jq -e '.commands | length == 141'
+node dist/index.js commands --json | jq -e '
+  .commands | map(.path) as $paths
+  | ["loadbalancer list", "loadbalancer get", "loadbalancer ipacl list", "loadbalancer ipacl get", "loadbalancer ipacl target list"]
+  | all(. as $path | ([ $paths[] | select(. == $path) ] | length) == 1)
+'
 ```
 
 성공 기준:
