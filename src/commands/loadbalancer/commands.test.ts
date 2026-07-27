@@ -15,6 +15,7 @@ import {
 import { listCommand } from "./list.js";
 import { getCommand } from "./get.js";
 import { ipaclCommand } from "./ipacl.js";
+import { configureLoadBalancerHelp } from "./help.js";
 
 vi.mock("./helpers.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./helpers.js")>();
@@ -179,5 +180,40 @@ describe("loadbalancer 조회 commands", () => {
         ids: ["target-1"],
       }),
     );
+  });
+
+  it("모든 leaf help에 부모의 json·quiet 전역 옵션을 표시한다", () => {
+    const loadbalancerCommand = new Command("loadbalancer")
+      .addCommand(listCommand)
+      .addCommand(getCommand)
+      .addCommand(ipaclCommand);
+    new Command("nhncloud")
+      .option("--json", "JSON 형식으로 출력")
+      .option("--quiet", "최소 출력 (자동화용)")
+      .addCommand(loadbalancerCommand);
+    configureLoadBalancerHelp(loadbalancerCommand);
+
+    const leafPaths = [
+      ["list"],
+      ["get"],
+      ["ipacl", "list"],
+      ["ipacl", "get"],
+      ["ipacl", "target", "list"],
+    ];
+
+    for (const path of leafPaths) {
+      let leaf = loadbalancerCommand;
+      for (const segment of path) {
+        const child = leaf.commands.find((command) => command.name() === segment);
+        expect(child, path.join(" ")).toBeDefined();
+        if (!child) throw new Error(`명령을 찾을 수 없습니다: ${path.join(" ")}`);
+        leaf = child;
+      }
+
+      const help = leaf.helpInformation();
+      expect(help, path.join(" ")).toContain("Global Options:");
+      expect(help, path.join(" ")).toContain("--json");
+      expect(help, path.join(" ")).toContain("--quiet");
+    }
   });
 });

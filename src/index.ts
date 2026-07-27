@@ -52,6 +52,7 @@ import { malwareCommand as ncsMalwareCommand } from "./commands/ncs/malware.js";
 import { listCommand as loadBalancerListCommand } from "./commands/loadbalancer/list.js";
 import { getCommand as loadBalancerGetCommand } from "./commands/loadbalancer/get.js";
 import { ipaclCommand as loadBalancerIpAclCommand } from "./commands/loadbalancer/ipacl.js";
+import { configureLoadBalancerHelp } from "./commands/loadbalancer/help.js";
 
 const rootAgentHints = `
 Agent hints:
@@ -238,6 +239,7 @@ const loadbalancerCommand = new Command("loadbalancer")
 loadbalancerCommand.addCommand(loadBalancerListCommand);
 loadbalancerCommand.addCommand(loadBalancerGetCommand);
 loadbalancerCommand.addCommand(loadBalancerIpAclCommand);
+configureLoadBalancerHelp(loadbalancerCommand);
 
 program.addCommand(loadbalancerCommand);
 
