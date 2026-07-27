@@ -53,6 +53,10 @@ import { listCommand as loadBalancerListCommand } from "./commands/loadbalancer/
 import { getCommand as loadBalancerGetCommand } from "./commands/loadbalancer/get.js";
 import { ipaclCommand as loadBalancerIpAclCommand } from "./commands/loadbalancer/ipacl.js";
 import { configureLoadBalancerHelp } from "./commands/loadbalancer/help.js";
+import {
+  clearIpAclCommand as loadBalancerClearIpAclCommand,
+  setIpAclCommand as loadBalancerSetIpAclCommand,
+} from "./commands/loadbalancer/binding.js";
 
 const rootAgentHints = `
 Agent hints:
@@ -234,11 +238,13 @@ program.addCommand(floatingipCommand);
 
 // loadbalancer 커맨드 그룹
 const loadbalancerCommand = new Command("loadbalancer")
-  .description("Load Balancer·IP ACL 조회")
+  .description("Load Balancer·IP ACL 조회·관리")
   .addHelpText("after", loadbalancerAgentWorkflow);
 loadbalancerCommand.addCommand(loadBalancerListCommand);
 loadbalancerCommand.addCommand(loadBalancerGetCommand);
 loadbalancerCommand.addCommand(loadBalancerIpAclCommand);
+loadbalancerCommand.addCommand(loadBalancerSetIpAclCommand);
+loadbalancerCommand.addCommand(loadBalancerClearIpAclCommand);
 configureLoadBalancerHelp(loadbalancerCommand);
 
 program.addCommand(loadbalancerCommand);

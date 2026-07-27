@@ -3,8 +3,14 @@ import type { IpAclGroup, LoadBalancer } from "../../services/loadbalancer/types
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import {
+  collectOption,
+  optionalTrimmed,
+  parseIpAclAction,
   requireResourceInput,
+  requireResourceInputs,
+  requireYes,
   resolveIpAclGroupId,
+  resolveIpAclGroups,
   resolveLoadBalancerId,
 } from "./helpers.js";
 
@@ -43,6 +49,24 @@ describe("requireResourceInput", () => {
       expect(error).toBeInstanceOf(NhnCloudCliError);
       expect((error as NhnCloudCliError).exitCode).toBe(EXIT_PARAM_ERROR);
     }
+  });
+});
+
+describe("쓰기 입력 helper", () => {
+  it("action은 ALLOW·DENY 원문만 허용한다", () => {
+    expect(parseIpAclAction("ALLOW")).toBe("ALLOW");
+    expect(parseIpAclAction("DENY")).toBe("DENY");
+    expect(() => parseIpAclAction("allow")).toThrow("ALLOW 또는 DENY");
+  });
+
+  it("설명 trim, --yes, 반복 group 입력을 순수 검증한다", () => {
+    expect(optionalTrimmed("  description  ")).toBe("description");
+    expect(optionalTrimmed(undefined)).toBeUndefined();
+    expect(requireYes(true, "작업")).toBe(true);
+    expect(() => requireYes(false, "작업")).toThrow("--yes");
+    expect(collectOption("group-2", ["group-1"])).toEqual(["group-1", "group-2"]);
+    expect(requireResourceInputs([" group-1 "], "IP ACL 그룹")).toEqual(["group-1"]);
+    expect(() => requireResourceInputs([], "IP ACL 그룹")).toThrow("한 개 이상");
   });
 });
 
@@ -104,5 +128,20 @@ describe("resolveIpAclGroupId", () => {
     await expect(resolveIpAclGroupId(client, "broken")).rejects.toMatchObject({
       exitCode: EXIT_PARAM_ERROR,
     });
+  });
+
+  it("여러 그룹을 한 번 조회해 입력 순서대로 반환한다", async () => {
+    const listIpAclGroups = vi.fn().mockResolvedValue([
+      ipAclGroup("group-1", "office"),
+      ipAclGroup("group-2", "partners"),
+    ]);
+
+    await expect(
+      resolveIpAclGroups({ listIpAclGroups }, ["partners", "group-1"]),
+    ).resolves.toEqual([
+      ipAclGroup("group-2", "partners"),
+      ipAclGroup("group-1", "office"),
+    ]);
+    expect(listIpAclGroups).toHaveBeenCalledTimes(1);
   });
 });

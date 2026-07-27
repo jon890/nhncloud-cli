@@ -1,7 +1,7 @@
 # Phase 02 — 그룹 생성·삭제와 연결 명령
 
 **Execution profile**: standard
-**Status**: pending
+**Status**: completed
 
 ---
 
