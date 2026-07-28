@@ -62,6 +62,40 @@ nhncloud ncs workload events <workload-id> --task <task-id> --app-key <appkey> -
 nhncloud ncs workload events <workload-id> --task <task-id> --type Warning --app-key <appkey> --json
 ```
 
+### logs·events 시간 필터
+
+`--from`과 `--to`는 다음 두 형식을 받는다.
+
+- 시간대와 초를 포함한 RFC3339 절대시간
+- `30m`, `1h`, `2d`, `now` 형식의 상대시간
+
+```bash
+# 같은 현재 시각을 기준으로 최근 1시간 조회
+nhncloud ncs workload events <workload-id> \
+  --task <task-id> \
+  --from 1h \
+  --to now \
+  --profile <profile> \
+  --json
+
+# 시간대 오프셋을 포함한 절대시간 조회
+nhncloud ncs workload logs <workload-id> \
+  --task <task-id> \
+  --container <name> \
+  --from 2026-05-01T09:00:00+09:00 \
+  --to 2026-05-01T10:00:00+09:00 \
+  --profile <profile> \
+  --json
+```
+
+CLI는 입력을 API 호출 전에 `YYYY-MM-DDTHH:mm:ssZ` 형식으로 정규화하고 소수 초를 제거한다.
+두 옵션을 모두 생략하면 API 기본 범위를 사용한다.
+한쪽만 지정하면 지정한 필드만 API에 전달한다.
+
+존재하지 않는 날짜, 시간대 없는 절대시간, 지원하지 않는 상대시간 단위, `from > to`는 종료 코드 3으로 거부한다.
+검증은 profile·자격증명 조회와 API 호출보다 먼저 실행된다.
+AI 에이전트는 같은 입력으로 인증 재시도를 반복하지 말고 오류에 표시된 옵션 값을 수정한다.
+
 실행 히스토리와 예약 실행 히스토리는 workload 단위로 조회한다.
 
 ```bash
@@ -136,6 +170,7 @@ nhncloud ncs workload history <workload-id> --app-key <appkey> --json | jq -r '.
 | `--q <query>` | workload list·events 필터 |
 | `--task <taskId>` | `workload logs`·`workload events`·`workload restart` 필수 |
 | `--container <name>` | `workload logs` 필수 |
+| `--from <time>` / `--to <time>` | `workload logs`·`workload events` 시간 필터. 시간대 포함 RFC3339 또는 `30m`·`1h`·`2d`·`now` |
 | `--sort <sort>` | `workload history` 정렬 (역순은 필드명 앞에 `-`) |
 | `--file <path>` | `template create`·`template version create`·`workload create`·`workload update`·`workload patch` 필수 — JSON payload 파일 경로 (`patch`는 JSON Patch 배열) |
 | `--wait` / `--timeout <sec>` | `workload create` — Running 상태 폴링(`--timeout` 기본 300초) |
@@ -146,6 +181,8 @@ nhncloud ncs workload history <workload-id> --app-key <appkey> --json | jq -r '.
 
 - appkey는 NCS service appkey다. 인증 secret은 공통 UAK secret을 사용한다.
 - `workload logs`·`workload events`는 task 단위 조회라 `--task` 없이는 입력 오류다.
+- `workload logs`·`workload events` 데이터는 stdout, 진행 상황과 오류는 stderr에 출력한다.
+- 시간 필터를 생략하면 CLI가 임의 기본값을 만들지 않고 API 기본 범위를 유지한다.
 - `workload restart`도 task 단위라 `--task` 없이는 입력 오류다.
 - `workload schedule-history`는 page/size를 아직 노출하지 않는다(대량 이력 시 첫 페이지만 반환될 수 있음 — ADR-020).
 - template/workload id, history id 인수가 공백이면 입력 오류다.
@@ -162,5 +199,5 @@ nhncloud ncs workload history <workload-id> --app-key <appkey> --json | jq -r '.
 |------|-----------|
 | UAK 누락 또는 NCS appkey 미설정 | 4 |
 | UAK 인증 실패 | 2 |
-| 지원하지 않는 region, 빈 id 인수, `--task`/`--container` 누락, `--file` 파일 오류(누락·디렉터리·크기초과·JSON 파싱 실패), `--enabled` 값 오류(`true`/`false` 외), 비대화형 삭제 시 `--yes` 누락 | 3 |
+| 지원하지 않는 region, 빈 id 인수, `--task`/`--container` 누락, 잘못된 logs·events 시간 필터, `--file` 파일 오류(누락·디렉터리·크기초과·JSON 파싱 실패), `--enabled` 값 오류(`true`/`false` 외), 비대화형 삭제 시 `--yes` 누락 | 3 |
 | NCS API 오류 (payload 필수값 누락, `workload create --wait` 타임아웃 등 서버측 검증·폴링 실패 포함) | 1 |
