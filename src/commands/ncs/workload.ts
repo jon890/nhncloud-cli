@@ -171,11 +171,11 @@ const logsCommand = new Command("logs")
   .option("--container <name>", "컨테이너 이름 (필수)")
   .option(
     "--from <time>",
-    "로그 시작: 시간대 포함 RFC3339 또는 30m/1h/2d/now (UTC Z로 정규화, 생략 시 API 기본 범위)",
+    "로그 시작: 시간대 포함 RFC3339, now 또는 0 이상의 정수와 m/h/d 단위 (예: 30m, 1h, 2d). UTC Z로 정규화하며 생략 시 API 기본 범위",
   )
   .option(
     "--to <time>",
-    "로그 종료: 시간대 포함 RFC3339 또는 30m/1h/2d/now (UTC Z로 정규화, 생략 시 API 기본 범위)",
+    "로그 종료: 시간대 포함 RFC3339, now 또는 0 이상의 정수와 m/h/d 단위 (예: 30m, 1h, 2d). UTC Z로 정규화하며 생략 시 API 기본 범위",
   )
   .option("--page <page>", "조회할 page 번호")
   .option("--size <size>", "page 당 항목 수 (기본: API 기본값 100)")
@@ -253,11 +253,11 @@ const eventsCommand = new Command("events")
   .option("--q <query>", "이벤트 내용 필터링")
   .option(
     "--from <time>",
-    "이벤트 시작: 시간대 포함 RFC3339 또는 30m/1h/2d/now (UTC Z로 정규화, 생략 시 API 기본 범위)",
+    "이벤트 시작: 시간대 포함 RFC3339, now 또는 0 이상의 정수와 m/h/d 단위 (예: 30m, 1h, 2d). UTC Z로 정규화하며 생략 시 API 기본 범위",
   )
   .option(
     "--to <time>",
-    "이벤트 종료: 시간대 포함 RFC3339 또는 30m/1h/2d/now (UTC Z로 정규화, 생략 시 API 기본 범위)",
+    "이벤트 종료: 시간대 포함 RFC3339, now 또는 0 이상의 정수와 m/h/d 단위 (예: 30m, 1h, 2d). UTC Z로 정규화하며 생략 시 API 기본 범위",
   )
   .option("--page <page>", "조회할 page 번호")
   .option("--size <size>", "page 당 항목 수 (기본: API 기본값 10)")

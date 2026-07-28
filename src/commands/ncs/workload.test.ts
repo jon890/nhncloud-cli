@@ -155,7 +155,8 @@ describe("NCS workload logs·events 시간 필터", () => {
     for (const command of [logs, events]) {
       const help = (command?.helpInformation() ?? "").replace(/\s+/g, " ");
       expect(help).toContain("시간대 포함 RFC3339");
-      expect(help).toContain("30m/1h/2d/now");
+      expect(help).toContain("now 또는 0 이상의 정수와 m/h/d 단위");
+      expect(help).toContain("예: 30m, 1h, 2d");
       expect(help).toContain("UTC Z로 정규화");
       expect(help).toContain("생략 시 API 기본 범위");
     }
