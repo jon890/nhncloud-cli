@@ -45,7 +45,7 @@ NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 TypeScript CLI다.
 - IP ACL 대상 변경은 기본 재바인딩을 유지한다.
 - 대상 변경의 종료 코드가 1이면 stdout JSON의 `rebind.failed[]`를 확인한다.
 - 복구에는 `retry_argv` 배열을 그대로 사용하고, `retry_command`는 사람 확인용으로만 사용한다.
-- NCS workload logs·events 시간 필터는 시간대 포함 RFC3339 또는 `30m`·`1h`·`2d`·`now`를 사용한다.
+- NCS workload logs·events 시간 필터는 시간대 포함 RFC3339, `now`, 0 이상의 정수와 `m`·`h`·`d` 단위를 사용한다.
 - 잘못된 NCS 시간 입력은 종료 코드 3이므로 자격증명 문제로 재시도하지 말고 입력을 수정한다.
 
 ## 빠른 시작

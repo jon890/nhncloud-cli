@@ -676,7 +676,7 @@ nhncloud ncs malware result <workloadId> <historyId>
 | `--file <json>` | template/workload create·update·patch | 공식 API payload 를 담은 JSON 파일 (patch 는 json-patch 배열) |
 | `--wait` | workload create | Running 상태까지 폴링 |
 | `--task <id>` / `--container <name>` | workload logs·events·restart | 대상 task·컨테이너 지정 |
-| `--from <time>` / `--to <time>` | workload logs·events | 시간대 포함 RFC3339 또는 `30m`·`1h`·`2d`·`now` |
+| `--from <time>` / `--to <time>` | workload logs·events | 시간대 포함 RFC3339, `now`, 0 이상의 정수와 `m`·`h`·`d` 단위 |
 | `--yes` | delete 계열 | confirm 생략 |
 
 전역 옵션: `--json` / `--quiet` / `--no-color`.

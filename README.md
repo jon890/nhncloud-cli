@@ -834,7 +834,10 @@ nhncloud ncs workload schedule-history <workload-id> --app-key <appkey>
 `workload logs`와 `workload events`의 `--from`·`--to`는 다음 입력을 받는다.
 
 - 시간대와 초를 포함한 RFC3339 절대시간
-- `30m`, `1h`, `2d`, `now` 형식의 상대시간
+- `now`
+- 0 이상의 정수 뒤에 `m`, `h`, `d` 중 하나를 붙인 상대시간
+
+상대시간 예시는 `30m`, `1h`, `2d`다.
 
 입력은 API 호출 전에 UTC 초 단위 `Z` 문자열로 정규화된다.
 두 옵션을 모두 생략하면 API 기본 범위를 사용하고, 한쪽만 지정할 수도 있다.

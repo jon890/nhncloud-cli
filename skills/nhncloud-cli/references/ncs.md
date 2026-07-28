@@ -67,7 +67,10 @@ nhncloud ncs workload events <workload-id> --task <task-id> --type Warning --app
 `--from`과 `--to`는 다음 두 형식을 받는다.
 
 - 시간대와 초를 포함한 RFC3339 절대시간
-- `30m`, `1h`, `2d`, `now` 형식의 상대시간
+- `now`
+- 0 이상의 정수 뒤에 `m`, `h`, `d` 중 하나를 붙인 상대시간
+
+상대시간 예시는 `30m`, `1h`, `2d`다.
 
 ```bash
 # 같은 현재 시각을 기준으로 최근 1시간 조회
@@ -170,7 +173,7 @@ nhncloud ncs workload history <workload-id> --app-key <appkey> --json | jq -r '.
 | `--q <query>` | workload list·events 필터 |
 | `--task <taskId>` | `workload logs`·`workload events`·`workload restart` 필수 |
 | `--container <name>` | `workload logs` 필수 |
-| `--from <time>` / `--to <time>` | `workload logs`·`workload events` 시간 필터. 시간대 포함 RFC3339 또는 `30m`·`1h`·`2d`·`now` |
+| `--from <time>` / `--to <time>` | `workload logs`·`workload events` 시간 필터. 시간대 포함 RFC3339, `now`, 0 이상의 정수와 `m`·`h`·`d` 단위 |
 | `--sort <sort>` | `workload history` 정렬 (역순은 필드명 앞에 `-`) |
 | `--file <path>` | `template create`·`template version create`·`workload create`·`workload update`·`workload patch` 필수 — JSON payload 파일 경로 (`patch`는 JSON Patch 배열) |
 | `--wait` / `--timeout <sec>` | `workload create` — Running 상태 폴링(`--timeout` 기본 300초) |
@@ -199,5 +202,7 @@ nhncloud ncs workload history <workload-id> --app-key <appkey> --json | jq -r '.
 |------|-----------|
 | UAK 누락 또는 NCS appkey 미설정 | 4 |
 | UAK 인증 실패 | 2 |
-| 지원하지 않는 region, 빈 id 인수, `--task`/`--container` 누락, 잘못된 logs·events 시간 필터, `--file` 파일 오류(누락·디렉터리·크기초과·JSON 파싱 실패), `--enabled` 값 오류(`true`/`false` 외), 비대화형 삭제 시 `--yes` 누락 | 3 |
+| 지원하지 않는 region, 빈 id 인수, `--task`·`--container` 누락 | 3 |
+| 잘못된 logs·events 시간 필터 | 3 |
+| `--file` 파일 오류, 잘못된 `--enabled`, 비대화형 삭제 시 `--yes` 누락 | 3 |
 | NCS API 오류 (payload 필수값 누락, `workload create --wait` 타임아웃 등 서버측 검증·폴링 실패 포함) | 1 |
