@@ -23,8 +23,8 @@ AI 에이전트가 허용 입력, stdout·stderr, 종료 코드를 명령 도움
 
 ### 2. 도움말과 command catalog 계약
 
-- logs와 events의 `--from`·`--to` 도움말에 시간대 포함 RFC3339, 상대시간, UTC 정규화를 간결하게 적는다.
-- 두 옵션을 생략하면 API 기본 범위를 유지한다는 점을 명시한다.
+- Phase 1에서 갱신한 logs와 events의 `--from`·`--to` 도움말이 시간대 포함 RFC3339, 상대시간, UTC 정규화를 표시하는지 검증한다.
+- 두 옵션을 생략하면 API 기본 범위를 유지한다는 설명이 실제 도움말에 있는지 검증한다.
 - `commands --json`에서 `ncs workload` 아래 기존 15개 path가 유지되고 새 path가 생기지 않았는지 검사한다.
 - 출력 데이터는 stdout, 진행·오류는 stderr라는 기존 계약을 유지한다.
 
@@ -48,7 +48,6 @@ task 상태 파일은 Phase 3의 실행 기록 커밋까지 작업 트리에 유
 
 | 파일 | 변경 |
 |---|---|
-| `src/commands/ncs/workload.ts` | 시간 옵션 도움말 |
 | `README.md` | NCS 시간 필터 예시 |
 | `skills/nhncloud-cli/SKILL.md` | frontmatter·router |
 | `skills/nhncloud-cli/references/ncs.md` | AI 에이전트 입력·출력 계약 |

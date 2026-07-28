@@ -79,6 +79,7 @@ normalizeNcsTimeRange(
 
 `src/commands/ncs/workload.ts`의 두 action에서 필수 인자를 확인한 직후 정규화 함수를 호출한다.
 반환된 `from`·`to`만 기존 client 쿼리에 전달한다.
+두 명령의 `--from`·`--to` 도움말에는 시간대 포함 RFC3339, 상대시간, UTC 정규화와 옵션 생략 시 API 기본 범위 유지 계약을 반영한다.
 
 호출 순서는 아래 계약을 지킨다.
 
@@ -125,7 +126,7 @@ task 상태 파일은 Phase 3의 실행 기록 커밋까지 작업 트리에 유
 |---|---|
 | `src/commands/ncs/helpers.ts` | 시간 범위 정규화 |
 | `src/commands/ncs/helpers.test.ts` | 입력·출력 경계 테스트 |
-| `src/commands/ncs/workload.ts` | logs·events 선검증 연결 |
+| `src/commands/ncs/workload.ts` | logs·events 선검증 연결·시간 옵션 도움말 |
 | `src/commands/ncs/workload.test.ts` | 자격증명·API 이전 오류 테스트 |
 | `src/services/ncs/client.test.ts` | 쿼리 전달 테스트 |
 | `tasks/042-fix-ncs-events-time-filter/index.json` | 상태 갱신 |
