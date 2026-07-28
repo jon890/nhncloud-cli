@@ -108,6 +108,14 @@ normalizeNcsTimeRange(
 client 자체에 시간 파싱을 중복 구현하지 않는다.
 
 Phase 1을 `completed`, `current_phase`를 `2`로 갱신한다.
+검증 후 team-lead는 아래 코드·테스트 파일만 별도 커밋한다.
+task 상태 파일은 Phase 3의 실행 기록 커밋까지 작업 트리에 유지한다.
+
+- `src/commands/ncs/helpers.ts`
+- `src/commands/ncs/helpers.test.ts`
+- `src/commands/ncs/workload.ts`
+- `src/commands/ncs/workload.test.ts`
+- `src/services/ncs/client.test.ts`
 
 ---
 

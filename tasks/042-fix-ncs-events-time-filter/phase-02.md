@@ -39,6 +39,8 @@ AI 에이전트가 허용 입력, stdout·stderr, 종료 코드를 명령 도움
 
 문서의 명령명·옵션을 실제 `--help`와 대조한다.
 Phase 2를 `completed`, `current_phase`를 `3`으로 갱신한다.
+검증 후 team-lead는 README와 공개 skill 문서만 별도 커밋한다.
+task 상태 파일은 Phase 3의 실행 기록 커밋까지 작업 트리에 유지한다.
 
 ---
 
@@ -87,9 +89,17 @@ git diff --check
 
 ```bash
 # cwd: <repo root>
-grep -rnoE "(https?://|@)[A-Za-z0-9.-]+\.(com|co\.kr|net)" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ 2>/dev/null \
-  | grep -vE "nhncloud\.com|nhncloudservice\.com|github\.com|npmjs\.com|example\.com|openai\.com|anthropic\.com"
-grep -rnE "(secret|password|appkey)['\"]?[[:space:]]*[:=][[:space:]]*['\"][A-Za-z0-9]{16,}" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ 2>/dev/null
+domain_findings="$(
+  grep -rnoE "(https?://|@)[A-Za-z0-9.-]+\.(com|co\.kr|net)" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ 2>/dev/null \
+    | grep -vE "nhncloud\.com|nhncloudservice\.com|github\.com|npmjs\.com|example\.com|openai\.com|anthropic\.com" \
+    || true
+)"
+secret_findings="$(
+  grep -rnE "(secret|password|appkey)['\"]?[[:space:]]*[:=][[:space:]]*['\"][A-Za-z0-9]{16,}" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ 2>/dev/null \
+    || true
+)"
+test -z "$domain_findings"
+test -z "$secret_findings"
 ```
 
 성공 기준:

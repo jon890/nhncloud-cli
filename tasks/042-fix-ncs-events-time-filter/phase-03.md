@@ -73,36 +73,24 @@ git diff --check
 - `updated_at`: 실제 UTC 완료 시각
 - `error_message`와 `blocked_reason`: `null`
 
-### 4. 명시적 staging, commit, push
+### 4. 관심사별 commit 확인과 task 기록 push
 
-아래 경로 중 실제 변경 파일만 명시적으로 staging한다.
+Phase 1과 Phase 2에서 team-lead가 아래 두 커밋을 분리했는지 확인한다.
+
+- 코드·테스트: `src/commands/ncs/*`, `src/services/ncs/client.test.ts`
+- 사용자·AI 문서: `README.md`, `skills/nhncloud-cli/SKILL.md`, `skills/nhncloud-cli/references/ncs.md`
+
+Phase 3에서는 task 상태와 실행 기록만 별도 커밋한다.
 다른 작업의 변경과 untracked 파일은 포함하지 않는다.
-
-- `src/commands/ncs/helpers.ts`
-- `src/commands/ncs/helpers.test.ts`
-- `src/commands/ncs/workload.ts`
-- `src/commands/ncs/workload.test.ts`
-- `src/services/ncs/client.test.ts`
-- `README.md`
-- `skills/nhncloud-cli/SKILL.md`
-- `skills/nhncloud-cli/references/ncs.md`
-- `tasks/042-fix-ncs-events-time-filter/`
 
 ```bash
 # cwd: <repo root>
-git add \
-  src/commands/ncs/helpers.ts \
-  src/commands/ncs/helpers.test.ts \
-  src/commands/ncs/workload.ts \
-  src/commands/ncs/workload.test.ts \
-  src/services/ncs/client.test.ts \
-  README.md \
-  skills/nhncloud-cli/SKILL.md \
-  skills/nhncloud-cli/references/ncs.md \
-  tasks/042-fix-ncs-events-time-filter
+git diff-tree --no-commit-id --name-only -r <code-commit>
+git diff-tree --no-commit-id --name-only -r <docs-commit>
+git add docs/retrospectives/RUNS.md tasks/042-fix-ncs-events-time-filter
 git diff --cached --check
 git status --short
-git commit -m "fix(ncs): normalize workload time filters to UTC"
+git commit -m "docs(retro): record NCS time filter execution"
 git push origin fix/042-fix-ncs-events-time-filter
 ```
 
@@ -113,6 +101,7 @@ git push origin fix/042-fix-ncs-events-time-filter
 - `tasks/042-fix-ncs-events-time-filter/index.json`의 최상위와 세 phase `status`가 `completed`다.
 - 타입 검사, 테스트, build, 두 도움말, catalog 항목 수와 `ncs workload` path 집합 검증이 통과한다.
 - 커밋에는 #54 범위 파일만 포함된다.
+- 코드·테스트, 사용자·AI 문서, task 상태·실행 기록 커밋이 관심사별 파일만 포함한다.
 - 원격 브랜치와 local HEAD가 같다.
 
 ## Blocked 조건
