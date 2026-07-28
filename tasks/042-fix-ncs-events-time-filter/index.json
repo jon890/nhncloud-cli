@@ -2,9 +2,9 @@
   "name": "042-fix-ncs-events-time-filter",
   "description": "GitHub 이슈 #54 — NCS workload logs/events의 --from/--to를 UTC Z로 정규화해 시간대 오프셋·상대시간 입력의 서버 내부 오류를 예방하고 잘못된 입력을 API 접근 전에 거부한다.",
   "created_at": "2026-07-27T07:49:49Z",
-  "updated_at": "2026-07-27T07:49:49Z",
-  "status": "pending",
-  "current_phase": 0,
+  "updated_at": "2026-07-28T00:23:30Z",
+  "status": "completed",
+  "current_phase": 3,
   "total_phases": 3,
   "error_message": null,
   "blocked_reason": null,
@@ -13,7 +13,7 @@
       "number": 1,
       "title": "공유 시간 정규화와 logs·events 연결",
       "file": "phase-01.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "execution_profile": "standard"
     },
@@ -21,7 +21,7 @@
       "number": 2,
       "title": "통합 검증과 AI 에이전트 사용 문서",
       "file": "phase-02.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "execution_profile": "fast"
     },
@@ -29,7 +29,7 @@
       "number": 3,
       "title": "브랜치 검증과 commit·push",
       "file": "phase-03.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "execution_profile": "fast"
     }
