@@ -811,14 +811,38 @@ nhncloud ncs workload list --app-key <appkey>
 nhncloud ncs workload get <workload-id> --app-key <appkey>
 
 # task 컨테이너 로그/이벤트 조회 (--task는 workload get 응답의 tasks[].id)
-nhncloud ncs workload logs <workload-id> --task <task-id> --container <name> --app-key <appkey>
-nhncloud ncs workload events <workload-id> --task <task-id> --app-key <appkey>
+nhncloud ncs workload logs <workload-id> \
+  --task <task-id> \
+  --container <name> \
+  --from 1h \
+  --to now \
+  --profile <profile> \
+  --json
+nhncloud ncs workload events <workload-id> \
+  --task <task-id> \
+  --from 1h \
+  --to now \
+  --profile <profile> \
+  --json
 
 # 실행 히스토리 / 예약 실행 히스토리 조회
 nhncloud ncs workload history <workload-id> --app-key <appkey>
 nhncloud ncs workload history get <workload-id> <history-id> --app-key <appkey>
 nhncloud ncs workload schedule-history <workload-id> --app-key <appkey>
 ```
+
+`workload logs`와 `workload events`의 `--from`·`--to`는 다음 입력을 받는다.
+
+- 시간대와 초를 포함한 RFC3339 절대시간
+- `now`
+- 0 이상의 정수 뒤에 `m`, `h`, `d` 중 하나를 붙인 상대시간
+
+상대시간 예시는 `30m`, `1h`, `2d`다.
+
+입력은 API 호출 전에 UTC 초 단위 `Z` 문자열로 정규화된다.
+두 옵션을 모두 생략하면 API 기본 범위를 사용하고, 한쪽만 지정할 수도 있다.
+잘못된 날짜, 시간대 없는 절대시간, 역전된 범위는 자격증명과 API에 접근하기 전에 종료 코드 3으로 거부한다.
+조회 데이터는 stdout, 진행 상황과 오류는 stderr에 출력한다.
 
 template 생성·버전 생성처럼 복잡한 입력은 공식 API payload를 JSON 파일로 전달한다.
 삭제 명령은 비대화형 환경에서 `--yes`가 필요하다.

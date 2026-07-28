@@ -2,7 +2,13 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { output, type OutputOptions } from "../../formatters/table.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
-import { resolveNcsClient, readJsonPayload, confirmDestructive, requireNonEmpty } from "./helpers.js";
+import {
+  resolveNcsClient,
+  readJsonPayload,
+  confirmDestructive,
+  requireNonEmpty,
+  normalizeNcsTimeRange,
+} from "./helpers.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { parsePositiveIntegerOption } from "../parse-options.js";
@@ -163,8 +169,14 @@ const logsCommand = new Command("logs")
   .option("--profile <name>", "사용할 profile 이름")
   .option("--task <taskId>", "task ID (필수)")
   .option("--container <name>", "컨테이너 이름 (필수)")
-  .option("--from <time>", "로그 시작 시간 (기본: 현재로부터 5분 전)")
-  .option("--to <time>", "로그 종료 시간 (기본: 현재 시간)")
+  .option(
+    "--from <time>",
+    "로그 시작: 시간대 포함 RFC3339, now 또는 0 이상의 정수와 m/h/d 단위 (예: 30m, 1h, 2d). UTC Z로 정규화하며 생략 시 API 기본 범위",
+  )
+  .option(
+    "--to <time>",
+    "로그 종료: 시간대 포함 RFC3339, now 또는 0 이상의 정수와 m/h/d 단위 (예: 30m, 1h, 2d). UTC Z로 정규화하며 생략 시 API 기본 범위",
+  )
   .option("--page <page>", "조회할 page 번호")
   .option("--size <size>", "page 당 항목 수 (기본: API 기본값 100)")
   .action(async (id: string, _opts: unknown, cmd: Command) => {
@@ -184,6 +196,7 @@ const logsCommand = new Command("logs")
         EXIT_PARAM_ERROR,
       );
     }
+    const timeRange = normalizeNcsTimeRange(opts.from, opts.to);
 
     // ── 2. 자격증명 + client 생성 (spinner 시작 전) ──
     const { client } = await resolveNcsClient(opts);
@@ -195,8 +208,7 @@ const logsCommand = new Command("logs")
     try {
       const result = await client.getWorkloadLogs(id, opts.task, {
         container: opts.container,
-        from: opts.from,
-        to: opts.to,
+        ...timeRange,
         page: parsePositiveIntegerOption(opts.page, "--page"),
         size: parsePositiveIntegerOption(opts.size, "--size"),
       });
@@ -239,8 +251,14 @@ const eventsCommand = new Command("events")
   .option("--task <taskId>", "task ID (필수)")
   .option("--type <type>", "이벤트 타입 (Normal | Warning)")
   .option("--q <query>", "이벤트 내용 필터링")
-  .option("--from <time>", "이벤트 마지막 발생 시작 시간 (기본: 현재로부터 1시간 전)")
-  .option("--to <time>", "이벤트 마지막 발생 종료 시간 (기본: 현재 시간)")
+  .option(
+    "--from <time>",
+    "이벤트 시작: 시간대 포함 RFC3339, now 또는 0 이상의 정수와 m/h/d 단위 (예: 30m, 1h, 2d). UTC Z로 정규화하며 생략 시 API 기본 범위",
+  )
+  .option(
+    "--to <time>",
+    "이벤트 종료: 시간대 포함 RFC3339, now 또는 0 이상의 정수와 m/h/d 단위 (예: 30m, 1h, 2d). UTC Z로 정규화하며 생략 시 API 기본 범위",
+  )
   .option("--page <page>", "조회할 page 번호")
   .option("--size <size>", "page 당 항목 수 (기본: API 기본값 10)")
   .action(async (id: string, _opts: unknown, cmd: Command) => {
@@ -254,6 +272,7 @@ const eventsCommand = new Command("events")
         EXIT_PARAM_ERROR,
       );
     }
+    const timeRange = normalizeNcsTimeRange(opts.from, opts.to);
 
     // ── 2. 자격증명 + client 생성 (spinner 시작 전) ──
     const { client } = await resolveNcsClient(opts);
@@ -267,8 +286,7 @@ const eventsCommand = new Command("events")
       const result = await client.getWorkloadEvents(id, opts.task, {
         type: opts.type,
         q: opts.q,
-        from: opts.from,
-        to: opts.to,
+        ...timeRange,
         page: parsePositiveIntegerOption(opts.page, "--page"),
         size: parsePositiveIntegerOption(opts.size, "--size"),
       });

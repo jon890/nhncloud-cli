@@ -7,6 +7,162 @@ import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 
 /** `--file <json>` spec 파일 크기 상한 (1 MB) — deploy upload(512 MiB, 바이너리) 보다 훨씬 보수적. JSON spec 용도라 그 이상은 비정상 입력. */
 const MAX_JSON_PAYLOAD_BYTES = 1_000_000;
+const NCS_RFC3339_PATTERN =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(Z|([+-])(\d{2}):(\d{2}))$/;
+const NCS_RELATIVE_TIME_PATTERN = /^(\d+)(m|h|d)$/;
+const NCS_TIME_EXAMPLES =
+  "시간대 포함 RFC3339(예: 2026-05-01T00:00:00+09:00) 또는 상대시간(예: 30m, 1h, 2d, now)";
+
+function ncsTimeError(option: "--from" | "--to", value: string, detail?: string): NhnCloudCliError {
+  const suffix = detail ? ` ${detail}` : "";
+  return new NhnCloudCliError(
+    `${option} 시간 형식 오류: ${JSON.stringify(value)}. ${NCS_TIME_EXAMPLES}을 사용하세요.${suffix}`,
+    EXIT_PARAM_ERROR,
+  );
+}
+
+function isLeapYear(year: number): boolean {
+  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+}
+
+function daysInMonth(year: number, month: number): number {
+  if (month === 2) return isLeapYear(year) ? 29 : 28;
+  return [4, 6, 9, 11].includes(month) ? 30 : 31;
+}
+
+function formatNcsUtcTime(
+  timestamp: number,
+  option: "--from" | "--to",
+  input: string,
+): string {
+  const date = new Date(timestamp);
+  if (!Number.isFinite(timestamp) || Number.isNaN(date.getTime())) {
+    throw ncsTimeError(option, input, "유효한 Date 범위를 벗어났습니다.");
+  }
+
+  const iso = date.toISOString();
+  const secondPrecision = iso.replace(/\.\d{3}Z$/, "Z");
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(secondPrecision)) {
+    throw ncsTimeError(option, input, "UTC 연도가 지원 범위를 벗어났습니다.");
+  }
+  return secondPrecision;
+}
+
+function parseNcsAbsoluteTime(
+  input: string,
+  option: "--from" | "--to",
+): { value: string; timestamp: number } {
+  const match = NCS_RFC3339_PATTERN.exec(input);
+  if (!match) throw ncsTimeError(option, input);
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
+  const second = Number(match[6]);
+  const offsetHour = match[10] === undefined ? 0 : Number(match[10]);
+  const offsetMinute = match[11] === undefined ? 0 : Number(match[11]);
+
+  if (
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > daysInMonth(year, month) ||
+    hour > 23 ||
+    minute > 59 ||
+    second > 59 ||
+    offsetHour > 23 ||
+    offsetMinute > 59
+  ) {
+    throw ncsTimeError(option, input, "날짜·시각·시간대 오프셋을 확인하세요.");
+  }
+
+  const parsedTimestamp = Date.parse(input);
+  const timestamp = Math.floor(parsedTimestamp / 1000) * 1000;
+  return {
+    value: formatNcsUtcTime(timestamp, option, input),
+    timestamp,
+  };
+}
+
+function parseNcsTime(
+  input: string,
+  option: "--from" | "--to",
+  baseTimestamp: number,
+): { value: string; timestamp: number } {
+  const trimmed = input.trim();
+  if (trimmed === "now") {
+    return {
+      value: formatNcsUtcTime(baseTimestamp, option, input),
+      timestamp: Math.floor(baseTimestamp / 1000) * 1000,
+    };
+  }
+
+  const relativeMatch = NCS_RELATIVE_TIME_PATTERN.exec(trimmed);
+  if (relativeMatch) {
+    const amount = Number(relativeMatch[1]);
+    const unitMs = relativeMatch[2] === "m"
+      ? 60_000
+      : relativeMatch[2] === "h"
+        ? 3_600_000
+        : 86_400_000;
+    const deltaMs = amount * unitMs;
+    if (!Number.isSafeInteger(amount) || !Number.isSafeInteger(deltaMs)) {
+      throw ncsTimeError(option, input, "상대시간이 안전한 정수 범위를 벗어났습니다.");
+    }
+    const timestamp = baseTimestamp - deltaMs;
+    return {
+      value: formatNcsUtcTime(timestamp, option, input),
+      timestamp: Math.floor(timestamp / 1000) * 1000,
+    };
+  }
+
+  return parseNcsAbsoluteTime(trimmed, option);
+}
+
+/**
+ * NCS workload logs·events 시간 필터를 API가 수용하는 UTC 초 단위 `Z` 문자열로 정규화한다.
+ * 두 상대시간은 호출마다 한 번 캡처한 같은 기준 시각을 사용한다(ADR-023).
+ */
+export function normalizeNcsTimeRange(
+  from?: string,
+  to?: string,
+  now?: Date,
+): { from?: string; to?: string } {
+  if (from === undefined && to === undefined) return {};
+
+  const baseTimestamp = (now ?? new Date()).getTime();
+  if (!Number.isFinite(baseTimestamp)) {
+    throw new NhnCloudCliError(
+      `NCS 시간 정규화 기준 시각이 유효하지 않습니다. ${NCS_TIME_EXAMPLES}을 사용하세요.`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+
+  const normalizedFrom = from === undefined
+    ? undefined
+    : parseNcsTime(from, "--from", baseTimestamp);
+  const normalizedTo = to === undefined
+    ? undefined
+    : parseNcsTime(to, "--to", baseTimestamp);
+
+  if (
+    normalizedFrom !== undefined &&
+    normalizedTo !== undefined &&
+    normalizedFrom.timestamp > normalizedTo.timestamp
+  ) {
+    throw new NhnCloudCliError(
+      `--from 시간이 --to 시간보다 늦습니다. ${NCS_TIME_EXAMPLES}을 사용하세요.`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+
+  return {
+    ...(normalizedFrom === undefined ? {} : { from: normalizedFrom.value }),
+    ...(normalizedTo === undefined ? {} : { to: normalizedTo.value }),
+  };
+}
 
 /**
  * NCS appKey 를 해석한다.

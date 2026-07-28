@@ -30,3 +30,4 @@ ADR-NNN 내용은 `docs/adr/NNN-*.md` 로 찾는다(번호 glob — slug 몰라�
 - [ADR-020](020-ncs-container-service-api.md): NCS API — Deploy OAuth 토큰 재사용 + appkey 경로 + region host(kr1/kr3)
 - [ADR-021](021-token-cache-credential-fingerprint.md): 토큰 캐시 자격 지문 비교 — 자격 변경 시 stale 토큰 무효화 + OAuth 캐시 파일명 정정
 - [ADR-022](022-loadbalancer-ipacl-safety.md): Load Balancer IP ACL — 전체 교체·자동 재바인딩·부분 실패 복구
+- [ADR-023](023-ncs-workload-time-filter-utc.md): NCS workload logs·events 시간 필터 — UTC Z 정규화

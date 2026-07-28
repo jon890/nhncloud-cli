@@ -676,9 +676,19 @@ nhncloud ncs malware result <workloadId> <historyId>
 | `--file <json>` | template/workload create·update·patch | 공식 API payload 를 담은 JSON 파일 (patch 는 json-patch 배열) |
 | `--wait` | workload create | Running 상태까지 폴링 |
 | `--task <id>` / `--container <name>` | workload logs·events·restart | 대상 task·컨테이너 지정 |
+| `--from <time>` / `--to <time>` | workload logs·events | 시간대 포함 RFC3339, `now`, 0 이상의 정수와 `m`·`h`·`d` 단위 |
 | `--yes` | delete 계열 | confirm 생략 |
 
 전역 옵션: `--json` / `--quiet` / `--no-color`.
+
+### logs·events 시간 필터
+
+NCS API는 `from`·`to`에 UTC `Z` 형식만 정상 처리한다([[adr-023]]).
+CLI는 시간대 포함 RFC3339와 상대시간을 한 번 캡처한 기준 시각으로 UTC 초 단위 문자열에 맞춘다.
+
+두 옵션을 모두 생략하면 쿼리 매개변수도 보내지 않아 API 기본 범위를 유지한다.
+한쪽만 입력하면 입력한 쪽만 전송한다.
+형식 오류, 시간대 없는 절대시간, 존재하지 않는 날짜, `from > to`는 자격증명과 API 접근 전에 `EXIT_PARAM_ERROR`로 종료한다.
 
 ### 구현 순서
 
@@ -697,5 +707,5 @@ workload patch 는 `application/json-patch+json` Content-Type 의 json-patch 배
 | 상황 | exit code |
 |------|-----------|
 | UAK 누락 / OAuth 발급 실패 | `EXIT_CONFIG_ERROR` 또는 `EXIT_AUTH_ERROR` |
-| appkey 누락 / 잘못된 region / payload 파일 파싱 실패 / 필수 인자 누락 | `EXIT_PARAM_ERROR` |
+| appkey 누락 / 잘못된 region / payload 파일 파싱 실패 / 필수 인자 누락 / 잘못된 시간 필터 | `EXIT_PARAM_ERROR` |
 | 봉투 `header.isSuccessful=false` (resultCode 10000번대) / 응답 형식 불일치 | `EXIT_API_ERROR` |

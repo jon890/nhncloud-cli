@@ -63,7 +63,9 @@ TypeScript + Commander.js 기반이다. dooray-cli 의 기반과 하네스를 �
   `supports`, cluster/nodegroup/addon 조회, kubeconfig, 작업 이력, IP 접근 제어, 생성·삭제·resize·upgrade·autoscale·설정 변경을 지원한다.
 - `ncs template list|get|create|delete` — NCS(NHN Container Service) 설계도(template) 관리 (Deploy OAuth Bearer 토큰 재사용 + appkey 경로·ADR-020, region kr1/kr3). `create` 는 `--file <json>` spec 입력(ADR-019 선례).
 - `ncs template version list|get|create|delete` — 설계도 버전 관리. `version create` 의 `--file` payload 는 `sourceVersion` 필드 필수.
-- `ncs workload list|get|logs|events|history|schedule-history` — 워크로드(런타임 실행) 조회. `logs`/`events` 는 `--task <taskId>` 필수, `history get <id> <historyId>` 로 단건 조회.
+- `ncs workload list|get|logs|events|history|schedule-history` — 워크로드(런타임 실행) 조회.
+  `logs`/`events`는 `--task <taskId>`가 필수이며, `--from`/`--to`의 시간대 포함 RFC3339·상대시간을 API가 받는 UTC `Z` 형식으로 정규화한다(ADR-023).
+  `history get <id> <historyId>`로 단건 조회한다.
 - `ncs workload create|update|patch|pause|resume|restart|delete` — 워크로드 생성·변경·실행제어. `create --file <json> [--wait] [--timeout <sec>]` (비동기 생성, `--wait` 로 Running 상태 폴링), `update`(PUT 전체 교체)·`patch`(PATCH `application/json-patch+json` 부분 변경), `restart` 는 `--task <taskId>` 필수.
 - `ncs malware config get|set` — 악성코드 검사 설정 조회/변경 (`set --enabled <true|false>`, appkey-scoped).
 - `ncs malware result <workloadId> <historyId>` — 워크로드 실행 히스토리의 악성코드 검사 결과 조회.
@@ -154,6 +156,7 @@ src/
 | NCS(Container Service) endpoint·인증(Deploy OAuth 토큰 재사용)·appkey 경로 | ADR-020, ADR-007, ADR-006, ADR-005 |
 | 토큰 캐시 무효화 (자격 변경 시 stale 토큰·캐시 파일명) | ADR-021, ADR-007, ADR-010, ADR-020 |
 | Load Balancer IP ACL 전체 교체·자동 재바인딩·부분 실패 복구 | ADR-022, ADR-002, ADR-010, ADR-013 |
+| NCS workload logs·events 시간 필터 정규화 | ADR-023, ADR-020 |
 
 신규 ADR 추가 시 본 표에 행 추가.
 

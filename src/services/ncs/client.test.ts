@@ -373,6 +373,33 @@ describe("NcsClient.getWorkloadLogs", () => {
     ).rejects.toMatchObject({ exitCode: EXIT_PARAM_ERROR });
     expect(ky.get).not.toHaveBeenCalled();
   });
+
+  it("제공된 from·to를 그대로 전달하고 생략된 필드는 만들지 않는다", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+        logs: [],
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await client.getWorkloadLogs("wl-1", "task-1", {
+      container: "nginx",
+      from: "2026-07-28T12:00:00Z",
+      to: "2026-07-28T12:30:00Z",
+    });
+    expect(vi.mocked(ky.get).mock.calls[0]?.[1]?.searchParams).toEqual({
+      containerName: "nginx",
+      from: "2026-07-28T12:00:00Z",
+      to: "2026-07-28T12:30:00Z",
+    });
+
+    vi.mocked(ky.get).mockClear();
+    await client.getWorkloadLogs("wl-1", "task-1", { container: "nginx" });
+    expect(vi.mocked(ky.get).mock.calls[0]?.[1]?.searchParams).toEqual({
+      containerName: "nginx",
+    });
+  });
 });
 
 describe("NcsClient.getWorkloadEvents", () => {
@@ -416,6 +443,29 @@ describe("NcsClient.getWorkloadEvents", () => {
     const result = await client.getWorkloadEvents("wl-1", "task-1");
     expect(result.events).toEqual([]);
     expect(result.totalCount).toBe(0);
+  });
+
+  it("제공된 from·to를 그대로 전달하고 생략된 필드는 만들지 않는다", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: true, resultCode: 200, resultMessage: "SUCCESS" },
+        events: [],
+      }),
+    );
+
+    const client = new NcsClient("token", "kr1", "test-appkey");
+    await client.getWorkloadEvents("wl-1", "task-1", {
+      from: "2026-07-28T12:00:00Z",
+      to: "2026-07-28T12:30:00Z",
+    });
+    expect(vi.mocked(ky.get).mock.calls[0]?.[1]?.searchParams).toEqual({
+      from: "2026-07-28T12:00:00Z",
+      to: "2026-07-28T12:30:00Z",
+    });
+
+    vi.mocked(ky.get).mockClear();
+    await client.getWorkloadEvents("wl-1", "task-1");
+    expect(vi.mocked(ky.get).mock.calls[0]?.[1]?.searchParams).toEqual({});
   });
 });
 
