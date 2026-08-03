@@ -25,7 +25,8 @@ package 버전 변경, v2 fallback, BETA·ALPHA host 선택은 하지 않는다.
 - `README.md`: configure appkey-only 예시, UAK OAuth 인증, `--cursor` 페이지 이동, `--page 0` 호환, export `--size` 경고·무시를 설명한다.
 - `skills/nhncloud-cli/SKILL.md`: Log & Crash 설명에 Search v3와 커서 이동을 반영한다.
 - `skills/nhncloud-cli/references/common.md`: credentials 예시와 configure 옵션을 appkey + 공통 UAK로 정정한다.
-- `skills/nhncloud-cli/references/logncrash.md`: 검색·내보내기 경로, JSON `nextCursor`, 실패 복구, `send` 비영향을 설명한다.
+- `skills/nhncloud-cli/references/logncrash.md`: 검색·내보내기 경로, 고정 `logTime DESC` 정렬,
+  JSON `nextCursor`, 실패 복구, `send` 비영향을 설명한다.
 - `skills/nhncloud-cli/references/troubleshooting.md`: 인증 표와 page·size 마이그레이션 오류를 정정한다.
 
 실제 credential, 사용자 리소스 ID, 사내 도메인·이메일·실명 대신 placeholder를 쓴다.

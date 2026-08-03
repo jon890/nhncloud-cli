@@ -34,6 +34,8 @@ Phase 1이 만든 아래 파일과 메서드를 전제로 한다.
 
 - `--cursor <value>`를 추가한다. 빈 문자열은 입력 오류로 거부한다.
 - `--size`는 기존 1~100 검증을 유지하고 v3 `pageSize`로 전달한다.
+- 사용자 정렬 옵션은 추가하지 않는다. 클라이언트가 REAL API 실측 계약인
+  `sort: { "logTime": "DESC" }`를 모든 커서 요청에 고정해서 보낸다.
 - `--page`는 전환 호환용으로 유지한다. 기본값은 0이며 `0` 이외 값은 `EXIT_PARAM_ERROR`로 거부하고 `--cursor` 사용을 안내한다.
 - 모든 입력·시간 범위·page·size·cursor 검증을 profile·UAK·token·spinner보다 먼저 끝낸다.
 - `resolveLogncrashClient(opts.profile)`로 client를 얻고 `cursorSearch`를 호출한다.
@@ -45,6 +47,7 @@ Phase 1이 만든 아래 파일과 메서드를 전제로 한다.
 
 - `--page 1`과 빈 cursor는 자격증명·token·spinner·API 호출 전에 실패한다.
 - 첫 페이지는 cursor를 생략하고, 다음 페이지는 opaque 값을 변형 없이 전달한다.
+- 두 요청 모두 클라이언트의 고정 `logTime DESC` 정렬을 사용하는지 client 테스트와 함께 확인한다.
 - JSON 결과의 조건부 `nextCursor`와 기존 table·quiet 식별 값을 고정한다.
 
 ### 2. export v3 scroll 연결과 호환 경고

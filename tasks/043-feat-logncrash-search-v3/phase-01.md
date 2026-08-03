@@ -86,8 +86,11 @@ grep -F 'nextCursor:' "$lncs_spec_file"
 - `LogSendParams`와 `LogLevel`은 그대로 유지한다.
 
 `nextCursor`는 문자열이거나 생략된 값만 다루고 클라이언트에서 decode·변형하지 않는다.
-공개 OpenAPI의 선택 `sort`는 기존 CLI에 대응 옵션이 없고 fadeout 전환에 필수적이지 않으므로 이번 타입·요청에서 제외한다.
-client 테스트는 커서 요청 body에 `sort`가 생기지 않음을 고정한다.
+공개 OpenAPI의 `sort`는 선택 필드지만 2026년 8월 3일 REAL API 실측에서
+생략 시 HTTP 500, `{ "logTime": "DESC" }` 전달 시 HTTP 200과 `nextCursor` 반환을 확인했다.
+따라서 CLI 옵션으로 노출하지 않고 클라이언트가 모든 커서 요청에
+`sort: { "logTime": "DESC" }`를 고정해서 보낸다.
+client 테스트는 첫 페이지와 다음 페이지 요청 body의 고정 정렬을 단언한다.
 
 ### 2. LogncrashClient v3 전환
 
@@ -100,7 +103,7 @@ constructor(appkey: string, accessToken?: string)
 - `cursorSearch(params: CursorSearchParams): Promise<CursorSearchResult>`를 추가하고 기존 v2 `search`를 제거한다.
 - `scrollStart(params: ScrollStartParams): Promise<ScrollResult>`와 `scrollNext(scrollKey: string): Promise<ScrollResult>`를 v3 경로로 바꾼다.
 - 세 읽기 메서드는 access token 누락을 `EXIT_CONFIG_ERROR`로 거부하고 같은 Bearer 헤더를 쓴다.
-- 선택 request 필드는 값이 있을 때만 body에 넣는다.
+- `pageSize`와 `cursor`는 값이 있을 때만 body에 넣고, 고정 `sort`는 항상 넣는다.
 - POST 오류는 기존 `toNhnCloudCliError`를 그대로 거친다.
 - `send()`는 collector host·payload·무인증 헤더·봉투 판정을 변경하지 않는다.
 
@@ -127,7 +130,8 @@ resolveLogncrashClient(profile?: string): Promise<LogncrashClient>
 
 `src/services/logncrash/client.test.ts`를 추가한다.
 
-- 커서 검색 URL·Bearer 헤더·첫 페이지와 다음 cursor의 정확한 JSON body를 단언하고 `sort` 미전달을 고정한다.
+- 커서 검색 URL·Bearer 헤더·첫 페이지와 다음 cursor의 정확한 JSON body를 단언하고
+  `sort: { "logTime": "DESC" }` 고정 전달을 확인한다.
 - scroll 시작 body에 `pageSize`가 없고, 계속 요청은 body가 없음을 단언한다.
 - 숫자 성공 봉투 unwrap과 실패 봉투 오류를 고정한다.
 - `send`가 collector v2 경로, appkey payload, 무인증 헤더를 유지하는지 고정한다.
