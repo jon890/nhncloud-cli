@@ -10,7 +10,9 @@ TypeScript + Commander.js 기반이다. dooray-cli 의 기반과 하네스를 �
 - `configure` — 자격증명 설정 마법사 (대화형 + flag, UAK + 서비스별 키, 연결 테스트).
 - `commands` — Commander tree에서 command path·argument·option·description catalog를 출력하는 metadata 명령 (`--json` 권장, 외부 API 호출 없음).
 - `logncrash search` — Log & Crash Search v3 커서 검색 (`--cursor`로 다음 페이지, `--page`는 전환 호환용 0만 허용). 시간 범위는 90일 이내·31일 이하로 제한한다.
-- `logncrash export` — Log & Crash Search v3 scroll 대량 추출 (검색 결과 전체를 파일로 저장, `--output` JSON Lines/`--format json`. `--size`는 전환 호환용으로 경고 후 무시. 공통 UAK OAuth 토큰 재사용·읽기).
+- `logncrash export` — Log & Crash Search v3 scroll 대량 추출.
+  - 검색 결과 전체를 `--output` JSON Lines 또는 `--format json`으로 저장한다.
+  - `--size`는 전환 호환용으로 경고 후 무시하고 공통 UAK OAuth 토큰을 재사용한다.
 - `logncrash send` — 로그를 Log & Crash 로 전송 (검색의 대칭 쓰기, collector host + appkey-only 인증·ADR-014). 본문은 `--body`/`--file`/stdin, 단일 로그 8MB 한도.
 - `deploy run` — 배포 실행 (named target + flag override, 동기/`--async`).
 - `deploy artifacts` — 아티팩트 목록 조회.

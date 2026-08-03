@@ -132,7 +132,9 @@ search 와 같은 host(`api-lncs-search`)·UAK OAuth 토큰·봉투 helper 를 �
 ### scroll 순회
 
 1. `POST /v3/{appkey}/logs/scroll` 로 시작한다 (body: query/from/to). 응답 `body` 에 `scrollKey`·`totalItems`·`pageSize`·`data` 가 온다 (`NhnEnvelope` + `unwrap`).
-2. `data` 가 비지 않고 `scrollKey` 가 있으면 `POST /v3/{appkey}/logs/scroll/{scrollKey}` (body 없음) 로 다음 페이지를 이어 받는다. 계속 응답의 `pageSize`는 선택 필드다.
+2. `data`가 비지 않고 `scrollKey`가 있으면
+   `POST /v3/{appkey}/logs/scroll/{scrollKey}`(body 없음)로 다음 페이지를 이어 받는다.
+   계속 응답의 `pageSize`는 선택 필드다.
 3. `data` 가 빌 때까지 (또는 안전 상한 10만 건까지) 반복한다. 상한을 넘으면 잘렸음을 stderr 로 경고한다.
 
 v3 공개 명세는 scroll 시작 요청에 `pageSize`를 정의하지 않는다.
