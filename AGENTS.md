@@ -206,7 +206,7 @@ docs 는 task 생성 전에 commit (docs-first).
 | 노출 금지 | 대체 |
 |---|---|
 | NHN Cloud UAK (Deploy id/secret) | `<uak-id>` / `<uak-secret>` |
-| Log & Crash appkey / secret | `<appkey>` / `<secret>` |
+| Log & Crash appkey | `<appkey>` |
 | Instance tenantId / username / API 비밀번호 | `<tenant-id>` / `<username>` / `<password>` |
 | NHN 사내 도메인 (구체 도메인은 공개 repo 라 여기 명시하지 않음) | `example.com` |
 | 사내 이메일 | `user@example.com` |
