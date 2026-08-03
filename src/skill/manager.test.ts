@@ -323,4 +323,74 @@ describe("uninstallSkill", () => {
     await expect(uninstallSkill(context)).rejects.toBeInstanceOf(NhnCloudCliError);
     expect((await lstat(destination())).isDirectory()).toBe(true);
   });
+
+  it("알 수 없는 유효 링크와 깨진 링크는 제거하지 않는다", async () => {
+    const validTarget = path.join(root, "user-skill");
+    await mkdir(validTarget);
+    await replaceDestinationWithLink(validTarget);
+
+    await expect(uninstallSkill(context)).rejects.toBeInstanceOf(NhnCloudCliError);
+    expect(await readlink(destination())).toBe(validTarget);
+
+    const brokenTarget = path.join(root, "missing-user-skill");
+    await replaceDestinationWithLink(brokenTarget);
+
+    await expect(uninstallSkill(context)).rejects.toBeInstanceOf(NhnCloudCliError);
+    expect(await readlink(destination())).toBe(brokenTarget);
+  });
+
+  it("관리 저장소와 기존 패키지 형태의 깨진 링크는 제거한다", async () => {
+    const managedTarget = path.join(context.dataRoot, "skills", `0.9.0-${"a".repeat(64)}`);
+    await replaceDestinationWithLink(managedTarget);
+
+    expect(await uninstallSkill(context)).toBe("removed");
+    await expect(lstat(destination())).rejects.toMatchObject({ code: "ENOENT" });
+
+    const packageTarget = path.join(
+      root,
+      "node_modules",
+      "@bifos",
+      "nhncloud-cli",
+      "skills",
+      "nhncloud-cli",
+    );
+    await replaceDestinationWithLink(packageTarget);
+
+    expect(await uninstallSkill(context)).toBe("removed");
+    await expect(lstat(destination())).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("패키지 metadata로 확인된 기존 직접 링크는 제거한다", async () => {
+    const legacyPackage = path.join(root, "legacy-package");
+    const legacySkill = path.join(legacyPackage, "skills", "nhncloud-cli");
+    await mkdir(legacySkill, { recursive: true });
+    await writeFile(
+      path.join(legacyPackage, "package.json"),
+      JSON.stringify({ name: "@bifos/nhncloud-cli", version: "0.9.0" }),
+    );
+    await replaceDestinationWithLink(legacySkill);
+
+    expect(await uninstallSkill(context)).toBe("removed");
+    await expect(lstat(destination())).rejects.toMatchObject({ code: "ENOENT" });
+    expect((await lstat(legacySkill)).isDirectory()).toBe(true);
+  });
+
+  it("검사 후 제거 직전에 링크 대상이 바뀌면 새 링크를 보존한다", async () => {
+    await installSkill(context);
+    const unmanagedTarget = path.join(root, "replacement-skill");
+    await mkdir(unmanagedTarget);
+    let replaced = false;
+    const operations: SkillManagerOperations = {
+      async rename(oldPath, newPath) {
+        if (!replaced && oldPath === destination()) {
+          replaced = true;
+          await replaceDestinationWithLink(unmanagedTarget);
+        }
+        await fsRename(oldPath, newPath);
+      },
+    };
+
+    await expect(uninstallSkill(context, operations)).rejects.toBeInstanceOf(NhnCloudCliError);
+    expect(await readlink(destination())).toBe(unmanagedTarget);
+  });
 });

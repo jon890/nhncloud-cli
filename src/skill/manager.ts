@@ -88,6 +88,12 @@ function destinationPath(context: SkillManagerContext): string {
   return path.join(context.homeDir, ".claude", "skills", SKILL_NAME);
 }
 
+function resolveLinkTarget(linkPath: string, rawTarget: string): string {
+  return path.isAbsolute(rawTarget)
+    ? path.normalize(rawTarget)
+    : path.resolve(path.dirname(linkPath), rawTarget);
+}
+
 function repositoryRoot(context: SkillManagerContext): string {
   return path.join(context.dataRoot, "skills");
 }
@@ -269,9 +275,7 @@ export async function inspectSkill(context: SkillManagerContext): Promise<SkillS
   } catch (error) {
     throw managerError(`스킬 링크를 읽을 수 없습니다: ${base.destination}`, error);
   }
-  const linkTarget = path.isAbsolute(rawTarget)
-    ? path.normalize(rawTarget)
-    : path.resolve(path.dirname(base.destination), rawTarget);
+  const linkTarget = resolveLinkTarget(base.destination, rawTarget);
   const repositoryName = managedRepositoryName(context, linkTarget);
   const targetStat = await stat(linkTarget).catch((error: unknown) => {
     if (isNodeError(error, "ENOENT")) {
@@ -585,20 +589,85 @@ export async function installSkill(
   }
 }
 
-export async function uninstallSkill(context: SkillManagerContext): Promise<"removed" | "absent"> {
-  const destination = destinationPath(context);
-  const destinationStat = await optionalLstat(destination);
-  if (!destinationStat) {
-    return "absent";
-  }
-  if (!destinationStat.isSymbolicLink()) {
-    throw managerError(`활성 스킬 경로가 심볼릭 링크가 아니므로 제거하지 않았습니다: ${destination}`);
+async function restoreUninstallCandidate(
+  candidate: string,
+  destination: string,
+  operations: SkillManagerOperations,
+  originalError: unknown,
+): Promise<never> {
+  if (await optionalLstat(destination)) {
+    throw managerError(
+      `활성 스킬 경로가 동시에 변경되어 제거하지 않았습니다. 이동된 항목을 보존했습니다: ${candidate}`,
+      originalError,
+    );
   }
 
   try {
-    await rm(destination);
+    await operations.rename(candidate, destination);
+  } catch (restoreError) {
+    throw managerError(
+      `활성 스킬 링크를 제거하지 못했고 원래 위치로 복원하지 못했습니다. 이동된 항목: ${candidate}; 제거 오류: ${toReason(originalError)}`,
+      restoreError,
+    );
+  }
+  throw managerError(`활성 스킬 링크를 제거하지 않고 원래 위치로 복원했습니다: ${destination}`, originalError);
+}
+
+export async function uninstallSkill(
+  context: SkillManagerContext,
+  operations: SkillManagerOperations = defaultOperations,
+): Promise<"removed" | "absent"> {
+  const destination = destinationPath(context);
+  const status = await inspectSkill(context);
+  if (status.status === "missing") {
+    return "absent";
+  }
+  if (!status.managed || !status.linkTarget) {
+    throw managerError(`관리되지 않은 스킬 항목이므로 제거하지 않았습니다: ${destination}`);
+  }
+
+  const candidate = path.join(path.dirname(destination), `.${SKILL_NAME}.uninstall-${randomUUID()}`);
+  try {
+    await operations.rename(destination, candidate);
   } catch (error) {
-    throw managerError(`활성 스킬 링크를 제거할 수 없습니다: ${destination}`, error);
+    if (isNodeError(error, "ENOENT")) {
+      return "absent";
+    }
+    throw managerError(`활성 스킬 링크를 제거용 임시 경로로 이동할 수 없습니다: ${destination}`, error);
+  }
+
+  let candidateTarget: string;
+  try {
+    const candidateStat = await lstat(candidate);
+    if (!candidateStat.isSymbolicLink()) {
+      return await restoreUninstallCandidate(
+        candidate,
+        destination,
+        operations,
+        new Error("검사 후 활성 경로가 심볼릭 링크가 아닌 항목으로 변경되었습니다."),
+      );
+    }
+    candidateTarget = resolveLinkTarget(destination, await readlink(candidate));
+  } catch (error) {
+    if (error instanceof NhnCloudCliError) {
+      throw error;
+    }
+    return await restoreUninstallCandidate(candidate, destination, operations, error);
+  }
+
+  if (candidateTarget !== status.linkTarget) {
+    return await restoreUninstallCandidate(
+      candidate,
+      destination,
+      operations,
+      new Error("검사 후 활성 스킬 링크 대상이 변경되었습니다."),
+    );
+  }
+
+  try {
+    await rm(candidate);
+  } catch (error) {
+    return await restoreUninstallCandidate(candidate, destination, operations, error);
   }
   return "removed";
 }
