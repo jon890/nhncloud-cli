@@ -13,7 +13,7 @@ nhncloud configure --profile playground
 
 1. profile 이름 (기본 `default`). profile = 프로젝트 하나에 대응한다 — 여러 프로젝트는 profile 을 나눠 `--profile` 로 전환한다.
 2. 개인 UAK — id, secret (password 입력). 기존 profile 에 UAK 가 있으면 재사용할지 먼저 묻는다(멀티 프로젝트에서 계정 단위 UAK 중복 입력을 줄임).
-3. 서비스별 자격증명 — logncrash appkey·secret, ncr appkey, ncs appkey (각 건너뛰기 가능, appkey 는 빈값 검증).
+3. 서비스별 자격증명 — logncrash appkey, ncr appkey, ncs appkey (각 건너뛰기 가능, appkey 는 빈값 검증).
 4. 연결 테스트 (UAK → OAuth 발급, logncrash → 최소 검색, ncr·ncs → kr1 목록 조회).
 5. 기존 값과 머지 저장 (`credentials.json` 0600, all-or-nothing).
 
@@ -24,7 +24,7 @@ flag 가 하나라도 있으면 비대화형으로 동작한다.
 ```bash
 nhncloud configure --profile playground \
   --uak-id <id> --uak-secret <secret> \
-  --logncrash-appkey <k> --logncrash-secret <s> \
+  --logncrash-appkey <appkey> \
   [--ncr-appkey <appkey>] [--ncs-appkey <appkey>] [--no-verify]
 ```
 
@@ -32,7 +32,8 @@ nhncloud configure --profile playground \
 |------|------|
 | `--profile <name>` | 대상 profile (기본 default) |
 | `--uak-id` / `--uak-secret` | 개인 UAK |
-| `--logncrash-appkey` / `--logncrash-secret` | logncrash 자격증명 |
+| `--logncrash-appkey` | logncrash 프로젝트 appkey. 검색 인증은 profile 공통 UAK 토큰을 사용 |
+| `--logncrash-secret` | 전환 호환용 폐기 예정 옵션. 경고 후 값을 저장하거나 사용하지 않음 |
 | `--ncr-appkey <key>` | NCR(Container Registry) appkey (인증 secret 은 공통 UAK 재사용) |
 | `--ncs-appkey <key>` | NCS(Container Service) appkey (인증 토큰은 공통 UAK OAuth 재사용) |
 | `--no-verify` | 연결 테스트 생략 |
@@ -40,7 +41,7 @@ nhncloud configure --profile playground \
 ### 연결 테스트
 
 - UAK — OAuth `token/create` 호출 성공 여부로 검증
-- logncrash — 짧은 범위(예: 1분) 검색 호출로 인증(401/403) 검증
+- logncrash — profile 공통 UAK 토큰과 appkey로 짧은 범위(예: 1분) v3 검색을 호출해 인증(401/403) 검증. UAK가 없으면 검증을 건너뛰지 않고 설정 오류로 종료
 - ncr — kr1 레지스트리 목록 조회로 검증. 인증 secret 이 공통 UAK 라 UAK 가 없으면 검증을 건너뛰고 경고만 출력한다. configure verify 는 **kr1 가정** — kr2/kr3 만 쓰는 경우 첫 `ncr list --region kr2` 호출이 사실상의 검증이 된다.
 - ncs — kr1 template 목록 조회로 검증. 인증 토큰이 공통 UAK OAuth 라 UAK 가 없으면 검증을 건너뛰고 경고만 출력한다. ncr 과 동일하게 **kr1 가정**.
 - 실패 시 저장 여부를 다시 확인 (또는 비대화형은 비-0 종료)
@@ -83,8 +84,9 @@ nhncloud logncrash search [options]
 | `--query <lucene>` | 예 | Lucene 질의 문자열. API 에 그대로 전달 |
 | `--from <time>` | 예 | 검색 시작. ISO8601 또는 상대시간 (`1h`/`30m`/`2d`/`now`) |
 | `--to <time>` | 예 | 검색 끝. 형식 동일 |
-| `--page <n>` | 아니오 | pageNumber (기본 0) |
-| `--size <n>` | 아니오 | pageSize (기본 10, 최대 100) |
+| `--cursor <value>` | 아니오 | 직전 JSON 응답의 `nextCursor`. 첫 페이지에서는 생략 |
+| `--page <n>` | 아니오 | 전환 호환용. `0`만 허용하며 그 외 값은 `--cursor` 사용을 안내하고 입력 오류로 종료 |
+| `--size <n>` | 아니오 | 커서 검색의 `pageSize` (기본 10, 최대 100) |
 | `--profile <name>` | 아니오 | profile 선택 |
 
 전역 옵션: `--json` / `--quiet` / `--no-color`.
@@ -110,7 +112,7 @@ nhncloud logncrash search [options]
 ### 출력
 
 - 기본(테이블): 고정 컬럼 `logTime` / `logType` / 본문 요약.
-- `--json`: API `body` 의 `data` 배열 raw + 페이지 메타.
+- `--json`: API `body` 의 `data` 배열 raw + 페이지 메타 + 다음 페이지가 있을 때 `nextCursor`.
 - `--quiet`: 자동화용 최소 출력 (행별 핵심 식별 정보).
 
 ### 에러 경로
@@ -118,27 +120,29 @@ nhncloud logncrash search [options]
 | 상황 | exit code |
 |------|-----------|
 | 자격증명 누락 | `EXIT_CONFIG_ERROR` |
-| `X-LNCS-SECRET` 인증 실패 (401/403) | `EXIT_AUTH_ERROR` |
+| UAK 토큰 또는 appkey 인증 실패 (401/403) | `EXIT_AUTH_ERROR` |
 | 봉투 `isSuccessful: false` / 기타 4xx·5xx | `EXIT_API_ERROR` |
 | 시간 범위 초과 등 입력 오류 | `EXIT_PARAM_ERROR` |
 
 ## logncrash export 흐름
 
-검색 결과 전체를 scroll API 로 순회해 파일로 추출한다 (search 단발 조회와 별도 명령).
-search 와 같은 host(`api-lncs-search`)·인증(`X-LNCS-SECRET`)·봉투 helper 를 재사용한다 — 새 endpoint·인증·ADR 이 없다.
+검색 결과 전체를 v3 scroll API 로 순회해 파일로 추출한다 (search 단발 조회와 별도 명령).
+search 와 같은 host(`api-lncs-search`)·UAK OAuth 토큰·봉투 helper 를 재사용한다 ([[adr-024]]).
 
 ### scroll 순회
 
-1. `POST /api/v2/search/scroll/{appkey}` 로 시작한다 (body 는 search 와 동일: query/from/to/pageSize). 응답 `body` 에 `scrollKey`·`totalItems`·`data` 가 온다 (`NhnEnvelope` + `unwrap`).
-2. `data` 가 비지 않고 `scrollKey` 가 있으면 `POST /api/v2/search/scroll/{appkey}/{scrollKey}` (body 없음) 로 다음 페이지를 이어 받는다.
+1. `POST /v3/{appkey}/logs/scroll` 로 시작한다 (body: query/from/to). 응답 `body` 에 `scrollKey`·`totalItems`·`pageSize`·`data` 가 온다 (`NhnEnvelope` + `unwrap`).
+2. `data` 가 비지 않고 `scrollKey` 가 있으면 `POST /v3/{appkey}/logs/scroll/{scrollKey}` (body 없음) 로 다음 페이지를 이어 받는다. 계속 응답의 `pageSize`는 선택 필드다.
 3. `data` 가 빌 때까지 (또는 안전 상한 10만 건까지) 반복한다. 상한을 넘으면 잘렸음을 stderr 로 경고한다.
 
-`pageSize` 는 docs 한도 10~100 이며 `--size` 로 조정한다.
+v3 공개 명세는 scroll 시작 요청에 `pageSize`를 정의하지 않는다.
+기존 `--size`는 전환 호환을 위해 인식하되, 값을 검증하고 경고한 뒤 요청에는 넣지 않는다.
 
-### scrollKey 만료
+### scroll 계속 요청 실패
 
-scrollKey 유효기간은 1분이다. 한 페이지 처리 후 1분 안에 다음 호출을 못 하면 키가 무효화되어 `EXIT_API_ERROR` 가 난다.
-다음 페이지 실패 시 만료라고 단정하지 않고 원본 오류 메시지를 보존한 채 만료 가능성을 안내한다 (5xx·네트워크 일시 오류도 같은 코드라 진단 정보를 잃지 않기 위함). 만료면 검색 범위를 좁히거나 `--size` 를 키워 페이지 수를 줄인 뒤 다시 시도한다.
+v3 공개 명세는 `scrollKey` 유효기간을 정의하지 않는다.
+다음 페이지 실패 시 만료라고 단정하지 않고 원본 오류 메시지를 보존한다.
+키 만료, 5xx, 네트워크 일시 오류가 같은 종료 코드로 보일 수 있으므로 검색 범위를 좁혀 처음부터 다시 실행하도록 안내한다.
 
 ### 출력
 
@@ -180,7 +184,7 @@ nhncloud logncrash send [options]
 
 ### 인증·전송
 
-- 검색의 `X-LNCS-SECRET` 헤더가 없다. body 의 `projectName` 에 appkey 를 넣어 식별한다 (secret 불요·[[adr-014]]).
+- 검색의 `X-NHN-Authorization` 헤더가 없다. body 의 `projectName` 에 appkey 를 넣어 식별한다 (UAK 토큰과 서비스 secret 불요·[[adr-014]], [[adr-024]]).
 - 응답은 검색과 같은 중첩 봉투 `{ header: { isSuccessful, resultCode(숫자), resultMessage } }` — `isSuccessful` 로만 판정한다 ([[adr-006]]).
 
 ### 에러 경로

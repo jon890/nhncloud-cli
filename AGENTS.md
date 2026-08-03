@@ -9,8 +9,8 @@ TypeScript + Commander.js 기반이다. dooray-cli 의 기반과 하네스를 �
 
 - `configure` — 자격증명 설정 마법사 (대화형 + flag, UAK + 서비스별 키, 연결 테스트).
 - `commands` — Commander tree에서 command path·argument·option·description catalog를 출력하는 metadata 명령 (`--json` 권장, 외부 API 호출 없음).
-- `logncrash search` — Log & Crash 로그 검색 (시간 범위는 90일 이내·31일 이하로 제한, 초과 시 입력 오류).
-- `logncrash export` — Log & Crash 로그 scroll 대량 추출 (검색 결과 전체를 파일로, scrollKey 1분 만료 루프, pageSize 10~100, `--output` JSON Lines/`--format json`. search host·인증 재사용·읽기).
+- `logncrash search` — Log & Crash Search v3 커서 검색 (`--cursor`로 다음 페이지, `--page`는 전환 호환용 0만 허용). 시간 범위는 90일 이내·31일 이하로 제한한다.
+- `logncrash export` — Log & Crash Search v3 scroll 대량 추출 (검색 결과 전체를 파일로 저장, `--output` JSON Lines/`--format json`. `--size`는 전환 호환용으로 경고 후 무시. 공통 UAK OAuth 토큰 재사용·읽기).
 - `logncrash send` — 로그를 Log & Crash 로 전송 (검색의 대칭 쓰기, collector host + appkey-only 인증·ADR-014). 본문은 `--body`/`--file`/stdin, 단일 로그 8MB 한도.
 - `deploy run` — 배포 실행 (named target + flag override, 동기/`--async`).
 - `deploy artifacts` — 아티팩트 목록 조회.
@@ -148,6 +148,7 @@ src/
 | Network(VPC) endpoint 해석 (compute·image 외 type 확장) | ADR-013, ADR-005, ADR-010 |
 | Block Storage(volume) endpoint 해석 (volumev2·tenant 포함 경로) | ADR-013, ADR-005, ADR-010 |
 | Log & Crash 로그 전송 (collector host·appkey-only 인증) | ADR-014 |
+| Log & Crash Search v3 전환 (UAK OAuth·커서·scroll) | ADR-024, ADR-007, ADR-006 |
 | deploy 바이너리 전송 (multipart 업로드·봉투 우회 다운로드) | ADR-015, ADR-002, ADR-006 |
 | NCR(Container Registry) 레지스트리 조회 (공통 UAK 정적 헤더·region host) | ADR-016, ADR-004, ADR-005, ADR-006 |
 | NCR 이미지/태그 조회 (Harbor REST /api/v2.0 우회·UAK Basic Auth·봉투 미적용) | ADR-017, ADR-016, ADR-006 |
@@ -164,7 +165,7 @@ src/
 
 | 서비스 | 비밀 | 인증 헤더 |
 |--------|------|----------|
-| Log & Crash 검색 | appkey + secret | `X-LNCS-SECRET: <secret>` |
+| Log & Crash 검색 | 공통 UAK(id+secret) + Log & Crash appkey | `X-NHN-Authorization: Bearer <token>` (OAuth 토큰 캐시 재사용·ADR-024) |
 | Log & Crash 전송(collector) | appkey (secret 불요) | 인증 헤더 없음 — body 의 projectName=appkey |
 | Deploy v2.1 | UAK(id+secret) | `X-NHN-AUTHORIZATION: Bearer <token>` |
 | Instance (OpenStack Nova v2) | tenantId + username + API 비밀번호 | `X-Auth-Token: <tokenId>` (Keystone v2 발급, ADR-010) |
@@ -178,7 +179,7 @@ src/
   - OAuth: `oauth.api.nhncloudservice.com/oauth2/token/create`
   - Deploy API: `api-deploy.nhncloudservice.com` (공식 docs 의 `api-tcd` 와 다른 현행 도메인 — 함정)
 - `resultCode` 타입이 서비스마다 다름 — Log & Crash·NCS 숫자, Deploy 문자열. 봉투 helper 는 둘 다 수용.
-- NCS 는 Deploy 와 같은 UAK OAuth 토큰(계정 단위 `client_credentials`)을 공유하므로 profile 토큰 캐시를 그대로 재사용 (ADR-020).
+- NCS 와 Log & Crash Search v3는 Deploy 와 같은 UAK OAuth 토큰(계정 단위 `client_credentials`)을 공유하므로 profile 토큰 캐시를 그대로 재사용 (ADR-020, ADR-024).
 
 ## 한국어 표현 정책 / 마크다운 가독성
 
