@@ -5,10 +5,10 @@ import { randomBytes } from "node:crypto";
 import { resolveTime, assertSearchRange } from "../../utils/time.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
-import { EXIT_PARAM_ERROR, EXIT_CONFIG_ERROR, EXIT_API_ERROR } from "../../utils/exit-codes.js";
-import { resolveProfileName, getServiceCredential } from "../../config/credentials.js";
+import { EXIT_PARAM_ERROR, EXIT_API_ERROR } from "../../utils/exit-codes.js";
 import { LogncrashClient } from "../../services/logncrash/client.js";
 import type { ScrollResult } from "../../services/logncrash/types.js";
+import { resolveLogncrashClient } from "./helpers.js";
 
 interface ExportGlobalOpts {
   query?: string;
@@ -46,7 +46,7 @@ export const exportCommand = new Command("export")
   .option("--to <time>", "검색 끝: ISO8601 또는 상대시간 (필수)")
   .option("--output <file>", "출력 파일 경로 (필수)")
   .option("--format <fmt>", "출력 형식: jsonl(기본, 한 줄당 한 로그) 또는 json(배열)", "jsonl")
-  .option("--size <n>", "scroll 페이지 크기 (docs 범위 10~100, 기본 100)", "100")
+  .option("--size <n>", "폐기 예정: Search v3에서는 무시됨 (호환 검증 범위 10~100)")
   .option("--force", "출력 파일이 있으면 덮어쓴다")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (_opts: unknown, cmd: Command) => {
@@ -72,13 +72,17 @@ export const exportCommand = new Command("export")
     }
 
     // 4-4: 정수 옵션은 bare Number/parseInt 대신 regex 로 형식부터 검증 (소수·공백·접미사 차단)
-    const sizeRaw = opts.size ?? "100";
-    if (!/^[1-9]\d*$/.test(sizeRaw)) {
-      throw new NhnCloudCliError("--size 는 양의 정수여야 합니다 (docs 범위 10~100).", EXIT_PARAM_ERROR);
-    }
-    const size = parseInt(sizeRaw, 10);
-    if (size < 10 || size > 100) {
-      throw new NhnCloudCliError("--size 는 10~100 사이여야 합니다 (Log & Crash scroll pageSize 한도).", EXIT_PARAM_ERROR);
+    if (opts.size !== undefined) {
+      if (!/^[1-9]\d*$/.test(opts.size)) {
+        throw new NhnCloudCliError("--size 는 양의 정수여야 합니다 (호환 범위 10~100).", EXIT_PARAM_ERROR);
+      }
+      const size = parseInt(opts.size, 10);
+      if (size < 10 || size > 100) {
+        throw new NhnCloudCliError("--size 는 10~100 사이여야 합니다.", EXIT_PARAM_ERROR);
+      }
+      process.stderr.write(
+        "경고: logncrash export --size는 폐기 예정이며 Search v3 요청에서는 무시됩니다.\n",
+      );
     }
 
     // ── 2. 시간 정규화 + 범위 검증 (search 와 동일 — 90일/31일 제한 재사용) ──
@@ -88,22 +92,8 @@ export const exportCommand = new Command("export")
 
     assertWritable(opts.output, opts.force ?? false); // 덮어쓰기 정책 — 네트워크 호출 전 차단
 
-    // ── 3. 자격증명 로드 (?? "" 금지 — 미설정 시 CONFIG_ERROR) ──
-    const profileName = await resolveProfileName(opts.profile);
-    const cred = await getServiceCredential("logncrash", profileName);
-    if (!cred.appkey) {
-      throw new NhnCloudCliError(
-        `profile "${profileName}" 의 logncrash 자격증명에 appkey 가 없습니다.\ncredentials.json 에 "appkey": "<appkey>" 를 추가하세요.`,
-        EXIT_CONFIG_ERROR,
-      );
-    }
-    if (!cred.secret) {
-      throw new NhnCloudCliError(
-        `profile "${profileName}" 의 logncrash 자격증명에 secret 이 없습니다.\ncredentials.json 에 "secret": "<secret>" 를 추가하세요.`,
-        EXIT_CONFIG_ERROR,
-      );
-    }
-    const client = new LogncrashClient(cred.appkey, cred.secret);
+    // ── 3. appkey + 공통 UAK OAuth client 해석 ──
+    const client = await resolveLogncrashClient(opts.profile);
 
     // ── 4. scroll 루프 + 스트리밍 쓰기 ──
     // 페이지 수신 즉시 temp 파일에 append 한다 — 전체(최대 10만 건)를 메모리에 모은 뒤
@@ -128,13 +118,17 @@ export const exportCommand = new Command("export")
 
     try {
       if (format === "json") stream.write("[");
-      let res: ScrollResult = await client.scrollStart({ query: opts.query, from: fromIso, to: toIso, pageSize: size });
+      let res: ScrollResult = await client.scrollStart({
+        query: opts.query,
+        from: fromIso,
+        to: toIso,
+      });
       total = res.totalItems;
       writePage(res.data);
       spinner.text = `로그 추출 중... ${count}/${total}`;
 
       while (res.data.length > 0 && res.scrollKey && count < Math.min(total, MAX_TOTAL)) {
-        res = await scrollNextOrExpire(client, res.scrollKey);
+        res = await scrollNextWithHint(client, res.scrollKey);
         writePage(res.data);
         spinner.text = `로그 추출 중... ${count}/${total}`;
       }
@@ -173,17 +167,15 @@ export const exportCommand = new Command("export")
   });
 
 /**
- * scrollNext 를 호출하되 scrollKey 만료 가능성을 안내로 덧붙인다.
- * EXIT_API_ERROR 는 만료뿐 아니라 일시적 5xx·네트워크 blip·빈 body 에서도 나므로,
- * 만료라고 단정해 원본 진단을 폐기하지 않는다 — 원본 메시지를 보존하고 만료 힌트만 덧붙인다.
+ * scrollNext 실패 원인을 보존하고 재실행 범위를 좁히도록 안내한다.
  */
-async function scrollNextOrExpire(client: LogncrashClient, scrollKey: string): Promise<ScrollResult> {
+async function scrollNextWithHint(client: LogncrashClient, scrollKey: string): Promise<ScrollResult> {
   try {
     return await client.scrollNext(scrollKey);
   } catch (err) {
     if (err instanceof NhnCloudCliError && err.exitCode === EXIT_API_ERROR) {
       throw new NhnCloudCliError(
-        `scroll 다음 페이지 요청이 실패했습니다 (원인: ${err.message}). scrollKey 만료(유효 1분)일 수 있으니, 만료라면 검색 범위를 좁히거나 --size 를 키워 페이지 수를 줄인 뒤 다시 시도하세요.`,
+        `scroll 다음 페이지 요청이 실패했습니다 (원인: ${err.message}). 검색 범위를 좁혀 다시 실행하세요.`,
         EXIT_API_ERROR,
       );
     }

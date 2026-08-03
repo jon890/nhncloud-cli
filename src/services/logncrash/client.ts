@@ -7,15 +7,10 @@ import { EXIT_CONFIG_ERROR } from "../../utils/exit-codes.js";
 import type {
   CursorSearchParams,
   CursorSearchResult,
-  LogSearchParams,
-  LogSearchResult,
   LogSendParams,
   ScrollStartParams,
   ScrollResult,
 } from "./types.js";
-
-/** Phase 2에서 export command의 폐기 예정 --size 전달을 제거하면 함께 없앤다. */
-type LegacyScrollStartParams = ScrollStartParams & { pageSize?: number };
 
 export class LogncrashClient {
   private readonly appkey: string;
@@ -25,20 +20,6 @@ export class LogncrashClient {
   constructor(appkey: string, accessToken?: string) {
     this.appkey = appkey;
     this.accessToken = accessToken;
-  }
-
-  /**
-   * Phase 2의 command 전환 전까지 기존 호출부의 타입 검사를 유지하는 v3 위임 호환층이다.
-   * v2 경로·secret 인증을 사용하지 않으며 Phase 2에서 제거한다.
-   */
-  async search(params: LogSearchParams): Promise<LogSearchResult> {
-    return this.cursorSearch({
-      query: params.query,
-      from: params.from,
-      to: params.to,
-      ...(params.pageSize !== undefined ? { pageSize: params.pageSize } : {}),
-      ...(params.cursor !== undefined ? { cursor: params.cursor } : {}),
-    });
   }
 
   async cursorSearch(params: CursorSearchParams): Promise<CursorSearchResult> {
@@ -54,6 +35,7 @@ export class LogncrashClient {
             query: params.query,
             from: params.from,
             to: params.to,
+            sort: { logTime: "DESC" },
             ...(params.pageSize !== undefined ? { pageSize: params.pageSize } : {}),
             ...(params.cursor !== undefined ? { cursor: params.cursor } : {}),
           },
@@ -69,7 +51,7 @@ export class LogncrashClient {
   /**
    * v3 scroll 검색을 시작한다. 응답 scrollKey 로 scrollNext 를 이어 호출한다.
    */
-  async scrollStart(params: LegacyScrollStartParams): Promise<ScrollResult> {
+  async scrollStart(params: ScrollStartParams): Promise<ScrollResult> {
     const headers = this.readHeaders();
     const endpoint = endpointFor("logncrash");
     const url = `${endpoint}/v3/${encodeURIComponent(this.appkey)}/logs/scroll`;

@@ -20,7 +20,7 @@ function respondWith(body: unknown): void {
 describe("LogncrashClient Search v3", () => {
   beforeEach(() => vi.resetAllMocks());
 
-  it("cursor 첫 요청에 v3 URL·Bearer·선택 pageSize만 보내고 sort를 만들지 않는다", async () => {
+  it("cursor 첫 요청에 v3 URL·Bearer·선택 pageSize와 고정 sort를 보낸다", async () => {
     respondWith({ totalItems: 2, pageNumber: 0, pageSize: 10, data: [] });
 
     const client = new LogncrashClient("app/key", "access-token");
@@ -39,12 +39,13 @@ describe("LogncrashClient Search v3", () => {
           query: "logType:NORMAL",
           from: "2026-08-03T00:00:00Z",
           to: "2026-08-03T01:00:00Z",
+          sort: { logTime: "DESC" },
           pageSize: 10,
         },
       },
     );
     const options = vi.mocked(ky.post).mock.calls[0]?.[1];
-    expect(options?.json).not.toHaveProperty("sort");
+    expect(options?.json).toHaveProperty("sort", { logTime: "DESC" });
     expect(options?.json).not.toHaveProperty("cursor");
   });
 
@@ -70,6 +71,7 @@ describe("LogncrashClient Search v3", () => {
       query: "*",
       from: "2026-08-03T00:00:00Z",
       to: "2026-08-03T01:00:00Z",
+      sort: { logTime: "DESC" },
       cursor: nextCursor,
     });
     expect(result.nextCursor).toBe(nextCursor);
@@ -83,7 +85,6 @@ describe("LogncrashClient Search v3", () => {
       query: "*",
       from: "2026-08-03T00:00:00Z",
       to: "2026-08-03T01:00:00Z",
-      pageSize: 100,
     });
     expect(ky.post).toHaveBeenLastCalledWith(
       "https://api-lncs-search.nhncloudservice.com/v3/app%2Fkey/logs/scroll",

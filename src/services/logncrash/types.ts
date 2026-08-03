@@ -14,14 +14,6 @@ export interface CursorSearchResult {
   nextCursor?: string;
 }
 
-/** Phase 2에서 command 전환과 함께 제거할 v3 위임 호환 타입. */
-export interface LogSearchParams extends CursorSearchParams {
-  pageNumber?: number;
-}
-
-/** Phase 2에서 command 전환과 함께 제거할 v3 위임 호환 타입. */
-export type LogSearchResult = CursorSearchResult;
-
 /** v3 scroll 시작 요청 body. */
 export interface ScrollStartParams {
   query: string;

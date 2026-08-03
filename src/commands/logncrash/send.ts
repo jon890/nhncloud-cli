@@ -107,7 +107,7 @@ export const sendCommand = new Command("send")
         EXIT_CONFIG_ERROR,
       );
     }
-    // collector send 는 secret 을 쓰지 않는다 (ADR-014). 생성자 secret 옵셔널 — 생략한다.
+    // collector send 는 검색용 access token을 쓰지 않는다(ADR-014). 생성자 두 번째 인자는 생략한다.
     const client = new LogncrashClient(cred.appkey);
 
     // ── 4. 전송 (spinner 내부, try/catch + leak 방지) ──

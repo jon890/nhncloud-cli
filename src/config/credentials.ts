@@ -45,7 +45,7 @@ async function loadCredentials(): Promise<Credentials> {
             profiles: {
               default: {
                 userAccessKey: { id: "<uak-id>", secret: "<uak-secret>" },
-                logncrash: { appkey: "<appkey>", secret: "<secretkey>" },
+                logncrash: { appkey: "<appkey>" },
               },
             },
           },
@@ -190,7 +190,7 @@ export async function getServiceCredential(
     throw new NhnCloudCliError(
       `profile "${profileName}" 에 "${service}" 자격증명이 없습니다.\n` +
         `${CREDENTIALS_PATH} 에서 profiles.${profileName}.${service} 블록을 추가하세요.\n` +
-        `예시: { "appkey": "<appkey>", "secret": "<secretkey>" }`,
+        `예시: { "appkey": "<appkey>" }`,
       EXIT_CONFIG_ERROR,
     );
   }
