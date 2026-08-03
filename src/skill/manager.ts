@@ -139,14 +139,12 @@ async function optionalLstat(targetPath: string) {
 }
 
 function parseRepositoryName(targetPath: string): RepositoryName | undefined {
-  const root = path.dirname(targetPath);
   const name = path.basename(targetPath);
   const digestHex = name.slice(-64);
   const separatorIndex = name.length - digestHex.length - 1;
   const version = name.slice(0, separatorIndex);
 
   if (
-    root.length === 0 ||
     separatorIndex <= 0 ||
     name[separatorIndex] !== "-" ||
     !isSafePathSegment(version) ||

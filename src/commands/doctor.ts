@@ -73,6 +73,10 @@ export const doctorCommand = new Command("doctor")
       console.log(
         `  ${SKILL_NAME}: ${chalk.green(`✓ current (${skillStatus.installedVersion ?? skillStatus.currentVersion})`)}`,
       );
+    } else if (skillStatus.status === "missing") {
+      console.log(
+        `  ${SKILL_NAME}: ${chalk.gray(`미설치 — ${skillRecoveryCommand(skillStatus.status)}`)}`,
+      );
     } else {
       console.log(
         `  ${SKILL_NAME}: ${chalk.yellow(`⚠ ${skillStatus.status}`)} — ${skillRecoveryCommand(skillStatus.status)}`,

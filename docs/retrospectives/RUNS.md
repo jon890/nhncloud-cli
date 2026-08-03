@@ -13,3 +13,4 @@
 | 2026-08-03 | review-fix | PR 62 | - | - | - | 0 | - | 없음 | 0 | 병합 준비 |
 | 2026-08-03 | planning | 044-feat-managed-skill-lifecycle | - | 5 | - | - | 1 | 없음 | 0 | task·branch push |
 | 2026-08-04 | build-with-teams | 044-feat-managed-skill-lifecycle | A | 5 | 0 | 0 | 1 | 없음 | 1 | PR #63 |
+| 2026-08-04 | review-fix | PR 63 | - | - | - | 2 | - | 없음 | 0 | 병합 준비 |
