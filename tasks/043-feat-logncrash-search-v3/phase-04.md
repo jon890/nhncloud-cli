@@ -53,6 +53,35 @@ git diff --check
 
 실패가 있으면 관련 phase로 돌아가 수정하고 같은 검증을 다시 실행한다.
 
+로컬 `playground` profile에 공통 UAK와 Log & Crash appkey가 있으면
+REAL v3 cursor 검색을 5분 범위·최대 1건으로 한 번 호출한다.
+원본 JSON은 터미널이나 실행 기록에 출력하지 않고 `jq`에서 집계 정보만 투영한다.
+
+```bash
+# cwd: <repo root>
+set -o pipefail
+node dist/index.js logncrash search \
+  --profile playground \
+  --query '*' \
+  --from 5m \
+  --to now \
+  --size 1 \
+  --json \
+  | jq -e '{
+      totalItems,
+      pageNumber,
+      pageSize,
+      dataCount: (.data | length),
+      hasNextCursor: has("nextCursor")
+    }'
+```
+
+성공 시 stdout에는 위 집계 정보만 남긴다.
+`.data`의 내용, access token, UAK, appkey는 출력하거나 실행 기록에 저장하지 않는다.
+실패 시에도 원본 응답 JSON을 남기지 않고 종료 코드와 비밀값이 없는 오류 메시지만 기록한다.
+로컬 profile에 필수 자격증명이 없으면 네트워크·TLS·인증 전 단계까지만 확인하고,
+실호출 미검증 사유를 남은 위험으로 명시한다.
+
 ### 3. task 완료 상태와 실행 기록
 
 `tasks/043-feat-logncrash-search-v3/index.json`을 다음과 같이 갱신한다.
@@ -96,6 +125,8 @@ phase별 commit을 이미 만들었다면 같은 변경을 중복 commit하지 �
 - `tasks/043-feat-logncrash-search-v3/index.json`의 최상위와 네 phase `status`가 `completed`다.
 - `current_phase`가 `4`이고 `updated_at`이 실제 완료 시각이다.
 - 타입 검사, 전체 테스트, build, 도움말, catalog 147개, v2·secret 잔재 검사가 통과한다.
+- 로컬 `playground` profile에 공통 UAK와 Log & Crash appkey가 있으면
+  REAL v3 최소 cursor 검색이 성공하고 집계 정보만 출력한다.
 - product code·tests, 공개 문서, task 상태·실행 기록의 인계 목록이 관심사별 파일로 분리되어 있다.
 - team-lead가 index 완료 마킹과 실행 기록을 마지막 commit에 포함하도록 인계 메모가 남아 있다.
 
@@ -103,4 +134,6 @@ phase별 commit을 이미 만들었다면 같은 변경을 중복 commit하지 �
 
 - 최신 main이 선행 관계가 아니면 `PHASE_BLOCKED: team-lead의 branch 갱신 필요`를 보고한다.
 - 브랜치 PR이 둘 이상 열려 있으면 `PHASE_BLOCKED: branch PR 상태 확인 필요`를 보고한다.
+- 실호출 실패가 자격증명 또는 API 계약 문제라면 원본 응답과 비밀값을 노출하지 않고
+  `PHASE_BLOCKED: Log & Crash Search v3 실제 호출 확인 필요`를 보고한다.
 - team-lead는 PR이 이미 열려 있으면 history rewrite 없이 현재 상태를 기준으로 commit·push한다.

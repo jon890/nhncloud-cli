@@ -10,7 +10,9 @@
 v3 전환의 타입·단위·bundle·command catalog 회귀를 검증한다.
 사용자와 AI 에이전트가 appkey + 공통 UAK, 커서 검색, v3 scroll 호환 제한을 공개 문서만으로 사용할 수 있게 한다.
 
-**범위 외**: 실제 NHN Cloud 자격증명을 사용한 호출, package 버전 변경, v2 fallback, BETA·ALPHA host 선택은 하지 않는다.
+**범위 외**: 이 phase의 단위·문서 검증 중 실제 NHN Cloud 자격증명을 사용한 호출,
+package 버전 변경, v2 fallback, BETA·ALPHA host 선택은 하지 않는다.
+인증된 최소 검색 호출은 Phase 4에서 로그 본문과 비밀값을 출력하지 않는 방식으로 한 번만 수행한다.
 
 ---
 
@@ -118,7 +120,7 @@ test -z "$secret_findings"
 - 타입 검사, 전체 테스트, build, 네 도움말, catalog 검증, `git diff --check`가 종료 코드 0이다.
 - command catalog는 147개이고 `logncrash` 아래 기존 4개 path 집합이 같다.
 - v2 검색 인증·경로·TTL 단정 잔재와 개인 식별 정보 검사 출력이 0줄이다.
-- 실제 NHN Cloud API 호출은 0회다.
+- 이 phase의 자동 검증 중 실제 NHN Cloud API 호출은 0회다.
 
 ## Blocked 조건
 
