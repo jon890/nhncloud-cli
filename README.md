@@ -6,10 +6,10 @@
 [![license](https://img.shields.io/npm/l/@bifos/nhncloud-cli.svg)](https://github.com/jon890/nhncloud-cli/blob/main/LICENSE)
 
 NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 통합 CLI.
-현재 147개 command catalog 항목을 지원한다.
+현재 149개 command catalog 항목을 지원한다.
 `configure`, `commands`, `logncrash search/send/export`, `deploy`, `instance`, `network`, `volume`, `floatingip` 명령을 지원한다.
 `loadbalancer`, `ncr`, `nks`, `ncs` 명령으로 NHN Cloud 서비스를 조회·운영할 수 있다.
-`skills`/`doctor` 로 Claude Code 스킬 설치와 상태 진단을 지원한다.
+`skills`/`doctor` 로 Claude Code 스킬의 설치·상태 확인·갱신·제거와 상태 진단을 지원한다.
 
 ## 설치
 
@@ -58,20 +58,32 @@ NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
 
 profile 해석 우선순위: `--profile` 옵션 > `NHNCLOUD_PROFILE` 환경변수 > `config.defaultProfile` > `"default"`.
 
-### Claude Code 스킬 설치 (선택)
+### Claude Code 스킬 관리 (선택)
 
-Claude Code 에서 이 CLI 를 AI 에이전트 스킬로 쓰려면 스킬을 `~/.claude/skills` 에 설치한다.
+Claude Code 에서 이 CLI 를 AI 에이전트 스킬로 쓰려면 패키지에 포함된 공개 스킬을 관리 저장소에 설치한다.
+전역 설치 없이 `npx`로 실행해도 관리 저장소에 복사되므로 임시 패키지 경로가 사라진 뒤에도 사용할 수 있다.
 
 ```bash
-# 심볼릭 링크로 설치 (전역 설치 전제 — npx 환경은 불가)
+# 전역 설치한 CLI에서 설치
 nhncloud skills install
 
-# 설치 상태 확인
-nhncloud skills
+# 또는 최신 패키지를 npx로 실행해 설치
+npx --yes @bifos/nhncloud-cli@latest skills install
 
-# 제거
+# 상태 확인 (`nhncloud skills`도 동일)
+nhncloud skills status
+
+# npm 패키지를 갱신한 뒤 공개 스킬도 명시적으로 갱신
+npm install -g @bifos/nhncloud-cli@latest
+nhncloud skills update
+
+# 활성 링크만 제거하고 버전별 관리 저장소는 보존
 nhncloud skills uninstall
 ```
+
+상태는 `current`, `missing`, `outdated`, `broken`, `unmanaged`, `modified`, `corrupt` 중 하나다.
+기본 상태 출력의 복구 명령을 따르면 되며, 사용자 항목이나 수정·손상된 관리 저장소는 자동으로 덮어쓰지 않는다.
+내용을 확인한 뒤 `nhncloud skills update --force`를 실행하면 기존 항목을 같은 상위 디렉터리에 백업하고 현재 패키지의 스킬로 교체한다.
 
 ### 상태 진단
 

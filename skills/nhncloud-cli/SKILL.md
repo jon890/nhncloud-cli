@@ -3,6 +3,8 @@ name: nhncloud-cli
 description: >-
   NHN Cloud 리소스를 nhncloud CLI로 조회·생성·변경·삭제하거나,
   configure·profile·출력 형식·종료 코드·명령 문법을 확인할 때 사용한다.
+  Claude Code 공개 스킬의 상태를 확인하거나
+  `skills status|install|update|uninstall`로 관리하고 상태별 복구 방법을 안내할 때도 사용한다.
   Log & Crash, Deploy, Compute, Network, Block Storage, Floating IP,
   Load Balancer, NCR, NKS, NCS 작업을 서비스별 참조와 명령 카탈로그로 안내한다.
 ---
@@ -26,7 +28,8 @@ description: >-
 
 | 작업 | 읽을 파일 |
 |---|---|
-| 설치, `configure`, profile, 출력 모드, 명령 카탈로그, 종료 코드 | [common.md](references/common.md) |
+| CLI 설치, `configure`, profile, 출력 모드, 명령 카탈로그, 종료 코드 | [common.md](references/common.md) |
+| 공개 스킬 상태 확인·설치·갱신·제거와 상태별 복구 | [common.md](references/common.md) |
 | Log & Crash Search v3 커서 검색·scroll 대량 추출·collector 전송 | [logncrash.md](references/logncrash.md) |
 | Deploy 실행·조회·바이너리 전송 | [deploy.md](references/deploy.md) |
 | Compute, VPC, Block Storage, Floating IP | [iaas.md](references/iaas.md) |
