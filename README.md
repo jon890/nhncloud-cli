@@ -25,17 +25,17 @@ npm install -g @bifos/nhncloud-cli
 nhncloud configure
 ```
 
-- profile → UAK(id/secret) → logncrash appkey/secret → iaas 자격증명 → ncr appkey → ncs appkey 순으로 입력한다.
+- profile → 공통 UAK(id/secret) → logncrash appkey → iaas 자격증명 → ncr appkey → ncs appkey 순으로 입력한다.
 - profile 은 프로젝트 단위다 — 여러 NHN Cloud 프로젝트를 쓰면 profile 을 분리하되, 같은 UAK 를 쓴다면
   대화형 마법사가 기존 profile 의 UAK 재사용 여부를 먼저 물어 재입력을 줄여준다.
 - 저장 전 연결 테스트를 자동으로 수행한다 (`--no-verify` 로 생략 가능).
 - CI/자동화는 flag 로 비대화형 설정이 가능하다.
 
 ```bash
-# UAK + logncrash + ncs 비대화형 설정
+# 공통 UAK + logncrash + ncs 비대화형 설정
 nhncloud configure \
-  --uak-id <id> --uak-secret <secret> \
-  --logncrash-appkey <key> --logncrash-secret <secret> \
+  --uak-id <uak-id> --uak-secret <uak-secret> \
+  --logncrash-appkey <appkey> \
   [--ncs-appkey <appkey>] \
   --no-verify
 
@@ -143,6 +143,11 @@ nhncloud deploy download <target> --binary-group <key> --binary-key <binary-key>
 
 ### 로그 검색
 
+Log & Crash Search v3는 profile의 logncrash appkey와 공통 UAK를 사용한다.
+CLI가 UAK를 OAuth 토큰으로 교환해 `X-NHN-Authorization: Bearer <token>`으로 인증한다.
+기존 logncrash secret은 검색에 사용하거나 새 설정에 저장하지 않는다.
+전환 호환 옵션 `nhncloud configure --logncrash-secret`은 경고 후 무시한다.
+
 ```bash
 # 최근 1시간 NORMAL 로그
 nhncloud logncrash search \
@@ -161,6 +166,15 @@ nhncloud logncrash search \
   --query 'body:*request_received*' \
   --from 1h \
   --to now
+
+# 다음 페이지 조회: 직전 JSON의 nextCursor를 그대로 전달
+next_cursor="$(nhncloud logncrash search \
+  --query '*' --from 1h --to now --json | jq -r '.nextCursor // empty')"
+if [ -n "$next_cursor" ]; then
+  nhncloud logncrash search \
+    --query '*' --from 1h --to now \
+    --cursor "$next_cursor" --json
+fi
 ```
 
 `--query` 는 콘솔의 간편 검색어가 아니라 Log & Crash Search API 의 Lucene 쿼리다.
@@ -170,6 +184,9 @@ body 검색 의도가 명확하면 `body:<keyword>` 또는 `body:*<keyword>*` �
 API 제약상 검색 시작은 최근 90일 이내, 검색 범위는 31일 이하여야 한다 (초과 시 입력 오류로 거절).
 전송 직후에는 인덱싱 지연으로 잠시 0건이 나올 수 있다.
 반복 검색이나 넓은 wildcard 검색은 API rate limit 에 걸릴 수 있으므로 시간 범위를 좁혀 확인한다.
+검색 결과는 `logTime DESC`로 고정 정렬한다.
+`--page`는 전환 호환을 위해 남아 있지만 `0`만 허용한다.
+다음 페이지는 JSON 응답에 `nextCursor`가 있을 때 그 값을 `--cursor`로 변형 없이 전달한다.
 
 ### 로그 대량 추출 (export)
 
@@ -187,7 +204,9 @@ nhncloud logncrash export --query 'logType:"ERROR"' --from 1h --to now \
 
 단발 검색(`search`)과 달리 scroll API 로 전체 결과(최대 10만 건)를 순회해 파일로 저장한다.
 진행 상황은 stderr, 데이터는 파일에만 기록된다(stdout 비움).
-scrollKey 유효기간은 1분이므로 데이터가 많을 때는 `--size` 를 키워 페이지 수를 줄이는 것을 권장한다.
+중간 요청이 실패하면 원본 오류를 확인하고 검색 시간 범위를 좁혀 다시 실행한다.
+기존 `--size`는 전환 호환 옵션이다.
+명시하면 10~100 범위를 검증하고 폐기 예정 경고를 출력하지만 Search v3 요청에는 전달하지 않는다.
 시간 범위 제한은 search 와 동일(90일 이내·31일 이하).
 
 #### export 옵션
@@ -199,7 +218,7 @@ scrollKey 유효기간은 1분이므로 데이터가 많을 때는 `--size` 를 
 | `--to <time>` | 예 | 검색 끝 |
 | `--output <file>` | 예 | 출력 파일 경로 |
 | `--format <fmt>` | 아니오 | `jsonl`(기본, 한 줄당 한 로그) 또는 `json`(배열) |
-| `--size <n>` | 아니오 | scroll pageSize — 범위 10~100, 기본 100 |
+| `--size <n>` | 아니오 | 폐기 예정 호환 옵션. 10~100 검증 후 경고하고 v3 요청에서는 무시 |
 | `--force` | 아니오 | 출력 파일이 있으면 덮어쓴다 (기본 거부) |
 | `--profile <name>` | 아니오 | 사용할 profile 이름 |
 
@@ -219,7 +238,9 @@ echo "배치 작업 종료" | nhncloud logncrash send --level INFO
 nhncloud logncrash send --body "deploy 시작" --app-version 2.3.0 --source batch
 ```
 
-> logncrash send 는 검색과 다른 collector 로 전송하며 appkey 만 사용한다 (secret 불요). 단일 로그 본문은 8MB 까지.
+> `logncrash send`는 Search v3 전환의 영향을 받지 않는다.
+> 검색과 다른 collector로 전송하며 appkey만 사용한다.
+> 단일 로그 본문은 8MB까지 허용한다.
 
 ### 출력 모드
 
@@ -247,7 +268,7 @@ root와 주요 service group의 `--help`에는 짧은 agent hint가 포함된다
 | 명령 | `--json` 출력 shape |
 |------|---------------------|
 | `commands` | `{ commands: [{ path, description, arguments, options, subcommands }] }` |
-| `logncrash search` | `{ totalItems, pageNumber, pageSize, data }` 객체 |
+| `logncrash search` | `{ totalItems, pageNumber, pageSize, data, nextCursor? }` 객체 |
 | `logncrash export` | 파일 출력 전용. stdout JSON 없음 |
 | `deploy artifacts` | Deploy API `body` 객체 |
 | `deploy server-groups` | Deploy API `body` 객체 |
@@ -318,8 +339,9 @@ nhncloud logncrash search --query '*' --from 1d --to now --json | jq '.totalItem
 | `--query <lucene>` | 예 | Lucene 질의 문자열 |
 | `--from <time>` | 예 | 검색 시작 (ISO8601 또는 상대시간) |
 | `--to <time>` | 예 | 검색 끝 |
-| `--page <n>` | 아니오 | pageNumber (기본 0) |
-| `--size <n>` | 아니오 | pageSize (기본 10, 최대 100) |
+| `--page <n>` | 아니오 | 전환 호환용 pageNumber. 기본 0이며 0만 허용 |
+| `--size <n>` | 아니오 | pageSize (기본 10, 범위 1~100) |
+| `--cursor <value>` | 아니오 | 직전 JSON 응답의 불투명한 `nextCursor` |
 | `--profile <name>` | 아니오 | 사용할 profile |
 
 전역 옵션: `--json` / `--quiet` / `--no-color`.

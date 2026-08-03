@@ -15,7 +15,7 @@
 
 | 서비스 | 비밀 | 인증 방식 |
 |--------|------|-----------|
-| Log & Crash 검색/export | appkey + secret | `X-LNCS-SECRET` |
+| Log & Crash 검색/export | appkey + 공통 UAK id/secret | UAK OAuth `X-NHN-Authorization: Bearer <token>` |
 | Log & Crash send | appkey | body `projectName=appkey`, 인증 헤더 없음 |
 | Deploy | UAK id + secret | OAuth Bearer token |
 | Instance/network/volume/floatingip | tenantId + username + API password | Keystone `X-Auth-Token` |
@@ -70,8 +70,17 @@ nhncloud ncr list --json | jq '.[0] | keys'
 
 - `--from`은 최근 90일 이내여야 한다.
 - `--to - --from` 범위는 31일 이하여야 한다.
-- scrollKey는 1분 만료다.
-- export가 중간 실패하면 검색 범위를 좁히거나 `--size`를 키운다.
+- `--page`는 0만 허용한다. 다음 페이지는 JSON의 `nextCursor`를 `--cursor`로 그대로 전달한다.
+- 검색 `--size`는 1~100이다.
+- export `--size`는 폐기 예정 호환 옵션이며 10~100 검증 후 경고하고 v3 요청에서는 무시한다.
+- export가 중간 실패하면 보존된 원본 오류를 확인하고 검색 범위를 좁혀 다시 실행한다.
+
+검색 또는 export에서 설정 오류가 나면 profile에 다음 두 값이 모두 있는지 확인한다.
+
+- `userAccessKey.id`와 `userAccessKey.secret`
+- `logncrash.appkey`
+
+기존 `logncrash.secret`은 Search v3 인증에 사용하지 않는다.
 
 ## 쓰기 명령 confirm
 

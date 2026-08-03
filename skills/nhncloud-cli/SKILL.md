@@ -27,7 +27,7 @@ description: >-
 | 작업 | 읽을 파일 |
 |---|---|
 | 설치, `configure`, profile, 출력 모드, 명령 카탈로그, 종료 코드 | [common.md](references/common.md) |
-| Log & Crash 검색·대량 추출·전송 | [logncrash.md](references/logncrash.md) |
+| Log & Crash Search v3 커서 검색·scroll 대량 추출·collector 전송 | [logncrash.md](references/logncrash.md) |
 | Deploy 실행·조회·바이너리 전송 | [deploy.md](references/deploy.md) |
 | Compute, VPC, Block Storage, Floating IP | [iaas.md](references/iaas.md) |
 | Load Balancer와 IP ACL | [loadbalancer.md](references/loadbalancer.md) |

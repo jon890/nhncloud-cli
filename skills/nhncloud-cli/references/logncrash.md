@@ -1,6 +1,10 @@
 # Log & Crash Reference
 
-`logncrash` 명령군은 Log & Crash Search 검색, scroll export, collector 전송을 다룬다.
+`logncrash` 명령군은 Log & Crash Search v3 커서 검색, scroll export, collector 전송을 다룬다.
+
+검색과 export에는 profile의 logncrash appkey와 공통 UAK가 필요하다.
+CLI가 UAK를 OAuth 토큰으로 교환해 Bearer 인증을 적용한다.
+`send`는 별도 collector 계약이므로 Search v3 전환의 영향을 받지 않는다.
 
 ## 검색
 
@@ -25,9 +29,13 @@ nhncloud logncrash search \
 | `--query <lucene>` | 예 | Lucene 질의 문자열. API에 그대로 전달 |
 | `--from <time>` | 예 | 검색 시작. ISO8601 또는 상대시간 |
 | `--to <time>` | 예 | 검색 끝. ISO8601, 상대시간, `now` |
-| `--page <n>` | 아니오 | pageNumber. 기본 0 |
-| `--size <n>` | 아니오 | pageSize. 기본 10, 최대 100 |
+| `--page <n>` | 아니오 | 전환 호환용 pageNumber. 기본 0이며 0만 허용 |
+| `--size <n>` | 아니오 | pageSize. 기본 10, 범위 1~100 |
+| `--cursor <value>` | 아니오 | 직전 JSON 응답의 불투명한 `nextCursor` |
 | `--profile <name>` | 아니오 | 사용할 profile |
+
+CLI는 REAL API 실측 계약에 따라 모든 커서 요청을 `logTime DESC`로 고정 정렬한다.
+사용자 정렬 옵션은 제공하지 않는다.
 
 Lucene 예시:
 
@@ -50,14 +58,27 @@ API 제약:
 
 ## 검색 출력
 
-`--json` 출력은 `{ totalItems, pageNumber, pageSize, data }` 객체다.
+`--json` 출력은 `{ totalItems, pageNumber, pageSize, data, nextCursor? }` 객체다.
+마지막 페이지에는 `nextCursor`가 없을 수 있다.
 
 ```bash
 nhncloud logncrash search \
   --query '*' \
   --from 1h --to now \
   --json | jq '.totalItems'
+
+# 다음 cursor가 있을 때만 순차 조회
+next_cursor="$(nhncloud logncrash search \
+  --query '*' --from 1h --to now --json | jq -r '.nextCursor // empty')"
+if [ -n "$next_cursor" ]; then
+  nhncloud logncrash search \
+    --query '*' --from 1h --to now \
+    --cursor "$next_cursor" --json
+fi
 ```
+
+cursor는 파싱하거나 인코딩을 바꾸지 않고 받은 문자열 그대로 전달한다.
+임의 페이지 이동은 지원하지 않으므로 `--page 1` 이상은 입력 오류다.
 
 전송 직후에는 인덱싱 지연으로 잠시 0건이 나올 수 있다.
 반복 검색이나 넓은 wildcard 검색은 시간 범위를 좁혀 확인한다.
@@ -82,16 +103,17 @@ nhncloud logncrash export \
 | `--output <file>` | 필수. 출력 파일 |
 | `--format json` | JSON 배열로 저장. 기본은 JSON Lines |
 | `--force` | 기존 파일 덮어쓰기 |
-| `--size <n>` | scroll pageSize. 10~100 |
+| `--size <n>` | 폐기 예정 호환 옵션. 10~100 검증 후 경고하고 v3 요청에는 미전달 |
 
-scrollKey는 1분 만료다.
-데이터가 많아 다음 호출까지 1분을 넘기면 만료될 수 있다.
-이 경우 검색 범위를 좁히거나 `--size`를 키워 페이지 수를 줄인다.
+scroll 계속 요청이 실패하면 CLI가 원본 오류를 보존한다.
+오류를 확인한 뒤 검색 시간 범위를 좁혀 다시 실행한다.
+`--size`는 v3 scroll의 페이지 크기를 제어하지 않는다.
 
 ## 로그 전송
 
 `logncrash send`는 collector host로 로그 한 건을 전송한다.
-검색과 달리 secret 헤더를 쓰지 않고, body의 `projectName`에 appkey를 넣는다.
+검색의 UAK OAuth Bearer 인증을 재사용하지 않는다.
+인증 헤더 없이 body의 `projectName`에 appkey를 넣는다.
 
 ```bash
 nhncloud logncrash send --body "batch finished" --level INFO
@@ -120,7 +142,7 @@ nhncloud logncrash send --file ./error.log --level ERROR
 
 | 상황 | exit code |
 |------|-----------|
-| appkey 또는 secret 누락 | 4 |
+| 검색 appkey 또는 공통 UAK 누락 | 4 |
 | 인증 실패 | 2 |
 | 시간 범위 초과, 본문 없음, 8MB 초과 | 3 |
 | API 오류 또는 봉투 실패 | 1 |

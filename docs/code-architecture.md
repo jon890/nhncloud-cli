@@ -21,14 +21,14 @@ src/
     endpoints.ts            # 서비스별 엔드포인트 맵 + image·network·blockstorage·nks·ncr·ncs host 맵 + logncrash-collector 키 (adr-005, adr-013, adr-014, adr-016, adr-019, adr-020)
     envelope.ts             # NHN 공통 봉투 unwrap + 에러 매핑 (adr-006)
     httpError.ts            # ky HTTPError → NhnCloudCliError (status별 exit code)
-    oauth.ts                # UAK → access_token 교환 + 캐시 (adr-007)
+    oauth.ts                # UAK → access_token 교환 + deploy·ncs·logncrash 공용 캐시 (adr-007, adr-024)
     keystone.ts             # IaaS tenantId·username·password → tokenId + compute·image·network·blockstorage·nks endpoint 동시 반환 (adr-005, adr-010, adr-013, adr-019)
   cache/
     token-store.ts          # ~/.nhncloud/cache/ token + endpoint 읽기·쓰기 (mode 0600)
   services/
     logncrash/
-      client.ts             # LogncrashClient — search / send / scrollStart / scrollNext (send 는 collector host + appkey-only, adr-014)
-      types.ts              # LogSearchParams/Result / LogSendParams / LogLevel / ScrollStartParams / ScrollResult
+      client.ts             # LogncrashClient — 커서 검색 / v3 scroll / collector send (adr-014, adr-024)
+      types.ts              # CursorSearchParams/Result / LogSendParams / LogLevel / ScrollStartParams / ScrollResult
     deploy/
       client.ts             # DeployClient — run / artifacts / serverGroups / histories / binaryGroups / binaries / uploadBinary(multipart) / downloadBinary(봉투 우회, adr-015)
       types.ts              # DeployRunParams / BinaryGroup / Binary / BinaryListParams
@@ -69,8 +69,9 @@ src/
     skills.ts               # nhncloud skills install/uninstall + 상태 (Claude Code 스킬 심링크, utils/skill-install 경유)
     doctor.ts               # nhncloud doctor (자격증명·스킬 설치 상태 오프라인 진단)
     logncrash/
-      search.ts             # nhncloud logncrash search
-      export.ts             # nhncloud logncrash export (scroll 대량 추출 → 파일, search host·인증 재사용)
+      helpers.ts            # profile appkey + 공통 UAK OAuth 토큰으로 v3 client 구성
+      search.ts             # nhncloud logncrash search (커서 기반 페이지 이동)
+      export.ts             # nhncloud logncrash export (v3 scroll 대량 추출 → 파일)
       send.ts               # nhncloud logncrash send (--body/--file/stdin, 8MB 한도, adr-014)
     deploy/
       run.ts                # nhncloud deploy run <target>
@@ -162,11 +163,15 @@ dooray-cli 는 단일 `config + client` 로 충분했지만, NHN Cloud 는 서�
 - `config/credentials.ts` — profile 해석 후 서비스 자격증명 블록 반환 ([[adr-004]])
 - `api/endpoints.ts` — 서비스명 → 엔드포인트 (gov 분기는 후속, [[adr-005]])
 - `api/envelope.ts` — `{ header, body }` 봉투 검사, `resultCode` 타입 혼재 흡수 ([[adr-006]])
-- `api/oauth.ts` + `cache/token-store.ts` — deploy·ncs 공용. UAK → access_token 교환 후 단기 캐시 (계정 단위 토큰이라 profile 캐시 공유, [[adr-007]], [[adr-020]]). 캐시에 자격 지문을 저장해 자격 변경 시 무효화 ([[adr-021]])
+- `api/oauth.ts` + `cache/token-store.ts` — deploy·ncs·logncrash 검색 공용.
+  UAK → access_token 교환 후 계정 단위 토큰을 profile 단기 캐시로 공유한다
+  ([[adr-007]], [[adr-020]], [[adr-024]]).
+  캐시에 자격 지문을 저장해 자격 변경 시 무효화한다 ([[adr-021]]).
 - `api/keystone.ts` + `cache/token-store.ts` — instance·network·blockstorage·nks 등 IaaS 전용.
   Keystone token + region 별 compute·image·network·blockstorage·nks endpoint 를 캐시한다 ([[adr-010]], [[adr-013]], [[adr-019]]). 캐시에 자격 지문을 저장해 자격 변경 시 무효화 ([[adr-021]])
 - 각 `services/<svc>/client.ts` — 위 조각을 조합해 서비스 고유 헤더 부착
-  - logncrash: `X-LNCS-SECRET`
+  - logncrash 검색: `X-NHN-Authorization: Bearer <token>` + appkey 경로 + 숫자 봉투 ([[adr-024]])
+  - logncrash collector: 인증 헤더 없음 + body의 `projectName=appkey` ([[adr-014]])
   - deploy: `X-NHN-AUTHORIZATION: Bearer <token>` + config target 좌표 ([[adr-008]])
   - instance: `X-Auth-Token: <tokenId>` + region 별 compute endpoint
   - network: `X-Auth-Token: <tokenId>` + region 별 network endpoint (instance 와 토큰 공유, [[adr-013]])
@@ -180,10 +185,11 @@ dooray-cli 는 단일 `config + client` 로 충분했지만, NHN Cloud 는 서�
 
 1. `index.ts` 가 전역 옵션 처리 (`--json`/`--quiet`/`--no-color`)
 2. `search.ts` 가 `--from`/`--to` 를 `utils/time.ts` 로 ISO8601 정규화
-3. `credentials.ts` 로 profile 의 `logncrash` 블록 로드 (없으면 `EXIT_CONFIG_ERROR`)
-4. `LogncrashClient.search()` 호출 — `api/endpoints` 엔드포인트 + `X-LNCS-SECRET` 헤더
-5. `api/envelope.ts` 가 봉투 unwrap, 실패 시 `NhnCloudCliError`
-6. `formatters/table.ts` 가 모드별 출력 (데이터=stdout)
+3. `credentials.ts` 로 profile 의 `logncrash.appkey`와 공통 `userAccessKey`를 로드 (없으면 `EXIT_CONFIG_ERROR`)
+4. `oauth.ts`가 profile 공통 토큰 캐시를 조회하거나 UAK로 새 토큰을 발급
+5. `LogncrashClient.cursorSearch()` 호출 — v3 커서 경로 + `X-NHN-Authorization: Bearer <token>` 헤더
+6. `api/envelope.ts` 가 봉투 unwrap, 실패 시 `NhnCloudCliError`
+7. `formatters/table.ts` 가 모드별 출력 (데이터=stdout)
 
 ## 에러 처리 원칙
 

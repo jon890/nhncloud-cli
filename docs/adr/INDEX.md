@@ -14,7 +14,7 @@ ADR-NNN 내용은 `docs/adr/NNN-*.md` 로 찾는다(번호 glob — slug 몰라�
 - [ADR-004](004-profile-service-credentials.md): profile 안 서비스별 자격증명 블록
 - [ADR-005](005-endpoint-hardcoded-map.md): 엔드포인트 하드코딩 맵 (gov 제외)
 - [ADR-006](006-nhn-response-envelope.md): NHN 공통 응답 봉투 정규화
-- [ADR-007](007-deploy-oauth-token-cache.md): Deploy OAuth client_credentials 토큰 교환 + 단기 캐시
+- [ADR-007](007-deploy-oauth-token-cache.md): 공통 UAK OAuth client_credentials 토큰 교환 + 단기 캐시
 - [ADR-008](008-deploy-named-target-config.md): deploy 좌표 named target (config) + UAK/좌표 분리
 - [ADR-009](009-configure-wizard.md): configure 대화형 마법사 + 비대화형 flag + 연결 테스트
 - [ADR-010](010-iaas-keystone-token-auth.md): IaaS Keystone 토큰 인증 + region 별 compute endpoint 캐시
@@ -31,3 +31,4 @@ ADR-NNN 내용은 `docs/adr/NNN-*.md` 로 찾는다(번호 glob — slug 몰라�
 - [ADR-021](021-token-cache-credential-fingerprint.md): 토큰 캐시 자격 지문 비교 — 자격 변경 시 stale 토큰 무효화 + OAuth 캐시 파일명 정정
 - [ADR-022](022-loadbalancer-ipacl-safety.md): Load Balancer IP ACL — 전체 교체·자동 재바인딩·부분 실패 복구
 - [ADR-023](023-ncs-workload-time-filter-utc.md): NCS workload logs·events 시간 필터 — UTC Z 정규화
+- [ADR-024](024-logncrash-search-v3.md): Log & Crash Search v3 — 공통 UAK OAuth 인증 + 커서 페이지 이동 + v3 scroll

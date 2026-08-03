@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import ky from "ky";
-import { verifyNcs } from "./configure-verify.js";
+import { verifyLogncrash, verifyNcs } from "./configure-verify.js";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_AUTH_ERROR, EXIT_API_ERROR } from "../utils/exit-codes.js";
 
@@ -66,5 +66,89 @@ describe("verifyNcs", () => {
     await expect(
       verifyNcs({ id: "uak-id", secret: "uak-secret" }, "test-appkey"),
     ).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
+  });
+});
+
+describe("verifyLogncrash", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("빈 appkey는 OAuth와 검색 없이 false", async () => {
+    await expect(
+      verifyLogncrash({ id: "uak-id", secret: "uak-secret" }, ""),
+    ).resolves.toBe(false);
+    expect(ky.post).not.toHaveBeenCalled();
+  });
+
+  it("cache를 우회해 OAuth token을 발급하고 v3 cursor 검색에 성공하면 true", async () => {
+    vi.mocked(ky.post)
+      .mockReturnValueOnce(
+        mockKyJsonResponse({
+          access_token: "test-token",
+          expires_in: 3600,
+          token_type: "Bearer",
+        }),
+      )
+      .mockReturnValueOnce(
+        mockKyJsonResponse({
+          header: { isSuccessful: true, resultCode: 0, resultMessage: "SUCCESS" },
+          body: { totalItems: 0, pageNumber: 0, pageSize: 1, data: [] },
+        }),
+      );
+
+    await expect(
+      verifyLogncrash({ id: "uak-id", secret: "uak-secret" }, "appkey"),
+    ).resolves.toBe(true);
+    expect(ky.post).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining("oauth2/token/create"),
+      expect.objectContaining({ body: "grant_type=client_credentials" }),
+    );
+    expect(ky.post).toHaveBeenNthCalledWith(
+      2,
+      "https://api-lncs-search.nhncloudservice.com/v3/appkey/logs/cursor",
+      expect.objectContaining({
+        headers: { "X-NHN-Authorization": "Bearer test-token" },
+        json: expect.objectContaining({ query: "*", pageSize: 1 }),
+      }),
+    );
+  });
+
+  it("OAuth 401은 false", async () => {
+    vi.mocked(ky.post).mockImplementation(() => {
+      throw new NhnCloudCliError("API 호출 실패 (401)", EXIT_AUTH_ERROR);
+    });
+
+    await expect(
+      verifyLogncrash({ id: "uak-id", secret: "uak-secret" }, "appkey"),
+    ).resolves.toBe(false);
+  });
+
+  it("검색 403은 false", async () => {
+    vi.mocked(ky.post)
+      .mockReturnValueOnce(
+        mockKyJsonResponse({ access_token: "test-token", expires_in: 3600, token_type: "Bearer" }),
+      )
+      .mockReturnValueOnce({
+        json: async () => {
+          throw new NhnCloudCliError("API 호출 실패 (403)", EXIT_AUTH_ERROR);
+        },
+      } as never);
+
+    await expect(
+      verifyLogncrash({ id: "uak-id", secret: "uak-secret" }, "appkey"),
+    ).resolves.toBe(false);
+  });
+
+  it("검색 5xx는 원형 오류를 다시 던진다", async () => {
+    const error = new NhnCloudCliError("API 호출 실패 (500)", EXIT_API_ERROR);
+    vi.mocked(ky.post)
+      .mockReturnValueOnce(
+        mockKyJsonResponse({ access_token: "test-token", expires_in: 3600, token_type: "Bearer" }),
+      )
+      .mockReturnValueOnce({ json: async () => { throw error; } } as never);
+
+    await expect(
+      verifyLogncrash({ id: "uak-id", secret: "uak-secret" }, "appkey"),
+    ).rejects.toBe(error);
   });
 });

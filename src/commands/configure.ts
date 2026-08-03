@@ -17,7 +17,7 @@ import {
   verifyNcs,
 } from "./configure-verify.js";
 import { NhnCloudCliError } from "../utils/errors.js";
-import { EXIT_AUTH_ERROR, EXIT_PARAM_ERROR } from "../utils/exit-codes.js";
+import { EXIT_AUTH_ERROR, EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../utils/exit-codes.js";
 import type { UserAccessKey, ServiceCredential, IaasCredential } from "../config/types.js";
 
 interface ConfigureOptions {
@@ -46,6 +46,7 @@ async function saveAndVerify(
   ncr: ServiceCredential | undefined,
   ncs: ServiceCredential | undefined,
   doVerify: boolean,
+  logncrashUak: UserAccessKey | undefined = uak,
 ): Promise<void> {
   // 연결 테스트
   if (doVerify) {
@@ -62,12 +63,18 @@ async function saveAndVerify(
     }
 
     if (logncrash) {
-      const ok = await verifyLogncrash(logncrash);
+      if (!logncrashUak) {
+        throw new NhnCloudCliError(
+          "logncrash Search v3 검증에는 공통 UAK가 필요합니다. --uak-id와 UAK secret을 함께 설정하거나 기존 profile에 UAK를 설정하세요.",
+          EXIT_CONFIG_ERROR,
+        );
+      }
+      const ok = await verifyLogncrash(logncrashUak, logncrash.appkey ?? "");
       if (ok) {
         process.stderr.write(chalk.green("  ✓ logncrash 연결 성공\n"));
       } else {
         throw new NhnCloudCliError(
-          "logncrash 인증 실패 — appkey / secret 을 확인하세요.",
+          "logncrash 인증 실패 — appkey 또는 UAK를 확인하세요.",
           EXIT_AUTH_ERROR,
         );
       }
@@ -215,8 +222,7 @@ async function runInteractive(opts: ConfigureOptions): Promise<void> {
       message: "logncrash appkey",
       validate: (v) => v.trim().length > 0 || "logncrash appkey 를 입력하세요",
     });
-    const secret = await password({ message: "logncrash secret", mask: "*" });
-    logncrash = { appkey, secret };
+    logncrash = { appkey: appkey.trim() };
   }
 
   // 4. iaas 설정 여부
@@ -290,7 +296,7 @@ async function runInteractive(opts: ConfigureOptions): Promise<void> {
   if (opts.verify) {
     // 대화형: 실패 시 저장 여부 재확인
     try {
-      await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, true);
+      await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, true, uak);
     } catch (err) {
       if (err instanceof NhnCloudCliError && err.exitCode === EXIT_AUTH_ERROR) {
         process.stderr.write(chalk.red(`  ✗ ${err.message}\n`));
@@ -302,31 +308,53 @@ async function runInteractive(opts: ConfigureOptions): Promise<void> {
           process.stderr.write(chalk.yellow("저장이 취소되었습니다.\n"));
           return;
         }
-        await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, false);
+        await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, false, uak);
       } else {
         throw err;
       }
     }
   } else {
-    await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, false);
+    await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, false, uak);
   }
 }
 
 async function runNonInteractive(opts: ConfigureOptions): Promise<void> {
-  const profileName = await resolveProfileName(opts.profile);
-
   // secret 은 환경변수로도 받는다 — cmdline 인수는 `ps aux` 로 평문 노출되므로 권장.
   const uakSecret = opts.uakSecret ?? process.env["NHNCLOUD_UAK_SECRET"];
-  const logncrashSecret = opts.logncrashSecret ?? process.env["NHNCLOUD_LOGNCRASH_SECRET"];
   const iaasPassword = opts.iaasPassword ?? process.env["NHNCLOUD_IAAS_PASSWORD"];
 
+  if (opts.uakId !== undefined && opts.uakId.trim().length === 0) {
+    throw new NhnCloudCliError("--uak-id 값은 비어 있을 수 없습니다.", EXIT_PARAM_ERROR);
+  }
+  if (uakSecret !== undefined && uakSecret.length === 0) {
+    throw new NhnCloudCliError("UAK secret 값은 비어 있을 수 없습니다.", EXIT_PARAM_ERROR);
+  }
+  if ((opts.uakId !== undefined) !== (uakSecret !== undefined)) {
+    throw new NhnCloudCliError(
+      "비대화형 모드에서 --uak-id와 UAK secret은 함께 지정해야 합니다.",
+      EXIT_PARAM_ERROR,
+    );
+  }
+  if (opts.logncrashAppkey !== undefined && opts.logncrashAppkey.trim().length === 0) {
+    throw new NhnCloudCliError("--logncrash-appkey 값은 비어 있을 수 없습니다.", EXIT_PARAM_ERROR);
+  }
+  if (opts.logncrashSecret !== undefined) {
+    process.stderr.write(
+      chalk.yellow(
+        "경고: --logncrash-secret은 폐기 예정이며 Search v3 인증에 사용하거나 저장하지 않습니다.\n",
+      ),
+    );
+  }
+
+  const profileName = await resolveProfileName(opts.profile);
+
   const uak: UserAccessKey | undefined =
-    opts.uakId && uakSecret ? { id: opts.uakId, secret: uakSecret } : undefined;
+    opts.uakId !== undefined && uakSecret !== undefined
+      ? { id: opts.uakId.trim(), secret: uakSecret }
+      : undefined;
 
   const logncrash: ServiceCredential | undefined =
-    opts.logncrashAppkey && logncrashSecret
-      ? { appkey: opts.logncrashAppkey, secret: logncrashSecret }
-      : undefined;
+    opts.logncrashAppkey?.trim() ? { appkey: opts.logncrashAppkey.trim() } : undefined;
 
   const iaas: IaasCredential | undefined =
     opts.iaasTenantId && opts.iaasUsername && iaasPassword
@@ -348,20 +376,34 @@ async function runNonInteractive(opts: ConfigureOptions): Promise<void> {
 
   if (!uak && !logncrash && !iaas && !ncr && !ncs) {
     throw new NhnCloudCliError(
-      "비대화형 모드: --uak-id + UAK secret, --logncrash-appkey + logncrash secret,\n" +
+      "비대화형 모드: --uak-id + UAK secret, --logncrash-appkey,\n" +
         "--iaas-tenant-id + --iaas-username + iaas password,\n" +
         "--ncr-appkey, 또는 --ncs-appkey 중 하나가 필요합니다.\n" +
         "secret/password 는 노출 방지를 위해 환경변수 권장:\n" +
-        "NHNCLOUD_UAK_SECRET / NHNCLOUD_LOGNCRASH_SECRET / NHNCLOUD_IAAS_PASSWORD.",
+        "NHNCLOUD_UAK_SECRET / NHNCLOUD_IAAS_PASSWORD.",
       EXIT_PARAM_ERROR,
     );
+  }
+
+  let logncrashUak = uak;
+  if (opts.verify && logncrash && !logncrashUak) {
+    logncrashUak = await getUserAccessKey(profileName);
   }
 
   if (opts.verify) {
     process.stderr.write(chalk.gray("연결 테스트 중…\n"));
   }
 
-  await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, opts.verify);
+  await saveAndVerify(
+    profileName,
+    uak,
+    logncrash,
+    iaas,
+    ncr,
+    ncs,
+    opts.verify,
+    logncrashUak,
+  );
 }
 
 export const configureCommand = new Command("configure")
@@ -370,7 +412,7 @@ export const configureCommand = new Command("configure")
   .option("--uak-id <id>", "개인 UAK ID (비대화형)")
   .option("--uak-secret <secret>", "개인 UAK Secret (비대화형, 노출 방지로 env NHNCLOUD_UAK_SECRET 권장)")
   .option("--logncrash-appkey <key>", "logncrash appkey (비대화형)")
-  .option("--logncrash-secret <secret>", "logncrash secret (비대화형, env NHNCLOUD_LOGNCRASH_SECRET 권장)")
+  .option("--logncrash-secret <secret>", "폐기 예정: Search v3에서는 사용·저장하지 않음")
   .option("--iaas-tenant-id <id>", "iaas tenantId / 프로젝트 ID (비대화형)")
   .option("--iaas-username <user>", "iaas IAM username (비대화형)")
   .option(
@@ -383,15 +425,15 @@ export const configureCommand = new Command("configure")
   .option("--no-verify", "연결 테스트 생략")
   .action(async (opts: ConfigureOptions) => {
     const hasFlag =
-      opts.uakId ||
-      opts.uakSecret ||
-      opts.logncrashAppkey ||
-      opts.logncrashSecret ||
-      opts.iaasTenantId ||
-      opts.iaasUsername ||
-      opts.iaasPassword ||
-      opts.ncrAppkey ||
-      opts.ncsAppkey;
+      opts.uakId !== undefined ||
+      opts.uakSecret !== undefined ||
+      opts.logncrashAppkey !== undefined ||
+      opts.logncrashSecret !== undefined ||
+      opts.iaasTenantId !== undefined ||
+      opts.iaasUsername !== undefined ||
+      opts.iaasPassword !== undefined ||
+      opts.ncrAppkey !== undefined ||
+      opts.ncsAppkey !== undefined;
 
     try {
       if (hasFlag) {

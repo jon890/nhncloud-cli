@@ -5,7 +5,7 @@ import { NcrClient } from "../services/ncr/client.js";
 import { NcsClient } from "../services/ncs/client.js";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_AUTH_ERROR } from "../utils/exit-codes.js";
-import type { UserAccessKey, ServiceCredential, IaasCredential } from "../config/types.js";
+import type { UserAccessKey, IaasCredential } from "../config/types.js";
 
 /**
  * UAK 로 OAuth 토큰 발급을 시도해 유효성을 검증한다.
@@ -115,25 +115,25 @@ export async function verifyNcs(uak: UserAccessKey, appkey: string): Promise<boo
 }
 
 /**
- * logncrash appkey/secret 으로 짧은 범위 검색을 시도해 유효성을 검증한다.
+ * logncrash appkey와 공통 UAK OAuth 토큰으로 짧은 범위 검색을 시도한다.
  *
  * - 성공 또는 빈 결과: true
  * - 401/403 인증 실패: false
  * - 그 외 에러: throw
  */
-export async function verifyLogncrash(cred: ServiceCredential): Promise<boolean> {
-  if (!cred.appkey || !cred.secret) return false;
+export async function verifyLogncrash(uak: UserAccessKey, appkey: string): Promise<boolean> {
+  if (!appkey) return false;
 
-  const client = new LogncrashClient(cred.appkey, cred.secret);
   const now = new Date();
   const oneMinuteAgo = new Date(now.getTime() - 60_000);
 
   try {
-    await client.search({
+    const token = await getAccessToken("__verify__", uak.id, uak.secret, true);
+    const client = new LogncrashClient(appkey, token);
+    await client.cursorSearch({
       query: "*",
       from: oneMinuteAgo.toISOString(),
       to: now.toISOString(),
-      pageNumber: 0,
       pageSize: 1,
     });
     return true;

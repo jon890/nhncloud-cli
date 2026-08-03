@@ -1,37 +1,37 @@
-export interface LogSearchParams {
+export interface CursorSearchParams {
   query: string;
   from: string;
   to: string;
-  pageNumber?: number;
   pageSize?: number;
+  cursor?: string;
 }
 
-export interface LogSearchResult {
+export interface CursorSearchResult {
   totalItems: number;
   pageNumber: number;
   pageSize: number;
   data: Record<string, unknown>[];
+  nextCursor?: string;
 }
 
-/** scroll 시작 요청 body (search 와 동일 필드, pageNumber 는 없음) */
+/** v3 scroll 시작 요청 body. */
 export interface ScrollStartParams {
   query: string;
   from: string;
   to: string;
-  /** 한 번의 scroll 응답당 건수 (docs 범위 10~100, 기본 100). 전체 순회는 루프가 담당. */
-  pageSize?: number;
 }
 
 /**
- * scroll 응답 body.
- * - scrollKey: 다음 페이지 요청에 쓰는 키 (유효 1분). data 가 더 없으면 응답에서 빠지거나 빈 값일 수 있다.
+ * v3 scroll 응답 body.
+ * - scrollKey: 다음 페이지 요청에 쓰는 키. data 가 더 없으면 응답에서 빠지거나 빈 값일 수 있다.
  * - totalItems: 전체 매칭 건수 (진행률 표시용).
+ * - pageSize: scroll 시작 응답에만 포함될 수 있다.
  * - data: 이번 페이지의 로그 배열. 빈 배열이면 순회 종료.
  */
 export interface ScrollResult {
   scrollKey?: string;
   totalItems: number;
-  pageSize: number;
+  pageSize?: number;
   data: Record<string, unknown>[];
 }
 
