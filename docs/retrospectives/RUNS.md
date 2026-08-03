@@ -9,3 +9,4 @@
 | 2026-07-28 | build-with-teams | 041-2-feat-loadbalancer-ipacl-write | A | 5 | 1 | 0 | 1 | 없음 | 0 | PR #60 |
 | 2026-07-28 | build-with-teams | 042-fix-ncs-events-time-filter | A | 3 | 2 | 0 | 1 | 없음 | 0 | PR #61 |
 | 2026-08-03 | planning | 043-feat-logncrash-search-v3 | - | 4 | 1 | - | 1 | 없음 | 0 | task·branch push |
+| 2026-08-03 | build-with-teams | 043-feat-logncrash-search-v3 | A | 4 | 1 | 0 | 1 | 없음 | 0 | PR #62 |
