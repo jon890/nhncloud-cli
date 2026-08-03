@@ -1,7 +1,7 @@
 # Phase 03 — skills 명령과 doctor 통합
 
 **Execution profile**: standard
-**Status**: pending
+**Status**: completed
 
 ---
 
@@ -61,7 +61,7 @@ pnpm test -- src/skill/manager.test.ts
 ### 4. 명령 표면 테스트와 상태 갱신
 
 관리 함수 호출을 주입하거나 출력 함수를 분리해 `src/commands/skills.test.ts`에서 기본·JSON·quiet 출력과 `--force` 전달을 검증한다.
-`commands --json`에서 baseline 147개에 `skills status`, `skills update` 두 경로가 추가된 149개를 확인한다.
+`commands --json`에서 기준값 147개에 `skills status`, `skills update` 두 경로가 추가된 149개를 확인한다.
 Phase 3을 `completed`, `current_phase`를 `4`로 갱신한다.
 
 ---
