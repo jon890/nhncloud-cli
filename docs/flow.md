@@ -64,6 +64,43 @@ nhncloud commands --json | jq '.commands[] | select(.path=="nks cluster list")'
 
 `commands`는 Commander tree metadata만 출력하며 외부 API를 호출하지 않는다.
 
+## 공개 스킬 수명주기
+
+`nhncloud skills`는 현재 CLI 패키지와 Claude Code에 설치된 공개 스킬의 정합성을 관리한다([[adr-025]]).
+
+```bash
+nhncloud skills
+nhncloud skills status --json
+nhncloud skills install
+nhncloud skills update
+nhncloud skills update --force
+nhncloud skills uninstall
+```
+
+`skills`와 `skills status`는 같은 상태를 출력한다.
+기본 출력은 상태·현재 버전·설치 버전·링크 대상·복구 방법을 보여준다.
+`--json`은 전체 상태 객체를, `--quiet`은 상태 토큰 하나를 stdout에 출력한다.
+
+상태 토큰은 다음과 같다.
+
+| 상태 | 의미 | 복구 방법 |
+|---|---|---|
+| `current` | 현재 CLI의 버전·콘텐츠 해시와 일치 | 조치 없음 |
+| `missing` | 설치되지 않음 | `nhncloud skills install` |
+| `outdated` | 이전 버전이나 기존 패키지·저장소 직접 링크 | `nhncloud skills update` |
+| `broken` | 관리형 또는 기존 패키지 링크 대상이 없음 | `nhncloud skills update` |
+| `modified` | 관리 저장소의 실제 콘텐츠가 매니페스트와 다름 | 내용을 확인한 뒤 `nhncloud skills update --force` |
+| `corrupt` | 관리형 매니페스트나 저장 경로가 손상됨 | 내용을 확인한 뒤 `nhncloud skills update --force` |
+| `unmanaged` | 사용자가 만든 파일·디렉터리 또는 알 수 없는 링크 | 내용을 확인한 뒤 `nhncloud skills update --force` |
+
+`install`과 `update`는 같은 안전한 설치기를 사용한다.
+새 버전·해시의 저장소를 완성한 뒤 `~/.claude/skills/nhncloud-cli` 링크를 원자적으로 전환한다.
+`unmanaged`, `modified`, `corrupt` 상태는 기본적으로 보존하며 `--force`일 때만 기존 항목을 백업하고 교체한다.
+
+npm 패키지를 갱신한 뒤에는 `nhncloud skills update`를 명시적으로 실행한다.
+관리 저장소가 패키지의 임시 경로와 분리되므로 `npx` 실행에서도 설치·갱신할 수 있다.
+`uninstall`은 활성 링크만 제거하며 버전별 관리 저장소는 자동 삭제하지 않는다.
+
 ## logncrash search 흐름
 
 ```bash

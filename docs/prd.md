@@ -19,6 +19,7 @@ AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트�
 - 서비스마다 다른 인증·엔드포인트를 하나의 profile 추상화 뒤로 숨긴다.
 - 데이터는 stdout, 진행·에러는 stderr 로 분리해 파이프라인에 친화적이다.
 - AI 에이전트가 자연어를 명령으로 변환하도록 `skills/nhncloud-cli/SKILL.md` 를 제공한다.
+- CLI 버전과 공개 스킬 문서의 정합성을 진단하고 안전하게 갱신한다.
 
 ## MVP 범위 (v1)
 
@@ -44,6 +45,7 @@ AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트�
   - `template`(컨테이너 실행 설계도)·`workload`(런타임 실행)·`malware`(악성코드 검사) 3개 리소스를 조회·생성·삭제·실행제어한다.
   - workload 는 비동기라 `create --wait` 로 Running 을 대기하고, 복잡한 생성·변경은 `--file <json>` 입력을 기본으로 한다.
 - `nhncloud loadbalancer` — Load Balancer와 IP ACL 그룹·대상을 조회하고 안전하게 변경한다([[adr-022]], [사용 흐름](flow.md#loadbalancer-ip-acl-흐름)).
+- `nhncloud skills` — 공개 스킬의 상태 조회·설치·갱신·제거. 버전과 콘텐츠 해시로 오래된 설치와 사용자 수정본을 구분한다([[adr-025]]).
 - profile 기반 자격증명 (`~/.nhncloud/credentials.json` + `~/.nhncloud/config.json`)
 - 출력 3모드 — 테이블 / `--json` / `--quiet`
 - `--profile` 로 profile 전환

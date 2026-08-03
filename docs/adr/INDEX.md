@@ -32,3 +32,4 @@ ADR-NNN 내용은 `docs/adr/NNN-*.md` 로 찾는다(번호 glob — slug 몰라�
 - [ADR-022](022-loadbalancer-ipacl-safety.md): Load Balancer IP ACL — 전체 교체·자동 재바인딩·부분 실패 복구
 - [ADR-023](023-ncs-workload-time-filter-utc.md): NCS workload logs·events 시간 필터 — UTC Z 정규화
 - [ADR-024](024-logncrash-search-v3.md): Log & Crash Search v3 — 공통 UAK OAuth 인증 + 커서 페이지 이동 + v3 scroll
+- [ADR-025](025-managed-skill-lifecycle.md): 공개 스킬 명시 갱신 + 버전·콘텐츠 해시별 관리 저장소

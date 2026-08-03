@@ -25,6 +25,10 @@ src/
     keystone.ts             # IaaS tenantId·username·password → tokenId + compute·image·network·blockstorage·nks endpoint 동시 반환 (adr-005, adr-010, adr-013, adr-019)
   cache/
     token-store.ts          # ~/.nhncloud/cache/ token + endpoint 읽기·쓰기 (mode 0600)
+  skill/
+    context.ts              # package root·version·XDG data root·Claude Code 설치 경로 해석
+    manifest.ts             # 공개 스킬 콘텐츠 해시와 .nhncloud-skill.json 타입 가드
+    manager.ts              # 상태 판정·관리 저장소 준비·원자적 링크 전환·제거
   services/
     logncrash/
       client.ts             # LogncrashClient — 커서 검색 / v3 scroll / collector send (adr-014, adr-024)
@@ -59,14 +63,13 @@ src/
     exit-codes.ts           # EXIT_* 상수
     spinner.ts              # ora 래퍼 (quiet 모드 no-op)
     time.ts                 # 상대시간 → ISO8601 변환
-    skill-install.ts        # ~/.claude/skills/nhncloud-cli 심링크 설치/상태/제거 (순수 IO, 출력·프롬프트 없음)
   formatters/
     table.ts                # 테이블 / json / quiet 출력
   commands/
     iaas.ts                 # IaaS command helper 공통 profile/region/token context 해석
     configure.ts            # nhncloud configure (대화형 + flag, 연결 테스트, adr-009)
     commands.ts             # nhncloud commands (Commander tree 기반 command path·argument·option metadata catalog, 외부 API 호출 없음)
-    skills.ts               # nhncloud skills install/uninstall + 상태 (Claude Code 스킬 심링크, utils/skill-install 경유)
+    skills.ts               # nhncloud skills status/install/update/uninstall + 출력 모드 (skill/manager 경유)
     doctor.ts               # nhncloud doctor (자격증명·스킬 설치 상태 오프라인 진단)
     logncrash/
       helpers.ts            # profile appkey + 공통 UAK OAuth 토큰으로 v3 client 구성
@@ -138,6 +141,12 @@ src/
 
 공개 skill은 `skills/nhncloud-cli/SKILL.md` router와 `skills/nhncloud-cli/references/` 서비스별 reference로 구성한다.
 `SKILL.md`는 routing과 공통 우선 규칙만 담고, 세부 명령 예시는 reference가 가진다.
+
+## 공개 스킬 관리
+
+공개 스킬 설치는 패키지 디렉터리 직접 링크 대신 버전·콘텐츠 해시별 관리 저장소를 사용한다([[adr-025]]).
+`skill/manifest.ts`가 외부 매니페스트와 실제 파일 해시를 검증하고, `skill/manager.ts`가 상태 판정과 원자적 링크 전환을 소유한다.
+`commands/skills.ts`와 `commands/doctor.ts`가 독자적인 상태 판정을 만들지 않고 같은 관리 모듈을 호출한다.
 
 ## 단위 테스트 (vitest)
 

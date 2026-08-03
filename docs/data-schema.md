@@ -6,10 +6,55 @@
 ~/.nhncloud/
   credentials.json   # 서비스별 appkey/secret (비밀) — mode 0600
   config.json        # 기본 profile·출력 설정 (비밀 아님)
+
+${XDG_DATA_HOME}/nhncloud-cli/             # XDG_DATA_HOME이 절대 경로일 때
+~/.local/share/nhncloud-cli/               # XDG_DATA_HOME이 없거나 상대 경로일 때
+  skills/
+    {packageVersion}-{contentDigestHex}/
+      SKILL.md
+      references/...
+      .nhncloud-skill.json
+
+~/.claude/skills/
+  nhncloud-cli -> <dataRoot>/skills/{packageVersion}-{contentDigestHex}/
 ```
 
 자격증명과 설정을 분리한다 (AWS 방식).
 비밀 파일은 owner-only 권한으로 생성한다.
+`XDG_DATA_HOME`은 사용자별 애플리케이션 데이터의 기준 디렉터리를 지정하는 환경 변수이며, 설정되지 않으면 표준 기본값인 `~/.local/share`를 사용한다.
+
+## 공개 스킬 매니페스트
+
+`.nhncloud-skill.json`은 관리 저장소의 버전과 콘텐츠 정합성을 판정하는 메타데이터다.
+외부 파일이므로 읽을 때 모든 필드를 타입 가드로 검증한다.
+
+```typescript
+interface NhnCloudSkillManifest {
+  schemaVersion: 1;
+  skillName: "nhncloud-cli";
+  packageName: "@bifos/nhncloud-cli";
+  packageVersion: string;
+  contentDigest: `sha256:${string}`;
+  installedAt: string;
+  managedBy: "@bifos/nhncloud-cli";
+}
+```
+
+콘텐츠 해시는 다음 계약으로 계산한다.
+
+1. `.nhncloud-skill.json`을 제외한 `SKILL.md`와 `references/` 아래 정규 파일만 포함한다.
+2. 심볼릭 링크와 정규 파일이 아닌 항목은 거부한다.
+3. 상대 경로는 `/` 구분자로 정규화하고 코드 포인트 순으로 정렬한다.
+4. 해시 입력은 UTF-8 바이트 `nhncloud-skill-content-v1\0`으로 시작한다.
+5. 각 파일의 상대 경로와 콘텐츠는 unsigned 64-bit big-endian 길이로 경계를 구분한다.
+6. 길이는 실제 UTF-8 바이트 길이로 계산하고 줄바꿈과 파일 내용은 정규화하지 않는다.
+
+관리 저장소 이름은 패키지 버전과 전체 SHA-256 hex를 사용한다.
+같은 저장소가 있으면 매니페스트와 실제 콘텐츠를 검증한 뒤 재사용한다.
+새 저장소와 활성 링크는 각각 같은 파일시스템의 임시 경로에서 완성한 후 `rename`으로 교체한다.
+
+`--force`로 사용자 항목이나 손상된 관리 저장소를 교체할 때는 같은 상위 디렉터리에 UTC 시각이 포함된 백업을 남긴다.
+`uninstall`은 `~/.claude/skills/nhncloud-cli` 활성 링크만 제거하고 관리 저장소는 보존한다.
 
 ## credentials.json
 
