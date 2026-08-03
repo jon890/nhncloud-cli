@@ -2,7 +2,7 @@
 name: nhncloud-cli
 description: >-
   NHN Cloud 서비스 CLI. commands --json catalog, configure,
-  Log & Crash(logncrash search/send/export),
+  Log & Crash Search v3 커서 검색·scroll export·collector 전송(logncrash search/export/send),
   Deploy(deploy run/artifacts/server-groups/histories/binary-groups/binaries/upload/download),
   Compute(instance), VPC/network, Block Storage(volume), Floating IP(floatingip),
   Load Balancer와 IP ACL(loadbalancer 조회·쓰기·재바인딩 복구), NHN Container Registry(ncr),
@@ -23,7 +23,7 @@ NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 TypeScript CLI다.
 |------|----------------|
 | 명령 경로, 인수, option metadata 확인 | `nhncloud commands --json` 실행 후 필요한 reference 선택 |
 | 설치, configure, profile, 출력 모드, 에러 코드, 자동화 기본 규칙 | [common.md](references/common.md) |
-| Log & Crash 검색, scroll export, 로그 전송 | [logncrash.md](references/logncrash.md) |
+| Log & Crash Search v3 커서 검색, scroll export, collector 전송 | [logncrash.md](references/logncrash.md) |
 | Deploy 실행, 배포 조회, 바이너리 업로드/다운로드 | [deploy.md](references/deploy.md) |
 | Compute instance, network, volume, floatingip | [iaas.md](references/iaas.md) |
 | Load Balancer와 IP ACL 그룹·대상 조회·쓰기·재바인딩 복구 | [loadbalancer.md](references/loadbalancer.md) |
@@ -47,6 +47,7 @@ NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 TypeScript CLI다.
 - 복구에는 `retry_argv` 배열을 그대로 사용하고, `retry_command`는 사람 확인용으로만 사용한다.
 - NCS workload logs·events 시간 필터는 시간대 포함 RFC3339, `now`, 0 이상의 정수와 `m`·`h`·`d` 단위를 사용한다.
 - 잘못된 NCS 시간 입력은 종료 코드 3이므로 자격증명 문제로 재시도하지 말고 입력을 수정한다.
+- Log & Crash 다음 페이지는 JSON의 `nextCursor`를 `--cursor`로 그대로 전달하고 `--page`는 0만 사용한다.
 
 ## 빠른 시작
 
@@ -61,7 +62,7 @@ nhncloud logncrash search --query '*' --from 1h --to now --json
 | 명령군 | 용도 |
 |--------|------|
 | `configure` | 자격증명 설정 마법사와 비대화형 profile 저장 |
-| `logncrash` | 로그 검색, 대량 export, collector 전송 |
+| `logncrash` | Search v3 커서 검색, scroll 대량 export, collector 전송 |
 | `deploy` | NHN Cloud Deploy 실행과 배포/바이너리 조회·전송 |
 | `instance` | Compute 인스턴스, flavor, image, keypair, volume attach 관리 |
 | `network` | VPC와 subnet 조회 |

@@ -24,9 +24,29 @@ CI나 자동화에서는 flag로 비대화형 저장을 한다.
 ```bash
 nhncloud configure \
   --uak-id <uak-id> --uak-secret <uak-secret> \
-  --logncrash-appkey <appkey> --logncrash-secret <secret> \
+  --logncrash-appkey <appkey> \
   --ncr-appkey <appkey> \
   --no-verify
+```
+
+Log & Crash Search v3는 서비스 appkey와 profile 공통 UAK를 함께 사용한다.
+CLI가 UAK를 OAuth 토큰으로 교환하므로 별도 logncrash secret은 저장하지 않는다.
+
+```json
+{
+  "version": 1,
+  "profiles": {
+    "default": {
+      "userAccessKey": {
+        "id": "<uak-id>",
+        "secret": "<uak-secret>"
+      },
+      "logncrash": {
+        "appkey": "<appkey>"
+      }
+    }
+  }
+}
 ```
 
 주요 옵션:
@@ -35,7 +55,8 @@ nhncloud configure \
 |------|------|
 | `--profile <name>` | 대상 profile. 기본값은 `default` |
 | `--uak-id <id>` / `--uak-secret <secret>` | 공통 User Access Key |
-| `--logncrash-appkey <key>` / `--logncrash-secret <secret>` | Log & Crash 검색 자격증명 |
+| `--logncrash-appkey <key>` | Log & Crash 서비스 appkey |
+| `--logncrash-secret <secret>` | 폐기 예정 호환 옵션. 경고 후 사용·저장하지 않음 |
 | `--ncr-appkey <key>` | NCR appkey |
 | `--iaas-tenant-id <id>` / `--iaas-username <name>` / `--iaas-password <password>` | IaaS/NKS 자격증명 |
 | `--iaas-region <region>` | IaaS 기본 region |
@@ -85,7 +106,7 @@ AI 에이전트는 먼저 `commands --json`으로 실제 command path와 option 
 | 명령 | `--json` 출력 shape |
 |------|---------------------|
 | `commands` | `{ commands: [{ path, description, arguments, options, subcommands }] }` |
-| `logncrash search` | `{ totalItems, pageNumber, pageSize, data }` |
+| `logncrash search` | `{ totalItems, pageNumber, pageSize, data, nextCursor? }` |
 | `deploy binary-groups` | `binaryGroups` wrapper를 언랩한 배열 |
 | `deploy binaries` | `{ totalCount, binaries }` |
 | `instance list` | `servers` wrapper를 언랩한 server 배열 |
