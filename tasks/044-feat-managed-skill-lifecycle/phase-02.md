@@ -59,11 +59,13 @@ source의 해시를 계산하고 staging 디렉터리에 `SKILL.md`, `references
 활성 링크는 같은 부모의 임시 링크를 `rename`해 교체하고 비관리 항목의 `--force` 교체는 먼저 백업한다.
 `uninstallSkill(context)`은 활성 심볼릭 링크만 제거하고 실제 디렉터리와 관리 저장소는 삭제하지 않는다.
 
-### 4. 회귀 테스트와 기존 유틸리티 제거
+### 4. 회귀 테스트와 상태 갱신
 
 `src/skill/manager.test.ts`에서 모든 상태와 install→source 변경→outdated→update→current 흐름을 검증한다.
 동시 canonical 저장소 준비, 전환 실패 복구, 사용자 항목 보존, 손상 저장소 `--force` 복구를 포함한다.
-대체가 끝나면 `src/utils/skill-install.ts`와 `src/utils/skill-install.test.ts`를 제거하고 Phase 2를 `completed`, `current_phase`를 `3`으로 갱신한다.
+기존 명령이 아직 import하는 `src/utils/skill-install.ts`와 테스트는 이 phase에서 제거하지 않는다.
+Phase 3이 명령을 새 manager로 전환한 뒤 두 파일을 함께 제거한다.
+Phase 2를 `completed`, `current_phase`를 `3`으로 갱신한다.
 
 ---
 
@@ -73,8 +75,6 @@ source의 해시를 계산하고 staging 디렉터리에 `SKILL.md`, `references
 |---|---|
 | `src/skill/manager.ts` | 상태 판정·저장소 준비·원자적 전환·제거 |
 | `src/skill/manager.test.ts` | 상태 전이와 실패 복구 테스트 |
-| `src/utils/skill-install.ts` | 새 manager로 대체 후 삭제 |
-| `src/utils/skill-install.test.ts` | 새 manager 테스트로 대체 후 삭제 |
 | `tasks/044-feat-managed-skill-lifecycle/index.json` | phase 상태 갱신 |
 
 ## 검증
@@ -85,8 +85,8 @@ source의 해시를 계산하고 staging 디렉터리에 `SKILL.md`, `references
 set -e
 pnpm tsc --noEmit
 pnpm test -- src/skill/manifest.test.ts src/skill/manager.test.ts
-test ! -e src/utils/skill-install.ts
-test ! -e src/utils/skill-install.test.ts
+test -e src/utils/skill-install.ts
+test -e src/utils/skill-install.test.ts
 git diff --check
 ```
 

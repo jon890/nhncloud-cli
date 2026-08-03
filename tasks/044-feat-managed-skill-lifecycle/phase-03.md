@@ -56,6 +56,7 @@ pnpm test -- src/skill/manager.test.ts
 
 `src/commands/doctor.ts`가 별도 링크 존재 검사를 제거하고 `inspectSkill` 결과를 사용한다.
 `current`만 정상으로 표시하고 나머지 상태는 `skills install`, `skills update`, `skills update --force` 중 정확한 복구 명령을 안내한다.
+명령 전환이 끝나면 대체된 `src/utils/skill-install.ts`와 `src/utils/skill-install.test.ts`를 제거한다.
 
 ### 4. 명령 표면 테스트와 상태 갱신
 
@@ -72,6 +73,8 @@ Phase 3을 `completed`, `current_phase`를 `4`로 갱신한다.
 | `src/commands/skills.ts` | status·install·update·uninstall과 출력 모드 |
 | `src/commands/skills.test.ts` | 명령 출력·옵션 전달 테스트 |
 | `src/commands/doctor.ts` | 공통 상태 판정과 복구 안내 |
+| `src/utils/skill-install.ts` | 새 manager 전환 후 삭제 |
+| `src/utils/skill-install.test.ts` | 새 manager 테스트로 대체 후 삭제 |
 | `tasks/044-feat-managed-skill-lifecycle/index.json` | phase 상태 갱신 |
 
 ## 검증
@@ -82,6 +85,8 @@ Phase 3을 `completed`, `current_phase`를 `4`로 갱신한다.
 set -e
 pnpm tsc --noEmit
 pnpm test -- src/skill/manager.test.ts src/commands/skills.test.ts
+test ! -e src/utils/skill-install.ts
+test ! -e src/utils/skill-install.test.ts
 pnpm run build
 node dist/index.js commands --json | jq -e '.commands | length == 149'
 node dist/index.js commands --json | jq -e \
