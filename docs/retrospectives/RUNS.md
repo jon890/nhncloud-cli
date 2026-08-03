@@ -10,3 +10,4 @@
 | 2026-07-28 | build-with-teams | 042-fix-ncs-events-time-filter | A | 3 | 2 | 0 | 1 | 없음 | 0 | PR #61 |
 | 2026-08-03 | planning | 043-feat-logncrash-search-v3 | - | 4 | 1 | - | 1 | 없음 | 0 | task·branch push |
 | 2026-08-03 | build-with-teams | 043-feat-logncrash-search-v3 | A | 4 | 1 | 0 | 1 | 없음 | 0 | PR #62 |
+| 2026-08-03 | review-fix | PR 62 | - | - | - | 0 | - | 없음 | 0 | 병합 준비 |
