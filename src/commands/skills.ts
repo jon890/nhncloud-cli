@@ -1,79 +1,103 @@
 import { Command } from "commander";
-import chalk from "chalk";
-import { access } from "node:fs/promises";
-import { NhnCloudCliError } from "../utils/errors.js";
-import { EXIT_PARAM_ERROR } from "../utils/exit-codes.js";
+import type { OutputOptions } from "../formatters/table.js";
+import { createSkillManagerContext, type SkillManagerContext } from "../skill/context.js";
 import {
-  SKILL_NAME,
-  claudeDir,
-  skillDestPath,
-  skillSourceFrom,
-  isNpxRuntime,
-  getSkillStatus,
-  installSkillSymlink,
+  inspectSkill,
+  installSkill,
   uninstallSkill,
-} from "../utils/skill-install.js";
+  type SkillInstallResult,
+  type SkillStatus,
+} from "../skill/manager.js";
+import {
+  outputSkillInstallResult,
+  outputSkillStatus,
+  outputSkillUninstallResult,
+} from "./skills-output.js";
 
-/** getSkillStatus 결과를 사람이 읽는 한 줄로 변환한다(stdout 출력 전용). */
-function describeStatus(status: Awaited<ReturnType<typeof getSkillStatus>>): string {
-  switch (status.state) {
-    case "installed-link":
-      return chalk.green(`✓ 설치됨 (심볼릭 링크 → ${status.target})`);
-    case "broken-link":
-      return chalk.yellow(`⚠ 링크 깨짐 (${status.target} 없음) — skills install 로 재설치`);
-    case "installed-copy":
-      return chalk.green("✓ 설치됨 (실제 복사본)");
-    case "not-installed":
-      return chalk.gray("미설치 — nhncloud skills install 로 설치");
-  }
+const SKILL_NAME = "nhncloud-cli";
+
+interface SkillCommandOptions extends OutputOptions {
+  force?: boolean;
 }
 
-const installCommand = new Command("install")
-  .description("Claude Code 스킬을 ~/.claude/skills 에 심볼릭 링크로 설치한다")
-  .option("--force", "심볼릭 링크가 아닌 기존 항목도 덮어쓴다")
-  .action(async (opts: { force?: boolean }) => {
-    const hasClaude = await access(claudeDir()).then(() => true).catch(() => false);
-    if (!hasClaude) {
-      throw new NhnCloudCliError(
-        `Claude Code 설정 디렉터리(${claudeDir()})가 없습니다. Claude Code 설치 후 다시 시도하세요.`,
-        EXIT_PARAM_ERROR,
-      );
-    }
+export interface SkillCommandDependencies {
+  createContext: () => SkillManagerContext;
+  inspect: (context: SkillManagerContext) => Promise<SkillStatus>;
+  install: (
+    context: SkillManagerContext,
+    options?: { force?: boolean },
+  ) => Promise<SkillInstallResult>;
+  uninstall: (context: SkillManagerContext) => Promise<"removed" | "absent">;
+}
 
-    if (isNpxRuntime(__dirname)) {
-      throw new NhnCloudCliError(
-        "npx 환경에서는 스킬 설치가 불가합니다(임시 경로). npm i -g @bifos/nhncloud-cli 후 다시 시도하세요.",
-        EXIT_PARAM_ERROR,
-      );
-    }
+const defaultDependencies: SkillCommandDependencies = {
+  createContext: createSkillManagerContext,
+  inspect: inspectSkill,
+  install: installSkill,
+  uninstall: uninstallSkill,
+};
 
-    const src = skillSourceFrom(__dirname);
-    const dst = skillDestPath();
-    const result = await installSkillSymlink(src, dst, opts.force ?? false);
-    if (result === "replaced-copy") {
-      console.error(chalk.yellow(`기존 실제 디렉터리를 제거하고 심볼릭 링크로 교체했습니다: ${dst}`));
-    }
-    console.log(chalk.green(`✓ 스킬 ${result === "linked" ? "설치" : "재설치"} 완료: ${dst}`));
-  });
+async function showStatus(
+  cmd: Command,
+  dependencies: SkillCommandDependencies,
+): Promise<void> {
+  const opts = cmd.optsWithGlobals<SkillCommandOptions>();
+  const context = dependencies.createContext();
+  outputSkillStatus(opts, await dependencies.inspect(context));
+}
 
-const uninstallCommand = new Command("uninstall")
-  .description("설치된 Claude Code 스킬 심볼릭 링크를 제거한다")
-  .action(async () => {
-    const dst = skillDestPath();
-    const result = await uninstallSkill(dst);
-    if (result === "absent") {
-      console.log(chalk.gray("설치된 스킬이 없습니다."));
-      return;
-    }
-    console.log(chalk.green(`✓ 스킬 제거 완료: ${dst}`));
-  });
+function createInstallCommand(
+  name: "install" | "update",
+  dependencies: SkillCommandDependencies,
+): Command {
+  return new Command(name)
+    .description(
+      name === "install"
+        ? "Claude Code 스킬을 관리 저장소에 설치한다"
+        : "Claude Code 스킬을 현재 CLI 버전으로 갱신한다",
+    )
+    .option("--force", "사용자 항목이나 수정·손상된 관리 저장소를 백업 후 교체한다")
+    .action(async (_localOpts: unknown, cmd: Command) => {
+      const opts = cmd.optsWithGlobals<SkillCommandOptions>();
+      const context = dependencies.createContext();
+      const result = await dependencies.install(context, { force: opts.force ?? false });
+      outputSkillInstallResult(opts, result);
+    });
+}
 
-export const skillsCommand = new Command("skills")
-  .description(`Claude Code 스킬(${SKILL_NAME}) 설치 관리`)
-  .addCommand(installCommand)
-  .addCommand(uninstallCommand)
-  .action(async () => {
-    // 서브커맨드 없이 호출 시 현재 설치 상태를 출력한다.
-    const status = await getSkillStatus(skillDestPath());
-    console.log(`Claude Code 스킬 (${SKILL_NAME}): ${describeStatus(status)}`);
-  });
+export function createSkillsCommand(
+  dependencies: SkillCommandDependencies = defaultDependencies,
+): Command {
+  const statusCommand = new Command("status")
+    .description("Claude Code 스킬의 관리 상태를 조회한다")
+    .action(async (_opts: unknown, cmd: Command) => showStatus(cmd, dependencies));
+
+  const uninstallCommand = new Command("uninstall")
+    .description("활성 Claude Code 스킬 링크를 제거한다")
+    .action(async (_opts: unknown, cmd: Command) => {
+      const opts = cmd.optsWithGlobals<SkillCommandOptions>();
+      const context = dependencies.createContext();
+      const previousStatus = await dependencies.inspect(context);
+      const action = await dependencies.uninstall(context);
+      const result = {
+        schemaVersion: 1 as const,
+        action,
+        changed: action === "removed",
+        status: "missing" as const,
+        destination: previousStatus.destination,
+        repositoryPreserved: true as const,
+      };
+
+      outputSkillUninstallResult(opts, result);
+    });
+
+  return new Command("skills")
+    .description(`Claude Code 스킬(${SKILL_NAME}) 설치 관리`)
+    .addCommand(statusCommand)
+    .addCommand(createInstallCommand("install", dependencies))
+    .addCommand(createInstallCommand("update", dependencies))
+    .addCommand(uninstallCommand)
+    .action(async (_opts: unknown, cmd: Command) => showStatus(cmd, dependencies));
+}
+
+export const skillsCommand = createSkillsCommand();

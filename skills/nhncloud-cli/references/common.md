@@ -1,6 +1,6 @@
 # Common Reference
 
-설치, configure, profile, 출력 모드, 에러 코드를 다룬다.
+CLI와 공개 스킬 설치, configure, profile, 출력 모드, 에러 코드를 다룬다.
 서비스별 세부 명령은 각 reference를 읽는다.
 
 ## 설치
@@ -8,6 +8,65 @@
 ```bash
 npm install -g @bifos/nhncloud-cli
 ```
+
+## Claude Code 공개 스킬 관리
+
+전역 설치한 CLI나 `npx`로 패키지의 공개 스킬을 관리 저장소에 설치할 수 있다.
+관리 저장소는 실행 중인 npm 패키지 경로와 분리되므로 `npx`의 임시 패키지 경로가 사라져도 활성 스킬은 유지된다.
+
+```bash
+# 전역 설치한 CLI에서 설치
+nhncloud skills install
+
+# 전역 설치 없이 최신 공개 스킬 설치
+npx --yes @bifos/nhncloud-cli@latest skills install
+
+# 상태 확인 (`nhncloud skills`도 동일)
+nhncloud skills status
+```
+
+npm 패키지와 설치된 공개 스킬은 자동으로 함께 갱신되지 않는다.
+패키지를 먼저 갱신한 뒤 새 CLI로 스킬 갱신을 명시적으로 실행한다.
+
+```bash
+npm install -g @bifos/nhncloud-cli@latest
+nhncloud skills update
+```
+
+상태별 의미와 복구 명령:
+
+| 상태 | 의미 | 복구 명령 |
+|------|------|-----------|
+| `current` | 현재 CLI 버전과 콘텐츠 해시가 일치함 | 조치 없음 |
+| `missing` | 활성 스킬이 설치되지 않음 | `nhncloud skills install` |
+| `outdated` | 이전 버전 또는 기존 패키지·저장소 직접 링크 | `nhncloud skills update` |
+| `broken` | 관리형 링크 또는 기존 패키지 링크의 대상이 없음 | `nhncloud skills update` |
+| `modified` | 관리 저장소 콘텐츠가 설치 매니페스트와 다름 | 내용을 확인한 뒤 `nhncloud skills update --force` |
+| `corrupt` | 관리 저장소 경로나 매니페스트가 손상됨 | 내용을 확인한 뒤 `nhncloud skills update --force` |
+| `unmanaged` | 사용자가 만든 파일·디렉터리 또는 알 수 없는 링크가 설치 경로를 차지함 | 내용을 확인한 뒤 `nhncloud skills update --force` |
+
+`--force`는 사용자 항목 또는 수정·손상된 관리 저장소를 삭제하지 않고 같은 상위 디렉터리에 백업한 뒤 교체한다.
+`nhncloud skills uninstall`은 `~/.claude/skills/nhncloud-cli`의 활성 심볼릭 링크만 제거하며 버전별 관리 저장소는 보존한다.
+설치 경로가 사용자 파일이나 실제 디렉터리이면 제거하지 않는다.
+
+자동화에서는 모든 하위 명령에 전역 출력 옵션을 함께 사용할 수 있다.
+
+```bash
+# 전체 상태 객체
+nhncloud skills status --json
+
+# 상태 토큰 하나만 출력
+nhncloud skills status --quiet
+
+# 갱신 결과의 상태 전이와 백업 경로 확인
+nhncloud skills update --force --json
+
+# 제거 결과 토큰만 출력 (`missing`)
+nhncloud skills uninstall --quiet
+```
+
+`--json`은 상태·변경 여부·백업 경로처럼 자동화에 필요한 필드를 제공한다.
+`--quiet`은 상태 토큰 하나만 stdout에 출력한다.
 
 ## 초기 설정
 

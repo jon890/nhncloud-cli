@@ -11,7 +11,7 @@ NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 TypeScript + Commander.
 
 ## 단일 소스
 
-- 실제 명령 경로·인수·옵션은 Commander 트리에서 생성하는 `nhncloud commands --json`을 기준으로 삼는다.
+- 실제 명령 경로·인수·옵션은 Commander 트리에서 생성하는 `nhncloud commands --json`을 기준으로 삼으며, 현재 명령 카탈로그는 149개다.
 - 제품 요구사항과 흐름은 `docs/prd.md`와 `docs/flow.md`에서 관리한다.
 - 코드 경계와 디렉터리 책임은 `docs/code-architecture.md`에서 관리한다.
 - 자격증명과 설정 스키마는 `docs/data-schema.md`에서 관리한다.
@@ -57,6 +57,9 @@ git diff --check
 ## 문서와 스킬
 
 - `skills/nhncloud-cli/SKILL.md`는 공개 CLI 사용 흐름의 라우터로 유지하고, 서비스 상세는 `references/*.md`에 둔다.
+- `nhncloud skills`는 공개 스킬의 상태 조회·관리 저장소 설치·현재 CLI 버전 갱신·활성 링크 제거를 담당한다.
+- `skills install`과 `skills update`는 사용자 항목이나 수정·손상된 관리 저장소를 기본적으로 보존하며, `--force`에서도 삭제하지 않고 같은 상위 디렉터리에 백업한 뒤 교체한다.
+- `skills uninstall`은 관리 저장소 또는 인식 가능한 기존 패키지·저장소를 가리키는 활성 링크만 제거한다. 관리 저장소 자체와 실제 디렉터리, 알 수 없는 유효 링크·깨진 링크는 보존하고 제거를 거부한다.
 - `.agents/skills/`는 내부 개발 워크플로우의 단일 원본이며 `.claude/skills` 심볼릭 링크를 유지한다.
 - 새 기능은 `planning`으로 설계 문서와 task를 먼저 만들고, 승인된 계획은 `build-with-teams`로 구현한다.
 - 설계 문서는 task보다 먼저 커밋한다.

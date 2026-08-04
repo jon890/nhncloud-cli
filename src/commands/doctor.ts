@@ -1,9 +1,13 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { readFile, access } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
-import { SKILL_NAME, claudeDir, skillDestPath, getSkillStatus } from "../utils/skill-install.js";
+import { createSkillManagerContext } from "../skill/context.js";
+import { inspectSkill } from "../skill/manager.js";
+import { skillRecoveryCommand } from "./skills-output.js";
+
+const SKILL_NAME = "nhncloud-cli";
 
 const CREDENTIALS_PATH = path.join(homedir(), ".nhncloud", "credentials.json");
 const CONFIG_PATH = path.join(homedir(), ".nhncloud", "config.json");
@@ -64,25 +68,19 @@ export const doctorCommand = new Command("doctor")
 
     // Claude Code 스킬
     console.log(chalk.bold("\nClaude Code 스킬"));
-    const hasClaude = await access(claudeDir()).then(() => true).catch(() => false);
-    if (!hasClaude) {
-      console.log(`  ${chalk.gray("Claude Code 미설치")} — ${claudeDir()} 없음`);
+    const skillStatus = await inspectSkill(createSkillManagerContext());
+    if (skillStatus.status === "current") {
+      console.log(
+        `  ${SKILL_NAME}: ${chalk.green(`✓ current (${skillStatus.installedVersion ?? skillStatus.currentVersion})`)}`,
+      );
+    } else if (skillStatus.status === "missing") {
+      console.log(
+        `  ${SKILL_NAME}: ${chalk.gray(`미설치 — ${skillRecoveryCommand(skillStatus.status)}`)}`,
+      );
     } else {
-      const status = await getSkillStatus(skillDestPath());
-      switch (status.state) {
-        case "installed-link":
-          console.log(`  ${SKILL_NAME}: ${chalk.green("✓ 설치됨 (심볼릭 링크)")}`);
-          break;
-        case "broken-link":
-          console.log(`  ${SKILL_NAME}: ${chalk.yellow("⚠ 링크 깨짐 — nhncloud skills install 로 재설치")}`);
-          break;
-        case "installed-copy":
-          console.log(`  ${SKILL_NAME}: ${chalk.green("✓ 설치됨 (실제 복사본)")}`);
-          break;
-        case "not-installed":
-          console.log(`  ${SKILL_NAME}: ${chalk.gray("미설치 — nhncloud skills install 로 설치")}`);
-          break;
-      }
+      console.log(
+        `  ${SKILL_NAME}: ${chalk.yellow(`⚠ ${skillStatus.status}`)} — ${skillRecoveryCommand(skillStatus.status)}`,
+      );
     }
 
     // 요약
