@@ -24,7 +24,7 @@
 - `src/services/*/client.ts`의 response guard, envelope 적용/미적용 혼동.
 - `docs/code-architecture.md`의 디렉터리 트리와 실제 `src/` 불일치.
 - `docs/flow.md`, `README.md`, `skills/nhncloud-cli/SKILL.md`, `skills/nhncloud-cli/references/*.md`의 명령 표면 drift.
-- `.agents/skills/_shared/pitfalls/`에 이미 있는 반복 지적이 새 코드에서 재발했는지.
+- `docs/pitfalls/`에 이미 있는 반복 지적이 새 코드에서 재발했는지.
 - skill/pitfall 규칙이 여전히 좋은 규칙인지.
   한 번의 사건인지, LLM 기본 행동으로 충분한지, 코드로 자명한지, 정적 도구로 대체 가능한지, stale 도메인 지식인지 본다.
 

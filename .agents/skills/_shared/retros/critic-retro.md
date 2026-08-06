@@ -8,14 +8,14 @@
 
 ## 반복 가능성 판정
 
-- `pitfalls/INDEX.md` 축적 규칙(재발성·심각도·도구로 못 잡음·추상화 가능 4조건)을 **참조**한다(여기 재정의 금지 — 단일 소스).
+- `docs/pitfalls/INDEX.md` 축적 규칙(재발성·심각도·도구로 못 잡음·추상화 가능 4조건)을 **참조**한다(여기 재정의 금지 — 단일 소스).
 - 1회성 typo / 특정 plan 컨텍스트 종속 / 칭찬 / 단순 확인은 제외.
 
 ## 갱신 위치 (데이터 단일 소스)
 
-- `pitfalls/plan/<slug>.md` 신규 파일 생성.
+- `docs/pitfalls/plan/<slug>.md` 신규 파일 생성.
 - frontmatter 필드: `id`·`category`·`title`·`triggers`·`tool_catchable`·`source`·`related`.
-- `pitfalls/INDEX.md` 라우터에 해당 카테고리 목록 1줄 추가 + 헤더 카운트 동기.
+- `docs/pitfalls/INDEX.md` 라우터에 해당 카테고리 목록 1줄 추가 + 헤더 카운트 동기.
 
 ## 작성 형식 + 커밋 규약
 

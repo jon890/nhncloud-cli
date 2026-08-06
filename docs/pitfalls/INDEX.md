@@ -31,7 +31,7 @@ skills 가 공유하는 회피 패턴 모음. **모놀리식 문서가 아니라
 - **prune** — 가리키는 코드가 사라진 stale 파일 삭제 (`git rm`), 같은 커널 중복 파일 MERGE.
 - **automate** — 도구로 승격 가능한 패턴은 `pnpm tsc` / vitest / ast-grep 으로 옮기고 파일 삭제.
 
-회고 절차의 단일 소스는 `_shared/retros/{critic,code-reviewer,docs-verifier}-retro.md`. 각 retro 가 이 카테고리·planning 영향 표를 데이터 단일 소스로 가리킨다.
+회고 절차의 단일 소스는 `.agents/skills/_shared/retros/{critic,code-reviewer,docs-verifier}-retro.md`. 각 retro 가 이 카테고리·planning 영향 표를 데이터 단일 소스로 가리킨다.
 
 ## 파일 형식
 
@@ -75,9 +75,9 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 
    ```bash
    # 예: spinner 순서를 바꾸는 코드 작성
-   grep -rl "triggers:.*spinner" .agents/skills/_shared/pitfalls/code-review/
+   grep -rl "triggers:.*spinner" docs/pitfalls/code-review/
    # 예: 팀원 스폰·메시지 plan
-   grep -rl "triggers:.*\(팀원 스폰\|SendMessage\)" .agents/skills/_shared/pitfalls/team/
+   grep -rl "triggers:.*\(팀원 스폰\|SendMessage\)" docs/pitfalls/team/
    ```
 
 2. **자주 쓰는 변경 유형 → 파일** (큐레이션 — phase-02 분리 완료 후 slug 채움):
@@ -160,7 +160,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [sendmessage-reply-missing](team/sendmessage-reply-missing.md)
 - [task-index-phase-count-mismatch](team/task-index-phase-count-mismatch.md)
 
-### [code-review/](code-review/) (57)
+### [code-review/](code-review/) (58)
 
 - [adjacent-command-pattern-missing](code-review/adjacent-command-pattern-missing.md)
 - [ambiguous-option-positional-silent-fallback](code-review/ambiguous-option-positional-silent-fallback.md)

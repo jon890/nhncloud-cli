@@ -68,9 +68,9 @@ ADR 본문: `docs/adr/` (파일 1개=ADR 1개, INDEX.md 라우터).
 
 phase 코드 작성 **시작 직전** 해당 카테고리 항목을 grep 으로 확인 후 0건 보장 후 작성.
 전체 항목은 아래 경로가 단일 소스:
-- `.agents/skills/_shared/pitfalls/code-review/` (code-reviewer 회피 패턴)
-- `.agents/skills/_shared/pitfalls/plan/` (plan 작성 회피 패턴)
-- INDEX 라우터: `.agents/skills/_shared/pitfalls/INDEX.md` — 변경 유형으로 파일 선택
+- `docs/pitfalls/code-review/` (code-reviewer 회피 패턴)
+- `docs/pitfalls/plan/` (plan 작성 회피 패턴)
+- INDEX 라우터: `docs/pitfalls/INDEX.md` — 변경 유형으로 파일 선택
 
 새 카테고리 추가 시 INDEX 라우터로 해당 카테고리 디렉터리 통째로 read.
 
