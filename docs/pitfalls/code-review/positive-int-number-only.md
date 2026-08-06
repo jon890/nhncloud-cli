@@ -10,7 +10,7 @@ related: []
 
 **증상**: `--page-num`·`--binary-group` 같은 양의 정수 옵션을 `const n = Number(v); if (!Number.isInteger(n) || n <= 0) throw` 로 검증.
 `Number("1e2") === 100` (지수 표기가 100 으로 통과), `Number(" 5 ") === 5` (공백 통과), `Number("") === 0` (빈 문자열은 reject 되나 에러 메시지가 `(입력: )` 빈 괄호).
-**Good**: `POSITIVE_INTEGER_PATTERN = /^[1-9]\d*$/` 정규식으로 표기 자체를 사전 검증한 뒤 `Number()`. 빈 문자열·소수·지수·공백을 일관 거부. 에러 메시지는 `JSON.stringify(value)` 로 입력을 표기해 빈 괄호 방지. 0 을 허용해야 하면 `NON_NEGATIVE_INTEGER_PATTERN = /^(0|[1-9]\d*)$/` 를 쓴다 — 두 상수 모두 `src/commands/parse-options.ts:9` 에 있고 `parseIntegerOption` 이 range 로 골라 쓴다.
+**Good**: `POSITIVE_INTEGER_PATTERN = /^[1-9]\d*$/` 정규식으로 표기 자체를 사전 검증한 뒤 `Number()`. 빈 문자열·소수·지수·공백을 일관 거부. 에러 메시지는 `JSON.stringify(value)` 로 입력을 표기해 빈 괄호 방지. 0 을 허용해야 하면 `NON_NEGATIVE_INTEGER_PATTERN = /^(0|[1-9]\d*)$/` 를 쓴다 — 두 상수는 `src/commands/parse-options.ts:9-10` 에 있고 `parseIntegerOption` 이 range 로 골라 쓴다.
 
 ```bash
 grep -nE "Number\([a-z]" src/commands/   # 옵션 파싱에서 regex 없이 Number 만 쓰는 곳
