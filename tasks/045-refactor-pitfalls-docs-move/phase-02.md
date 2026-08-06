@@ -110,7 +110,8 @@ ls docs/*.md docs/adr/*.md docs/pitfalls/INDEX.md docs/pitfalls/*/*.md \
    skills/nhncloud-cli/SKILL.md skills/nhncloud-cli/references/*.md \
    .agents/skills/*/SKILL.md .agents/skills/_shared/retros/*.md > /dev/null
 
-# 6. INDEX 헤더 개수 = bullet 수 = 실제 파일 수 (3자 일치)
+# 6. INDEX 헤더 개수 = bullet 수 일치, code-review 는 실제 파일 수까지 대조
+# 세 카테고리 파일 수 전수 대조는 Phase 1 검증과 Phase 3 의 집합 비교가 담당한다
 test "$(find docs/pitfalls/code-review -type f -name '*.md' | wc -l | tr -d ' ')" = "58"
 index_bullets() {
   awk '
