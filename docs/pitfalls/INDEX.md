@@ -169,6 +169,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [cache-non-atomic-write](code-review/cache-non-atomic-write.md)
 - [client-dep-in-utils](code-review/client-dep-in-utils.md)
 - [commander-reserved-flag-conflict](code-review/commander-reserved-flag-conflict.md)
+- [credential-loader-reinvented-swallow](code-review/credential-loader-reinvented-swallow.md)
 - [dead-field-function-name-mismatch](code-review/dead-field-function-name-mismatch.md)
 - [delimiter-concat-hash-collision](code-review/delimiter-concat-hash-collision.md)
 - [docs-regex-digit-range-mismatch](code-review/docs-regex-digit-range-mismatch.md)
