@@ -91,10 +91,10 @@ planning 결정 docs 를 phase 안에서 고치면 critic REVISE 또는 docs-ver
 ## 검증
 
 - **critic/code-review 회피 패턴**: task 파일 제출 전 아래 경로를 self-check 한다.
-  - `.agents/skills/_shared/pitfalls/plan/` — critic 의 plan 평가 회피
-  - `.agents/skills/_shared/pitfalls/team/` — team 협업 회피
-  - `.agents/skills/_shared/pitfalls/code-review/` — code-reviewer 의 코드 검사 회피
-  - self-check 는 `.agents/skills/_shared/pitfalls/INDEX.md` 라우터로 변경 유형에 맞는 카테고리 파일을 선택
+  - `docs/pitfalls/plan/` — critic 의 plan 평가 회피
+  - `docs/pitfalls/team/` — team 협업 회피
+  - `docs/pitfalls/code-review/` — code-reviewer 의 코드 검사 회피
+  - self-check 는 `docs/pitfalls/INDEX.md` 라우터로 변경 유형에 맞는 카테고리 파일을 선택
 - **docs-verifier 흡수 원칙**: `nhncloud-cli-docs-verifier`(`.claude/agents/nhncloud-cli-docs-verifier.md` / `.codex/agents/nhncloud-cli-docs-verifier.toml`)의 반복 지적은
   별도 회고 docs 를 신설하지 않는다.
   - 위 "변경 유형별 docs 영향 표"에 행 추가/보강으로 흡수한다.

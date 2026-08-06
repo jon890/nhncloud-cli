@@ -142,6 +142,22 @@ src/
 공개 skill은 `skills/nhncloud-cli/SKILL.md` router와 `skills/nhncloud-cli/references/` 서비스별 reference로 구성한다.
 `SKILL.md`는 routing과 공통 우선 규칙만 담고, 세부 명령 예시는 reference가 가진다.
 
+내부 개발 지식과 실행 절차는 다음 경계로 분리한다.
+
+```text
+docs/pitfalls/
+  INDEX.md                  # 변경 유형별 회피 패턴 라우터
+  plan/                     # 계획 검토에서 반복된 회피 패턴
+  team/                     # 팀 실행에서 반복된 회피 패턴
+  code-review/              # 코드 검토에서 반복된 회피 패턴
+.agents/skills/_shared/
+  retros/                   # 역할별 회고 수집·반영 절차
+```
+
+회피 패턴은 특정 에이전트 구현에 종속되지 않는 저장소 지식이므로 `docs/pitfalls/`가 단일 원본이다.
+스킬과 에이전트는 `INDEX.md`에서 현재 변경에 필요한 항목만 선택해 읽는다([[adr-018]]).
+`retros/`는 패턴 내용이 아니라 반복 지적을 분류하고 단일 원본에 반영하는 절차만 소유한다.
+
 ## 공개 스킬 관리
 
 공개 스킬 설치는 패키지 디렉터리 직접 링크 대신 버전·콘텐츠 해시별 관리 저장소를 사용한다([[adr-025]]).

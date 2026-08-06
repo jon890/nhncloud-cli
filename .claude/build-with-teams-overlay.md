@@ -30,8 +30,8 @@ git worktree add .agents/worktrees/{task-name} -b {category}/{NNN}-{task-name} o
 
 ## pitfalls 경로 (사전 해소 점검)
 
-- `.agents/skills/_shared/pitfalls/code-review/` — code-reviewer 검사 시작 전 관련 패턴 적용 여부 확인 (라우터: `.agents/skills/_shared/pitfalls/INDEX.md`)
-- `.agents/skills/_shared/pitfalls/team/` — team 협업 회피 패턴
+- `docs/pitfalls/code-review/` — code-reviewer 검사 시작 전 관련 패턴 적용 여부 확인 (라우터: `docs/pitfalls/INDEX.md`)
+- `docs/pitfalls/team/` — team 협업 회피 패턴
 
 ## retro 누적 위치
 

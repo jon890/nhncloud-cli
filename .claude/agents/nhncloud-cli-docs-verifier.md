@@ -183,7 +183,7 @@ done
 `AGENTS.md` "docs / ADR 작성 형식" 6가지 패턴 위반 점검.
 정책 본문은 거기에 단일 소스 — 본 agent 는 검출 휴리스틱만 보유.
 
-대상: `docs/*.md` / `AGENTS.md` / `README.md` / `skills/nhncloud-cli/SKILL.md` / `skills/nhncloud-cli/references/*.md` / `tasks/**/*.md`.
+대상: `docs/*.md` / `docs/pitfalls/INDEX.md` / `docs/pitfalls/*/*.md` / `AGENTS.md` / `README.md` / `skills/nhncloud-cli/SKILL.md` / `skills/nhncloud-cli/references/*.md` / `tasks/**/*.md`.
 코드 블록 / 표 / 디렉터리 트리는 미적용.
 
 검출 휴리스틱:

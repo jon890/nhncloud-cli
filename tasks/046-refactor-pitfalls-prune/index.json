@@ -1,0 +1,45 @@
+{
+  "name": "046-refactor-pitfalls-prune",
+  "description": "docs/pitfalls를 활성 규칙·자동 검사·현재 코드와 대조해 완전 중복과 낡은 지침을 근거 기반으로 제거한다.",
+  "created_at": "2026-08-04T01:29:37Z",
+  "updated_at": "2026-08-04T01:29:37Z",
+  "status": "pending",
+  "current_phase": 0,
+  "total_phases": 4,
+  "error_message": null,
+  "blocked_reason": null,
+  "phases": [
+    {
+      "number": 1,
+      "title": "근거 기반 전수 분류",
+      "file": "phase-01.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "execution_profile": "standard"
+    },
+    {
+      "number": 2,
+      "title": "중복 제거와 낡은 지침 정리",
+      "file": "phase-02.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "execution_profile": "standard"
+    },
+    {
+      "number": 3,
+      "title": "정리 결과와 회귀 검증",
+      "file": "phase-03.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "execution_profile": "fast"
+    },
+    {
+      "number": 4,
+      "title": "완료 상태와 커밋 인계",
+      "file": "phase-04.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "execution_profile": "fast"
+    }
+  ]
+}

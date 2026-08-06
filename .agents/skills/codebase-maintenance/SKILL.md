@@ -44,7 +44,7 @@ description: 주기적으로 코드베이스를 검사해 최근 PR/commit, 변�
 - 한 PR/작업은 한 냄새 계열만 다룬다.
   죽은 코드, 중복, 경계 정리, 문서 부패를 섞지 않는다.
 - 동작 변경 가능성이 있으면 회귀 테스트를 먼저 추가하는 작업으로 만든다.
-- 기존 `AGENTS.md`, `docs/adr/`, `docs/code-architecture.md`, `.agents/skills/_shared/pitfalls/`를 repo-local 계약으로 본다.
+- 기존 `AGENTS.md`, `docs/adr/`, `docs/code-architecture.md`, `docs/pitfalls/`를 repo-local 계약으로 본다.
 - CI가 이미 잡는 포맷/타입 오류만 반복 보고하지 않는다.
   보고서는 사람이 판단해야 하는 구조 문제와 반복 패턴에 집중한다.
 - skill/docs 규칙은 "사용자가 지시했다"는 이유만으로 유지하지 않는다.

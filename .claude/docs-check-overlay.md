@@ -8,11 +8,14 @@
 - `docs/prd.md` / `docs/flow.md` / `docs/adr/`(ADR 1개 = 파일 1개, `docs/adr/INDEX.md` 라우터) / `docs/data-schema.md` / `docs/code-architecture.md`
 - `AGENTS.md`(`CLAUDE.md` 심링크) — 코드 규칙 + ADR 참조 표 + 서비스별 인증 모델 표
 - `skills/nhncloud-cli/SKILL.md` + `skills/nhncloud-cli/references/*.md` — 공개 사용자 가이드(npm 배포 대상, dogfooding 필수)
-- `.agents/skills/*/SKILL.md` + `.agents/skills/_shared/*.md` — 내부 개발 워크플로우 스킬
+- `docs/pitfalls/INDEX.md` + `docs/pitfalls/*/*.md` — 계획·team 실행·code-review 회피 패턴 (단일 소스)
+- `.agents/skills/*/SKILL.md` + `.agents/skills/_shared/retros/*.md` — 내부 개발 워크플로우 스킬
 
 ```bash
 # cwd: <repo root>
-ls docs/*.md docs/adr/*.md skills/nhncloud-cli/SKILL.md skills/nhncloud-cli/references/*.md .agents/skills/*/SKILL.md .agents/skills/_shared/*.md
+ls docs/*.md docs/adr/*.md docs/pitfalls/INDEX.md docs/pitfalls/*/*.md \
+   skills/nhncloud-cli/SKILL.md skills/nhncloud-cli/references/*.md \
+   .agents/skills/*/SKILL.md .agents/skills/_shared/retros/*.md
 ```
 
 ## 부패 검사 grep (레포 특화)
