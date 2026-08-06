@@ -15,10 +15,13 @@ related: []
 **Good**: nonInteractive trigger 에 새 옵션 추가하는 phase 면 같은 phase 본문에 "interactive else 블록 안의 동일 옵션 경고 (`if (hasX)`) 제거" 를 명시. 또는 의도 주석으로 대체 ("trigger 에 포함되므로 도달 불가").
 
 ```bash
-# 검출: nonInteractive 조건에 추가한 옵션이 interactive else 안에 if 로도 등장하면 dead code
-grep -nE "if \(hasPayloadFile\)|if \(opts\.file\)|if \(opts\.yes\)" src/commands/<svc>/*.ts
-# 같은 옵션이 nonInteractive 조건 + interactive 분기 if 양쪽에 동시에 있으면 한쪽이 dead
+# 1) 진입 조건(this repo: src/commands/configure.ts:427 의 hasFlag)에 어떤 옵션이 들어 있는지 확인
+grep -n -A 12 "const hasFlag =" src/commands/configure.ts
+# 2) 같은 옵션이 interactive 경로에서 if 로도 검사되는지 확인 — 있으면 그 분기는 도달 불가
+grep -n "opts\.<옵션명>" src/commands/configure.ts
 ```
+
+진입 조건과 interactive 분기 양쪽에 같은 옵션이 있으면 한쪽이 dead 다.
 
 **Why**: PR #68 (plan033) docs-verifier VIOLATION — `nonInteractive = ... || hasTagChange` 확장 후 interactive else 안에 `if (hasTagChange) stderr "단독 호출 안 됨"` 그대로 둠.
   도달 불가 + 메시지 정반대.

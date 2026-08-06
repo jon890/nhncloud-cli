@@ -18,23 +18,22 @@ related: []
 
 ```ts
 // BAD — narrowing 안 됨
-const valid = groups.filter((g) => typeof g.code === "string");
-const adapter = valid.map((g) => ({ name: g.code }));   // TS2345: string | undefined
+const attached = volume.attachments.filter((a) => typeof a === "object" && a !== null);
+const ids = attached.map((a) => a.server_id);   // TS2339: a 는 여전히 unknown
 
 // GOOD A — type predicate
-const valid = groups.filter(
-  (g): g is CachedMemberGroup & { code: string } =>
-    typeof g.code === "string" && g.code.length > 0
+const attached = volume.attachments.filter(
+  (a): a is { server_id: string } =>
+    typeof a === "object" && a !== null && "server_id" in a
 );
-const adapter = valid.map((g) => ({ name: g.code }));   // OK
+const ids = attached.map((a) => a.server_id);   // OK
 
-// GOOD B — as string + 주석
-const adapter = valid.map((g) => ({ name: g.code as string }));   // filter 로 string 보장
+// GOOD B — 단언 + 주석 (src/commands/volume/get.ts:38 이 쓰는 방식)
+const ids = attached.map((a) => String(a.server_id));   // filter 로 object 보장
 ```
 
 **검출**: type optional 완화 후 `filter` + `map` 체인이 plan 에 등장하면 narrowing 패턴 확인. 단언 사용 시 주석 필수.
 
-**Why**: PR #67 (plan032) critic Major #3 — `member-group.ts` 의 `valid.map((g) => ({ name: g.code }))` 에서 TS2345/TS2339.
-  executor 가 `as string` 추가로 회피.
-  type predicate 가 더 안전하나 본 케이스는 단언 + 주석으로 처리.
-  다른 resolver 의 optional 필드 filter 패턴에서 반복 가능.
+**Why**: PR #67 (plan032) critic Major #3 — filter 뒤 map 에서 TS2345/TS2339 가 났고 executor 가 단언 추가로 회피했다.
+  type predicate 가 더 안전하지만 단언과 주석으로도 넘어갈 수 있어, plan 이 어느 쪽인지 못 박지 않으면 실행마다 갈린다.
+  현재 저장소의 같은 형태는 `src/services/ncs/client.ts` 의 `filter(isNcsTemplateSummary)` 처럼 type predicate 로 쓰는 쪽과 `src/commands/volume/get.ts:38` 처럼 단언으로 쓰는 쪽이 섞여 있다. 새 응답 필드에 filter 를 붙일 때마다 반복 가능.

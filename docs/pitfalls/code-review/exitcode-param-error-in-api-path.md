@@ -14,7 +14,7 @@ related: []
 
 ```ts
 // BAD — EXIT_PARAM_ERROR 는 API 경로에서 절대 발생 안 함 → 분기 항상 false
-try { await client.getMemberDetail(input); } catch (err) {
+try { await client.getLoadBalancer(loadBalancerId); } catch (err) {
   if (err instanceof NhnCloudCliError && err.exitCode === EXIT_PARAM_ERROR) {
     throw new NhnCloudCliError("찾을 수 없습니다", EXIT_PARAM_ERROR);
   }
@@ -22,7 +22,7 @@ try { await client.getMemberDetail(input); } catch (err) {
 }
 
 // GOOD — toNhnCloudCliError 의 실제 매핑 (EXIT_API_ERROR for 404) 사용
-try { await client.getMemberDetail(input); } catch (err) {
+try { await client.getLoadBalancer(loadBalancerId); } catch (err) {
   if (err instanceof NhnCloudCliError && err.exitCode === EXIT_API_ERROR) {
     throw new NhnCloudCliError("찾을 수 없습니다", EXIT_PARAM_ERROR);
   }
@@ -38,4 +38,5 @@ grep -rnE "exitCode\s*===\s*EXIT_PARAM_ERROR" src/commands/ src/services/ src/ap
 
 **Self-check**: catch 안에서 exitCode 분기를 쓰는 코드를 작성/리뷰할 때, `src/api/client.ts` 의 `toNhnCloudCliError` 가 그 에러 케이스에 어떤 exitCode 를 *실제로* 부여하는지 grep 으로 확인했는가? mock 으로 짠 테스트가 그 exitCode 를 mirror 하는가?
 
-**Why**: PR #63 (plan029) — `resolveMember` 의 catch 가 `EXIT_PARAM_ERROR` 검사. 테스트도 같은 값으로 reject 해서 7/7 PASS 였지만 실제 production path 의 `toNhnCloudCliError` 는 `EXIT_API_ERROR` 부여 → 분기 dead. code-reviewer 가 catch 케이스 ↔ toNhnCloudCliError 매핑 대조해서 잡음. 다른 resolver/command 에서 같은 패턴 추가 시 또 발생 가능.
+**Why**: PR #63 (plan029) — 한 resolver 의 catch 가 `EXIT_PARAM_ERROR` 를 검사했다. 테스트도 같은 값으로 reject 해서 7/7 PASS 였지만 실제 production path 의 `toNhnCloudCliError` 는 `EXIT_API_ERROR` 를 부여해 분기가 dead 였다. code-reviewer 가 catch 케이스와 `toNhnCloudCliError` 매핑을 대조해 잡았다.
+  현재 저장소에서 같은 함정이 앉는 자리는 `src/commands/loadbalancer/helpers.ts` 의 `resolveLoadBalancerId`·`resolveIpAclGroupId` 다. 이 resolver 들은 이름 조회 실패를 스스로 `EXIT_PARAM_ERROR` 로 던지면서 그 안에서 `client.listLoadBalancers()` 를 호출하므로, 호출부 catch 가 exitCode 만 보면 자신이 던진 param 오류와 API 오류를 구별하지 못한다.

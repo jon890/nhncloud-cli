@@ -80,12 +80,12 @@ related: [<다른 패턴 slug>, ...]      # 백링크
    grep -rl "triggers:.*\(팀원 스폰\|SendMessage\)" docs/pitfalls/team/
    ```
 
-2. **자주 쓰는 변경 유형 → 파일** (큐레이션 — phase-02 분리 완료 후 slug 채움):
+2. **자주 쓰는 변경 유형 → 파일** (큐레이션):
 
 | 변경 유형 | 카테고리 | 핵심 파일 |
 |---|---|---|
 | spinner·UX 순서 (validation 전 시작) | code-review | [spinner-before-validation](code-review/spinner-before-validation.md), [spinner-no-try-catch](code-review/spinner-no-try-catch.md), [resolver-after-editor](code-review/resolver-after-editor.md) |
-| 에러 처리 일관성 (exitCode·catch) | code-review | [bare-await-promise-never](code-review/bare-await-promise-never.md), [exitcode-param-error-in-api-path](code-review/exitcode-param-error-in-api-path.md), [exitcode-missing](code-review/exitcode-missing.md), [credential-loader-reinvented-swallow](code-review/credential-loader-reinvented-swallow.md) |
+| 에러 처리 일관성 (exitCode·catch) | code-review | [exitcode-param-error-in-api-path](code-review/exitcode-param-error-in-api-path.md), [exitcode-missing](code-review/exitcode-missing.md), [credential-loader-reinvented-swallow](code-review/credential-loader-reinvented-swallow.md) |
 | 타입 안전성 (Map.get()! / 이중 단언 / optional 응답 필드) | code-review | [map-get-nonnull-assertion](code-review/map-get-nonnull-assertion.md), [double-assertion-unknown](code-review/double-assertion-unknown.md), [double-assertion-union-type](code-review/double-assertion-union-type.md), [optional-response-field-guard](code-review/optional-response-field-guard.md) |
 | API/HTTP 패턴 (redirect·throwHttpErrors) | code-review | [redirect-manual-status-missing](code-review/redirect-manual-status-missing.md), [numeric-response-string-number-mixed](code-review/numeric-response-string-number-mixed.md) |
 | 봉투 검사 (200-고정 API·isSuccessful) | code-review | [write-method-envelope-unchecked](code-review/write-method-envelope-unchecked.md), [new-endpoint-envelope-assumed](plan/new-endpoint-envelope-assumed.md) |
@@ -97,11 +97,12 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 | plan 작성 (phase 항목·검증 명령·완료 조건) | plan | [numeric-estimation](plan/numeric-estimation.md), [manual-verification-criterion](plan/manual-verification-criterion.md), [last-phase-completed-marking](plan/last-phase-completed-marking.md) |
 | 팀원 스폰·메시지 (build-with-teams) | team | [sendmessage-reply-missing](team/sendmessage-reply-missing.md), [member-premature-execution](team/member-premature-execution.md), [executor-premature-execution](plan/executor-premature-execution.md) |
 | worktree·cwd 격리 | team | [executor-cwd-isolation](team/executor-cwd-isolation.md), [execution-context-ambiguous](plan/execution-context-ambiguous.md), [cwd-tracking-dual-status](team/cwd-tracking-dual-status.md) |
+
 표에 없으면 trigger grep, 그래도 애매하면 카테고리 디렉터리 통째로 읽는다.
 
 ## 카테고리별 패턴 목록
 
-### [plan/](plan/) (43)
+### [plan/](plan/) (42)
 
 - [cache-bypass-in-verify-helper](plan/cache-bypass-in-verify-helper.md)
 - [carve-out-conflicting-prohibition](plan/carve-out-conflicting-prohibition.md)
@@ -115,6 +116,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [four-face-guard-missing](plan/four-face-guard-missing.md)
 - [function-signature-unverified](plan/function-signature-unverified.md)
 - [import-identifier-collision](plan/import-identifier-collision.md)
+- [input-validation-policy-asymmetry](plan/input-validation-policy-asymmetry.md)
 - [integrated-command-partial-surface](plan/integrated-command-partial-surface.md)
 - [last-phase-completed-marking](plan/last-phase-completed-marking.md)
 - [list-endpoint-pagination-missing](plan/list-endpoint-pagination-missing.md)
@@ -133,7 +135,6 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [prev-plan-interaction-missing](plan/prev-plan-interaction-missing.md)
 - [prose-migration-lossless-checklist](plan/prose-migration-lossless-checklist.md)
 - [punt-orphan-deliverable](plan/punt-orphan-deliverable.md)
-- [input-validation-policy-asymmetry](plan/input-validation-policy-asymmetry.md)
 - [revise-string-change-cascade-missing](plan/revise-string-change-cascade-missing.md)
 - [router-index-count-mismatch](plan/router-index-count-mismatch.md)
 - [single-file-split-section-boundary-leak](plan/single-file-split-section-boundary-leak.md)
@@ -143,7 +144,6 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [success-criterion-no-enforcement](plan/success-criterion-no-enforcement.md)
 - [test-expected-value-guessed](plan/test-expected-value-guessed.md)
 - [test-module-const-mock-timing](plan/test-module-const-mock-timing.md)
-- [type-change-tsc-missing](plan/type-change-tsc-missing.md)
 - [type-optional-cascade-grep-missing](plan/type-optional-cascade-grep-missing.md)
 - [write-command-executor-live-call](plan/write-command-executor-live-call.md)
 
@@ -160,11 +160,10 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [sendmessage-reply-missing](team/sendmessage-reply-missing.md)
 - [task-index-phase-count-mismatch](team/task-index-phase-count-mismatch.md)
 
-### [code-review/](code-review/) (58)
+### [code-review/](code-review/) (52)
 
 - [adjacent-command-pattern-missing](code-review/adjacent-command-pattern-missing.md)
 - [ambiguous-option-positional-silent-fallback](code-review/ambiguous-option-positional-silent-fallback.md)
-- [bare-await-promise-never](code-review/bare-await-promise-never.md)
 - [cache-consistency](code-review/cache-consistency.md)
 - [cache-non-atomic-write](code-review/cache-non-atomic-write.md)
 - [client-dep-in-utils](code-review/client-dep-in-utils.md)
@@ -175,9 +174,6 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [docs-regex-digit-range-mismatch](code-review/docs-regex-digit-range-mismatch.md)
 - [double-assertion-union-type](code-review/double-assertion-union-type.md)
 - [double-assertion-unknown](code-review/double-assertion-unknown.md)
-- [dry-run-location-asymmetry](code-review/dry-run-location-asymmetry.md)
-- [dry-run-noninteractive-missing](code-review/dry-run-noninteractive-missing.md)
-- [dry-run-output-mode-missing](code-review/dry-run-output-mode-missing.md)
 - [duplicate-map-block-no-helper](code-review/duplicate-map-block-no-helper.md)
 - [early-return-quiet-mode-missing](code-review/early-return-quiet-mode-missing.md)
 - [empty-result-stderr-wrong](code-review/empty-result-stderr-wrong.md)
@@ -187,7 +183,6 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [exitcode-param-error-in-api-path](code-review/exitcode-param-error-in-api-path.md)
 - [external-string-unsanitized](code-review/external-string-unsanitized.md)
 - [file-input-no-stat-guard](code-review/file-input-no-stat-guard.md)
-- [http-client-not-ky](code-review/http-client-not-ky.md)
 - [interactive-warning-mismatch](code-review/interactive-warning-mismatch.md)
 - [io-throw-bundled-untestable](code-review/io-throw-bundled-untestable.md)
 - [jsdoc-double-block-stale](code-review/jsdoc-double-block-stale.md)
@@ -218,5 +213,4 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [union-false-nullish-coalescing](code-review/union-false-nullish-coalescing.md)
 - [union-overload-common-guard-only](code-review/union-overload-common-guard-only.md)
 - [unknown-array-object-entries-no-guard](code-review/unknown-array-object-entries-no-guard.md)
-- [user-data-markdown-codeblock](code-review/user-data-markdown-codeblock.md)
 - [write-method-envelope-unchecked](code-review/write-method-envelope-unchecked.md)

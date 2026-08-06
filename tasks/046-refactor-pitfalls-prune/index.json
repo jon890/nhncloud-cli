@@ -4,7 +4,7 @@
   "created_at": "2026-08-04T01:29:37Z",
   "updated_at": "2026-08-06T06:05:00Z",
   "status": "running",
-  "current_phase": 2,
+  "current_phase": 3,
   "total_phases": 4,
   "error_message": null,
   "blocked_reason": null,
@@ -21,7 +21,7 @@
       "number": 2,
       "title": "중복 제거와 낡은 지침 정리",
       "file": "phase-02.md",
-      "status": "pending",
+      "status": "completed",
       "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
       "execution_profile": "standard"
     },
