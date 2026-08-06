@@ -74,12 +74,15 @@ index_bullets() {
 deleted="$(git diff --name-only --diff-filter=D "$BASE" -- 'docs/pitfalls/*/*.md' | sort)"
 del_cnt="$(printf '%s\n' "$deleted" | grep -c . || true)"
 tsv_cnt="$(awk -F '\t' 'NR>1 && $2 ~ /^delete-/ {c++} END{print c+0}' "$AUDIT")"
+# for file in $deleted 는 zsh 가 따옴표 없는 변수를 단어 분리하지 않아 1회만 돈다.
+# 실측으로 zsh 1회 / bash 7회가 나왔다. 줄 단위 읽기로 셸 종속을 없앤다.
 bad=0
-for file in $deleted; do
+while IFS= read -r file; do
+  [ -n "$file" ] || continue
   relative="${file#docs/pitfalls/}"
   awk -F '\t' -v p="$relative" '$1==p && $2 ~ /^delete-/ {f=1} END{exit !f}' "$AUDIT" \
     || { echo "NO EVIDENCE: $relative"; bad=1; }
-done
+done <<< "$deleted"
 test "$bad" = "0"
 test "$del_cnt" = "$tsv_cnt"
 
