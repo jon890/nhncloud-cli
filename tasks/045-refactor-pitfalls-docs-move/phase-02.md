@@ -1,7 +1,7 @@
 # Phase 02 — 활성 소비 경로 갱신
 
 **Execution profile**: standard
-**Status**: pending
+**Status**: completed
 
 ---
 
@@ -110,13 +110,25 @@ ls docs/*.md docs/adr/*.md docs/pitfalls/INDEX.md docs/pitfalls/*/*.md \
    skills/nhncloud-cli/SKILL.md skills/nhncloud-cli/references/*.md \
    .agents/skills/*/SKILL.md .agents/skills/_shared/retros/*.md > /dev/null
 
-# 6. INDEX 헤더 개수 = 실제 파일 수 (3자 일치의 헤더 축)
+# 6. INDEX 헤더 개수 = bullet 수 = 실제 파일 수 (3자 일치)
 test "$(find docs/pitfalls/code-review -type f -name '*.md' | wc -l | tr -d ' ')" = "58"
+index_bullets() {
+  awk '
+    /^### \[(plan|team|code-review)\// { inside=1; next }
+    inside && /^## / { inside=0 }
+    inside && match($0, /^- \[[^]]+\]\((plan|team|code-review)\/[^)]+\.md\)/) {
+      s=substr($0, RSTART, RLENGTH); sub(/^.*\(/, "", s); sub(/\)$/, "", s); print s
+    }
+  ' docs/pitfalls/INDEX.md | sort
+}
 head_bad=0
 for c in plan:43 team:10 code-review:58; do
   d="${c%%:*}"; n="${c##*:}"
   if [ "$(rg -c "^### \[$d/\]\($d/\) \($n\)" docs/pitfalls/INDEX.md || echo 0)" != "1" ]; then
     echo "INDEX HEADER MISMATCH: $d 헤더가 ($n) 이 아니다"; head_bad=1
+  fi
+  if [ "$(index_bullets | grep -c "^$d/")" != "$n" ]; then
+    echo "INDEX BULLET MISMATCH: $d 목록 항목이 $n 개가 아니다"; head_bad=1
   fi
 done
 test "$head_bad" = "0"

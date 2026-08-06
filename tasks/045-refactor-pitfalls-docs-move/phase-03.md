@@ -1,7 +1,7 @@
 # Phase 03 — 문서 무결성과 회귀 검증
 
 **Execution profile**: fast
-**Status**: pending
+**Status**: completed
 
 ---
 
@@ -25,7 +25,10 @@
 ### 2. frontmatter와 INDEX 검사
 
 각 패턴 파일의 `id`가 파일명과 같고 `category`가 상위 디렉터리와 같은지 검사한다.
-`docs/pitfalls/INDEX.md`의 링크가 실제 파일과 일대일로 대응하고 누락·중복·끊어진 링크가 없는지 확인한다.
+`docs/pitfalls/INDEX.md`의 카테고리 목록이 실제 파일과 일대일로 대응하고 누락·중복·끊어진 링크가 없는지 확인한다.
+
+링크 집합은 라우터 표가 아니라 카테고리 섹션의 목록에서만 뽑는다. 문서 전체 링크를 합치면 라우터 표에만 있는 링크가 집합을 채워, 카테고리 목록에서만 빠진 항목을 놓친다.
+카테고리 헤더 숫자, 목록 항목 수, 실제 파일 수 세 값이 모두 일치해야 한다.
 
 ### 3. 저장소 검증
 
@@ -70,17 +73,31 @@ for f in $(find docs/pitfalls/plan docs/pitfalls/team docs/pitfalls/code-review 
 done
 test "$bad" = "0"
 
-# 3. INDEX 링크 = 실제 파일 (집합 비교로 누락·중복·끊어진 링크를 함께 잡는다)
+# 3. INDEX 카테고리 목록 = 실제 파일 (집합 비교로 누락·중복·끊어진 링크를 함께 잡는다)
+# 라우터 표가 아니라 카테고리 섹션의 bullet 목록만 뽑는다. 전체 링크를 sort -u 로 합치면
+# 라우터 표에만 있는 링크가 집합을 채워, 카테고리 목록에서만 빠진 항목을 놓친다.
+index_bullets() {
+  awk '
+    /^### \[(plan|team|code-review)\// { inside=1; next }
+    inside && /^## / { inside=0 }
+    inside && match($0, /^- \[[^]]+\]\((plan|team|code-review)\/[^)]+\.md\)/) {
+      s=substr($0, RSTART, RLENGTH); sub(/^.*\(/, "", s); sub(/\)$/, "", s); print s
+    }
+  ' docs/pitfalls/INDEX.md | sort
+}
 diff -u \
-  <(rg -o '\]\((plan|team|code-review)/[^)]+\.md\)' docs/pitfalls/INDEX.md | sed -E 's/^.*\]\(([^)]+)\)$/\1/' | sort -u) \
+  <(index_bullets) \
   <(cd docs/pitfalls && find plan team code-review -type f -name '*.md' | sort)
 
-# 4. INDEX 헤더 개수 = 실제 파일 수
+# 4. INDEX 헤더 개수 = bullet 수 = 실제 파일 수 (3자 일치)
 head_bad=0
 for c in plan:43 team:10 code-review:58; do
   d="${c%%:*}"; n="${c##*:}"
   if [ "$(rg -c "^### \[$d/\]\($d/\) \($n\)" docs/pitfalls/INDEX.md || echo 0)" != "1" ]; then
     echo "INDEX HEADER MISMATCH: $d 헤더가 ($n) 이 아니다"; head_bad=1
+  fi
+  if [ "$(index_bullets | grep -c "^$d/")" != "$n" ]; then
+    echo "INDEX BULLET MISMATCH: $d 목록 항목이 $n 개가 아니다"; head_bad=1
   fi
 done
 test "$head_bad" = "0"

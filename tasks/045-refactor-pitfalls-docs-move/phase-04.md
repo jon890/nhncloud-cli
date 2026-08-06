@@ -1,7 +1,7 @@
 # Phase 04 — 완료 상태와 커밋 인계
 
 **Execution profile**: fast
-**Status**: pending
+**Status**: completed
 
 ---
 
@@ -49,6 +49,7 @@ test "$(git status --porcelain | grep -c '^??')" = "0"
 
 `tasks/045-refactor-pitfalls-docs-move/index.json`의 최상위와 네 phase `status`를 `completed`로 바꾼다.
 `current_phase`는 `4`, `updated_at`은 실제 UTC 완료 시각으로 갱신하고 오류 필드는 `null`로 유지한다.
+네 phase 파일의 `**Status**:` 줄도 `completed`로 바꾼다. `index.json`만 갱신하면 phase 파일이 `pending`으로 남아 선행 task 관례와 어긋난다.
 `docs/retrospectives/RUNS.md`에 실제 `build-with-teams` 결과 한 줄을 추가한다.
 
 ### 4. team-lead 커밋·push 인계
