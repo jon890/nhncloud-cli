@@ -16,4 +16,4 @@
 | 2026-08-04 | review-fix | PR 63 | - | - | - | 2 | - | 없음 | 0 | 병합 준비 |
 | 2026-08-04 | planning | 045-refactor-pitfalls-docs-move / 046-refactor-pitfalls-prune | - | 8 | - | - | 1 | 없음 | 0 | task·branch push |
 | 2026-08-06 | build-with-teams | 045-refactor-pitfalls-docs-move | A | 4 | 1 | 1 | 1 | 없음 | 0 | PR #65 |
-| 2026-08-07 | build-with-teams | 046-refactor-pitfalls-prune | A | 4 | 2 | 0 | 1 | 없음 | 2 | PR 대기 |
+| 2026-08-07 | build-with-teams | 046-refactor-pitfalls-prune | A | 4 | 2 | 2 | 1 | 없음 | 2 | PR #66 |
