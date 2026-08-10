@@ -153,7 +153,10 @@ program
 // 전역 옵션 훅 — no-color: chalk 비활성화 / json·quiet: spinner 비활성화
 program.hook("preAction", () => {
   const opts = program.opts<{ color: boolean; json?: boolean; quiet?: boolean; requestTimeout?: string }>();
-  const timeoutValue = opts.requestTimeout ?? process.env["NHNCLOUD_REQUEST_TIMEOUT"];
+  // 빈 문자열은 미지정으로 취급한다. `NHNCLOUD_REQUEST_TIMEOUT= nhncloud ...` 처럼 셸에서 값을 비우거나
+  // `export TIMEOUT=${USER_TIMEOUT:-}` 로 넘기는 경우 ?? 만으로는 걸러지지 않아 모든 명령이 exit 3 이 된다.
+  const rawTimeout = opts.requestTimeout ?? process.env["NHNCLOUD_REQUEST_TIMEOUT"];
+  const timeoutValue = rawTimeout === "" ? undefined : rawTimeout;
   const timeoutSec = timeoutValue === undefined
     ? undefined
     : parseIntegerOption(
