@@ -1,4 +1,4 @@
-# ADR-019: NKS API — Keystone 토큰 + container-infra endpoint
+# ADR-019: NKS API — Keystone 토큰과 container-infra endpoint
 
 - **결정**: NHN Kubernetes Service(NKS)는 `iaas` Keystone 토큰을 재사용하되, endpoint 는 region 별 `api-kubernetes-infrastructure` host 의 `/v1` 로 분리한다.
   - `endpoints.ts` 에 `NKS_HOST` 맵과 `nksHost(region)` 를 추가한다.

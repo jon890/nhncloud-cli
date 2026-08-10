@@ -15,13 +15,13 @@
 
 | 서비스 | 비밀 | 인증 방식 |
 |--------|------|-----------|
-| Log & Crash 검색/export | appkey + 공통 UAK id/secret | UAK OAuth `X-NHN-Authorization: Bearer <token>` |
+| Log & Crash 검색/export | appkey 와 공통 UAK id/secret | UAK OAuth `X-NHN-Authorization: Bearer <token>` |
 | Log & Crash send | appkey | body `projectName=appkey`, 인증 헤더 없음 |
-| Deploy | UAK id + secret | OAuth Bearer token |
-| Instance/network/volume/floatingip | tenantId + username + API password | Keystone `X-Auth-Token` |
-| NKS | tenantId + username + API password | Keystone `X-Auth-Token` + container-infra API version |
-| NCR registry | UAK id + secret + NCR appkey | `X-TC-AUTHENTICATION-*` |
-| NCR images/tags | UAK id + secret | HTTP Basic Auth to Harbor REST |
+| Deploy | UAK id 와 secret | OAuth Bearer token |
+| Instance/network/volume/floatingip | tenantId, username, API password | Keystone `X-Auth-Token` |
+| NKS | tenantId, username, API password | Keystone `X-Auth-Token` 과 container-infra API version |
+| NCR registry | UAK id, secret, NCR appkey | `X-TC-AUTHENTICATION-*` |
+| NCR images/tags | UAK id 와 secret | HTTP Basic Auth to Harbor REST |
 
 ## Exit code
 

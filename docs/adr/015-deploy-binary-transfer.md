@@ -1,4 +1,4 @@
-# ADR-015: deploy 바이너리 전송 — ky multipart 업로드 + 봉투 우회 파일 스트림 다운로드
+# ADR-015: deploy 바이너리 전송 — ky multipart 업로드와 봉투 우회 파일 스트림 다운로드
 
 - **결정**: `deploy upload`/`deploy download` 는 기존 JSON-only client 패턴에서 벗어나는 두 전송 경로를 도입한다.
   - **업로드**: ky `json:`(JSON body) 대신 `body: FormData` 로 `multipart/form-data` 전송. `Content-Type` 은 수동 지정하지 않는다 — ky 가 boundary 를 자동 설정한다. 파일 파트는 command 에서 statSync 가드 후 읽은 Buffer 를 Blob 으로 감싼다.

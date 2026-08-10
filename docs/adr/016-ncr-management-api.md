@@ -1,7 +1,7 @@
-# ADR-016: NCR Management API — 공통 UAK 정적 헤더 인증 + region 별 host (OAuth 교환 불요)
+# ADR-016: NCR Management API — 공통 UAK 정적 헤더 인증과 region 별 host (OAuth 교환 불요)
 
 - **결정**: NCR(NHN Container Registry) Management API(레지스트리 조회)는 공통 UAK(`userAccessKey`)를 **정적 헤더로 직접 전송**한다. deploy 의 OAuth 토큰 교환([[adr-007]])을 쓰지 않으므로 토큰 캐시 계층이 없다.
-  - 인증 헤더: `X-TC-AUTHENTICATION-ID: <uak-id>` + `X-TC-AUTHENTICATION-SECRET: <uak-secret>` ([[adr-004]] 의 공통 UAK 재사용 — 별도 ncr 비밀 없음).
+  - 인증 헤더: `X-TC-AUTHENTICATION-ID: <uak-id>` 와 `X-TC-AUTHENTICATION-SECRET: <uak-secret>` ([[adr-004]] 의 공통 UAK 재사용 — 별도 ncr 비밀 없음).
   - host: region 별 `{region}-ncr.api.nhncloudservice.com` 정적 맵(`NCR_HOST`, [[adr-005]]·[[adr-013]] 의 region 맵 패턴 답습). IaaS region 과 별개 축이라 `--region` 옵션으로 받고 기본 `kr1`.
   - 경로: `GET /ncr/v2.0/appkeys/{appKey}/registries`(목록) / `.../registries/{registryNameOrId}`(조회). `appKey` 는 NCR 서비스 appkey — profile 의 `ncr` 블록(`{ appkey }`, [[adr-004]]) 또는 `--app-key` 옵션.
   - 응답: `header`(`isSuccessful`+숫자 `resultCode`, [[adr-006]])와 **나란히 named 필드**로 결과가 온다 — 목록은 `registries: [...]`, 단건은 `registry: {...}`. 표준 봉투의 `body` 가 **아니므로** `unwrap`(body 필수)이 아니라 `unwrapHeader`(헤더만 검사)를 쓰고 named 필드를 직접 읽는다. 레지스트리 필드는 Harbor 파생 snake_case(`name`·`project_id`·`repo_count`·`uri`·`private_uri`·`registry_id` 등).

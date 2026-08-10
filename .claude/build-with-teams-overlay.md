@@ -21,7 +21,7 @@ git worktree add .agents/worktrees/{task-name} -b {category}/{NNN}-{task-name} o
 
 ## 통합 검증 명령
 
-`AGENTS.md`(`CLAUDE.md` 심링크) "빌드 & 실행" 절이 단일 소스 — `pnpm run build` + `pnpm tsc --noEmit`.
+`AGENTS.md`(`CLAUDE.md` 심링크) "빌드 & 실행" 절이 단일 소스 — `pnpm run build` 와 `pnpm tsc --noEmit`.
 전용 테스트 스위트가 없으면 `node dist/index.js {command} --help` smoke test 로 대체.
 
 ## task 스키마 / plan 네이밍 / 커밋·PR 컨벤션

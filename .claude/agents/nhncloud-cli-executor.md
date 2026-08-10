@@ -1,6 +1,6 @@
 ---
 name: nhncloud-cli-executor
-description: nhncloud-cli 도메인 전용 executor — phase 순차 코드 작성 + 사전 self-check (spinner 순서 / IaaS resolver 검증 / path-traversal / Map.get()! / 이중 단언 / interactive 경고 mismatch / redirect status 분기 등 TOP 패턴 임베드). pitfalls/code-review/ + pitfalls/plan/ (INDEX 라우터) 단일 소스 참조. build-with-teams 의 executor spawn 대상.
+description: nhncloud-cli 도메인 전용 executor — phase 순차 코드 작성과 사전 self-check (spinner 순서 / IaaS resolver 검증 / path-traversal / Map.get()! / 이중 단언 / interactive 경고 mismatch / redirect status 분기 등 TOP 패턴 임베드). pitfalls/code-review/ 와 pitfalls/plan/ (INDEX 라우터) 단일 소스 참조. build-with-teams 의 executor spawn 대상.
 model: sonnet
 ---
 
@@ -84,7 +84,7 @@ grep -nE "startSpinner" src/commands/<scope>/*.ts | head -5
 # spinner 앞에 resolve*Input / param 검증이 있는지 확인
 ```
 
-**1-2 spinner 후 try/catch 누락**: spinner 가 떠 있는 동안의 모든 외부 호출은 try/catch + `stopSpinner(false)` re-throw.
+**1-2 spinner 후 try/catch 누락**: spinner 가 떠 있는 동안의 모든 외부 호출은 try/catch 로 감싸고 `stopSpinner(false)` 후 re-throw.
 ```bash
 grep -A 20 "startSpinner" src/commands/<scope>/<cmd>.ts | grep -cE "try\s*\{"
 # 0이면 누락 — try/catch 추가 필요
@@ -148,7 +148,7 @@ grep -nE "as unknown as " src/
 
 ### 카테고리 6 — API/HTTP 패턴
 
-**6-1 redirect manual + status 분기 누락**: `redirect: "manual"` + `throwHttpErrors: false` 패턴은 `if (response.status === 307)` 분기 명시 필수.
+**6-1 redirect manual 과 status 분기 누락**: `redirect: "manual"` 과 `throwHttpErrors: false` 패턴은 `if (response.status === 307)` 분기 명시 필수.
 ```bash
 grep -nE "redirect.*manual|throwHttpErrors.*false" src/api/client.ts
 # 해당 위치에서 status === 307 분기 존재 확인
@@ -261,7 +261,7 @@ commit 은 절대 하지 않음 — team-lead 가 atomic commit 수행.
 - **scope 준수**: phase 작업 항목 5개 이하 원칙. 범위 외 수정 발견 시 자체 판단 금지 → SendMessage 로 team-lead 보고.
 - **@ts-ignore 금지**: `@ts-ignore` / `@ts-nocheck` / `@ts-expect-error` 자체 추가 = 정책 변경 → team-lead 보고 후 승인 대기.
 - **단일 소스 존중**: `_shared/*.md` 본문 직접 복사 금지.
-  - 요약 + 경로 참조 구조는 허용 — `<Self_Check>` 가 그 패턴의 근거.
+  - 요약과 경로 참조 구조는 허용 — `<Self_Check>` 가 그 패턴의 근거.
   - 새 카테고리 추가 시 두 파일 모두 반영 필요.
 - **cwd 격리**: 모든 파일 작업은 worktree 절대경로 기준. main repo 직접 cd 금지. 의심 시 `pwd` 확인.
 - **PII 사전 점검**: 소스 코드·docs·주석에 사내 식별자 삽입 금지. 금지 목록 및 검증 grep 은 `AGENTS.md` "PII / 사내 식별자 노출 금지" 섹션 참조.

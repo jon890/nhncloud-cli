@@ -1,4 +1,4 @@
-# ADR-011: Instance 발급 — boot-from-volume 필수 + POST 축약 응답
+# ADR-011: Instance 발급 — boot-from-volume 필수와 POST 축약 응답
 
 - **결정**: `instance create` 는 두 부팅 방식을 지원하고, POST 응답은 id 만 신뢰해 get 으로 재조회한다.
   - `--boot-volume-size <GB>` 지정 시 `block_device_mapping_v2`(source image → destination volume, boot_index 0, delete_on_termination true)로 발급. 미지정 시 `imageRef` 단순(로컬 디스크) 발급.

@@ -1,4 +1,4 @@
-# ADR-020: NCS API — Deploy OAuth 토큰 재사용 + appkey 경로 + region host
+# ADR-020: NCS API — Deploy OAuth 토큰 재사용, appkey 경로, region host
 
 - **결정**: NCS(NHN Container Service)는 Deploy 와 같은 UAK OAuth Bearer 토큰을 재사용한다.
   endpoint 는 region 별 `{region}-ncs.api.nhncloudservice.com` 의 `/ncs/v1.0` 이고 appkey 를 경로에 포함한다.
@@ -11,7 +11,7 @@
   - NCS 응답은 NHN 공통 봉투이고 `header.resultCode` 는 숫자다(Log & Crash 형).
     성공·실패는 `header` 로만 판별한다 — 모든 API 가 HTTP 200 으로 응답하고 HTTP status 로 에러 분기하지 않는다([[adr-006]]).
     다만 데이터가 `body` 로 래핑되는지(`unwrap`), NCR 처럼 named 필드(`registries`/`registry` 식)로 오는지는 **구현 phase 에서 공식 docs 예제 JSON 또는 실측으로 확정**한다 — 추측 금지.
-    가장 가까운 선례 NCR(`src/services/ncr/client.ts`)은 Container 계열·appkey 경로임에도 `body` 가 아니라 named 필드라 `unwrap` 대신 `unwrapHeader` + 필드 가드를 쓴다. NCS 도 기본은 이 패턴을 따르되, 실측이 `body` 래핑을 보이면 그때 `unwrap` 으로 전환한다.
+    가장 가까운 선례 NCR(`src/services/ncr/client.ts`)은 Container 계열·appkey 경로임에도 `body` 가 아니라 named 필드라 `unwrap` 대신 `unwrapHeader` 와 필드 가드를 쓴다. NCS 도 기본은 이 패턴을 따르되, 실측이 `body` 래핑을 보이면 그때 `unwrap` 으로 전환한다.
 - **맥락**: NCS 는 Container 카테고리지만 NKS(Keystone `X-Auth-Token`)·NCR(정적 UAK 헤더 / Harbor Basic Auth)와 또 다른 인증이다.
   Deploy 와 같은 공통 IAM OAuth(`oauth.api.nhncloudservice.com`)로 발급한 Bearer 토큰을 쓴다([[adr-007]]).
   UAK OAuth 토큰은 서비스가 아니라 계정 단위(`client_credentials`)라 Deploy 와 같은 profile 토큰 캐시를 그대로 공유한다.

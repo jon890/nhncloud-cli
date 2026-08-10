@@ -25,12 +25,12 @@ AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트�
 
 ### 포함
 
-- `nhncloud configure` — 대화형/flag 자격증명 설정 마법사 (UAK + 서비스별 키, 연결 테스트)
+- `nhncloud configure` — 대화형/flag 자격증명 설정 마법사 (UAK 와 서비스별 키, 연결 테스트)
 - `nhncloud logncrash search` — Log & Crash Search v3 커서 기반 로그 검색 ([[adr-024]])
-- `nhncloud deploy` — 배포 실행 + 조회 (자주 쓰는 핵심 명령군)
+- `nhncloud deploy` — 배포 실행과 조회 (자주 쓰는 핵심 명령군)
   - `run <target>` — 배포 실행 (OAuth 토큰 교환, 동기/`--async`)
   - `artifacts` / `server-groups <target>` / `histories <target>` — 조회
-- `nhncloud instance` — Compute 인스턴스 제어 (OpenStack Nova v2 호환, ephemeral CI runner 자동화)
+- `nhncloud instance` — Compute 인스턴스 제어 (OpenStack Nova v2 호환, 일회성 CI 러너 자동화)
   - `create` — 발급 (비동기 기본, `--wait` 로 ACTIVE+IP 대기)
   - `list` / `get <id>` / `delete <id>` — 조회·삭제 (`--yes` 로 즉시 삭제)
   - `flavors` — 인스턴스 타입(flavor) 목록·상세 조회 (`--detail`, `--min-disk`/`--min-ram` 필터)
@@ -38,15 +38,15 @@ AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트�
 - `nhncloud ncr` — NHN Container Registry 조회.
   레지스트리 목록·단일은 Management API·UAK 정적 헤더를 쓴다([[adr-016]]).
   이미지/태그는 Harbor REST 데이터플레인·UAK Basic Auth 를 쓴다([[adr-017]]).
-- `nhncloud nks` — NHN Kubernetes Service 관리 (Keystone 토큰 + container-infra API·ADR-019)
+- `nhncloud nks` — NHN Kubernetes Service 관리 (Keystone 토큰과 container-infra API·ADR-019)
   - 클러스터, 노드 그룹, 애드온, 지원 Kubernetes 버전과 작업 종류를 조회한다.
   - 생성·삭제·resize·upgrade·autoscale 등 쓰기 작업을 지원하며, 복잡한 payload 는 JSON 파일 입력을 기본으로 한다.
-- `nhncloud ncs` — NHN Container Service 관리 (Deploy OAuth 토큰 재사용 + appkey 경로·ADR-020, region kr1/kr3)
+- `nhncloud ncs` — NHN Container Service 관리 (Deploy OAuth 토큰 재사용과 appkey 경로·ADR-020, region kr1/kr3)
   - `template`(컨테이너 실행 설계도)·`workload`(런타임 실행)·`malware`(악성코드 검사) 3개 리소스를 조회·생성·삭제·실행제어한다.
   - workload 는 비동기라 `create --wait` 로 Running 을 대기하고, 복잡한 생성·변경은 `--file <json>` 입력을 기본으로 한다.
 - `nhncloud loadbalancer` — Load Balancer와 IP ACL 그룹·대상을 조회하고 안전하게 변경한다([[adr-022]], [사용 흐름](flow.md#loadbalancer-ip-acl-흐름)).
 - `nhncloud skills` — 공개 스킬의 상태 조회·설치·갱신·제거. 버전과 콘텐츠 해시로 오래된 설치와 사용자 수정본을 구분한다([[adr-025]]).
-- profile 기반 자격증명 (`~/.nhncloud/credentials.json` + `~/.nhncloud/config.json`)
+- profile 기반 자격증명 (`~/.nhncloud/credentials.json` 과 `~/.nhncloud/config.json`)
 - 출력 3모드 — 테이블 / `--json` / `--quiet`
 - `--profile` 로 profile 전환
 

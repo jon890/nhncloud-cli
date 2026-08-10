@@ -1,4 +1,4 @@
-# ADR-009: configure 대화형 마법사 + 비대화형 flag + 연결 테스트
+# ADR-009: configure 대화형 마법사, 비대화형 flag, 연결 테스트
 
 - **결정**: `nhncloud configure` 로 자격증명을 설정한다.
   - 대화형 (`@inquirer/prompts`) — profile → UAK(id/secret) → 서비스별 appkey/secret 순 입력
