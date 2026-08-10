@@ -140,7 +140,17 @@ export const exportCommand = new Command("export")
       });
     } catch (err) {
       stopSpinner(false);
-      stream.destroy();
+      // createWriteStream 은 파일을 지연 open 한다. destroy() 의 close 를 기다리지 않고 rm 하면
+      // open 이 아직 pending 인 사이 rm 이 없는 파일을 지워 조용히 성공하고, 그 뒤 open 이
+      // 완료되며 tmp 파일이 생성돼 디스크에 남는다. close 까지 기다린 뒤 지운다.
+      await new Promise<void>((resolve) => {
+        if (stream.destroyed && stream.closed) {
+          resolve();
+          return;
+        }
+        stream.once("close", () => resolve());
+        stream.destroy();
+      });
       await rm(tmp, { force: true }).catch(() => {});
       throw err;
     }
