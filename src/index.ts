@@ -153,19 +153,22 @@ program
 // 전역 옵션 훅 — no-color: chalk 비활성화 / json·quiet: spinner 비활성화
 program.hook("preAction", () => {
   const opts = program.opts<{ color: boolean; json?: boolean; quiet?: boolean; requestTimeout?: string }>();
+  const timeoutValue = opts.requestTimeout ?? process.env["NHNCLOUD_REQUEST_TIMEOUT"];
+  const timeoutSec = timeoutValue === undefined
+    ? undefined
+    : parseIntegerOption(
+      timeoutValue,
+      opts.requestTimeout !== undefined ? "--request-timeout" : "NHNCLOUD_REQUEST_TIMEOUT",
+      { min: 1, max: 3600 },
+    );
+
   if (!opts.color || process.env["NO_COLOR"]) {
     chalk.level = 0;
   }
   if (opts.json || opts.quiet) {
     setQuiet(true);
   }
-
-  const timeoutValue = opts.requestTimeout ?? process.env["NHNCLOUD_REQUEST_TIMEOUT"];
-  if (timeoutValue !== undefined) {
-    const source = opts.requestTimeout !== undefined
-      ? "--request-timeout"
-      : "NHNCLOUD_REQUEST_TIMEOUT";
-    const timeoutSec = parseIntegerOption(timeoutValue, source, { min: 1, max: 3600 });
+  if (timeoutSec !== undefined) {
     setRequestTimeoutMs(timeoutSec * 1000);
   }
 });

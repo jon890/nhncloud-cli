@@ -2,6 +2,7 @@ import ky from "ky";
 import { credentialFingerprint, readIaasToken, writeIaasToken } from "../cache/token-store.js";
 import { keystoneIdentityUrl, instanceHost, imageHost, networkHost, blockStorageHost, nksHost } from "./endpoints.js";
 import { toNhnCloudCliError } from "./httpError.js";
+import { DEFAULT_TIMEOUT_MS } from "./timeout.js";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_API_ERROR } from "../utils/exit-codes.js";
 import type { IaasCredential } from "../config/types.js";
@@ -102,6 +103,7 @@ export async function getIaasToken(
           },
         },
         retry: 0,
+        timeout: DEFAULT_TIMEOUT_MS,
       })
       .json();
   } catch (err) {

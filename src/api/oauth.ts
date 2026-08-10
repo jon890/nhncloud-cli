@@ -1,6 +1,7 @@
 import ky from "ky";
 import { credentialFingerprint, readToken, writeToken } from "../cache/token-store.js";
 import { toNhnCloudCliError } from "./httpError.js";
+import { DEFAULT_TIMEOUT_MS } from "./timeout.js";
 
 const OAUTH_ENDPOINT = "https://oauth.api.nhncloudservice.com/oauth2/token/create";
 
@@ -54,6 +55,7 @@ export async function getAccessToken(
         },
         body: "grant_type=client_credentials",
         retry: 0,
+        timeout: DEFAULT_TIMEOUT_MS,
       })
       .json();
   } catch (err) {
