@@ -2,6 +2,7 @@ import ky from "ky";
 import { endpointFor } from "../../api/endpoints.js";
 import { unwrap, unwrapHeader, type NhnEnvelope } from "../../api/envelope.js";
 import { toNhnCloudCliError } from "../../api/httpError.js";
+import { DEFAULT_TIMEOUT_MS } from "../../api/timeout.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_CONFIG_ERROR } from "../../utils/exit-codes.js";
 import type {
@@ -11,9 +12,6 @@ import type {
   ScrollStartParams,
   ScrollResult,
 } from "./types.js";
-
-/** 조회용 기본 timeout (30초) — export 하지 않는 모듈 로컬 const */
-const DEFAULT_TIMEOUT_MS = 30_000;
 
 export class LogncrashClient {
   private readonly appkey: string;

@@ -1,5 +1,6 @@
 import ky from "ky";
 import { toNhnCloudCliError } from "../../api/httpError.js";
+import { DEFAULT_TIMEOUT_MS } from "../../api/timeout.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_API_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import {
@@ -17,8 +18,6 @@ import {
   type IpAclTarget,
   type LoadBalancer,
 } from "./types.js";
-
-const DEFAULT_TIMEOUT_MS = 30_000;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;

@@ -1,11 +1,9 @@
 import ky from "ky";
 import { toNhnCloudCliError } from "../../api/httpError.js";
+import { DEFAULT_TIMEOUT_MS } from "../../api/timeout.js";
 import { isRepository, isArtifact, type Repository, type Artifact } from "./types.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_API_ERROR } from "../../utils/exit-codes.js";
-
-/** Harbor REST API 기본 timeout (30초) — 모듈 로컬 const (export 아님) */
-const DEFAULT_TIMEOUT_MS = 30_000;
 
 /** Harbor 최대 page_size (100) — 모듈 로컬 const (export 아님) */
 const PAGE_SIZE = 100;

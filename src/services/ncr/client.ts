@@ -2,12 +2,10 @@ import ky from "ky";
 import { ncrHost } from "../../api/endpoints.js";
 import { unwrapHeader, type NhnEnvelope } from "../../api/envelope.js";
 import { toNhnCloudCliError } from "../../api/httpError.js";
+import { DEFAULT_TIMEOUT_MS } from "../../api/timeout.js";
 import { isRegistry, type Registry } from "./types.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_API_ERROR } from "../../utils/exit-codes.js";
-
-/** 조회용 기본 timeout (30초) — export 하지 않는 모듈 로컬 const */
-const DEFAULT_TIMEOUT_MS = 30_000;
 
 /**
  * NCR Management API 응답 봉투 (실측 확정 — ADR-016).

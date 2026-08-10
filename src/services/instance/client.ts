@@ -1,5 +1,6 @@
 import ky from "ky";
 import { toNhnCloudCliError } from "../../api/httpError.js";
+import { DEFAULT_TIMEOUT_MS } from "../../api/timeout.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_API_ERROR } from "../../utils/exit-codes.js";
 import type {
@@ -19,7 +20,6 @@ import type {
   ServerVolumeAttachment,
 } from "./types.js";
 
-const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_POLL_INTERVAL_MS = 5_000;
 
 // ── 응답 타입 가드 ─────────────────────────────────────────────────────────────
