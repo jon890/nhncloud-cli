@@ -147,6 +147,30 @@ profile 해석 순서:
 API 원본 wrapper를 항상 보존하지 않는다.
 예를 들어 `nhncloud instance get <instance-id> --json`은 `.server.status`가 아니라 `.status`를 읽는다.
 
+## 요청 타임아웃
+
+HTTP 요청의 기본 상한은 30초다.
+조회 기간이 넓은 `logncrash search` 같은 요청은 기본 상한을 넘을 수 있으므로 전역 옵션이나 환경변수로 늘린다.
+
+```bash
+nhncloud logncrash search --query '*' --from 24h --to now --request-timeout 120 --json
+NHNCLOUD_REQUEST_TIMEOUT=120 nhncloud logncrash search --query '*' --from 24h --to now --json
+```
+
+값은 초 단위이며 1~3600 사이의 정수만 허용한다.
+범위를 벗어나면 API 호출 전에 종료 코드 3으로 실패한다.
+우선순위는 다음과 같다.
+
+1. `--request-timeout <sec>`
+2. `NHNCLOUD_REQUEST_TIMEOUT`
+3. 기본값 30초
+
+deploy 바이너리 업로드·다운로드의 상한은 최소 600초를 유지한다.
+전역 값을 600초보다 크게 지정했을 때만 함께 늘어나며, 더 작게 지정해도 바이너리 전송 상한은 낮아지지 않는다.
+
+`instance create --timeout` 과 `ncs workload create --timeout` 은 상태 폴링 대기 시간을 지정한다.
+HTTP 요청 상한과는 다른 설정이므로 서로 대체하지 않는다.
+
 ## Command catalog
 
 `nhncloud commands`는 Commander tree에서 command path, argument, option, description을 출력한다.

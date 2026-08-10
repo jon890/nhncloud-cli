@@ -125,7 +125,9 @@ nhncloud commands --json | jq '.commands[] | select(.path=="nks cluster list")'
 | `--json` | JSON | 파싱, 명령 연결 |
 | `--quiet` | 식별자만 | 스크립트 |
 
-전역 옵션이라 모든 명령에 붙일 수 있다. `--no-color` 도 함께 쓴다.
+전역 옵션이라 모든 명령에 붙일 수 있다. `--no-color` 와 `--request-timeout <sec>` 도 같은 자리에서 쓴다.
+요청 타임아웃은 초 단위이며 기본값은 30초, 허용 범위는 1~3600초다.
+`NHNCLOUD_REQUEST_TIMEOUT` 환경변수로도 지정할 수 있으며 명령줄 옵션이 환경변수보다 우선한다.
 
 `--json` 은 CLI 가 가공한 출력 계약이라 원본 응답의 최상위 래퍼를 그대로 보존하지 않는다.
 예를 들어 `instance get --json` 은 `.server.status` 가 아니라 `.status` 를 읽는다.
