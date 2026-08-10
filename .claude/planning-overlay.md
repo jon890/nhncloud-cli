@@ -19,10 +19,10 @@
 
 | 압축 단계 | 원 단계 |
 |---|---|
-| (1+2) | 구현 가능성 + 기술 스택 |
-| (3+4) | 호출 시나리오 + 인터페이스 |
-| (5+6) | API + 코드 구조 |
-| (7+8) | docs 영향 + task 생성 |
+| (1+2) | 구현 가능성, 기술 스택 |
+| (3+4) | 호출 시나리오, 인터페이스 |
+| (5+6) | API, 코드 구조 |
+| (7+8) | docs 영향, task 생성 |
 
 ## docs 컨벤션
 
@@ -36,15 +36,15 @@ ADR 번호 확인은 `ls docs/adr/{N}-*.md`.
 신규 작업 시 해당 행을 찾아 **표시된 모든 docs 를 손댄다**. "(해당 시)" 같은 모호한 어휘 금지 — 표시되어 있으면 변경, 표시 없으면 미손.
 복수 변경 유형에 해당하면 합집합으로 손댄다.
 
-| 변경 유형 | AGENTS.md | docs/adr/ | code-architecture.md | prd.md | flow.md | data-schema.md | README.md | skills/nhncloud-cli/SKILL.md + references/*.md |
+| 변경 유형 | AGENTS.md | docs/adr/ | code-architecture.md | prd.md | flow.md | data-schema.md | README.md | skills/nhncloud-cli/SKILL.md 와 references/*.md |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| 신규 CLI 명령 (소) | 주의사항 1줄 + "N개 명령" 카운트 | — | 디렉터리 트리 + 필요 시 utils 추가 | MVP 범위 한 줄 | 사용자 흐름 섹션 + 새 옵션 시 옵션 표 행 | (캐시 도입 시) | 사용 예 섹션 + intro "지원 명령" 문구 | 빠른 참조 표 + 자동화 시나리오 + 프론트매터 description |
-| 공개 skill 구조 / 내부 agent workflow 변경 | 스킬 폴더 구분 + 검증 grep 갱신 | — | 스킬 구조 요약 갱신 | — | 자동화 흐름 변경 시 갱신 | — | 사용자-facing discovery 변경 시 갱신 | router + references 구조 갱신, `.agents/skills/`·`.claude/agents/`·`.codex/agents/`의 stale 참조 grep |
-| 신규 ADR 동반 변경 | 주의사항 + ADR 참조 표 행 | ADR 본문 + 상단 ADR Index 등재 + 선행 ADR 이 이 작업을 "후속 예정"으로 가리켰으면 정정 | 해당 영역 ADR-NNN 역참조 한 줄 | (사용자 facing 시) | (사용자 흐름 변경 시) | (스키마 결정 시) | 사용 예 (해당 명령) | 시나리오 (해당 명령) |
-| 캐시 schema / TTL 변경 | 캐시 규약 행 | ADR 갱신 (ADR-004/007/010) | utils/cache 섹션 | — | — | 캐시 디렉터리 + 스키마 본문 | — | — |
-| 새 API 호출 패턴 (재시도/리다이렉트 등) | — | 정책 결정 ADR (예: ADR-015, ADR-019) | api/ 섹션 + ADR-NNN 역참조 | — | — | — | — | — |
-| 기존 resolver 입력 형식 확대 | 주의사항 resolver 설명 1줄 갱신 | — | resolver 주석 1줄 갱신 | — | 사용 예 (자동 분기 시나리오) | — | 사용 예 (해당 명령) | 빠른 참조 표 + 관련 시나리오 |
-| 기존 type 의 필드 시그니처 변경 | 주의사항의 관련 동작 1줄 (영향 있을 때) | (ADR 가치 있을 때) | resolver/cache 줄에 동작 변경 1줄 | — | — | interface 정의 정정 (필수) + TTL/예시 동기화 | 사용 예 (영향 명령) | 시나리오 (영향 시) |
+| 신규 CLI 명령 (소) | 주의사항 1줄, "N개 명령" 카운트 | — | 디렉터리 트리, 필요 시 utils 추가 | MVP 범위 한 줄 | 사용자 흐름 섹션, 새 옵션 시 옵션 표 행 | (캐시 도입 시) | 사용 예 섹션, intro "지원 명령" 문구 | 빠른 참조 표, 자동화 시나리오, 프론트매터 description |
+| 공개 skill 구조 / 내부 agent workflow 변경 | 스킬 폴더 구분, 검증 grep 갱신 | — | 스킬 구조 요약 갱신 | — | 자동화 흐름 변경 시 갱신 | — | 사용자-facing discovery 변경 시 갱신 | router 와 references 구조 갱신, `.agents/skills/`·`.claude/agents/`·`.codex/agents/`의 stale 참조 grep |
+| 신규 ADR 동반 변경 | 주의사항, ADR 참조 표 행 | ADR 본문, 상단 ADR Index 등재, 선행 ADR 이 이 작업을 "후속 예정"으로 가리켰으면 정정 | 해당 영역 ADR-NNN 역참조 한 줄 | (사용자 facing 시) | (사용자 흐름 변경 시) | (스키마 결정 시) | 사용 예 (해당 명령) | 시나리오 (해당 명령) |
+| 캐시 schema / TTL 변경 | 캐시 규약 행 | ADR 갱신 (ADR-004/007/010) | utils/cache 섹션 | — | — | 캐시 디렉터리, 스키마 본문 | — | — |
+| 새 API 호출 패턴 (재시도/리다이렉트 등) | — | 정책 결정 ADR (예: ADR-015, ADR-019) | api/ 섹션, ADR-NNN 역참조 | — | — | — | — | — |
+| 기존 resolver 입력 형식 확대 | 주의사항 resolver 설명 1줄 갱신 | — | resolver 주석 1줄 갱신 | — | 사용 예 (자동 분기 시나리오) | — | 사용 예 (해당 명령) | 빠른 참조 표, 관련 시나리오 |
+| 기존 type 의 필드 시그니처 변경 | 주의사항의 관련 동작 1줄 (영향 있을 때) | (ADR 가치 있을 때) | resolver/cache 줄에 동작 변경 1줄 | — | — | interface 정의 정정 (필수), TTL/예시 동기화 | 사용 예 (영향 명령) | 시나리오 (영향 시) |
 | 자격증명/인증 모델 위치 변경 | 인증 모델 표 갱신 (서비스별 비밀·헤더) | 결정 ADR (예: ADR-004) | config/ 섹션 (해당 시) | — | 인증 흐름 섹션 정정 (필수) | 스키마 위치 정정 (필수) | 설정 안내 (해당 시) | 저장 구조 예시 (해당 시) |
 | 의존성 추가 / 빌드 설정 | 빌드 명령 (해당 시) | ADR 작성 전 점검 후 ADR | 기술 스택 표 | — | — | — | — | — |
 
@@ -75,13 +75,13 @@ planning 결정 docs 를 phase 안에서 고치면 critic REVISE 또는 docs-ver
 
 **금지**: 코드 블록 10줄 이상(1~3줄 식별자 예시만 허용) / 파일 경로 3개 이상 나열 / "변경 항목 1/2/3/4" 작업 내역 / `AGENTS.md` 스택 규칙 반복.
 
-### 문서 책임 표 (단일 소스 + 역참조)
+### 문서 책임 표 (단일 소스와 역참조)
 
 신규 내용 작성 전 "이 정보의 단일 소스는 어디인가" 확인한다. 다른 문서에는 **링크 또는 한 줄 참조**만 남긴다.
 
 | 내용 유형 | 단일 소스 | 역참조 / 링크해야 할 곳 |
 |---|---|---|
-| 명령 동작 / 옵션 / 주의사항 | `AGENTS.md` 주의사항 표 | `README.md`(사용 예만), `skills/nhncloud-cli/SKILL.md` router + `references/*.md`(자동화 시나리오) |
+| 명령 동작 / 옵션 / 주의사항 | `AGENTS.md` 주의사항 표 | `README.md`(사용 예만), `skills/nhncloud-cli/SKILL.md` router 와 `references/*.md`(자동화 시나리오) |
 | 디렉터리 구조 / 레이어 | `docs/code-architecture.md` | `AGENTS.md`(요약 한 블록) |
 | 기술 결정 근거 (왜) | `docs/adr/`(해당 ADR 파일) | `AGENTS.md` ADR 참조 표, `docs/code-architecture.md` 해당 영역 ADR-NNN 한 줄 |
 | 캐시 / 파일 레이아웃 | `docs/adr/`(해당 ADR 파일) | `AGENTS.md` 캐시 규약 행 |
@@ -138,7 +138,7 @@ ls tasks/ | grep -E "^[0-9]{3}-" | sort
 gh pr list --state open --json number,headRefName,title --jq '.[] | "\(.headRefName) \(.title)"'
 ```
 
-다음 가용 번호(가장 큰 번호 + 1) 사용. 번호 없는 레거시 폴더는 count 에서 제외(소급 rename 금지).
+다음 가용 번호(가장 큰 번호에 1 을 더한 값) 사용. 번호 없는 레거시 폴더는 count 에서 제외(소급 rename 금지).
 
 ### 서브넘버 규칙
 
