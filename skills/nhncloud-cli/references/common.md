@@ -166,19 +166,36 @@ AI 에이전트는 먼저 `commands --json`으로 실제 command path와 option 
 |------|---------------------|
 | `commands` | `{ commands: [{ path, description, arguments, options, subcommands }] }` |
 | `logncrash search` | `{ totalItems, pageNumber, pageSize, data, nextCursor? }` |
+| `logncrash export` | 파일 출력 전용. stdout JSON 없음 |
+| `deploy artifacts` | Deploy API `body` 객체 |
+| `deploy server-groups` | Deploy API `body` 객체 |
+| `deploy histories` | Deploy API `body` 객체 |
 | `deploy binary-groups` | `binaryGroups` wrapper를 언랩한 배열 |
 | `deploy binaries` | `{ totalCount, binaries }` |
+| `deploy upload` | `{ downloadUrl, binaryKey }` |
 | `instance list` | `servers` wrapper를 언랩한 server 배열 |
 | `instance get` | `server` wrapper를 언랩한 단일 server |
+| `instance create --wait` | `server` wrapper를 언랩한 단일 server |
 | `instance flavors` | `flavors` wrapper를 언랩한 flavor 배열 |
 | `instance images` | `images` wrapper를 언랩한 image 배열 |
 | `instance availability-zones` | `availabilityZoneInfo` wrapper를 언랩한 배열 |
 | `instance keypairs` | `keypairs[].keypair`를 flatten한 keypair 배열 |
+| `instance volumes` | `volumeAttachments` wrapper를 언랩한 attachment 배열 |
 | `network list` | VPC 배열 |
 | `network subnet list` | subnet 배열 |
 | `volume list` | volume 배열 |
 | `volume get` | 단일 volume 객체 |
+| `volume create` | 단일 volume 객체 |
 | `floatingip list` | Floating IP 배열 |
+| `floatingip create` | 단일 Floating IP 객체 |
+| `loadbalancer list` | Load Balancer 배열 |
+| `loadbalancer get` | 단일 Load Balancer 객체 |
+| `loadbalancer ipacl list` | IP ACL 그룹 배열 |
+| `loadbalancer ipacl get` | 단일 IP ACL 그룹 객체 |
+| `loadbalancer ipacl target list` | IP ACL 대상 배열 |
+| `loadbalancer ipacl create/delete` | 작업 상태와 IP ACL 그룹 UUID 객체 |
+| `loadbalancer ipacl target add/remove` | 대상 UUID와 재바인딩 결과 객체 |
+| `loadbalancer set-ipacl/clear-ipacl` | 작업 상태와 Load Balancer UUID·그룹 UUID 객체 |
 | `ncr list` | `registries` wrapper를 언랩한 registry 배열 |
 | `ncr get` | `registry` wrapper를 언랩한 단일 registry |
 | `ncr images` | repository 배열 |
