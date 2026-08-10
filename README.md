@@ -169,7 +169,8 @@ src/
   utils/         에러, 스피너, 종료 코드
 ```
 
-의존 방향은 `api/` → `services/` → `commands/` → `formatters/` 다.
+의존 방향은 `commands/` → `services/` → `api/` 이고, `utils/` 와 `formatters/` 는 그 아래에서 공유한다.
+`services/` 가 `commands/` 를 import 하지 않는다 — 역류는 금지다.
 
 | 문서 | 담는 것 |
 | --- | --- |
