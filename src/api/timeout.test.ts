@@ -28,4 +28,15 @@ describe("request timeout", () => {
     expect(DEFAULT_TIMEOUT_MS).toBe(900_000);
     expect(SYNC_TIMEOUT_MS).toBe(900_000);
   });
+
+  it.each([
+    ["NaN", Number.NaN],
+    ["음수", -1],
+    ["0", 0],
+    ["소수", 1500.5],
+  ])("%s 입력은 상태를 오염시키지 않고 거부한다", (_label, value) => {
+    expect(() => setRequestTimeoutMs(value)).toThrow(/1 이상의 정수/);
+    expect(DEFAULT_TIMEOUT_MS).toBe(30_000);
+    expect(SYNC_TIMEOUT_MS).toBe(600_000);
+  });
 });
