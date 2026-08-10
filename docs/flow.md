@@ -149,7 +149,7 @@ nhncloud logncrash search [options]
 ### 출력
 
 - 기본(테이블): 고정 컬럼 `logTime` / `logType` / 본문 요약.
-- `--json`: API `body` 의 `data` 배열 raw + 페이지 메타 + 다음 페이지가 있을 때 `nextCursor`.
+- `--json`: API `body` 의 `data` 배열 raw, 페이지 메타, 다음 페이지가 있을 때 `nextCursor`.
 - `--quiet`: 자동화용 최소 출력 (행별 핵심 식별 정보).
 
 ### 에러 경로
@@ -168,7 +168,7 @@ search 와 같은 host(`api-lncs-search`)·UAK OAuth 토큰·봉투 helper 를 �
 
 ### scroll 순회
 
-1. `POST /v3/{appkey}/logs/scroll` 로 시작한다 (body: query/from/to). 응답 `body` 에 `scrollKey`·`totalItems`·`pageSize`·`data` 가 온다 (`NhnEnvelope` + `unwrap`).
+1. `POST /v3/{appkey}/logs/scroll` 로 시작한다 (body: query/from/to). 응답 `body` 에 `scrollKey`·`totalItems`·`pageSize`·`data` 가 온다 (`NhnEnvelope` 을 `unwrap`).
 2. `data`가 비지 않고 `scrollKey`가 있으면
    `POST /v3/{appkey}/logs/scroll/{scrollKey}`(body 없음)로 다음 페이지를 이어 받는다.
    계속 응답의 `pageSize`는 선택 필드다.
@@ -191,7 +191,7 @@ v3 공개 명세는 `scrollKey` 유효기간을 정의하지 않는다.
 
 ## logncrash send 흐름
 
-검색에 대칭되는 쓰기 명령이다. 검색과 **다른 collector host(`api-logncrash`) + appkey-only 인증(secret 불요)** 을 쓴다 ([[adr-014]]).
+검색에 대칭되는 쓰기 명령이다. 검색과 **다른 collector host(`api-logncrash`) 와 appkey-only 인증(secret 불요)** 을 쓴다 ([[adr-014]]).
 
 ```bash
 nhncloud logncrash send --body "결제 완료" --level INFO
@@ -208,7 +208,7 @@ nhncloud logncrash send [options]
 | 옵션 | 필수 | 설명 |
 |------|:---:|------|
 | `--body <text>` | 조건 | 로그 메시지 본문 (미지정 시 `--file` 또는 stdin) |
-| `--file <path>` | 조건 | 본문을 읽을 파일 경로 (stat 가드 + 8MB 한도) |
+| `--file <path>` | 조건 | 본문을 읽을 파일 경로 (stat 가드, 8MB 한도) |
 | `--level <level>` | 아니오 | DEBUG/INFO/WARN/ERROR/FATAL |
 | `--app-version <ver>` | 아니오 | projectVersion (기본 `1.0.0`). `--version` 은 CLI 버전 플래그라 `--app-version` 사용 |
 | `--source <s>` / `--type <t>` / `--host <h>` | 아니오 | logSource(기본 http)·logType(기본 log)·host |
@@ -353,7 +353,7 @@ nhncloud instance keypair delete <name> [opts]  # 키페어 삭제
 | `--ephemeral-disk-size <n>` | create | NHN 확장 — 추가 로컬 디스크 크기(GB) |
 | `--protect` | create | NHN 확장 — 삭제 보호 설정 |
 | `--user-data <path>` | create | cloud-init user-data 파일 경로 — base64 인코딩해 `user_data` 주입 (인코딩 후 65535 바이트 한도, [[adr-012]]) |
-| `--wait` | create | ACTIVE + IP 할당까지 폴링 대기 |
+| `--wait` | create | ACTIVE 상태와 IP 할당까지 폴링 대기 |
 | `--timeout <s>` | create | `--wait` timeout (기본 300) |
 | `--yes` | delete | confirm 생략 (CI·자동화용) |
 | `--hard` | reboot | HARD 재부팅 (강제 전원 cycle, 기본은 SOFT) |
@@ -384,12 +384,12 @@ nhncloud instance keypair delete <name> [opts]  # 키페어 삭제
   - `--output` 과 `--public-key` 동시 지정은 모순이라 `EXIT_PARAM_ERROR` 로 차단한다 (등록 경로엔 private_key 가 없다).
 - `instance keypair delete <name>` — 삭제 (202/204 무응답).
 
-### create 비동기 + `--wait`
+### create 비동기 실행과 `--wait`
 
 - 기본은 비동기 — create 호출이 성공하면 `BUILD` 상태로 즉시 반환한다.
-- `--wait` 지정 시 5초 간격으로 `GET /servers/{id}` 폴링해 `ACTIVE` 상태 + 첫 IP 할당까지 대기한다.
+- `--wait` 지정 시 5초 간격으로 `GET /servers/{id}` 폴링해 `ACTIVE` 상태와 첫 IP 할당까지 대기한다.
 - `--timeout` 초과 시 `EXIT_API_ERROR` 로 종료 (생성된 인스턴스는 남으므로 사용자가 delete 또는 재시도).
-- `--quiet` + `--wait` 조합은 ACTIVE 도달 후 IP 한 줄만 stdout — CI 에서 다음 step 으로 바로 파이프.
+- `--quiet` 와 `--wait` 조합은 ACTIVE 도달 후 IP 한 줄만 stdout — CI 에서 다음 step 으로 바로 파이프.
 
 ### 전원 제어 (start / stop / reboot)
 
@@ -428,7 +428,7 @@ VPC 목록은 `instance create --network <uuid>` 에 넣을 **VPC id** 를 고�
 
 ### 인증 흐름
 
-instance 와 동일하다 — `iaas` 블록 + Keystone `X-Auth-Token` 을 재사용한다(새 토큰 발급이 없다).
+instance 와 동일하다 — `iaas` 블록과 Keystone `X-Auth-Token` 을 재사용한다(새 토큰 발급이 없다).
 endpoint 만 network host(`<region>-api-network-infrastructure...`, tenant segment 없음)로 다르다.
 
 ### 명령 시그니처
@@ -671,7 +671,7 @@ nhncloud nks cluster addon list|get|install|update|remove
 
 클러스터 생성, 노드 그룹 생성, 지표 기반 autoscale, control plane log 처럼 중첩 필드가 많은 명령은 `--file <json>` 을 기본 입력으로 둔다.
 자주 쓰는 단순 변경만 flag 로 직접 받는다.
-삭제 계열은 기존 `instance delete` 와 같은 confirm + `--yes` 정책을 따른다.
+삭제 계열은 기존 `instance delete` 와 같은 confirm 과 `--yes` 정책을 따른다.
 
 ### nks 에러 경로
 
@@ -691,7 +691,7 @@ profile 의 UAK 로 OAuth 토큰을 발급(Deploy 와 캐시 공유)하고, regi
 
 1. profile 의 UAK(id·secret) 로 OAuth `access_token` 발급 — 캐시 유효하면 재사용([[adr-007]] Deploy 와 공유)
 2. profile 의 `ncs` 블록에서 appkey 로드(또는 `--app-key` override)
-3. `x-nhn-authorization: Bearer <token>` 헤더 + 경로 `/ncs/v1.0/appkeys/{appKey}/...` 로 NCS API 호출
+3. `x-nhn-authorization: Bearer <token>` 헤더와 경로 `/ncs/v1.0/appkeys/{appKey}/...` 로 NCS API 호출
 
 ### 리소스 관계
 
@@ -735,15 +735,15 @@ CLI는 시간대 포함 RFC3339와 상대시간을 한 번 캡처한 기준 시�
 
 ### 구현 순서
 
-- Phase(task 1): endpoint/auth/client 골격 + template 조회 4개 + workload 조회 7개.
-- Phase(task 2): template 생성·삭제·버전 쓰기 + workload 실행 제어(pause/resume/restart/delete).
-- Phase(task 3): workload create(`--wait`)·update·patch(`--file`) + malware 3개.
+- Phase(task 1): endpoint/auth/client 골격, template 조회 4개, workload 조회 7개.
+- Phase(task 2): template 생성·삭제·버전 쓰기, workload 실행 제어(pause/resume/restart/delete).
+- Phase(task 3): workload create(`--wait`)·update·patch(`--file`), malware 3개.
 
 ### 쓰기 payload 정책
 
 workload·template 생성은 중첩 필드가 많아 `--file <json>` 을 기본 입력으로 둔다([[adr-020]], NKS 선례).
 workload patch 는 `application/json-patch+json` Content-Type 의 json-patch 배열 파일을 받는다.
-삭제 계열은 `instance delete` 와 같은 confirm + `--yes` 정책을 따른다.
+삭제 계열은 `instance delete` 와 같은 confirm 과 `--yes` 정책을 따른다.
 
 ### ncs 에러 경로
 
