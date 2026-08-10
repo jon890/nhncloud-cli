@@ -12,6 +12,9 @@ import type {
   ScrollResult,
 } from "./types.js";
 
+/** 조회용 기본 timeout (30초) — export 하지 않는 모듈 로컬 const */
+const DEFAULT_TIMEOUT_MS = 30_000;
+
 export class LogncrashClient {
   private readonly appkey: string;
   /** Search v3 읽기 요청에만 필요하다. collector send 는 인증 헤더를 쓰지 않는다(ADR-014). */
@@ -39,6 +42,8 @@ export class LogncrashClient {
             ...(params.pageSize !== undefined ? { pageSize: params.pageSize } : {}),
             ...(params.cursor !== undefined ? { cursor: params.cursor } : {}),
           },
+          retry: 0,
+          timeout: DEFAULT_TIMEOUT_MS,
         })
         .json<NhnEnvelope<CursorSearchResult>>();
 
@@ -65,6 +70,8 @@ export class LogncrashClient {
             from: params.from,
             to: params.to,
           },
+          retry: 0,
+          timeout: DEFAULT_TIMEOUT_MS,
         })
         .json<NhnEnvelope<ScrollResult>>();
 
@@ -86,6 +93,8 @@ export class LogncrashClient {
       const res = await ky
         .post(url, {
           headers,
+          retry: 0,
+          timeout: DEFAULT_TIMEOUT_MS,
         })
         .json<NhnEnvelope<ScrollResult>>();
 
@@ -131,6 +140,8 @@ export class LogncrashClient {
         .post(url, {
           headers: { "Content-Type": "application/json" },
           json: payload,
+          retry: 0,
+          timeout: DEFAULT_TIMEOUT_MS,
         })
         .json<NhnEnvelope<unknown>>();
 
