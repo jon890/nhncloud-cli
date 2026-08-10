@@ -76,6 +76,9 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, 서비�
       "ncs": {
         "appkey": "<appkey>"
       },
+      "apigateway": {
+        "appkey": "<appkey>"
+      },
       "iaas": {
         "tenantId": "<tenant-id>",
         "username": "<account-email>",
@@ -92,6 +95,7 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, 서비�
   - deploy 는 자체 자격증명 블록 없이 이 UAK 와 `config.json` target 좌표로 동작 ([[adr-008]])
 - `logncrash` — appkey(path)만 저장한다. 검색 인증은 `userAccessKey` OAuth 토큰을 재사용한다. 기존 `secret` 필드는 마이그레이션 후 읽지 않는다 ([[adr-024]])
 - `ncs` — appkey(path)만. 인증 토큰은 `userAccessKey` OAuth 를 재사용한다(secret 불요, [[adr-020]])
+- `apigateway` — appkey(path)만. 인증 토큰은 `userAccessKey` OAuth 를 재사용하며 헤더 이름이 `X-NHN-Authorization` 이다(secret 불요, [[adr-027]])
 - `iaas` — OpenStack Keystone 자격증명. instance 등 IaaS 서비스가 공유 ([[adr-010]])
   - `password` 는 NHN 콘솔 IAM 에서 별도 발급하는 API 비밀번호 (로그인 비밀번호가 아님)
   - `region` — `kr1` / `kr2` / `kr3` / `jp1` 중 하나. 명령의 `--region` 으로 override

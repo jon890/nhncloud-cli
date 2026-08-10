@@ -59,6 +59,9 @@ src/
     ncs/
       client.ts             # NcsClient — template / workload / malware 조회·쓰기 (Deploy OAuth Bearer 토큰 재사용 + appkey 경로 + 숫자 봉투, waitForRunning, [[adr-020]])
       types.ts              # Template / TemplateVersion / Workload / WorkloadTask / WorkloadHistory / MalwareConfig 응답 가드
+    apigateway/
+      client.ts             # ApiGatewayClient — service / resource / stage / deploy 조회 (UAK OAuth 토큰 재사용, X-NHN-Authorization, appkey 경로, [[adr-027]])
+      types.ts              # ApigwService / Resource / Stage / StageResource / DeployHistory / ResourceParameters / ResourceResponses 응답 가드 (nullable 필드 다수)
   utils/
     errors.ts               # NhnCloudCliError(message, exitCode)
     exit-codes.ts           # EXIT_* 상수
@@ -206,6 +209,8 @@ dooray-cli 는 단일 `config` 와 `client` 로 충분했지만, NHN Cloud 는 �
   - ncr: `X-TC-AUTHENTICATION-ID/SECRET` 공통 UAK 정적 헤더와 region 별 ncr host (토큰 교환 없음, [[adr-016]])
   - ncr 이미지/태그: 데이터플레인 host 에 UAK `Basic Auth` 와 Harbor REST `/api/v2.0` (봉투 미적용, [[adr-017]])
   - ncs: `x-nhn-authorization: Bearer <token>` (Deploy OAuth 토큰 재사용), appkey 경로, region 별 ncs host, 숫자 봉투 ([[adr-020]])
+  - apigateway: `X-NHN-Authorization: Bearer <token>` (공통 UAK OAuth 토큰 재사용), appkey 경로, region 별 apigateway host ([[adr-027]]).
+    표준 `Authorization` 헤더로 보내면 유효한 토큰이어도 403 이 된다. pagination 은 `paging` 을 반환하는 엔드포인트에만 있다.
 
 ## 커맨드 실행 흐름 (예: `nhncloud logncrash search`)
 
