@@ -2,6 +2,8 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { setQuiet } from "./utils/spinner.js";
 import { NhnCloudCliError } from "./utils/errors.js";
+import { setRequestTimeoutMs } from "./api/timeout.js";
+import { parseIntegerOption } from "./commands/parse-options.js";
 import { configureCommand } from "./commands/configure.js";
 import { skillsCommand } from "./commands/skills.js";
 import { doctorCommand } from "./commands/doctor.js";
@@ -137,6 +139,7 @@ Agent workflow:
 
 const program = new Command();
 
+// Commander 기본값을 두지 않아 미지정 시 환경변수를 해석할 수 있게 한다.
 program
   .name("nhncloud")
   .description("NHN Cloud CLI — AI agent & terminal friendly")
@@ -144,16 +147,26 @@ program
   .option("--json", "JSON 형식으로 출력")
   .option("--quiet", "최소 출력 (자동화용)")
   .option("--no-color", "색상 비활성화")
+  .option("--request-timeout <sec>", "HTTP 요청 타임아웃 (초, 기본 30, 범위 1~3600). NHNCLOUD_REQUEST_TIMEOUT 로도 지정")
   .addHelpText("after", rootAgentHints);
 
 // 전역 옵션 훅 — no-color: chalk 비활성화 / json·quiet: spinner 비활성화
 program.hook("preAction", () => {
-  const opts = program.opts<{ color: boolean; json?: boolean; quiet?: boolean }>();
+  const opts = program.opts<{ color: boolean; json?: boolean; quiet?: boolean; requestTimeout?: string }>();
   if (!opts.color || process.env["NO_COLOR"]) {
     chalk.level = 0;
   }
   if (opts.json || opts.quiet) {
     setQuiet(true);
+  }
+
+  const timeoutValue = opts.requestTimeout ?? process.env["NHNCLOUD_REQUEST_TIMEOUT"];
+  if (timeoutValue !== undefined) {
+    const source = opts.requestTimeout !== undefined
+      ? "--request-timeout"
+      : "NHNCLOUD_REQUEST_TIMEOUT";
+    const timeoutSec = parseIntegerOption(timeoutValue, source, { min: 1, max: 3600 });
+    setRequestTimeoutMs(timeoutSec * 1000);
   }
 });
 
