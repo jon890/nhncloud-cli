@@ -20,7 +20,8 @@ src/
   api/
     endpoints.ts            # 서비스별 엔드포인트 맵 + image·network·blockstorage·nks·ncr·ncs host 맵 + logncrash-collector 키 (adr-005, adr-013, adr-014, adr-016, adr-019, adr-020)
     envelope.ts             # NHN 공통 봉투 unwrap + 에러 매핑 (adr-006)
-    httpError.ts            # ky HTTPError → NhnCloudCliError (status별 exit code)
+    httpError.ts            # ky HTTPError → NhnCloudCliError (status별 exit code), TimeoutError 안내 (adr-026)
+    timeout.ts              # 요청 타임아웃 기본값 + 전역 --request-timeout 주입 (adr-026)
     oauth.ts                # UAK → access_token 교환 + deploy·ncs·logncrash 공용 캐시 (adr-007, adr-024)
     keystone.ts             # IaaS tenantId·username·password → tokenId + compute·image·network·blockstorage·nks endpoint 동시 반환 (adr-005, adr-010, adr-013, adr-019)
   cache/
