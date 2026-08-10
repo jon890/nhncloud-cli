@@ -17,3 +17,4 @@
 | 2026-08-04 | planning | 045-refactor-pitfalls-docs-move / 046-refactor-pitfalls-prune | - | 8 | - | - | 1 | 없음 | 0 | task·branch push |
 | 2026-08-06 | build-with-teams | 045-refactor-pitfalls-docs-move | A | 4 | 1 | 1 | 1 | 없음 | 0 | PR #65 |
 | 2026-08-07 | build-with-teams | 046-refactor-pitfalls-prune | A | 4 | 2 | 2 | 1 | 없음 | 2 | PR #66 |
+| 2026-08-10 | planning | 052-feat-global-request-timeout | - | 3 | - | - | 1 | 없음 | 1 | task·branch push |
