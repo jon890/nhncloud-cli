@@ -42,6 +42,8 @@ describe("LogncrashClient Search v3", () => {
           sort: { logTime: "DESC" },
           pageSize: 10,
         },
+        retry: 0,
+        timeout: 30_000,
       },
     );
     const options = vi.mocked(ky.post).mock.calls[0]?.[1];
@@ -95,13 +97,19 @@ describe("LogncrashClient Search v3", () => {
           from: "2026-08-03T00:00:00Z",
           to: "2026-08-03T01:00:00Z",
         },
+        retry: 0,
+        timeout: 30_000,
       },
     );
 
     await client.scrollNext("scroll/key");
     expect(ky.post).toHaveBeenLastCalledWith(
       "https://api-lncs-search.nhncloudservice.com/v3/app%2Fkey/logs/scroll/scroll%2Fkey",
-      { headers: { "X-NHN-Authorization": "Bearer access-token" } },
+      {
+        headers: { "X-NHN-Authorization": "Bearer access-token" },
+        retry: 0,
+        timeout: 30_000,
+      },
     );
     expect(vi.mocked(ky.post).mock.calls[1]?.[1]).not.toHaveProperty("json");
   });
@@ -157,6 +165,8 @@ describe("LogncrashClient collector 회귀", () => {
           body: "hello",
           logLevel: "INFO",
         },
+        retry: 0,
+        timeout: 30_000,
       },
     );
     const headers = vi.mocked(ky.post).mock.calls[0]?.[1]?.headers;
