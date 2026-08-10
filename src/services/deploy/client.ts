@@ -2,6 +2,7 @@ import ky from "ky";
 import { endpointFor } from "../../api/endpoints.js";
 import { unwrap, type NhnEnvelope } from "../../api/envelope.js";
 import { toNhnCloudCliError } from "../../api/httpError.js";
+import { DEFAULT_TIMEOUT_MS, SYNC_TIMEOUT_MS } from "../../api/timeout.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_API_ERROR } from "../../utils/exit-codes.js";
 import type { DeployRunParams, BinaryGroup, Binary, BinaryListParams, UploadBinaryParams, UploadBinaryResult } from "./types.js";
@@ -34,12 +35,6 @@ function isBinary(val: unknown): val is Binary {
     (binarySizeType === "number" || binarySizeType === "string")
   );
 }
-
-/** 동기 모드(async=false) 배포 최대 응답 대기 시간 (600초) */
-const SYNC_TIMEOUT_MS = 600_000;
-
-/** 조회용 기본 timeout (30초) */
-const DEFAULT_TIMEOUT_MS = 30_000;
 
 export class DeployClient {
   private readonly accessToken: string;

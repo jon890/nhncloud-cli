@@ -126,7 +126,7 @@ nhncloud logncrash search [options]
 | `--size <n>` | 아니오 | 커서 검색의 `pageSize` (기본 10, 최대 100) |
 | `--profile <name>` | 아니오 | profile 선택 |
 
-전역 옵션: `--json` / `--quiet` / `--no-color`.
+전역 옵션: `--json` / `--quiet` / `--no-color` / `--request-timeout <sec>` ([[adr-026]]).
 
 ### 쿼리 해석
 
@@ -214,7 +214,7 @@ nhncloud logncrash send [options]
 | `--source <s>` / `--type <t>` / `--host <h>` | 아니오 | logSource(기본 http)·logType(기본 log)·host |
 | `--profile <name>` | 아니오 | profile 선택 |
 
-전역 옵션: `--json` / `--quiet` / `--no-color`.
+전역 옵션: `--json` / `--quiet` / `--no-color` / `--request-timeout <sec>` ([[adr-026]]).
 
 ### 입력 해석 순서
 
@@ -277,7 +277,7 @@ nhncloud deploy download <target> --binary-group <k> --binary-key <bk> -o <f>  #
 | `--sort-key <k>` | binaries | 정렬 기준 (예: UPLOAD_DATE) |
 | `--sort-direction <d>` | binaries | 정렬 방향 (예: DESC) |
 
-전역 옵션: `--json` / `--quiet` / `--no-color`.
+전역 옵션: `--json` / `--quiet` / `--no-color` / `--request-timeout <sec>` ([[adr-026]]).
 
 ### run 동기/비동기
 
@@ -360,7 +360,7 @@ nhncloud instance keypair delete <name> [opts]  # 키페어 삭제
 | `--public-key <path\|key>` | keypair create | 기존 공개키 등록 (파일 경로 또는 키 문자열). 지정 시 private_key 미반환 |
 | `-o, --output <keyfile>` | keypair create | NHN 이 생성한 private_key 를 파일(mode 0600)로 저장 |
 
-전역 옵션: `--json` / `--quiet` / `--no-color`.
+전역 옵션: `--json` / `--quiet` / `--no-color` / `--request-timeout <sec>` ([[adr-026]]).
 
 ### flavors 조회
 
@@ -443,7 +443,7 @@ nhncloud network subnet list [options]       # 서브넷 목록
 | `--region <r>` | 전체 | `iaas.region` override (kr1/kr2/kr3/jp1) |
 | `--profile <name>` | 전체 | profile 선택 |
 
-전역 옵션: `--json` / `--quiet` / `--no-color`.
+전역 옵션: `--json` / `--quiet` / `--no-color` / `--request-timeout <sec>` ([[adr-026]]).
 
 ### 출력
 
@@ -650,7 +650,7 @@ nhncloud nks cluster addon list|get|install|update|remove
 | `--yes` | delete/remove 계열 | confirm 생략 |
 | `--output <file>` | kubeconfig | kubeconfig 를 mode 0600 파일로 저장 |
 
-전역 옵션: `--json` / `--quiet` / `--no-color`.
+전역 옵션: `--json` / `--quiet` / `--no-color` / `--request-timeout <sec>` ([[adr-026]]).
 
 ### 구현 순서
 
@@ -722,7 +722,7 @@ nhncloud ncs malware result <workloadId> <historyId>
 | `--from <time>` / `--to <time>` | workload logs·events | 시간대 포함 RFC3339, `now`, 0 이상의 정수와 `m`·`h`·`d` 단위 |
 | `--yes` | delete 계열 | confirm 생략 |
 
-전역 옵션: `--json` / `--quiet` / `--no-color`.
+전역 옵션: `--json` / `--quiet` / `--no-color` / `--request-timeout <sec>` ([[adr-026]]).
 
 ### logs·events 시간 필터
 

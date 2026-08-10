@@ -2,6 +2,7 @@ import ky from "ky";
 import { ncsHost } from "../../api/endpoints.js";
 import { unwrapHeader, type NhnEnvelope } from "../../api/envelope.js";
 import { toNhnCloudCliError } from "../../api/httpError.js";
+import { DEFAULT_TIMEOUT_MS } from "../../api/timeout.js";
 import {
   isNcsTemplateSummary,
   type NcsTemplateSummary,
@@ -38,9 +39,6 @@ import {
 } from "./types.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_API_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
-
-/** 조회용 기본 timeout (30초) — export 하지 않는 모듈 로컬 const */
-const DEFAULT_TIMEOUT_MS = 30_000;
 
 /** waitForRunning 기본 폴링 간격 (5초) — instance client 의 DEFAULT_POLL_INTERVAL_MS 선례와 동일. */
 const DEFAULT_WAIT_POLL_INTERVAL_MS = 5_000;

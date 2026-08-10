@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
-import { HTTPError } from "ky";
+import { afterEach, describe, it, expect } from "vitest";
+import { HTTPError, TimeoutError } from "ky";
 import { toNhnCloudCliError } from "./httpError.js";
+import { setRequestTimeoutMs } from "./timeout.js";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_API_ERROR, EXIT_AUTH_ERROR } from "../utils/exit-codes.js";
 
@@ -14,6 +15,10 @@ function makeHttpError(status: number): HTTPError {
 }
 
 describe("toNhnCloudCliError", () => {
+  afterEach(() => {
+    setRequestTimeoutMs(30_000);
+  });
+
   it("401 → EXIT_AUTH_ERROR", () => {
     const result = toNhnCloudCliError(makeHttpError(401));
     expect(result).toBeInstanceOf(NhnCloudCliError);
@@ -36,6 +41,27 @@ describe("toNhnCloudCliError", () => {
     const result = toNhnCloudCliError(makeHttpError(500));
     expect(result).toBeInstanceOf(NhnCloudCliError);
     expect(result.exitCode).toBe(EXIT_API_ERROR);
+  });
+
+  it("TimeoutError → 현재 상한과 조정 옵션을 안내한다", () => {
+    const error = new TimeoutError(new Request("https://example.com"));
+    const result = toNhnCloudCliError(error);
+
+    expect(result.exitCode).toBe(EXIT_API_ERROR);
+    expect(result.message).toContain("30초");
+    expect(result.message).toContain("--request-timeout");
+    expect(result.message).toContain(error.message);
+  });
+
+  it("TimeoutError 안내는 변경한 현재 상한을 반영한다", () => {
+    setRequestTimeoutMs(120_000);
+
+    const result = toNhnCloudCliError(
+      new TimeoutError(new Request("https://example.com")),
+    );
+
+    expect(result.exitCode).toBe(EXIT_API_ERROR);
+    expect(result.message).toContain("120초");
   });
 
   it("비-HTTP raw Error → NhnCloudCliError(err.message, EXIT_API_ERROR) 로 wrap (원형 보존 아님)", () => {
