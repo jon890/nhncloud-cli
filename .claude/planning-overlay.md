@@ -48,9 +48,12 @@ ADR 번호 확인은 `ls docs/adr/{N}-*.md`.
 | 자격증명/인증 모델 위치 변경 | 인증 모델 표 갱신 (서비스별 비밀·헤더) | 결정 ADR (예: ADR-004) | config/ 섹션 (해당 시) | — | 인증 흐름 섹션 정정 (필수) | 스키마 위치 정정 (필수) | 설정 안내 (해당 시) | 저장 구조 예시 (해당 시) |
 | 의존성 추가 / 빌드 설정 | 빌드 명령 (해당 시) | ADR 작성 전 점검 후 ADR | 기술 스택 표 | — | — | — | — | — |
 
-**갱신 시점 분리**: planning 결정 docs(`docs/adr/`·`code-architecture.md`·`AGENTS.md`·`data-schema.md`·`flow.md`·`prd.md`)는 **task 생성 전 즉시 반영 + commit**.
-`README.md`·`skills/nhncloud-cli/SKILL.md`·`skills/nhncloud-cli/references/*.md`(사용자 가이드)는 코드 산출물에 의존하므로 **마지막 phase(N-1)**에서 갱신한다.
-planning 결정 docs 를 phase 안에서 고치면 critic REVISE 또는 docs-verifier VIOLATION 사유.
+**소유권 분리**: planning 결정 docs(`docs/adr/`·`code-architecture.md`·`AGENTS.md`·`data-schema.md`·`flow.md`·`prd.md`)는 **task 생성 전 즉시 반영하고 commit** 한다.
+`README.md`·`skills/nhncloud-cli/SKILL.md`·`skills/nhncloud-cli/references/*.md`(사용자 가이드)는 **phase 안에서 갱신한다**.
+어느 phase 인지는 정하지 않는다 — 한 phase 에 몰아도 되고 관련 구현 phase 에 붙여도 된다.
+planning 결정 docs 를 phase 안에서 고치면 critic REVISE 또는 docs-verifier VIOLATION 사유다.
+
+두 축을 가르는 기준은 시점이 아니라 소유권이다. 같은 문서를 planning 과 phase 가 함께 고치면 이중 편집이 되고, 어느 쪽이 최종인지 알 수 없어진다.
 
 ### ADR 작성 전 점검 (필수 자문)
 
