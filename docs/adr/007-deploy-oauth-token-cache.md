@@ -1,4 +1,4 @@
-# ADR-007: 공통 UAK OAuth client_credentials 토큰 교환 + 단기 캐시
+# ADR-007: 공통 UAK OAuth client_credentials 토큰 교환과 단기 캐시
 
 - **결정**: UAK(id+secret) 를 Basic 인증으로 OAuth 에 보내 `access_token` 을 받아 캐시한다.
   - OAuth: `POST oauth.api.nhncloudservice.com/oauth2/token/create`, `grant_type=client_credentials`

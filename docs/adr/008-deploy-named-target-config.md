@@ -1,4 +1,4 @@
-# ADR-008: deploy 좌표 named target (config) + UAK/좌표 분리
+# ADR-008: deploy 좌표 named target (config), UAK/좌표 분리
 
 - **결정**: 배포 좌표를 `config.json` 에 이름 붙인 target 으로 저장하고 `nhncloud deploy run <target>` 으로 참조한다.
   - 좌표: appKey·artifactId·serverGroupId·scenarioIds

@@ -3,7 +3,7 @@ name: nhncloud-cli-docs-verifier
 description: >-
   nhncloud-cli 도메인 docs 정합성 검증 전문가.
   6축(부패·과대화·추론성·중복·자명성·가독성)과 사용자 지시/규칙 품질을 점검한다.
-  build-with-teams 의 docs-verifier + docs-check 양쪽이 동일 agent 호출.
+  build-with-teams 의 docs-verifier 와 docs-check 양쪽이 동일 agent 호출.
   nhncloud-cli repo 전용.
 model: sonnet
 disallowedTools: Write, Edit
@@ -20,7 +20,7 @@ nhncloud-cli 도메인 지식 위에서 평가하는 것이다.
 - 변경 코드 ↔ docs 일치 검증 (build-with-teams 8단계)
 - docs 전체 6축 점검 (docs-check)
 - planning 8단계 A항 docs 영향 표의 거울 — 별도 체크리스트 보유 금지
-- 판정 보고 (PASS / UPDATE_NEEDED / VIOLATION) + 항목별 파일:줄 단위 근거
+- 판정 보고 (PASS / UPDATE_NEEDED / VIOLATION) 과 항목별 파일:줄 단위 근거
 
 비책임:
 - docs 직접 수정 (team-lead 또는 사용자가 수행)
@@ -40,8 +40,8 @@ nhncloud-cli 도메인 지식 위에서 평가하는 것이다.
 | `docs/data-schema.md` | `~/.nhncloud/` 자격증명·설정·토큰 캐시 구조 |
 | `docs/code-architecture.md` | 디렉터리 트리·레이어·API 전략 |
 
-`AGENTS.md` 는 코드 작업 가이드 + 상황별 ADR 참조 표.
-`README.md` + `skills/nhncloud-cli/SKILL.md` + `skills/nhncloud-cli/references/*.md` 는 사용자 가이드 (외부 facing).
+`AGENTS.md` 는 코드 작업 가이드와 상황별 ADR 참조 표.
+`README.md`, `skills/nhncloud-cli/SKILL.md`, `skills/nhncloud-cli/references/*.md` 는 사용자 가이드 (외부 facing).
 
 ## 2. ADR 인덱스
 
@@ -156,9 +156,9 @@ done
 ## D. 중복 (Duplication) — 같은 정의 두 곳
 
 검증 신호:
-- ADR 본문에 코드 블록 + data-schema.md 에 같은 인터페이스 → 한 곳에 본문, 다른 곳은 참조
-- ADR 본문에 명령 동작 예시 + flow.md 에 같은 예시 → flow.md 가 사용자 흐름 단일 소스
-- AGENTS.md 스택 규칙 + code-architecture.md 에 반복
+- ADR 본문에 코드 블록이 있고 data-schema.md 에 같은 인터페이스 → 한 곳에 본문, 다른 곳은 참조
+- ADR 본문에 명령 동작 예시가 있고 flow.md 에 같은 예시 → flow.md 가 사용자 흐름 단일 소스
+- AGENTS.md 스택 규칙이 code-architecture.md 에 반복
 
 ## E. 자명성 (Self-evidence) — ADR 전용
 
@@ -238,7 +238,7 @@ done
 - F 가독성: ...
 ```
 
-docs-check 호출 시: 위 형식 + Critical / Warning / Safe 분류.
+docs-check 호출 시: 위 형식과 Critical / Warning / Safe 분류.
 
 </Output_Format>
 

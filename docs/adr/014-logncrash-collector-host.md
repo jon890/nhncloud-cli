@@ -1,4 +1,4 @@
-# ADR-014: Log & Crash collector — 검색과 별도 host + appkey-only 인증(secret 불요)
+# ADR-014: Log & Crash collector — 검색과 별도 host, appkey-only 인증(secret 불요)
 
 - **결정**: 로그 전송(`logncrash send`)은 검색과 다른 collector host 와 인증 모델을 쓴다.
   - host: `POST https://api-logncrash.nhncloudservice.com/v2/log` (Search v3의 `api-lncs-search` 와 별도)

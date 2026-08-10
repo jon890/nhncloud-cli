@@ -5,7 +5,7 @@
 
 ## 저장소 역할
 
-NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 TypeScript + Commander.js 기반 통합 CLI다.
+NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 TypeScript 와 Commander.js 기반 통합 CLI다.
 이 파일에는 저장소에서 코드를 변경할 때 항상 필요한 규칙만 둔다.
 사용자용 명령 설명은 `README.md`와 `skills/nhncloud-cli/`에서 관리한다.
 

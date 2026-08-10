@@ -1,4 +1,4 @@
-# ADR-010: IaaS Keystone 토큰 인증 + region 별 compute endpoint 캐시
+# ADR-010: IaaS Keystone 토큰 인증과 region 별 compute endpoint 캐시
 
 - **결정**: NHN Cloud Instance(OpenStack Nova v2 호환) 인증은 Keystone v2 token 발급으로 처리하고, profile·region 단위로 캐시한다.
   - 발급: `POST api-identity-infrastructure.nhncloudservice.com/v2.0/tokens`
