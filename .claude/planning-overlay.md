@@ -184,22 +184,13 @@ gh pr list --state open --json number,headRefName,title --jq '.[] | "\(.headRefN
 - `number` 가 1부터 순차 증가
 - 각 `file` 이 실제 존재
 
-### 마지막 2 phase 표준 (필수)
+### 사용자 가이드와 커밋 책임
 
-모든 task 의 마지막 2개 phase 는 아래 구조를 따른다.
+사용자 가이드 갱신 phase는 코드 산출물 의존성에 맞춰 정한다.
+마지막 두 phase로 고정하지 않으며, 위 docs 영향 표가 가리키는 파일을 누락하지 않는다.
 
-| Phase | 제목 | 모델 | 내용 |
-|---|---|---|---|
-| N-1 | 빌드 검증 + 테스트 + 사용자 가이드 docs 갱신 | `haiku` | `pnpm build`, 금지사항 grep, `README.md` + `skills/nhncloud-cli/SKILL.md` + `skills/nhncloud-cli/references/*.md` 갱신 (위 docs 영향 표의 해당 행 따라) |
-| N | 커밋 + push | `haiku` | 변경 파일 `git add` → `git commit` → `git push`. task 파일도 포함. |
-
-**커밋 phase 규칙**:
-
-- `git status --porcelain`으로 전체 목록 확인
-- task 관련 파일(암묵적 의존성 포함)만 `git add`(`git add -A` 금지)
-- 무관 변경은 로그에 명시하고 제외
-- 커밋 메시지 `feat/fix/chore(scope): 설명`
-- push 실패 시 `PHASE_BLOCKED: push 실패 — 원격 변경사항 확인 필요`
+phase는 구현과 검증까지만 소유한다.
+phase 단위 커밋과 최종 push는 `build-with-teams`의 team-lead가 수행한다.
 
 ## branch / 커밋 / 핸드오프
 

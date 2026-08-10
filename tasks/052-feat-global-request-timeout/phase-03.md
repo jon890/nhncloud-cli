@@ -129,7 +129,7 @@ test "$(git status --porcelain | grep -c '^??')" = "0"
 
 ## 의도 메모 (왜)
 
-- 사용자 가이드를 마지막 phase 에 두는 이유는 이 문서들이 코드 산출물에 의존하기 때문이다. `.claude/planning-overlay.md` 의 갱신 시점 분리 규칙을 따른다.
+- 사용자 가이드를 이 phase 에 두는 이유는 이 문서들이 코드 산출물에 의존하기 때문이다. `.claude/planning-overlay.md` 의 소유권 분리 규칙을 따른다.
 - 상세를 `references/common.md` 한 곳에만 두는 이유는 같은 정보를 두 문서에 쓰지 않기 위해서다. README 는 값 범위까지만 적고 규칙은 reference 로 넘긴다.
 - 검증 6번이 결정 docs 무변경을 강제하는 이유는 planning 이 이미 커밋한 내용을 phase 가 덮어쓰면 이중 편집이 되기 때문이다.
 - 커밋을 이 phase 에 넣지 않는 이유는 build-with-teams 에서 phase 단위 커밋이 team-lead 책임이기 때문이다. phase 가 `git commit` 을 담으면 두 주체가 같은 커밋을 만들려 해 충돌한다.

@@ -2,7 +2,7 @@
   "name": "052-feat-global-request-timeout",
   "description": "HTTP 요청 타임아웃 기본값을 api/timeout.ts 로 모으고 전역 --request-timeout 옵션과 NHNCLOUD_REQUEST_TIMEOUT 으로 조절할 수 있게 한다 (ADR-026, 이슈 #67 후속).",
   "created_at": "2026-08-10T00:00:00Z",
-  "updated_at": "2026-08-10T06:24:02Z",
+  "updated_at": "2026-08-10T06:33:21Z",
   "status": "completed",
   "current_phase": 3,
   "total_phases": 3,
