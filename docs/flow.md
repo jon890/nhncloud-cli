@@ -208,7 +208,7 @@ nhncloud logncrash send [options]
 | 옵션 | 필수 | 설명 |
 |------|:---:|------|
 | `--body <text>` | 조건 | 로그 메시지 본문 (미지정 시 `--file` 또는 stdin) |
-| `--file <path>` | 조건 | 본문을 읽을 파일 경로 (stat 가드, 8MB 한도) |
+| `--file <path>` | 조건 | 본문을 읽을 파일 경로 (stat 가드와 8MB 한도) |
 | `--level <level>` | 아니오 | DEBUG/INFO/WARN/ERROR/FATAL |
 | `--app-version <ver>` | 아니오 | projectVersion (기본 `1.0.0`). `--version` 은 CLI 버전 플래그라 `--app-version` 사용 |
 | `--source <s>` / `--type <t>` / `--host <h>` | 아니오 | logSource(기본 http)·logType(기본 log)·host |

@@ -18,8 +18,8 @@ ADR-NNN 내용은 `docs/adr/NNN-*.md` 로 찾는다(번호 glob — slug 몰라�
 - [ADR-008](008-deploy-named-target-config.md): deploy 좌표 named target (config), UAK/좌표 분리
 - [ADR-009](009-configure-wizard.md): configure 대화형 마법사, 비대화형 flag, 연결 테스트
 - [ADR-010](010-iaas-keystone-token-auth.md): IaaS Keystone 토큰 인증과 region 별 compute endpoint 캐시
-- [ADR-011](011-instance-create-boot-volume.md): Instance 발급 — boot-from-volume 필수, POST 축약 응답
-- [ADR-012](012-instance-userdata-base64.md): instance create user_data — base64 주입, 65535 인코딩 후 한도
+- [ADR-011](011-instance-create-boot-volume.md): Instance 발급 — boot-from-volume 필수와 POST 축약 응답
+- [ADR-012](012-instance-userdata-base64.md): instance create user_data — base64 주입과 65535 인코딩 후 한도
 - [ADR-013](013-iaas-multi-service-endpoint.md): IaaS 멀티 서비스 endpoint 해석 — image·network·blockstorage catalog host 맵 추가 (정적 맵 유지)
 - [ADR-014](014-logncrash-collector-host.md): Log & Crash collector — 검색과 별도 host, appkey-only 인증(secret 불요)
 - [ADR-015](015-deploy-binary-transfer.md): deploy 바이너리 전송 — ky multipart 업로드와 봉투 우회 파일 스트림 다운로드
@@ -28,7 +28,7 @@ ADR-NNN 내용은 `docs/adr/NNN-*.md` 로 찾는다(번호 glob — slug 몰라�
 - [ADR-018](018-harness-docs-directory.md): 하네스 누적 docs 디렉터리 구조 — 단일 파일 → 파일 per 항목과 INDEX (ADR·pitfalls)
 - [ADR-019](019-nks-container-infra-api.md): NKS API — Keystone 토큰과 container-infra endpoint
 - [ADR-020](020-ncs-container-service-api.md): NCS API — Deploy OAuth 토큰 재사용, appkey 경로, region host(kr1/kr3)
-- [ADR-021](021-token-cache-credential-fingerprint.md): 토큰 캐시 자격 지문 비교 — 자격 변경 시 stale 토큰 무효화, OAuth 캐시 파일명 정정
+- [ADR-021](021-token-cache-credential-fingerprint.md): 토큰 캐시 자격 지문 비교 — 자격 변경 시 stale 토큰 무효화와 OAuth 캐시 파일명 정정
 - [ADR-022](022-loadbalancer-ipacl-safety.md): Load Balancer IP ACL — 전체 교체·자동 재바인딩·부분 실패 복구
 - [ADR-023](023-ncs-workload-time-filter-utc.md): NCS workload logs·events 시간 필터 — UTC Z 정규화
 - [ADR-024](024-logncrash-search-v3.md): Log & Crash Search v3 — 공통 UAK OAuth 인증, 커서 페이지 이동, v3 scroll
