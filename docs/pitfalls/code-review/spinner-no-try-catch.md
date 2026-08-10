@@ -24,23 +24,23 @@ try {
 ```
 
 **검출**: `grep -A 20 "startSpinner" src/commands/` 결과에서 `try\s*\{` 가 같은 블록 내 없으면 의심.
-**Why**: service client 호출이 spinner 이후 try/catch 밖에 놓이면 에러 경로 spinner 잔존. [[numeric-estimation]] 과 다른 패턴 ([[numeric-estimation]] 은 호출 위치, [[file-scope-inaccurate]] 는 cleanup 누락).
+**Why**: service client 호출이 spinner 이후 try/catch 밖에 놓이면 에러 경로에서 spinner 가 잔존한다. spinner 를 *언제* 시작하는지(검증 전 시작)는 별개 패턴이므로 두 축을 함께 보지 않는다.
 
-**기존 spinner 블록에 새 헬퍼 호출 추가 / 위치 이동 시 (재발 패턴)**: spinner 블록 내부에 새 헬퍼 (`readBodyInput`, `resolveTemplate`, `getProjectTemplateDetail` 등) 호출을 추가하거나 spinner 전에 있던 호출을 spinner 후로 이동하는 경우, 그 새 위치도 동일하게 try/catch 보호가 필요하다. spinner 전에 있을 때는 안전했던 호출 (예: `readBodyInput` 의 파일 부재 throw) 이 spinner 후 위치로 이동하면 leak 경로가 생긴다.
+**기존 spinner 블록에 새 헬퍼 호출 추가 / 위치 이동 시 (재발 패턴)**: spinner 블록 내부에 새 헬퍼 호출을 추가하거나 spinner 전에 있던 호출을 spinner 후로 이동하는 경우, 그 새 위치도 동일하게 try/catch 보호가 필요하다. spinner 전에 있을 때는 안전했던 호출 (예: 파일 부재를 throw 하는 payload 읽기) 이 spinner 후 위치로 이동하면 leak 경로가 생긴다.
 
 ```ts
-// PR #64 — readBodyInput 을 template body fallback 로직 위해 spinner 후로 이동.
-// 이동 자체는 OK 지만 try/catch 보호 누락 → spinner leak.
-startSpinner("...");
-const projectId = await resolveProject(client, project);
-// ... template fetch (이미 try/catch 보호됨) ...
-let bodyContent: string;
+// src/commands/ncs/template.ts:137 은 payload 읽기와 client 생성을 일부러 spinner 앞에 둔다.
+// 이 순서를 바꿔 spinner 뒤로 옮기면 try/catch 보호가 새로 필요해진다.
+const payload = readJsonPayload(opts.file);        // spinner 전 — throw 해도 leak 없음
+const { client } = await resolveNcsClient(opts);   // spinner 전
+startSpinner("NCS 설계도 생성 중...");
 try {
-  bodyContent = await readBodyInput(opts);  // ← spinner 후 위치로 이동했으면 try/catch 필수
+  template = await client.createTemplate(payload);
 } catch (e) {
   stopSpinner(false);
   throw e;
 }
+stopSpinner(true);
 ```
 
 **Self-check (plan / code review)**: 기존 spinner 블록 내부에 새 호출을 추가하거나 spinner 외부 호출을 내부로 이동하는 diff 가 있으면, 그 호출의 throw 경로를 따로 grep 으로 확인 (`grep -nE "throw new (NhnCloudCliError|Error)" {호출 파일}`). 1건이라도 throw 가능하면 try/catch 보호 필요.

@@ -29,7 +29,7 @@ beforeAll(async () => {
 });
 ```
 
-함수에 경로를 **인자로** 넘겨 homedir 비의존인 모듈(예: `skill-install.test.ts`)은 정적 import 로 충분하다 — 이 함정은 모듈 상수를 내부 사용하는 SUT 에만 해당한다.
+함수에 경로를 **인자로** 넘겨 homedir 비의존인 모듈은 정적 import 로 충분하다. `src/skill/manager.test.ts` 가 그 예로, temp 디렉터리를 `SkillManagerContext` 로 주입하므로 SUT 를 파일 상단에서 정적 import 한다. 이 함정은 모듈 상수를 내부에서 쓰는 SUT 에만 해당한다.
 
 **Self-check**: 테스트 대상 모듈이 `homedir()`·`process.env`·`cwd()` 등을 **모듈 로드 시점 const** 로 굳히는가? 그렇다면 테스트가 그 함수를 mock 한 뒤 SUT 를 **정적 import** 하고 있지 않은가? 정적이면 동적 import(mock set 이후)로 바꾼다. 확인: 테스트 실행 후 `git status --short` 에 새 untracked 파일이 없는지.
 

@@ -23,4 +23,6 @@ grep -rnE "mockRejectedValue\(new NhnCloudCliError" src/ test/
 
 **Self-check**: mock 의 reject value 를 작성할 때, "이 mock 이 흉내내려는 production 호출 경로에서 실제로 어떤 형태의 Error 가 던져지는가?" 를 코드로 직접 확인했는가 — 아니면 "에러면 그냥 Error 든 NhnCloudCliError 든 통과하니까" 로 임시값 넣었는가?
 
-**Why**: PR #63 (plan029) — 7/7 테스트 PASS 였지만 mock 이 production 동작 mirror 안 함. mock 만 보면 분기 코드 검증된 것처럼 보이지만 실제 path 는 dead. code-reviewer 가 production path (`toNhnCloudCliError`) 와 mock 의 exitCode 대조로 잡음. [[member-premature-execution]] 와 짝 — 같은 사고가 코드와 테스트 양쪽에서 동시 발생.
+**Why**: PR #63 (plan029) — 7/7 테스트 PASS 였지만 mock 이 production 동작을 mirror 하지 않았다. mock 만 보면 분기 코드가 검증된 것처럼 보이지만 실제 path 는 dead 였다. code-reviewer 가 production path (`toNhnCloudCliError`) 와 mock 의 exitCode 를 대조해 잡았다.
+  현재 저장소에서 이 대조가 필요한 테스트는 `mockRejectedValue` 를 쓰는 5개 파일이다 (`src/commands/loadbalancer/target.test.ts`, `src/commands/logncrash/{helpers,export}.test.ts`, `src/commands/configure.test.ts`, `src/services/ncr/harbor-client.test.ts`).
+  같은 사고는 코드와 테스트 양쪽에서 동시에 나므로 catch 의 exitCode 분기도 함께 본다.

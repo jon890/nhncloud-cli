@@ -15,8 +15,8 @@ executor 가 docs 텍스트를 그대로 README / SKILL.md 에 복사하면서 �
 ```bash
 # regex 의 자릿수 제한과 docs 표현이 일치하는지 확인
 grep -rn "자리" README.md skills/ docs/ | grep -i numeric
-# 코드의 regex 와 대조
-grep -rn "_RE = " src/commands src/services src/utils
+# 코드의 regex 와 대조 (이 저장소 명명은 `_PATTERN` — 예: POSITIVE_INTEGER_PATTERN)
+grep -rn "_PATTERN = " src/commands src/services src/utils
 ```
 
 **Self-check**: 새 regex 상수 추가 시 docs 전체에서 해당 자릿수 표현을 grep 하여 일관성 확인.

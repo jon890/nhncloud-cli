@@ -19,7 +19,8 @@ grep -B 3 -A 10 "무시됩니다\|ignored" src/commands/
 # 같은 옵션 grep 으로 nonInteractive 조건 외에서 사용되는지 확인
 ```
 
-**Why**: PR #55 (plan028) 🔴 — cc/to 옵션 경고와 실제 동작 불일치.
+**Why**: PR #55 (plan028) 🔴 — 경고 문구가 실제 동작과 불일치했다.
+  현재 저장소의 기준 예시는 `src/commands/configure.ts` 다. `runInteractive`(:164) 와 `runNonInteractive`(:321) 가 나뉘어 있고, `--logncrash-secret` 경고는 "사용하거나 저장하지 않습니다" 라고 말한다. 이 문구가 참인지는 해당 옵션이 저장 경로(`saveAndVerify`) 인수에 끼지 않는지 grep 으로 확인해야 알 수 있다.
 
 **Self-check**: 경고 문구와 실제 코드 경로가 일치하는가?
 경고 옵션 이름이 `nonInteractive` 조건 안에만 있는지 grep 으로 확인했는가?

@@ -41,14 +41,3 @@ grep -n "readFileSync\|readFile(" src/commands/
 **Self-check**: 파일 경로 옵션을 읽는 command 에서 `readFileSync` 직전에 `statSync` + `isFile()` + size 가드 + errno 노출이 모두 있는가?
 
 **Why**: PR #8 (plan006) code-reviewer 🟡 2건 — `--user-data` 를 stat 없이 readFileSync. 파일 입력 옵션 (--*-file / config import 등) 추가마다 재발 가능.
-
----
-
-## 회고 절차 (build-with-teams 9단계)
-
-PR 생성 후 team-lead 자문:
-- code-reviewer 가 이번 plan 에서 FIX_NEEDED 또는 코멘트로 지적한 항목이 있는가?
-- 있으면, 그 패턴이 **다른 plan 에서도 발생할 가능성** 이 있는가? (1회성 typo 제외)
-- 가능성 있으면, 본 docs 의 해당 카테고리에 항목 추가 (또는 새 카테고리 신설). 1줄 단서 + 검출 명령 + Self-check 까지 채워야 추가.
-
-회고에서 발견된 패턴은 **다음 plan 의 phase 작성 시 critic 평가 전에 소진** 됨 (planning SKILL 8단계 self-check + build-with-teams critic 평가 점검이 본 docs 도 참조).

@@ -21,7 +21,3 @@ grep -A2 'toThrow(/' tasks/*/phase-*.md | grep -v '/s)'
 **대안**: `/패턴A.*패턴B/s` — `s` (dotAll) 플래그로 `.` 가 `\n` 포함 매칭.
 
 **Why**: plan039 critic REVISE v2 — `NhnCloudCliError` 메시지에 `\n` 2개 포함. dotAll 없이 `.*` 가 연결 실패해 테스트 항상 red.
-
----
-
-이 파일은 nhncloud-cli 전용. 시드 1 / 2 패턴은 fos-blog 와 동일 구조이지만 도메인별 예시는 nhncloud-cli 컨텍스트로 표현. 3 / 4 / ... 는 이 레포 고유.

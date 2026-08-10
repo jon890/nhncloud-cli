@@ -16,25 +16,28 @@ related: []
 - **type predicate** (선호 — 안전): `.filter((x): x is X & { field: string } => typeof x.field === "string" && x.field.length > 0)` — TypeScript 가 narrowing 인지
 - **`as string` 단언** (간단): `arr.map((x) => ({ name: x.field as string }))` + 단언 안전성 주석 (`// filter 로 string 보장`)
 
+아래 예시는 `ServiceCredential.appkey?: string`(`src/config/types.ts:7`)로 실제 재현한 것이다.
+
 ```ts
+type AppkeyRecord = { appkey: string };
+
 // BAD — narrowing 안 됨
-const valid = groups.filter((g) => typeof g.code === "string");
-const adapter = valid.map((g) => ({ name: g.code }));   // TS2345: string | undefined
+const withKey = creds.filter((c) => typeof c.appkey === "string");
+return withKey.map((c) => ({ appkey: c.appkey }));
+// TS2322: Type '{ appkey: string | undefined; }[]' is not assignable to type 'AppkeyRecord[]'
 
 // GOOD A — type predicate
-const valid = groups.filter(
-  (g): g is CachedMemberGroup & { code: string } =>
-    typeof g.code === "string" && g.code.length > 0
+const withKey = creds.filter(
+  (c): c is ServiceCredential & { appkey: string } => typeof c.appkey === "string"
 );
-const adapter = valid.map((g) => ({ name: g.code }));   // OK
+return withKey.map((c) => ({ appkey: c.appkey }));   // OK
 
-// GOOD B — as string + 주석
-const adapter = valid.map((g) => ({ name: g.code as string }));   // filter 로 string 보장
+// GOOD B — 단언 + 주석
+return withKey.map((c) => ({ appkey: c.appkey as string }));   // filter 로 string 보장
 ```
 
 **검출**: type optional 완화 후 `filter` + `map` 체인이 plan 에 등장하면 narrowing 패턴 확인. 단언 사용 시 주석 필수.
 
-**Why**: PR #67 (plan032) critic Major #3 — `member-group.ts` 의 `valid.map((g) => ({ name: g.code }))` 에서 TS2345/TS2339.
-  executor 가 `as string` 추가로 회피.
-  type predicate 가 더 안전하나 본 케이스는 단언 + 주석으로 처리.
-  다른 resolver 의 optional 필드 filter 패턴에서 반복 가능.
+**Why**: PR #67 (plan032) critic Major #3 — filter 뒤 map 에서 TS2345/TS2339 가 났고 executor 가 단언 추가로 회피했다.
+  type predicate 가 더 안전하지만 단언과 주석으로도 넘어갈 수 있어, plan 이 어느 쪽인지 못 박지 않으면 실행마다 갈린다.
+  현재 저장소는 `src/services/ncs/client.ts:186` 의 `filter(isNcsTemplateSummary)` 처럼 type predicate 를 쓴다. 새 응답 필드에 filter 를 붙일 때마다 반복 가능.
