@@ -279,6 +279,48 @@ describe("ApiGatewayClient.listResources", () => {
   });
 });
 
+describe("ApiGatewayClient 봉투 leak 방지", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("getResourceParameters 는 header 를 반환값에 담지 않는다", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: successfulHeader,
+        queryStringList: [],
+        headerList: [],
+        formDataList: [],
+        requestBody: { name: null, description: null, modelId: null },
+        contentTypeList: [],
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    const result = await client.getResourceParameters("service-1", "resource-1");
+
+    // objectContaining 은 잉여 키를 통과시키므로 키 집합을 정확히 단언한다.
+    expect(Object.keys(result).sort()).toEqual(
+      ["contentTypeList", "formDataList", "headerList", "queryStringList", "requestBody"].sort(),
+    );
+    expect(result).not.toHaveProperty("header");
+  });
+
+  it("getResourceResponses 는 header 를 반환값에 담지 않는다", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: successfulHeader,
+        responseList: [],
+        contentTypeList: [],
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    const result = await client.getResourceResponses("service-1", "resource-1");
+
+    expect(Object.keys(result).sort()).toEqual(["contentTypeList", "responseList"].sort());
+    expect(result).not.toHaveProperty("header");
+  });
+});
+
 describe("ApiGatewayClient.getResourceParameters", () => {
   beforeEach(() => vi.resetAllMocks());
 

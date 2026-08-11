@@ -1,9 +1,8 @@
 import { Command } from "commander";
 import { output, type OutputOptions } from "../../formatters/table.js";
 import type { ApiGatewayService } from "../../services/apigateway/types.js";
-import { NhnCloudCliError } from "../../utils/errors.js";
-import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
+import { parseRequiredArgument } from "../parse-options.js";
 import { resolveApiGatewayClient, sanitizeForTerminal } from "./helpers.js";
 
 interface ServiceOptions extends OutputOptions {
@@ -59,17 +58,14 @@ const getCommand = new Command("get")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (serviceId: string, _opts: unknown, command: Command) => {
     const opts = command.optsWithGlobals<ServiceOptions>();
-    const trimmedServiceId = serviceId.trim();
-    if (!trimmedServiceId) {
-      throw new NhnCloudCliError("service-id 인수가 비어있습니다.", EXIT_PARAM_ERROR);
-    }
-    const displayServiceId = sanitizeForTerminal(trimmedServiceId);
+    const parsedServiceId = parseRequiredArgument(serviceId, "service-id");
+    const displayServiceId = sanitizeForTerminal(parsedServiceId);
     const { client } = await resolveApiGatewayClient(opts);
 
     startSpinner(`API Gateway service "${displayServiceId}" 조회 중...`);
     let service: ApiGatewayService;
     try {
-      service = await client.getService(trimmedServiceId);
+      service = await client.getService(parsedServiceId);
     } catch (err) {
       stopSpinner(false);
       throw err;

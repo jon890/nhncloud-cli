@@ -223,7 +223,14 @@ export class ApiGatewayClient {
           EXIT_API_ERROR,
         );
       }
-      return response;
+      // 봉투(header)를 그대로 흘리지 않는다. --json 출력 계약은 아래 다섯 필드만 담는다.
+      return {
+        queryStringList: response.queryStringList,
+        headerList: response.headerList,
+        formDataList: response.formDataList,
+        requestBody: response.requestBody,
+        contentTypeList: response.contentTypeList,
+      };
     } catch (err) {
       if (err instanceof NhnCloudCliError) throw err;
       throw toNhnCloudCliError(err);
@@ -254,7 +261,11 @@ export class ApiGatewayClient {
           EXIT_API_ERROR,
         );
       }
-      return response;
+      // 봉투(header)를 그대로 흘리지 않는다. --json 출력 계약은 아래 두 필드만 담는다.
+      return {
+        responseList: response.responseList,
+        contentTypeList: response.contentTypeList,
+      };
     } catch (err) {
       if (err instanceof NhnCloudCliError) throw err;
       throw toNhnCloudCliError(err);
