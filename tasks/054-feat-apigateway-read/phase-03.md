@@ -89,7 +89,7 @@ stageAliasDomainList[{ aliasDomain, createdAt }]
 
 ```
 apigateway stage list <service-id>
-apigateway stage swagger <service-id> <stage-id>   [--output <file>]
+apigateway stage swagger <service-id> <stage-id>   [--output <file>] [--force]
 apigateway stage resources <service-id> <stage-id>
 ```
 
@@ -97,7 +97,7 @@ apigateway stage resources <service-id> <stage-id>
 
 - 미지정이면 stdout 으로 JSON 을 낸다
 - 지정하면 파일로 저장한다. 저장 실패는 `EXIT_PARAM_ERROR` 로 경로와 errno 를 담아 알린다
-- 기존 파일 덮어쓰기 정책은 `deploy download` 의 `--force` 관례를 따른다
+- 기존 파일은 기본적으로 덮어쓰지 않고 `EXIT_PARAM_ERROR` 로 종료한다. `--force` 를 지정한 경우에만 덮어쓴다. `deploy download` 의 `--force` 관례를 따른다
 
 **파일 저장 경로에 사용자 입력이 들어가므로 `basename` 을 적용하지 않는다** — `--output` 은 사용자가 직접 준 경로라 그대로 쓰는 것이 맞다. 서버 응답에서 온 파일명을 쓰는 경우와 다르다.
 
@@ -178,6 +178,7 @@ node dist/index.js apigateway stage --help | grep -q "swagger"
 node dist/index.js apigateway stage --help | grep -q "resources"
 node dist/index.js apigateway stage deploy --help | grep -q "latest"
 node dist/index.js apigateway stage swagger --help | grep -q -- "--output"
+node dist/index.js apigateway stage swagger --help | grep -q -- "--force"
 
 # 6. 필수 위치 인수 누락은 API 호출 전에 걸러진다
 exit_code_of() { local c=0; "$@" >/dev/null 2>&1 || c=$?; echo "$c"; }

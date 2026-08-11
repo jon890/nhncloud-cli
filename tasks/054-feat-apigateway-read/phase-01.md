@@ -118,7 +118,9 @@ appKey 해석은 `--app-key` > profile 의 `apigateway.appkey` 순이다. 없으
 
 `ncsCommand` 등록부(`src/index.ts:297-304`)와 같은 형태로 `apigatewayCommand` 를 만들어 `serviceCommand` 를 붙이고 `program.addCommand` 한다.
 
-`src/commands/configure.ts` 에 `--apigateway-appkey <key>` 를 추가한다. 통합 명령이라 **다섯 곳을 함께 고쳐야 한다** — 옵션 타입, Commander `.option`, `runNonInteractive` 변환, 비대화형 빈-가드, `hasFlag` OR-체인. 한 곳만 빠지면 신규 옵션 단독 호출이 대화형으로 빠지거나 "설정할 항목 없음" 으로 잘못 종료된다.
+`src/commands/configure.ts` 에 `--apigateway-appkey <key>` 를 추가한다. 통합 명령이라 **일곱 표면을 함께 고쳐야 한다** — 옵션 타입, Commander `.option`, `runNonInteractive` 변환, 비대화형 빈-가드, `hasFlag` OR-체인, `saveAndVerify` 시그니처·전체 호출처, `setServiceCredential(profileName, "apigateway", ...)` 저장 분기. 한 곳만 빠지면 신규 옵션 단독 호출이 대화형으로 빠지거나 "설정할 항목 없음" 으로 잘못 종료되거나, 성공 메시지만 낸 채 appKey 를 저장하지 않는다.
+
+`--apigateway-appkey` 단독 비대화형 호출이 `profiles.<name>.apigateway.appkey` 에 실제로 저장되는 회귀 테스트를 `src/commands/configure.test.ts` 에 추가한다. API Gateway 연결 검증 helper 신설은 이 phase 범위가 아니다. 기존 `--verify` 흐름에서는 appKey 저장만 수행하고, API 호출 검증은 조회 명령의 client 테스트가 담당한다.
 
 `src/config/types.ts` 는 **고치지 않는다.** `ServiceCredential` 이 이미 `appkey?: string` 을 갖고 `ProfileCredentials` 가 `[service: string]` 인덱스라 `apigateway` 블록이 타입 변경 없이 들어간다.
 
@@ -134,7 +136,8 @@ appKey 해석은 `--app-key` > profile 의 `apigateway.appkey` 순이다. 없으
 | `src/services/apigateway/client.test.ts` | 신규 |
 | `src/commands/apigateway/helpers.ts` | 신규 |
 | `src/commands/apigateway/service.ts` | 신규 |
-| `src/commands/configure.ts` | 수정 (appkey 옵션 5곳) |
+| `src/commands/configure.ts` | 수정 (appkey 통합 표면 7곳) |
+| `src/commands/configure.test.ts` | 수정 (API Gateway appKey 단독 저장 회귀) |
 | `src/index.ts` | 수정 (명령 등록) |
 
 ## 검증
@@ -169,6 +172,11 @@ node dist/index.js apigateway service get --help | grep -q -- "--profile"
 
 # 6. configure 가 새 appkey 옵션을 노출한다
 node dist/index.js configure --help | grep -q -- "--apigateway-appkey"
+
+# 6-1. configure 통합 표면과 실제 저장 경로가 모두 연결됐다
+test "$(rg -c 'apigatewayAppkey' src/commands/configure.ts)" -ge 5
+rg -q 'setServiceCredential\(profileName, "apigateway", apigateway\)' src/commands/configure.ts
+rg -q 'apigateway.*appkey|apigatewayAppkey' src/commands/configure.test.ts
 
 # 7. 자격증명 없이 호출하면 API 호출 전에 설정 오류로 끝난다
 exit_code_of() { local c=0; "$@" >/dev/null 2>&1 || c=$?; echo "$c"; }
