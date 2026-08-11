@@ -5,6 +5,7 @@ import {
   parseIntegerOption,
   parseNonNegativeIntegerOption,
   parsePositiveIntegerOption,
+  parseRequiredArgument,
 } from "./parse-options.js";
 
 function expectParamError(fn: () => unknown, value: string): void {
@@ -58,5 +59,17 @@ describe("parse command integer options", () => {
     expect(parsePositiveIntegerOption(undefined, "--limit")).toBeUndefined();
     expect(parseNonNegativeIntegerOption(undefined, "--page")).toBeUndefined();
     expect(parseIntegerOption(undefined, "--size", { min: 1, max: 100 })).toBeUndefined();
+  });
+});
+
+describe("parse required positional arguments", () => {
+  it("trims a non-empty argument", () => {
+    expect(parseRequiredArgument("  resource-id  ", "resource-id")).toBe("resource-id");
+  });
+
+  it.each(["", " ", "\t\n"])("rejects an empty argument %j", (value) => {
+    expect(() => parseRequiredArgument(value, "resource-id")).toThrow(
+      expect.objectContaining({ exitCode: EXIT_PARAM_ERROR }),
+    );
   });
 });

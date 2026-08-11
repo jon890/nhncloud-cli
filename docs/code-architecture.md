@@ -18,11 +18,11 @@ src/
     credentials.ts          # ~/.nhncloud/ 로드 + 머지 쓰기, profile 해석
     types.ts                # Credentials(profile.userAccessKey + 서비스 블록) / Config 타입
   api/
-    endpoints.ts            # 서비스별 엔드포인트 맵 + image·network·blockstorage·nks·ncr·ncs host 맵 + logncrash-collector 키 (adr-005, adr-013, adr-014, adr-016, adr-019, adr-020)
+    endpoints.ts            # 서비스별 엔드포인트 맵 + image·network·blockstorage·nks·ncr·ncs·apigateway host 맵 + logncrash-collector 키 (adr-005, adr-013, adr-014, adr-016, adr-019, adr-020, adr-027)
     envelope.ts             # NHN 공통 봉투 unwrap + 에러 매핑 (adr-006)
     httpError.ts            # ky HTTPError → NhnCloudCliError (status별 exit code), TimeoutError 안내 (adr-026)
     timeout.ts              # 요청 타임아웃 기본값 + 전역 --request-timeout 주입 (adr-026)
-    oauth.ts                # UAK → access_token 교환 + deploy·ncs·logncrash 공용 캐시 (adr-007, adr-024)
+    oauth.ts                # UAK → access_token 교환 + deploy·ncs·logncrash·apigateway 공용 캐시 (adr-007, adr-024, adr-027)
     keystone.ts             # IaaS tenantId·username·password → tokenId + compute·image·network·blockstorage·nks endpoint 동시 반환 (adr-005, adr-010, adr-013, adr-019)
   cache/
     token-store.ts          # ~/.nhncloud/cache/ token + endpoint 읽기·쓰기 (mode 0600)
@@ -59,6 +59,9 @@ src/
     ncs/
       client.ts             # NcsClient — template / workload / malware 조회·쓰기 (Deploy OAuth Bearer 토큰 재사용 + appkey 경로 + 숫자 봉투, waitForRunning, [[adr-020]])
       types.ts              # Template / TemplateVersion / Workload / WorkloadTask / WorkloadHistory / MalwareConfig 응답 가드
+    apigateway/
+      client.ts             # ApiGatewayClient — service / resource / stage / deploy 조회 (UAK OAuth 토큰 재사용, X-NHN-Authorization, appkey 경로, [[adr-027]])
+      types.ts              # ApiGatewayService / Resource / Stage / StageResource / DeployHistory / ResourceParameters / ResourceResponses 응답 가드 (nullable 필드 다수)
   utils/
     errors.ts               # NhnCloudCliError(message, exitCode)
     exit-codes.ts           # EXIT_* 상수
@@ -189,9 +192,9 @@ dooray-cli 는 단일 `config` 와 `client` 로 충분했지만, NHN Cloud 는 �
 - `config/credentials.ts` — profile 해석 후 서비스 자격증명 블록 반환 ([[adr-004]])
 - `api/endpoints.ts` — 서비스명 → 엔드포인트 (gov 분기는 후속, [[adr-005]])
 - `api/envelope.ts` — `{ header, body }` 봉투 검사, `resultCode` 타입 혼재 흡수 ([[adr-006]])
-- `api/oauth.ts` 와 `cache/token-store.ts` — deploy·ncs·logncrash 검색 공용.
+- `api/oauth.ts` 와 `cache/token-store.ts` — deploy·ncs·logncrash 검색·apigateway 공용.
   UAK → access_token 교환 후 계정 단위 토큰을 profile 단기 캐시로 공유한다
-  ([[adr-007]], [[adr-020]], [[adr-024]]).
+  ([[adr-007]], [[adr-020]], [[adr-024]], [[adr-027]]).
   캐시에 자격 지문을 저장해 자격 변경 시 무효화한다 ([[adr-021]]).
 - `api/keystone.ts` 와 `cache/token-store.ts` — instance·network·blockstorage·nks 등 IaaS 전용.
   Keystone token 과 region 별 compute·image·network·blockstorage·nks endpoint 를 캐시한다 ([[adr-010]], [[adr-013]], [[adr-019]]). 캐시에 자격 지문을 저장해 자격 변경 시 무효화 ([[adr-021]])
@@ -206,6 +209,8 @@ dooray-cli 는 단일 `config` 와 `client` 로 충분했지만, NHN Cloud 는 �
   - ncr: `X-TC-AUTHENTICATION-ID/SECRET` 공통 UAK 정적 헤더와 region 별 ncr host (토큰 교환 없음, [[adr-016]])
   - ncr 이미지/태그: 데이터플레인 host 에 UAK `Basic Auth` 와 Harbor REST `/api/v2.0` (봉투 미적용, [[adr-017]])
   - ncs: `x-nhn-authorization: Bearer <token>` (Deploy OAuth 토큰 재사용), appkey 경로, region 별 ncs host, 숫자 봉투 ([[adr-020]])
+  - apigateway: `X-NHN-Authorization: Bearer <token>` (공통 UAK OAuth 토큰 재사용), appkey 경로, region 별 apigateway host ([[adr-027]]).
+    표준 `Authorization` 헤더로 보내면 유효한 토큰이어도 403 이 된다. pagination 은 `paging` 을 반환하는 엔드포인트에만 있다.
 
 ## 커맨드 실행 흐름 (예: `nhncloud logncrash search`)
 

@@ -34,3 +34,4 @@ ADR-NNN 내용은 `docs/adr/NNN-*.md` 로 찾는다(번호 glob — slug 몰라�
 - [ADR-024](024-logncrash-search-v3.md): Log & Crash Search v3 — 공통 UAK OAuth 인증, 커서 페이지 이동, v3 scroll
 - [ADR-025](025-managed-skill-lifecycle.md): 공개 스킬 명시 갱신과 버전·콘텐츠 해시별 관리 저장소
 - [ADR-026](026-request-timeout-global-control.md): HTTP 요청 타임아웃 전역 제어 — `--request-timeout` 과 deploy 상한 max 규칙
+- [ADR-027](027-apigateway-read-api.md): API Gateway 조회 API — 인증 헤더, endpoint, 엔드포인트별 pagination 비대칭

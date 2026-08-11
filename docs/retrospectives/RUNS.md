@@ -19,3 +19,5 @@
 | 2026-08-07 | build-with-teams | 046-refactor-pitfalls-prune | A | 4 | 2 | 2 | 1 | 없음 | 2 | PR #66 |
 | 2026-08-10 | planning | 052-feat-global-request-timeout | - | 3 | - | - | 1 | 없음 | 1 | task·branch push |
 | 2026-08-10 | build-with-teams | 052-feat-global-request-timeout | B | 3 | 0 | 1 | 1 | 없음 | 0 | PR #74 |
+| 2026-08-11 | planning | 054-feat-apigateway-read | - | 4 | - | - | 1 | 없음 | 5 | task·branch push |
+| 2026-08-11 | build-with-teams | 054-feat-apigateway-read | A | 4 | 1 | 1 | 3 | 있음 | 2 | PR #80 |

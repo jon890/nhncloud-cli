@@ -76,6 +76,9 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, 서비�
       "ncs": {
         "appkey": "<appkey>"
       },
+      "apigateway": {
+        "appkey": "<appkey>"
+      },
       "iaas": {
         "tenantId": "<tenant-id>",
         "username": "<account-email>",
@@ -87,11 +90,12 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, 서비�
 }
 ```
 
-- `userAccessKey` — profile 공통 개인 UAK. deploy·ncs·logncrash 검색 등 OAuth 서비스가 공유 ([[adr-007]], [[adr-024]])
+- `userAccessKey` — profile 공통 개인 UAK. deploy·ncs·logncrash 검색·apigateway 등 OAuth 서비스가 공유 ([[adr-007]], [[adr-024]], [[adr-027]])
   - OAuth 로 교환한 `access_token` 을 `X-NHN-AUTHORIZATION: Bearer` 로 사용
   - deploy 는 자체 자격증명 블록 없이 이 UAK 와 `config.json` target 좌표로 동작 ([[adr-008]])
 - `logncrash` — appkey(path)만 저장한다. 검색 인증은 `userAccessKey` OAuth 토큰을 재사용한다. 기존 `secret` 필드는 마이그레이션 후 읽지 않는다 ([[adr-024]])
 - `ncs` — appkey(path)만. 인증 토큰은 `userAccessKey` OAuth 를 재사용한다(secret 불요, [[adr-020]])
+- `apigateway` — appkey(path)만. 인증 토큰은 `userAccessKey` OAuth 를 재사용하며 헤더 이름이 `X-NHN-Authorization` 이다(secret 불요, [[adr-027]])
 - `iaas` — OpenStack Keystone 자격증명. instance 등 IaaS 서비스가 공유 ([[adr-010]])
   - `password` 는 NHN 콘솔 IAM 에서 별도 발급하는 API 비밀번호 (로그인 비밀번호가 아님)
   - `region` — `kr1` / `kr2` / `kr3` / `jp1` 중 하나. 명령의 `--region` 으로 override
@@ -127,7 +131,9 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, 서비�
 ~/.nhncloud/cache/iaas-token-<profile>-<region>.json   # { tokenId, expiresAt, credentialHash, computeEndpoint, imageEndpoint, networkEndpoint, blockStorageEndpoint, nksEndpoint } — mode 0600
 ```
 
-- user-access-token — OAuth `access_token` 을 만료시각과 함께 저장 ([[adr-007]]). deploy·ncs·logncrash 검색이 같은 계정 토큰이라 이 캐시를 공유 ([[adr-020]], [[adr-024]])
+- user-access-token — OAuth `access_token` 을 만료시각과 함께 저장한다 ([[adr-007]]).
+  deploy·ncs·logncrash 검색·apigateway가 같은 계정 토큰이라 이 캐시를 공유한다
+  ([[adr-020]], [[adr-024]], [[adr-027]]).
 - iaas — Keystone token 과 region 별 정적 host 맵으로 구성한 compute·image·network·blockStorage·nks endpoint 캐시 ([[adr-005]], [[adr-010]], [[adr-013]], [[adr-019]])
 - `credentialHash` — 발급 자격의 SHA-256 지문. 현재 자격과 다르면 캐시 무효화·재발급 ([[adr-021]]). user-access-token 은 `sha256(uakId:uakSecret)`, iaas 는 `sha256(tenantId:username:password)`
 - 만료 전 재사용, 만료 시 재발급한다. logncrash 검색도 같은 user-access-token 캐시를 쓴다.
