@@ -7,7 +7,7 @@ import type {
   ResourceResponses,
 } from "../../services/apigateway/types.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
-import { resolveApiGatewayClient } from "./helpers.js";
+import { resolveApiGatewayClient, sanitizeForTerminal } from "./helpers.js";
 
 interface ResourceOptions extends OutputOptions {
   region?: string;
@@ -34,9 +34,10 @@ const listCommand = addApiGatewayOptions(
 ).action(async (serviceId: string, _opts: unknown, command: Command) => {
   const opts = command.optsWithGlobals<ResourceOptions>();
   const parsedServiceId = parseRequiredArgument(serviceId, "service-id");
+  const displayServiceId = sanitizeForTerminal(parsedServiceId);
   const { client } = await resolveApiGatewayClient(opts);
 
-  startSpinner(`API Gateway service "${parsedServiceId}" resource 목록 조회 중...`);
+  startSpinner(`API Gateway service "${displayServiceId}" resource 목록 조회 중...`);
   let resources: Resource[];
   try {
     resources = await client.listResources(parsedServiceId);
@@ -49,14 +50,14 @@ const listCommand = addApiGatewayOptions(
   output(opts, {
     headers: ["resourceId", "path", "methodType", "methodName", "updatedAt"],
     rows: resources.map((resource) => [
-      resource.resourceId,
-      resource.path,
-      resource.methodType ?? "-",
-      resource.methodName ?? "-",
-      resource.updatedAt,
+      sanitizeForTerminal(resource.resourceId),
+      sanitizeForTerminal(resource.path),
+      resource.methodType === null ? "-" : sanitizeForTerminal(resource.methodType),
+      resource.methodName === null ? "-" : sanitizeForTerminal(resource.methodName),
+      sanitizeForTerminal(resource.updatedAt),
     ]),
     raw: resources,
-    ids: resources.map((resource) => resource.resourceId),
+    ids: resources.map((resource) => sanitizeForTerminal(resource.resourceId)),
   });
 });
 
@@ -74,9 +75,10 @@ const parametersCommand = addApiGatewayOptions(
   const opts = command.optsWithGlobals<ResourceOptions>();
   const parsedServiceId = parseRequiredArgument(serviceId, "service-id");
   const parsedResourceId = parseRequiredArgument(resourceId, "resource-id");
+  const displayResourceId = sanitizeForTerminal(parsedResourceId);
   const { client } = await resolveApiGatewayClient(opts);
 
-  startSpinner(`API Gateway resource "${parsedResourceId}" parameter 조회 중...`);
+  startSpinner(`API Gateway resource "${displayResourceId}" parameter 조회 중...`);
   let parameters: ResourceParameters;
   try {
     parameters = await client.getResourceParameters(parsedServiceId, parsedResourceId);
@@ -113,9 +115,10 @@ const responsesCommand = addApiGatewayOptions(
   const opts = command.optsWithGlobals<ResourceOptions>();
   const parsedServiceId = parseRequiredArgument(serviceId, "service-id");
   const parsedResourceId = parseRequiredArgument(resourceId, "resource-id");
+  const displayResourceId = sanitizeForTerminal(parsedResourceId);
   const { client } = await resolveApiGatewayClient(opts);
 
-  startSpinner(`API Gateway resource "${parsedResourceId}" 응답 정의 조회 중...`);
+  startSpinner(`API Gateway resource "${displayResourceId}" 응답 정의 조회 중...`);
   let responses: ResourceResponses;
   try {
     responses = await client.getResourceResponses(parsedServiceId, parsedResourceId);
@@ -127,7 +130,9 @@ const responsesCommand = addApiGatewayOptions(
 
   output(opts, {
     headers: ["response"],
-    rows: responses.responseList.map((response) => [displayUnknown(response)]),
+    rows: responses.responseList.map((response) => [
+      sanitizeForTerminal(displayUnknown(response)),
+    ]),
     raw: responses,
     ids: [],
   });

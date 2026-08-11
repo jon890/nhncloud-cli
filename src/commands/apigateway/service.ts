@@ -4,7 +4,7 @@ import type { ApiGatewayService } from "../../services/apigateway/types.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
-import { resolveApiGatewayClient } from "./helpers.js";
+import { resolveApiGatewayClient, sanitizeForTerminal } from "./helpers.js";
 
 interface ServiceOptions extends OutputOptions {
   region?: string;
@@ -40,14 +40,14 @@ const listCommand = new Command("list")
         "createdAt",
       ],
       rows: services.map((service) => [
-        service.apigwServiceId,
-        service.apigwServiceName,
-        service.apigwDomain,
-        service.regionCode,
-        service.createdAt,
+        sanitizeForTerminal(service.apigwServiceId),
+        sanitizeForTerminal(service.apigwServiceName),
+        sanitizeForTerminal(service.apigwDomain),
+        sanitizeForTerminal(service.regionCode),
+        sanitizeForTerminal(service.createdAt),
       ]),
       raw: services,
-      ids: services.map((service) => service.apigwServiceId),
+      ids: services.map((service) => sanitizeForTerminal(service.apigwServiceId)),
     });
   });
 
@@ -63,9 +63,10 @@ const getCommand = new Command("get")
     if (!trimmedServiceId) {
       throw new NhnCloudCliError("service-id 인수가 비어있습니다.", EXIT_PARAM_ERROR);
     }
+    const displayServiceId = sanitizeForTerminal(trimmedServiceId);
     const { client } = await resolveApiGatewayClient(opts);
 
-    startSpinner(`API Gateway service "${trimmedServiceId}" 조회 중...`);
+    startSpinner(`API Gateway service "${displayServiceId}" 조회 중...`);
     let service: ApiGatewayService;
     try {
       service = await client.getService(trimmedServiceId);
@@ -84,14 +85,14 @@ const getCommand = new Command("get")
         "createdAt",
       ],
       rows: [[
-        service.apigwServiceId,
-        service.apigwServiceName,
-        service.apigwDomain,
-        service.regionCode,
-        service.createdAt,
+        sanitizeForTerminal(service.apigwServiceId),
+        sanitizeForTerminal(service.apigwServiceName),
+        sanitizeForTerminal(service.apigwDomain),
+        sanitizeForTerminal(service.regionCode),
+        sanitizeForTerminal(service.createdAt),
       ]],
       raw: service,
-      ids: [service.apigwServiceId],
+      ids: [sanitizeForTerminal(service.apigwServiceId)],
     });
   });
 
