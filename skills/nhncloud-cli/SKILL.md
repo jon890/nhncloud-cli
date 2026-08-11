@@ -37,5 +37,5 @@ description: >-
 | Container Registry | [ncr.md](references/ncr.md) |
 | Kubernetes Service | [nks.md](references/nks.md) |
 | Container Service | [ncs.md](references/ncs.md) |
-| API Gateway 서비스·리소스·스테이지·배포 조회와 Swagger export | [apigateway.md](references/apigateway.md) |
+| API Gateway 서비스·리소스·스테이지·배포 조회, Swagger export, `stage update`, `resource set-path-plugin`·`set-method-plugin` | [apigateway.md](references/apigateway.md) |
 | 인증·profile·region·출력·검색 제한 문제 해결 | [troubleshooting.md](references/troubleshooting.md) |

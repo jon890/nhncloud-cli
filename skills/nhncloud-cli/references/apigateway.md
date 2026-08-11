@@ -1,7 +1,7 @@
-# API Gateway 조회 안내
+# API Gateway 조회·변경 안내
 
 `apigateway` 명령군은 API Gateway 서비스, 리소스, 스테이지, 배포 이력을 조회하고 스테이지의 Swagger를 내보낸다.
-현재는 조회만 지원하며 플러그인 적용, 스테이지 수정, 배포, 롤백 같은 쓰기 작업은 지원하지 않는다.
+스테이지의 백엔드 URL·설명 수정과 리소스 경로·메서드 플러그인 설정도 지원한다.
 
 ## 인증과 설정
 
@@ -29,9 +29,12 @@ nhncloud apigateway service list --region kr1 --json
 | `nhncloud apigateway resource list` | `<service-id>` | 공통 옵션 |
 | `nhncloud apigateway resource parameters` | `<service-id> <resource-id>` | 공통 옵션 |
 | `nhncloud apigateway resource responses` | `<service-id> <resource-id>` | 공통 옵션 |
+| `nhncloud apigateway resource set-path-plugin` | `<service-id> <resource-id>` | 공통 옵션, `--config-file <path>`, `--dry-run`, `--yes` |
+| `nhncloud apigateway resource set-method-plugin` | `<service-id> <resource-id>` | 공통 옵션, `--config-file <path>`, `--dry-run`, `--yes` |
 | `nhncloud apigateway stage list` | `<service-id>` | 공통 옵션 |
 | `nhncloud apigateway stage swagger` | `<service-id> <stage-id>` | 공통 옵션, `--output <file>`, `--force` |
 | `nhncloud apigateway stage resources` | `<service-id> <stage-id>` | 공통 옵션 |
+| `nhncloud apigateway stage update` | `<service-id> <stage-id>` | 공통 옵션, `--backend-endpoint-url <url>`, `--description <text>`, `--yes` |
 | `nhncloud apigateway stage deploy list` | `<service-id> <stage-id>` | 공통 옵션 |
 | `nhncloud apigateway stage deploy latest` | `<service-id> <stage-id>` | 공통 옵션 |
 
@@ -46,6 +49,49 @@ nhncloud apigateway service list --region kr1 --json
 `resource parameters`와 `resource responses`는 식별자 출력이 없어 `--quiet`에서 아무것도 출력하지 않는다.
 `stage swagger`는 `--output`을 생략하면 Swagger JSON을 stdout에 출력하고, 지정하면 파일을 새로 만든 뒤 경로를 출력한다.
 기존 파일을 덮어쓰려면 `--force`를 함께 지정한다.
+
+## 플러그인 설정 파일
+
+`set-path-plugin`과 `set-method-plugin`은 API 요청 본문 형태의 JSON 파일을 `--config-file`로 받는다.
+경로 플러그인의 `applyChildPath`와 공통 필드인 `delete`는 모두 각 플러그인 항목에 넣는다.
+
+`path-plugins.json` 예시:
+
+```json
+{
+  "pathPluginList": [
+    {
+      "pluginType": "ADD_REQUEST_QUERY_PARAMETER",
+      "pluginConfigJson": {},
+      "applyChildPath": true,
+      "delete": false
+    }
+  ]
+}
+```
+
+`method-plugins.json` 예시:
+
+```json
+{
+  "methodPluginList": [
+    {
+      "pluginType": "HTTP",
+      "pluginConfigJson": {
+        "url": "https://backend.example.com"
+      },
+      "delete": false
+    }
+  ]
+}
+```
+
+`delete` 가 `true`면 해당 플러그인을 삭제하므로 `pluginConfigJson`을 생략할 수 있다.
+`applyChildPath`는 경로 플러그인에만 사용하며 메서드 설정에 넣으면 입력 오류로 거부된다.
+
+`set-path-plugin`과 `set-method-plugin`만 `--dry-run`을 제공한다. 하위 적용 범위를 서버가 판정하고 CORS 플러그인이 기존 OPTIONS 메서드를 삭제·대체하므로, 다른 위험 명령의 `--yes` 확인만으로는 되돌릴 수 없는 범위를 적용 전에 확인할 수 없기 때문이다.
+
+리소스 플러그인 변경을 스테이지에 반영하려면 별도의 리소스 반영과 배포가 필요하며, 리소스 반영·배포 명령은 아직 지원하지 않는다.
 
 ## JSON 구조
 
@@ -95,3 +141,13 @@ diff -u specs/apigateway-swagger.json /tmp/apigateway-swagger.json
 
 `service list --quiet`과 `stage list --quiet`은 결과가 없으면 아무것도 출력하지 않는다.
 자동화에서는 빈 식별자를 다음 명령에 넘기기 전에 검사한다.
+
+플러그인 일괄 적용은 같은 설정 파일로 영향 범위를 먼저 확인한 뒤 실행한다.
+
+```bash
+nhncloud apigateway resource set-path-plugin <service-id> <resource-id> \
+  --config-file path-plugins.json --dry-run --json
+
+nhncloud apigateway resource set-path-plugin <service-id> <resource-id> \
+  --config-file path-plugins.json --yes
+```
