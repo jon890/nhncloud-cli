@@ -219,7 +219,7 @@ HTTP 호출은 `ky` 만 쓰고, 사용자 오류는 `NhnCloudCliError` 와 `src/
 데이터는 stdout, 진행 상황·경고·오류는 stderr 로 분리한다.
 
 NHN Cloud API 가 문서와 다르거나 직관에 반하면 [docs/adr/](docs/adr/) 에 기록한다.
-엔드포인트 버전 이중 prefix 나 200 응답 속 `isSuccessful: false` 처럼, 모르고 접근하면 다시 막히는 것들이 이미 26건 쌓여 있다.
+엔드포인트 버전 이중 prefix 나 200 응답 속 `isSuccessful: false` 처럼, 모르고 접근하면 다시 막히는 것들이 이미 27건 쌓여 있다.
 
 ### PR 을 낼 때
 

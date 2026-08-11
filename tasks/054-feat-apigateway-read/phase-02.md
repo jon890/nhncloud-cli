@@ -57,7 +57,9 @@ createdAt, updatedAt, resourcePluginList
 이 API 는 메서드별로 라우팅해 지원하지 않는 메서드에 404 를 주며 `Allow` 헤더도 주지 않는다.
 
 `parameters` 의 `requestBody` 는 객체이고 실측에서 `{ name: null, description: null, modelId: null }` 이었다.
-`responses` 와 `parameters` 의 배열들은 실측에서 모두 빈 배열이었다 — 그 프로젝트가 쓰지 않는 기능이라서이고, 필드가 없다는 뜻이 아니다. 빈 배열과 누락을 구분해 가드를 짠다.
+`responses` 와 `parameters` 의 배열들은 실측에서 모두 빈 배열이었다 —
+그 프로젝트가 쓰지 않는 기능이라서이고, 필드가 없다는 뜻이 아니다.
+빈 배열과 누락을 구분해 가드를 짠다.
 
 ---
 
@@ -68,7 +70,9 @@ createdAt, updatedAt, resourcePluginList
 `Resource`, `ResourceParameters`, `ResourceResponses` 와 각 타입 가드를 더한다.
 Phase 1 에서 만든 파일에 추가하고 기존 서비스 타입은 건드리지 않는다.
 
-nullable 네 필드는 `string | null` 이다. `resourcePluginList` 는 배열이고 항목 구조는 이 phase 범위에서 쓰지 않으므로 `unknown[]` 로 두거나 최소 가드만 둔다 — 플러그인 항목 구조는 쓰기 plan 이 확정한다.
+nullable 네 필드는 `string | null` 이다.
+`resourcePluginList` 는 배열이고 항목 구조는 이 phase 범위에서 쓰지 않으므로
+`unknown[]` 로 두거나 최소 가드만 둔다 — 플러그인 항목 구조는 쓰기 plan 이 확정한다.
 
 ### 2. `src/services/apigateway/client.ts` — 메서드 3개 추가
 
@@ -108,7 +112,9 @@ apigateway resource responses <service-id> <resource-id>
 `apigatewayCommand` 에 `resourceCommand` 를 붙인다.
 
 `src/services/apigateway/client.test.ts` 에 세 메서드의 봉투 성공·실패 케이스를 더한다.
-`vi.mock("ky")` 후 `.json()` 반환값을 주입하는 기존 방식을 따르고, reject value 는 production 의 `toNhnCloudCliError` 매핑을 그대로 흉내낸다 (HTTP 4xx → `EXIT_API_ERROR`, 401·403 → `EXIT_AUTH_ERROR`).
+`vi.mock("ky")` 후 `.json()` 반환값을 주입하는 기존 방식을 따르고,
+reject value 는 production 의 `toNhnCloudCliError` 매핑을 그대로 흉내낸다
+(HTTP 4xx → `EXIT_API_ERROR`, 401·403 → `EXIT_AUTH_ERROR`).
 
 **`isSuccessful: false` 가 `EXIT_API_ERROR` 로 나가는 케이스를 메서드마다 넣는다.** 성공 mock 만 두면 봉투 검사 누락이 회귀해도 테스트가 초록으로 통과한다.
 
@@ -174,10 +180,17 @@ git diff --check
 
 ## 의도 메모 (왜)
 
-- 검증 1번이 `listResources` 에 `paging` 이 없음을 강제하는 이유는 문서가 `page`·`limit` 을 전역 규칙처럼 적어 두어 전수 수집 루프를 넣기 쉬운데, 실제 응답에는 `paging` 이 없어 그 코드가 죽거나 오동작하기 때문이다.
-- nullable 네 필드를 검증 2번으로 못박는 이유는 리소스 경로 항목에 메서드 정보가 없어 실제 응답의 절반 이상이 null 이고, string-only 가드면 목록 전체가 거부되기 때문이다.
-- 빈 결과를 stdout 으로 내는 이유는 `parameters`·`responses` 가 실측에서 전부 빈 배열이었고, 그것이 정상 상태이기 때문이다. 정상 빈 상태를 stderr 로 보내면 자동화가 오류로 오인한다.
-- 리소스 단건 조회를 넣지 않는 이유는 그 경로가 없기 때문이다. 404 가 "경로 없음" 이 아니라 "그 메서드로는 없음" 을 뜻하는 API 라, 없는 것을 있다고 가정하기 쉽다.
+- 검증 1번이 `listResources` 에 `paging` 이 없음을 강제하는 이유는
+  문서가 `page`·`limit` 을 전역 규칙처럼 적어 두어 전수 수집 루프를 넣기 쉬운데,
+  실제 응답에는 `paging` 이 없어 그 코드가 죽거나 오동작하기 때문이다.
+- nullable 네 필드를 검증 2번으로 못박는 이유는 리소스 경로 항목에 메서드 정보가 없어
+  실제 응답의 절반 이상이 null 이고, string-only 가드면 목록 전체가 거부되기 때문이다.
+- 빈 결과를 stdout 으로 내는 이유는 `parameters`·`responses` 가 실측에서 전부 빈 배열이었고,
+  그것이 정상 상태이기 때문이다.
+  정상 빈 상태를 stderr 로 보내면 자동화가 오류로 오인한다.
+- 리소스 단건 조회를 넣지 않는 이유는 그 경로가 없기 때문이다.
+  404 가 "경로 없음" 이 아니라 "그 메서드로는 없음" 을 뜻하는 API 라,
+  없는 것을 있다고 가정하기 쉽다.
 
 ## Blocked 조건
 

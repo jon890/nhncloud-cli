@@ -45,7 +45,7 @@ AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트�
   - `template`(컨테이너 실행 설계도)·`workload`(런타임 실행)·`malware`(악성코드 검사) 3개 리소스를 조회·생성·삭제·실행제어한다.
   - workload 는 비동기라 `create --wait` 로 Running 을 대기하고, 복잡한 생성·변경은 `--file <json>` 입력을 기본으로 한다.
 - `nhncloud loadbalancer` — Load Balancer와 IP ACL 그룹·대상을 조회하고 안전하게 변경한다([[adr-022]], [사용 흐름](flow.md#loadbalancer-ip-acl-흐름)).
-- `nhncloud apigateway` — API Gateway 서비스·리소스·스테이지·배포를 조회하고 스테이지 Swagger 를 내보낸다([[adr-027]]).
+- `nhncloud apigateway` — API Gateway 서비스·리소스·스테이지·배포를 조회하고 스테이지 Swagger 를 내보낸다([[adr-027]], [사용 흐름](flow.md#api-gateway-조회-자동화-흐름)).
   - 인증은 공통 UAK OAuth 토큰을 재사용하고 appkey 는 경로에 넣는다. 조회 전용이며 쓰기는 후속 범위다.
   - 저장해 둔 Swagger 스펙이 실제 설정과 어긋나는 것을 CI 에서 주기적으로 대조하는 용도를 우선한다.
 - `nhncloud skills` — 공개 스킬의 상태 조회·설치·갱신·제거. 버전과 콘텐츠 해시로 오래된 설치와 사용자 수정본을 구분한다([[adr-025]]).
