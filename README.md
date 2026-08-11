@@ -105,7 +105,7 @@ nhncloud apigateway service list                               # API Gateway 서
 nhncloud apigateway stage update <service-id> <stage-id> --description "설명" --yes  # API Gateway 스테이지 수정
 ```
 
-전체 명령과 옵션은 `--help` 로 본다. 현재 164개다.
+전체 명령과 옵션은 `--help` 로 본다. 현재 167개다.
 
 ```bash
 nhncloud --help
