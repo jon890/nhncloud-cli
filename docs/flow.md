@@ -97,20 +97,24 @@ nhncloud apigateway stage update "$SERVICE_ID" "$STAGE_ID" \
   --backend-endpoint-url https://backend.example.com --yes
 
 nhncloud apigateway resource set-path-plugin "$SERVICE_ID" "$RESOURCE_ID" \
-  --config-file plugins/add-query-param.json --apply-child-path --dry-run
+  --config-file plugins/add-query-param.json --dry-run
 
 nhncloud apigateway resource set-path-plugin "$SERVICE_ID" "$RESOURCE_ID" \
-  --config-file plugins/add-query-param.json --apply-child-path --yes
+  --config-file plugins/add-query-param.json --yes
 ```
 
-`--apply-child-path`는 하위 경로와 메서드 전체에 번지므로 `--dry-run`으로 영향 범위를 먼저 확인한다.
+`applyChildPath`와 `delete`는 명령 옵션이 아니라 설정 파일의 항목 필드다.
+항목마다 값이 다를 수 있고, 두 곳에서 받으면 어느 쪽이 이겼는지 알 수 없다.
+
+`applyChildPath`가 참인 항목은 하위 경로와 메서드 전체에 번지므로 `--dry-run`으로 범위를 먼저 확인한다.
 `--dry-run`이 세는 범위는 `path` 접두 비교로 계산한 추정값이다.
 
 설정값에 없던 플러그인 타입은 추가되고, 있던 타입은 보낸 설정으로 바뀐다.
 보내지 않은 타입은 그대로 남으므로 기존 목록을 다시 만들어 보낼 필요가 없다.
 
-변경은 서비스 설정에만 반영되고 실제 트래픽에는 아직 적용되지 않는다.
+리소스 플러그인 변경은 서비스 설정에만 반영된다.
 스테이지로 가져오는 반영과 배포는 콘솔에서 수행한다.
+스테이지 수정이 즉시 반영되는지 배포가 필요한지는 공식 문서에 서술이 없어 확정하지 않았다.
 
 ## 공개 스킬 수명주기
 
