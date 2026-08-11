@@ -61,7 +61,7 @@ src/
       types.ts              # Template / TemplateVersion / Workload / WorkloadTask / WorkloadHistory / MalwareConfig 응답 가드
     apigateway/
       client.ts             # ApiGatewayClient — service / resource / stage / deploy 조회 (UAK OAuth 토큰 재사용, X-NHN-Authorization, appkey 경로, [[adr-027]])
-      types.ts              # ApigwService / Resource / Stage / StageResource / DeployHistory / ResourceParameters / ResourceResponses 응답 가드 (nullable 필드 다수)
+      types.ts              # ApiGatewayService / Resource / Stage / StageResource / DeployHistory / ResourceParameters / ResourceResponses 응답 가드 (nullable 필드 다수)
   utils/
     errors.ts               # NhnCloudCliError(message, exitCode)
     exit-codes.ts           # EXIT_* 상수

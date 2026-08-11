@@ -36,8 +36,15 @@ nhncloud apigateway service list --region kr1 --app-key <appkey> --json
 | `nhncloud apigateway stage deploy list` | `<service-id> <stage-id>` | 공통 옵션 |
 | `nhncloud apigateway stage deploy latest` | `<service-id> <stage-id>` | 공통 옵션 |
 
-`--quiet`는 목록과 단건 조회에서 식별자만 한 줄씩 출력한다.
-`resource parameters`와 `resource responses`는 식별자 출력이 없으므로 자동화에서는 `--json`을 사용한다.
+`--quiet`가 식별자를 출력하는 명령은 다음과 같다.
+
+- `service list`·`service get`: `apigwServiceId`
+- `resource list`: `resourceId`
+- `stage list`: `stageId`
+- `stage resources`: `stageResourceId`
+- `stage deploy list`·`stage deploy latest`: `deployId`
+
+`resource parameters`와 `resource responses`는 식별자 출력이 없어 `--quiet`에서 아무것도 출력하지 않는다.
 `stage swagger`는 `--output`을 생략하면 Swagger JSON을 stdout에 출력하고, 지정하면 파일을 새로 만든 뒤 경로를 출력한다.
 기존 파일을 덮어쓰려면 `--force`를 함께 지정한다.
 

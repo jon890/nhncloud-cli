@@ -25,7 +25,8 @@ flag 가 하나라도 있으면 비대화형으로 동작한다.
 nhncloud configure --profile playground \
   --uak-id <id> --uak-secret <secret> \
   --logncrash-appkey <appkey> \
-  [--ncr-appkey <appkey>] [--ncs-appkey <appkey>] [--no-verify]
+  [--ncr-appkey <appkey>] [--ncs-appkey <appkey>] \
+  [--apigateway-appkey <appkey>] [--no-verify]
 ```
 
 | 옵션 | 설명 |
@@ -36,6 +37,7 @@ nhncloud configure --profile playground \
 | `--logncrash-secret` | 전환 호환용 폐기 예정 옵션. 경고 후 값을 저장하거나 사용하지 않음 |
 | `--ncr-appkey <key>` | NCR(Container Registry) appkey (인증 secret 은 공통 UAK 재사용) |
 | `--ncs-appkey <key>` | NCS(Container Service) appkey (인증 토큰은 공통 UAK OAuth 재사용) |
+| `--apigateway-appkey <key>` | API Gateway appkey. `configure`는 저장만 수행하고 연결은 조회 명령에서 검증 |
 | `--no-verify` | 연결 테스트 생략 |
 
 ### 연결 테스트
@@ -44,6 +46,7 @@ nhncloud configure --profile playground \
 - logncrash — profile 공통 UAK 토큰과 appkey로 짧은 범위(예: 1분) v3 검색을 호출해 인증(401/403) 검증. UAK가 없으면 검증을 건너뛰지 않고 설정 오류로 종료
 - ncr — kr1 레지스트리 목록 조회로 검증. 인증 secret 이 공통 UAK 라 UAK 가 없으면 검증을 건너뛰고 경고만 출력한다. configure verify 는 **kr1 가정** — kr2/kr3 만 쓰는 경우 첫 `ncr list --region kr2` 호출이 사실상의 검증이 된다.
 - ncs — kr1 template 목록 조회로 검증. 인증 토큰이 공통 UAK OAuth 라 UAK 가 없으면 검증을 건너뛰고 경고만 출력한다. ncr 과 동일하게 **kr1 가정**.
+- API Gateway — `configure`에서는 appkey 저장만 수행한다. 인증·region·appkey 조합은 첫 `apigateway` 조회 명령에서 검증한다.
 - 실패 시 저장 여부를 다시 확인 (또는 비대화형은 비-0 종료)
 
 ## Agent command discovery 흐름
@@ -63,6 +66,26 @@ nhncloud commands --json | jq '.commands[] | select(.path=="nks cluster list")'
 4. 쓰기/삭제 명령은 `--yes`, payload file, region, profile을 명시한다.
 
 `commands`는 Commander tree metadata만 출력하며 외부 API를 호출하지 않는다.
+
+## API Gateway 조회 자동화 흐름
+
+API Gateway 조회에는 profile 공통 UAK와 `apigateway.appkey`가 필요하다.
+`configure --apigateway-appkey`는 appkey만 저장하며 API 연결을 호출하지 않는다.
+첫 조회가 인증과 region 조합을 실제로 검증한다.
+
+```bash
+SERVICE_ID=$(nhncloud apigateway service list --region kr1 --quiet | head -n 1)
+STAGE_ID=$(nhncloud apigateway stage list "$SERVICE_ID" --region kr1 --quiet | head -n 1)
+
+nhncloud apigateway stage swagger "$SERVICE_ID" "$STAGE_ID" \
+  --region kr1 \
+  --output /tmp/apigateway-swagger.json
+
+diff -u specs/apigateway-swagger.json /tmp/apigateway-swagger.json
+```
+
+`service list`와 `stage list`는 모든 페이지를 모은 뒤 식별자를 출력한다.
+`resource list`와 `stage resources`는 pagination 없이 전체 목록을 한 번에 받는다.
 
 ## 공개 스킬 수명주기
 
