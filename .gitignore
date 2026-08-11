@@ -10,3 +10,7 @@ reports/maintenance/context-*.json
 
 # playwright MCP 임시 산출물
 .playwright-mcp/
+
+# pnpm 이 빌드 스크립트 승인을 물으며 만드는 템플릿.
+# 이 저장소는 단일 패키지라 workspace 정의가 필요 없고, worktree 마다 다시 생성된다.
+pnpm-workspace.yaml
