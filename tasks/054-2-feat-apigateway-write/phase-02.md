@@ -40,9 +40,15 @@ export interface MethodPluginUpdateBody { methodName: string; methodDescription?
 스테이지 **수정 응답** 전용 타입 `UpdatedStage` 와 가드 `isUpdatedStage` 를 새로 만든다.
 기존 `isStage` 를 재사용하면 안 된다 — 조회 응답에는 있는 `stageCustomUrl` 과
 `stageAliasDomainList` 가 수정 응답에는 없어, 성공 응답이 가드에서 거부된다.
-`isUpdatedStage` 가 요구하는 필드는 `stageId`·`apigwServiceId`·`regionCode`·`stageName`(nullable)·
-`stageDescription`·`stageUrl`·`backendEndpointUrl`·`resourceUpdatedAt`·`createdAt`·`updatedAt` 과
-배열 `stageCustomDomainList` 다. 나머지는 인덱스 시그니처로 흘린다.
+`isUpdatedStage` 는 **명령이 출력에 쓰는 필드만** 필수로 요구한다 —
+`stageId`·`stageUrl`·`backendEndpointUrl`·`updatedAt`(각 string)과 `stageName`(nullable string) 다섯이다.
+나머지는 optional 로 두고 인덱스 시그니처로 흘린다.
+
+가드를 출력에 필요한 만큼만 좁히는 이유가 있다.
+이 가드는 **쓰기가 이미 성공한 뒤** 응답에 대해 돌아간다.
+근거는 공식 문서의 응답 예시 하나뿐이고, 그 예시가 조회 응답과 다르다는 것을 이미 확인했다.
+필드 하나가 더 어긋나면 실제로 반영된 변경을 CLI 가 실패로 보고하고 사용자는 재적용을 시도한다.
+조회 가드를 재사용하지 않기로 한 이유가 그것인데, 새 가드를 11개 필드로 만들면 같은 위험이 남는다.
 
 플러그인 **수정 응답** 전용 타입 `UpdatedResource` 와 가드 `isUpdatedResource` 도 같은 이유로 만든다.
 기존 `isResource` 를 재사용하면 안 된다.
@@ -99,6 +105,9 @@ export function collectAffectedPaths(resources: Resource[], targetPath: string):
   자체 helpers 를 갖고 서로 참조하지 않는다.
 - `readPluginConfigFile` — 파일을 읽기 전에 `stat` 으로 일반 파일인지 확인하고,
   디렉터리나 없는 경로는 `EXIT_PARAM_ERROR` 로 거부한다.
+  오류 메시지에 원인 코드(`ENOENT`·`EACCES`·`EISDIR`)를 실어 구분한다 —
+  "파일을 읽을 수 없습니다" 만 내면 경로 오타와 권한 문제를 가릴 수 없다.
+  `stage.ts` 의 `fileErrorReason` 이 같은 방식으로 errno 를 꺼내니 그 형태를 따른다.
   `JSON.parse` 결과를 `as` 로 단언하지 않고 `unknown` 으로 반환해 호출부가 가드로 좁힌다.
   파싱 실패 메시지에는 경로를 `JSON.stringify` 로 감싸 넣는다.
 - `collectAffectedPaths` — `--dry-run` 이 쓸 영향 범위를 계산한다.
@@ -112,7 +121,7 @@ export function collectAffectedPaths(resources: Resource[], targetPath: string):
 
 - 성공 — 요청 URL·메서드·본문이 기대와 같고 좁혀진 값을 반환한다
 - `header.isSuccessful: false` 인 HTTP 200 — `EXIT_API_ERROR` 로 던진다
-- 응답 구조가 어긋남 — `isUpdatedStage`·`isResource` 좁히기 실패로 던진다
+- 응답 구조가 어긋남 — `isUpdatedStage`·`isUpdatedResource` 좁히기 실패로 던진다
 
 `updateStage` 성공 케이스의 응답 fixture 에는 `stageCustomUrl` 과 `stageAliasDomainList` 를
 넣지 않는다. 문서의 수정 응답이 그 두 필드를 주지 않으며, 이 fixture 가 조회용 가드
@@ -159,13 +168,19 @@ test "$(grep -c 'isUpdatedStage' src/services/apigateway/client.ts)" -ge "1"
 test "$(grep -c 'isUpdatedResource' src/services/apigateway/client.ts)" -ge "1"
 
 # 쓰기 메서드가 조회용 가드를 재사용하지 않는다 (ADR-028 결정)
-# 세 쓰기 메서드 본문에서 isStage / isResource 호출이 0건이어야 한다.
-# isUpdatedStage·isUpdatedResource 가 부분 일치로 잡히지 않게 앞 문자를 제한한다
-# (macOS BSD grep 은 \b 지원이 불확실하므로 문자 클래스를 쓴다)
-test "$(awk '/async (updateStage|setPathPlugins|setMethodPlugins)\(/,/^  }$/' src/services/apigateway/client.ts | grep -cE '(^|[^A-Za-z])(isStage|isResource)\(')" = "0"
+# 세 쓰기 메서드 본문에서 isStage / isResource 사용이 0건이어야 한다.
+# 여는 괄호를 패턴에 넣지 않는다 — 이 저장소는 .every(isResource) 처럼 함수 참조를 넘기므로
+# `isResource\(` 로 찾으면 조회 메서드조차 걸리지 않아 검사가 죽는다.
+# 양쪽 경계는 문자 클래스로 잡는다 (macOS BSD grep 의 \b 지원이 불확실하고,
+# isUpdatedStage·isUpdatedResource 가 부분 일치로 잡히면 안 된다)
+test "$(awk '/async (updateStage|setPathPlugins|setMethodPlugins)\(/,/^  }$/' src/services/apigateway/client.ts | grep -cE '(^|[^A-Za-z])(isStage|isResource)([^A-Za-z]|$)')" = "0"
 
-# JSON 파싱 결과를 as 로 단언하지 않는다
-test "$(grep -n 'JSON.parse' src/commands/apigateway/helpers.ts | grep -c ' as ')" = "0"
+# 위 검사가 살아 있음을 확인한다 — 조회 메서드에서는 같은 패턴이 반드시 잡혀야 한다
+test "$(grep -cE '(^|[^A-Za-z])(isStage|isResource)([^A-Za-z]|$)' src/services/apigateway/client.ts)" -ge "2"
+
+# JSON 파싱 결과를 as 로 단언하지 않는다.
+# 이 저장소 pitfall 의 검출식을 그대로 쓴다 — 같은 줄만 보는 검사는 줄바꿈된 단언을 놓친다
+test "$(grep -rnE 'JSON\.parse.*\)\s+as\b' src/commands/apigateway/ | grep -c .)" = "0"
 
 git diff --check
 ```

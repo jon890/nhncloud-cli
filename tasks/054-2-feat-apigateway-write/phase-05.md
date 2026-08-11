@@ -15,10 +15,14 @@ live 쓰기 검증 절차를 사용자가 실행할 수 있는 형태로 남긴�
 **범위 외**: `docs/adr/`·`docs/prd.md`·`docs/flow.md`·`docs/code-architecture.md` 는
 planning 이 이미 갱신하고 커밋했다. 이 phase 에서 다시 고치지 않는다.
 
-`AGENTS.md` 도 이 phase 의 대상이 아니다.
-명령 카탈로그 수는 구현이 끝난 뒤에만 확정되지만 그 파일은 결정 문서라 소유자가 team-lead 다.
-team-lead 가 phase 루프 밖에서 실제 건수를 세어 갱신하고 별도 커밋으로 남긴다.
-구현자는 `AGENTS.md` 를 편집하지 않는다.
+**명령 카탈로그 수도 이 phase 의 대상이 아니다.**
+그 값은 `AGENTS.md:14` 와 `README.md:107`("현재 164개다") 두 곳에 있다.
+한 값을 두 주체가 나눠 갱신하면 한쪽만 바뀌어 문서가 갈리므로, 두 곳을 team-lead 가 함께 갱신한다.
+`AGENTS.md` 는 결정 문서라 소유자가 team-lead 이고, `README.md` 의 수치는 그 값의 사본이다.
+
+team-lead 는 **이 phase 가 통과한 뒤** 실제 건수를 세어 두 곳을 한 커밋으로 갱신한다.
+순서를 뒤집으면 아래 검증의 `AGENTS.md` 미편집 검사가 엉뚱하게 실패한다.
+구현자는 `AGENTS.md` 를 편집하지 않고 `README.md:107` 의 수치도 건드리지 않는다.
 
 ---
 
@@ -42,15 +46,24 @@ phase 01 이 `--app-key` 서술을 걷어낸 상태에서 이어 작성한다.
 - 실제 appkey·서비스 식별자·사내 도메인을 쓰지 않는다. `<appkey>`·`<service-id>`·
   `https://backend.example.com` 같은 placeholder 만 쓴다
 
-### 2. `README.md` — 사용 예 한 줄 추가
+### 2. `README.md` — 사용 예와 서비스 나열
 
-`nhncloud apigateway service list` 예시가 있는 블록에 변경 명령 한 줄을 더한다.
-intro 의 "지원 명령" 문구가 조회만 가리키면 변경까지 포함하도록 고친다.
+두 곳을 고친다. 카탈로그 수(`README.md:107`)는 team-lead 소유이므로 건드리지 않는다.
 
-### 3. `skills/nhncloud-cli/SKILL.md` — router 갱신
+- `README.md:104` 의 `nhncloud apigateway service list` 예시가 있는 블록에 변경 명령 한 줄을 더한다
+- `README.md:10` 의 서비스 나열에 API Gateway 를 넣는다.
+  현재 문장은 "Compute·Network·Block Storage·Load Balancer·Container Registry·Kubernetes·
+  Container Service·Log & Crash·Deploy 를 명령 한 줄로 다루고" 인데 API Gateway 가 빠져 있다.
+  조회 명령 10개가 이미 머지된 상태라 이 누락은 이 plan 이전부터 있던 것이다
 
-`apigateway` 항목이 조회 전용으로 서술돼 있으면 변경까지 포함하도록 고친다.
-프론트매터 `description` 이 서비스 목록을 담고 있으면 함께 확인한다.
+### 3. `skills/nhncloud-cli/SKILL.md` — router 표 갱신
+
+`SKILL.md:40` 의 라우터 표 행이 조회 전용으로 서술돼 있다 —
+"API Gateway 서비스·리소스·스테이지·배포 조회와 Swagger export".
+스테이지 수정과 플러그인 설정까지 포함하도록 고친다.
+
+프론트매터 `description` 은 손대지 않는다.
+이미 "API Gateway 작업을 서비스별 참조와 명령 카탈로그로 안내한다" 로 조회에 한정하지 않는다.
 
 ---
 
@@ -82,8 +95,13 @@ done
 # router 와 README 도 변경 명령을 노출한다.
 # 신규 고유 토큰으로 검사한다 — 이 토큰은 이 plan 이전에 저장소에 없었다
 grep -q "set-path-plugin" skills/nhncloud-cli/SKILL.md
-grep -q "apigateway" README.md
 test "$(grep -c 'set-path-plugin\|stage update' README.md)" -ge "1"
+
+# README 서비스 나열에 API Gateway 가 들어갔다 (이 plan 이전에는 빠져 있었다)
+grep -q "API Gateway" README.md
+
+# 카탈로그 수는 team-lead 소유라 이 phase 가 건드리지 않는다
+test "$(git diff origin/main -- README.md | grep -c '^[+-].*현재 [0-9]*개다')" = "0"
 
 # --dry-run 을 이 두 명령만 제공하는 근거가 참조 문서에 남았다
 grep -q "dry-run" skills/nhncloud-cli/references/apigateway.md

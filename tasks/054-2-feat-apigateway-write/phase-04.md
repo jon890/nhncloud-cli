@@ -50,11 +50,20 @@ nhncloud apigateway resource set-path-plugin <service-id> <resource-id>
    - 위반은 모두 `EXIT_PARAM_ERROR` 다
 3. `--dry-run` 이 아니면 `requireYes(opts.yes, "리소스 경로 플러그인 설정")` 을 호출한다
 4. `resolveApiGatewayClient(opts)` 로 client 를 얻는다
-5. 항목 중 하나라도 `applyChildPath` 가 참이면 `client.listResources(serviceId)` 로 목록을 받아
-   `collectAffectedPaths` 로 영향 범위를 계산한다.
-   대상 `resource-id` 의 `path` 를 목록에서 찾아 기준 경로로 쓴다
+5. `client.listResources(serviceId)` 로 목록을 받아 대상 `resource-id` 를 찾는다.
+   목록에 없으면 `EXIT_PARAM_ERROR` 로 거부한다.
+   그 항목의 `path` 가 기준 경로다.
+   항목 중 하나라도 `applyChildPath` 가 참이면 `collectAffectedPaths` 로 하위까지 모으고,
+   아니면 영향 범위는 대상 리소스 하나다.
+   `applyChildPath` 유무와 무관하게 이 조회를 수행한다 — 기준 경로를 모르면 `--dry-run` 이
+   무엇을 보여줄지 정할 수 없고, 없는 `resource-id` 를 서버까지 보내게 된다
 6. `--dry-run` 이면 영향 범위를 출력하고 쓰기 호출 없이 종료한다
-7. `--dry-run` 이 아니면 `client.setPathPlugins` 를 호출하고 결과를 출력한다
+7. `--dry-run` 이 아니면 `client.setPathPlugins` 를 호출하고 결과를 출력한다.
+   출력은 응답의 `resourceList` 를 표로 낸다 —
+   헤더는 `resourceId`·`path`·`methodType`, `raw` 는 응답 배열, `ids` 는 `resourceId` 목록이다.
+   `path` 와 `methodType` 은 외부 문자열이므로 `sanitizeForTerminal` 을 거치고,
+   값이 없으면 대체 문자 `-` 를 넣는다.
+   `UpdatedResource` 는 두 필드만 필수라 나머지는 없을 수 있다
 
 `--dry-run` 의 조기 반환도 세 출력 모드를 모두 지킨다.
 이 저장소에 `--dry-run` 선례가 없으므로 계약을 여기서 정한다.
@@ -126,7 +135,19 @@ output(opts, {
 두 명령을 `resourceCommand.addCommand(...)` 로 등록하고
 `resource` 그룹의 `description` 이 조회와 변경을 함께 담도록 고친다.
 
+실제 쓰기 출력도 경로 명령과 같은 형태다 — 응답 `resourceList` 를 같은 헤더로 내고
+`sanitizeForTerminal` 과 대체 문자를 같게 적용한다.
+
 ### 4. `src/commands/apigateway/resource.test.ts` — 계약 테스트
+
+action 레벨 하네스는 `src/commands/apigateway/commands.test.ts:13-44` 를 원천으로 삼는다.
+아래를 그대로 옮겨 온다.
+
+- `vi.mock` 세 개 — `./helpers.js`, `../../formatters/table.js`, `../../utils/spinner.js`
+- 가짜 client 객체
+- `programWith()` 로 만든 부모 `Command` 와 `exitOverride()`
+가짜 client 에는 `listResources`·`setPathPlugins`·`setMethodPlugins` 를 넣는다.
+테스트를 위해 명령 내부 함수를 새로 export 하지 않는다.
 
 - `--yes` 없이 호출하면 client 생성 전에 던진다
 - `--dry-run` 은 `--yes` 없이 통과하고 쓰기 메서드를 호출하지 않는다

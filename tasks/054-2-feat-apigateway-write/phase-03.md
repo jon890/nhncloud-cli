@@ -38,9 +38,10 @@ spinner 가 검증보다 먼저 떠서 오류 출력이 spinner 에 섞인다.
    바꿀 것이 없으므로 `EXIT_PARAM_ERROR` 로 거부한다
 3. `requireYes(opts.yes, "스테이지 수정")` 을 호출한다
 
-인자 오류를 `--yes` 검증보다 먼저 내는 이유가 있다.
-둘 다 빠진 호출에 `--yes` 를 먼저 요구하면, 사용자가 `--yes` 를 붙여 다시 실행한 뒤에야
-바꿀 값이 없다는 것을 알게 되어 두 번 실패한다.
+    인자 오류를 `--yes` 검증보다 먼저 내는 이유가 있다.
+    둘 다 빠진 호출에 `--yes` 를 먼저 요구하면, 사용자가 `--yes` 를 붙여 다시 실행한 뒤에야
+    바꿀 값이 없다는 것을 알게 되어 두 번 실패한다.
+
 4. `resolveApiGatewayClient(opts)` 로 client 를 얻는다
 5. `startSpinner` 후 `client.listStages(serviceId)` 로 대상 스테이지를 찾는다
 6. `client.updateStage` 를 호출한다
@@ -70,7 +71,21 @@ spinner 가 검증보다 먼저 떠서 오류 출력이 spinner 에 섞인다.
 
 ### 3. `src/commands/apigateway/stage.test.ts` — 계약 테스트
 
-기존 파일의 방식을 따라 아래를 넣는다.
+action 레벨 테스트 하네스는 `src/commands/apigateway/commands.test.ts:13-44` 를 원천으로 삼는다.
+`stage.test.ts` 의 기존 방식은 따르지 않는다 — 그 파일은 `writeStageSwaggerFile` 과
+`sanitizeForTerminal` 같은 순수 함수만 다루고 Commander 실행 하네스가 없다.
+아래 케이스는 모두 action 실행이 필요하므로 새 하네스를 발명하지 말고 그 패턴을 옮겨 온다.
+
+- `vi.mock("./helpers.js", importOriginal)` 로 `resolveApiGatewayClient` 만 교체한다
+- `vi.mock("../../formatters/table.js", importOriginal)` 로 `output` 을 교체한다
+- `vi.mock("../../utils/spinner.js")` 로 `startSpinner`·`stopSpinner` 를 교체한다
+- 가짜 client 객체에 `listStages`·`updateStage` 를 `vi.fn()` 으로 넣는다
+- `programWith(command)` 로 `--json`·`--quiet` 전역 옵션을 갖춘 부모 `Command` 를 만들고
+  `exitOverride()` 로 종료를 가로챈다
+
+테스트를 위해 명령 내부 함수를 새로 export 하지 않는다. 표면이 늘어난다.
+
+아래를 넣는다.
 
 - 바꿀 옵션을 하나 준 채 `--yes` 를 빼면 client 생성 전에 `--yes` 를 요구하며 던진다
 - 두 옵션 모두 없으면 `--yes` 가 있든 없든 "바꿀 값이 없다" 로 `EXIT_PARAM_ERROR` 를 던진다
@@ -101,14 +116,15 @@ pnpm run build
 node dist/index.js commands --json \
   | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const p=JSON.parse(s).commands.map(c=>c.path);if(!p.includes("apigateway stage update")){console.error("missing");process.exit(1)}})'
 
-# --yes 없이 호출하면 EXIT_PARAM_ERROR(2) 로 끝난다.
-# 없는 profile 을 주어도 2 여야 한다 — 자격증명 해석(3)보다 --yes 검증이 먼저라는 증거다
-node dist/index.js apigateway stage update svc stg --description x --profile no-such-profile-054-2
-test "$?" = "2"
+# --yes 없이 호출하면 EXIT_PARAM_ERROR 로 끝난다.
+# src/utils/exit-codes.ts 기준으로 EXIT_PARAM_ERROR = 3 이다 (2 는 EXIT_AUTH_ERROR).
+# 없는 profile 을 함께 주지 않는다 — 자격증명 실패(4)로도 통과해 버리면 순서를 증명하지 못한다
+node dist/index.js apigateway stage update svc stg --description x
+test "$?" = "3"
 
-# 두 옵션 모두 없으면 --yes 를 주어도 2 로 끝난다 (인자 검증이 --yes 보다 먼저)
-node dist/index.js apigateway stage update svc stg --yes --profile no-such-profile-054-2
-test "$?" = "2"
+# 두 옵션 모두 없으면 --yes 를 주어도 3 으로 끝난다 (인자 검증이 --yes 보다 먼저)
+node dist/index.js apigateway stage update svc stg --yes
+test "$?" = "3"
 
 # 도움말에 세 옵션이 노출된다
 node dist/index.js apigateway stage update --help | grep -q -- "--backend-endpoint-url"

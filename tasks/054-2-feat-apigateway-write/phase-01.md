@@ -11,8 +11,10 @@ appkey 지정 경로가 두 개면 명령 이력만 보고 어느 값이 쓰였�
 profile 을 바꿔도 `--app-key` 가 박힌 스크립트는 옛 appkey 를 계속 쓴다.
 
 `apigateway` 조회 명령은 v0.13.0 이 npm 에 게시되기 전이라 사용자 영향 없이 되돌릴 수 있다.
-`deploy`·`ncr`·`ncs` 의 같은 옵션 44곳은 이미 게시되어 쓰이므로 이 phase 의 대상이 아니다
+`deploy`·`ncr`·`ncs` 의 같은 옵션은 이미 게시되어 쓰이므로 이 phase 의 대상이 아니다
 (이슈 #85 에서 major 버전에 처리한다).
+옵션 정의는 38곳이고, 도움말·JSDoc·오류 메시지까지 더하면 44곳이다.
+아래 검증은 정의 38곳만 센다.
 
 **범위 외**: 쓰기 명령 추가는 phase 02 이후다. `deploy`·`ncr`·`ncs` 는 손대지 않는다.
 
@@ -44,11 +46,16 @@ profile 단일 경로를 서술하도록 고친다.
 - `src/commands/apigateway/resource.ts` — `addApiGatewayOptions` 안 1곳과 필드 1곳
 - `src/commands/apigateway/deploy.ts` — `addApiGatewayOptions` 안 1곳과 필드 1곳
 
-### 3. `src/commands/apigateway/commands.test.ts` — 옵션 계약 테스트 갱신
+### 3. `src/commands/apigateway/commands.test.ts` — 옵션 부재 단정 케이스 추가
 
-`appKey: "app-key"` 를 쓰는 케이스가 있으면 profile 경로만 쓰도록 고친다.
-`--app-key` 가 커맨드 트리에 존재하지 않음을 확인하는 케이스를 추가한다.
-`apigateway` 하위 명령을 순회해 옵션 이름에 `--app-key` 가 0건임을 단정한다.
+`apigateway` 하위 명령 트리를 순회해 옵션 이름에 `--app-key` 가 0건임을 단정하는 케이스를 추가한다.
+`serviceCommand`·`resourceCommand`·`stageCommand`·`deployCommand` 를 모두 훑는다.
+
+기존 fixture 는 건드리지 않는다.
+`commands.test.ts:60` 의 `appKey: "app-key"` 는 CLI 옵션이 아니라 mock 한 API 응답의
+`ApiGatewayService.appKey` 필드다. 그 케이스는 제어문자 정제(`sanitizeForTerminal`)를 검증하려고
+`apigwServiceId` 등에 escape 문자를 심어 둔 것이라, profile 경로로 바꾸면 정상 테스트가 깨진다.
+현재 이 파일에 `--app-key` **옵션** 사용은 0건이다.
 
 ### 4. `skills/nhncloud-cli/references/apigateway.md` — 사용자 가이드 정정
 
@@ -81,8 +88,14 @@ pnpm tsc --noEmit
 pnpm test
 pnpm run build
 
-# apigateway 소스와 공개 가이드에 --app-key 잔존 0건
-test "$(grep -rn -- '--app-key' src/commands/apigateway/ skills/nhncloud-cli/references/apigateway.md | grep -c .)" = "0"
+# apigateway 소스와 공개 가이드에 --app-key 잔존 0건.
+# 테스트 파일은 제외한다 — 작업 항목 3 이 옵션 부재를 단정하는 케이스를 넣으므로
+# 그 파일에는 리터럴 "--app-key" 가 반드시 남는다. 재귀 grep 이 그것을 세면 검증이 항상 실패한다
+test "$(grep -rn --exclude='*.test.ts' -- '--app-key' src/commands/apigateway/ | grep -c .)" = "0"
+test "$(grep -n -- '--app-key' skills/nhncloud-cli/references/apigateway.md | grep -c .)" = "0"
+
+# 옵션 부재를 단정하는 테스트가 실제로 추가됐다 (위 제외 규칙이 검사를 무력화하지 않게 한다)
+test "$(grep -c -- '--app-key' src/commands/apigateway/commands.test.ts)" -ge "1"
 
 # deploy·ncr·ncs 의 --app-key 는 그대로 유지 (이 phase 대상 아님)
 # 38 = deploy 8 + ncr 4 + ncs 26. 옵션 정의만 세므로 두 서비스 helpers 의 오류 메시지·JSDoc 은 포함되지 않는다.
