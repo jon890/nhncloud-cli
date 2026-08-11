@@ -90,7 +90,7 @@ describe("readPluginConfigFile", () => {
 
     await expect(readPluginConfigFile(path)).rejects.toMatchObject({
       message: expect.stringContaining(
-        "플러그인 설정 파일이 너무 큽니다 (1000001 바이트). JSON spec 한도 1000000 바이트.",
+        "플러그인 설정 파일이 너무 큽니다 (1000001 바이트). 허용 상한은 1000000 바이트입니다.",
       ),
       exitCode: EXIT_PARAM_ERROR,
     });

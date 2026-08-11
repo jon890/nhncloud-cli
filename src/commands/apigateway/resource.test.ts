@@ -55,6 +55,7 @@ function resource(overrides: Partial<Resource> = {}): Resource {
 let tempDirectory: string;
 let stdout = "";
 let stderr = "";
+let stderrWrite: ReturnType<typeof vi.spyOn>;
 
 async function configFile(name: string, value: unknown): Promise<string> {
   const path = join(tempDirectory, name);
@@ -76,7 +77,7 @@ describe("API Gateway resource 플러그인 설정", () => {
       stdout += String(chunk);
       return true;
     });
-    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+    stderrWrite = vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
       stderr += String(chunk);
       return true;
     });
@@ -121,7 +122,7 @@ describe("API Gateway resource 플러그인 설정", () => {
     expect(listResources).toHaveBeenCalledWith("service-1");
     expect(setPathPlugins).not.toHaveBeenCalled();
     expect(startSpinner).toHaveBeenCalledWith(
-      'API Gateway resource "resource-1" 경로 플러그인 설정 중...',
+      'API Gateway resource "resource-1" 경로 플러그인 영향 범위 확인 중...',
     );
     expect(stopSpinner).toHaveBeenCalledWith(true);
   });
@@ -460,9 +461,12 @@ describe("API Gateway resource 플러그인 설정", () => {
     });
     expect(stderr).not.toContain("추정값");
     expect(setMethodPlugins).not.toHaveBeenCalled();
+    expect(startSpinner).toHaveBeenCalledWith(
+      'API Gateway resource "resource-1" 메서드 플러그인 영향 범위 확인 중...',
+    );
   });
 
-  it("되돌릴 수 없는 CORS와 하위 삭제 부작용을 쓰기 호출 전에 경고한다", async () => {
+  it("되돌릴 수 없는 CORS와 하위 삭제 부작용을 spinner와 쓰기 호출 전에 경고한다", async () => {
     const path = await configFile("path.json", {
       pathPluginList: [
         { pluginType: "CORS", pluginConfigJson: {} },
@@ -488,6 +492,9 @@ describe("API Gateway resource 플러그인 설정", () => {
     expect(setPathPlugins).toHaveBeenCalledOnce();
     expect(startSpinner).toHaveBeenCalledWith(
       'API Gateway resource "resource-1" 경로 플러그인 설정 중...',
+    );
+    expect(Math.max(...stderrWrite.mock.invocationCallOrder)).toBeLessThan(
+      vi.mocked(startSpinner).mock.invocationCallOrder[0] ?? 0,
     );
     expect(stopSpinner).toHaveBeenCalledWith(true);
   });

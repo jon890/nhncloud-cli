@@ -285,11 +285,25 @@ const setPathPluginCommand = addApiGatewayOptions(
   // Commander requiredOption이 action 진입 전에 configFile을 보장한다.
   const plugins = parsePathPluginConfig(await readPluginConfigFile(opts.configFile!));
 
+  if (plugins.some((plugin) => plugin.pluginType === "CORS")) {
+    process.stderr.write(
+      "경고: CORS 플러그인은 하위에 OPTIONS 메서드를 자동 생성하며 기존 OPTIONS를 삭제·대체합니다.\n",
+    );
+  }
+  if (plugins.some((plugin) => plugin.applyChildPath === true && plugin.delete === true)) {
+    process.stderr.write(
+      "경고: applyChildPath와 delete가 함께 true이면 하위 전체에서 해당 플러그인이 삭제됩니다.\n",
+    );
+  }
+
   if (!opts.dryRun) requireYes(opts.yes, "리소스 경로 플러그인 설정");
 
   const { client } = await resolveApiGatewayClient(opts);
   const displayResourceId = sanitizeForTerminal(parsedResourceId);
-  startSpinner(`API Gateway resource "${displayResourceId}" 경로 플러그인 설정 중...`);
+  const spinnerAction = opts.dryRun
+    ? "경로 플러그인 영향 범위 확인"
+    : "경로 플러그인 설정";
+  startSpinner(`API Gateway resource "${displayResourceId}" ${spinnerAction} 중...`);
   let target: Resource;
   let applyChildPath: boolean;
   let affected: Resource[];
@@ -309,17 +323,6 @@ const setPathPluginCommand = addApiGatewayOptions(
 
     applyChildPath = plugins.some((plugin) => plugin.applyChildPath === true);
     affected = applyChildPath ? collectAffectedPaths(resources, target.path) : [target];
-
-    if (plugins.some((plugin) => plugin.pluginType === "CORS")) {
-      process.stderr.write(
-        "경고: CORS 플러그인은 하위에 OPTIONS 메서드를 자동 생성하며 기존 OPTIONS를 삭제·대체합니다.\n",
-      );
-    }
-    if (plugins.some((plugin) => plugin.applyChildPath === true && plugin.delete === true)) {
-      process.stderr.write(
-        "경고: applyChildPath와 delete가 함께 true이면 하위 전체에서 해당 플러그인이 삭제됩니다.\n",
-      );
-    }
 
     if (!opts.dryRun) {
       updatedResources = await client.setPathPlugins(
@@ -382,7 +385,10 @@ const setMethodPluginCommand = addApiGatewayOptions(
 
   const { client } = await resolveApiGatewayClient(opts);
   const displayResourceId = sanitizeForTerminal(parsedResourceId);
-  startSpinner(`API Gateway resource "${displayResourceId}" 메서드 플러그인 설정 중...`);
+  const spinnerAction = opts.dryRun
+    ? "메서드 플러그인 영향 범위 확인"
+    : "메서드 플러그인 설정";
+  startSpinner(`API Gateway resource "${displayResourceId}" ${spinnerAction} 중...`);
   let target: Resource;
   let methodName: string;
   let methodDescription: string | undefined;
