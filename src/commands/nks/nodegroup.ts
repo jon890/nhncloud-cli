@@ -13,7 +13,7 @@ interface NodeGroupGlobalOpts extends OutputOptions {
   file?: string;
   yes?: boolean;
   nodes?: string;
-  version?: string;
+  kubeVersion?: string;
   numBufferNodes?: string;
   numMaxUnavailableNodes?: string;
   flavor?: string;
@@ -301,7 +301,8 @@ const upgradeCommand = new Command("upgrade")
   .description("NKS 노드 그룹 Kubernetes version 을 업그레이드한다")
   .argument("<cluster>", "클러스터 UUID 또는 이름")
   .argument("<nodegroup>", "노드 그룹 UUID 또는 이름")
-  .requiredOption("--version <v>", "대상 Kubernetes version")
+  // `--version` 은 root program 의 CLI 버전 플래그라 공백 구분 형식이 가로채인다 (이슈 #76).
+  .requiredOption("--kube-version <v>", "대상 Kubernetes version")
   .option("--num-buffer-nodes <n>", "buffer node 수")
   .option("--num-max-unavailable-nodes <n>", "최대 unavailable node 수")
   .option("--region <region>", "region override (기본: iaas 자격증명의 region)")
@@ -314,7 +315,7 @@ const upgradeCommand = new Command("upgrade")
     let result: NksUuidResponse;
     try {
       result = await client.upgradeNodeGroup(cluster, nodegroup, {
-        version: opts.version as string,
+        version: opts.kubeVersion as string,
         numBufferNodes: optionalNonNegativeInteger(opts.numBufferNodes, "--num-buffer-nodes"),
         numMaxUnavailableNodes: optionalPositiveInteger(opts.numMaxUnavailableNodes, "--num-max-unavailable-nodes"),
       });

@@ -63,7 +63,7 @@ interface ClusterGlobalOpts extends OutputOptions {
   ncrSgw?: string;
   obsSgw?: string;
   name?: string;
-  version?: string;
+  addonVersion?: string;
   resolveConflicts?: string;
 }
 
@@ -537,7 +537,8 @@ const clusterAddonInstallCommand = new Command("install")
   .description("NKS 클러스터 애드온을 설치한다")
   .argument("<cluster>", "클러스터 UUID 또는 이름")
   .requiredOption("--name <name>", "애드온 이름")
-  .requiredOption("--version <version>", "애드온 버전")
+  // `--version` 은 root program 의 CLI 버전 플래그라 공백 구분 형식이 가로채인다 (이슈 #76).
+  .requiredOption("--addon-version <version>", "애드온 버전")
   .requiredOption("--resolve-conflicts <none|overwrite|preserve>", "충돌 해결 정책")
   .option("--region <region>", "region override (기본: iaas 자격증명의 region)")
   .option("--profile <name>", "사용할 profile 이름")
@@ -551,7 +552,7 @@ const clusterAddonInstallCommand = new Command("install")
     try {
       result = await client.installClusterAddon(cluster, {
         name: opts.name as string,
-        version: opts.version as string,
+        version: opts.addonVersion as string,
         resolveConflicts,
       });
     } catch (err) {
@@ -567,7 +568,8 @@ const clusterAddonUpdateCommand = new Command("update")
   .description("NKS 클러스터 애드온을 업데이트한다")
   .argument("<cluster>", "클러스터 UUID 또는 이름")
   .argument("<addon>", "애드온 UUID 또는 이름")
-  .requiredOption("--version <version>", "애드온 버전")
+  // `--version` 은 root program 의 CLI 버전 플래그라 공백 구분 형식이 가로채인다 (이슈 #76).
+  .requiredOption("--addon-version <version>", "애드온 버전")
   .requiredOption("--resolve-conflicts <none|overwrite|preserve>", "충돌 해결 정책")
   .option("--region <region>", "region override (기본: iaas 자격증명의 region)")
   .option("--profile <name>", "사용할 profile 이름")
@@ -580,7 +582,7 @@ const clusterAddonUpdateCommand = new Command("update")
     let result: NksUuidResponse;
     try {
       result = await client.updateClusterAddon(cluster, addon, {
-        version: opts.version as string,
+        version: opts.addonVersion as string,
         resolveConflicts,
       });
     } catch (err) {
