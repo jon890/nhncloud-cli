@@ -32,6 +32,7 @@ interface ConfigureOptions {
   iaasRegion?: string;
   ncrAppkey?: string;
   ncsAppkey?: string;
+  apigatewayAppkey?: string;
   verify: boolean;
 }
 
@@ -45,6 +46,7 @@ async function saveAndVerify(
   iaas: IaasCredential | undefined,
   ncr: ServiceCredential | undefined,
   ncs: ServiceCredential | undefined,
+  apigateway: ServiceCredential | undefined,
   doVerify: boolean,
   logncrashUak: UserAccessKey | undefined = uak,
 ): Promise<void> {
@@ -156,6 +158,9 @@ async function saveAndVerify(
   }
   if (ncs) {
     await setServiceCredential(profileName, "ncs", ncs);
+  }
+  if (apigateway) {
+    await setServiceCredential(profileName, "apigateway", apigateway);
   }
 
   process.stderr.write(chalk.green(`\n✓ profile "${profileName}" 설정이 저장되었습니다.\n`));
@@ -296,7 +301,7 @@ async function runInteractive(opts: ConfigureOptions): Promise<void> {
   if (opts.verify) {
     // 대화형: 실패 시 저장 여부 재확인
     try {
-      await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, true, uak);
+      await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, undefined, true, uak);
     } catch (err) {
       if (err instanceof NhnCloudCliError && err.exitCode === EXIT_AUTH_ERROR) {
         process.stderr.write(chalk.red(`  ✗ ${err.message}\n`));
@@ -308,13 +313,13 @@ async function runInteractive(opts: ConfigureOptions): Promise<void> {
           process.stderr.write(chalk.yellow("저장이 취소되었습니다.\n"));
           return;
         }
-        await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, false, uak);
+        await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, undefined, false, uak);
       } else {
         throw err;
       }
     }
   } else {
-    await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, false, uak);
+    await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, undefined, false, uak);
   }
 }
 
@@ -337,6 +342,9 @@ async function runNonInteractive(opts: ConfigureOptions): Promise<void> {
   }
   if (opts.logncrashAppkey !== undefined && opts.logncrashAppkey.trim().length === 0) {
     throw new NhnCloudCliError("--logncrash-appkey 값은 비어 있을 수 없습니다.", EXIT_PARAM_ERROR);
+  }
+  if (opts.apigatewayAppkey !== undefined && opts.apigatewayAppkey.trim().length === 0) {
+    throw new NhnCloudCliError("--apigateway-appkey 값은 비어 있을 수 없습니다.", EXIT_PARAM_ERROR);
   }
   if (opts.logncrashSecret !== undefined) {
     process.stderr.write(
@@ -374,11 +382,15 @@ async function runNonInteractive(opts: ConfigureOptions): Promise<void> {
     ? { appkey: opts.ncsAppkey.trim() }
     : undefined;
 
-  if (!uak && !logncrash && !iaas && !ncr && !ncs) {
+  const apigateway: ServiceCredential | undefined = opts.apigatewayAppkey?.trim()
+    ? { appkey: opts.apigatewayAppkey.trim() }
+    : undefined;
+
+  if (!uak && !logncrash && !iaas && !ncr && !ncs && !apigateway) {
     throw new NhnCloudCliError(
       "비대화형 모드: --uak-id + UAK secret, --logncrash-appkey,\n" +
         "--iaas-tenant-id + --iaas-username + iaas password,\n" +
-        "--ncr-appkey, 또는 --ncs-appkey 중 하나가 필요합니다.\n" +
+        "--ncr-appkey, --ncs-appkey, 또는 --apigateway-appkey 중 하나가 필요합니다.\n" +
         "secret/password 는 노출 방지를 위해 환경변수 권장:\n" +
         "NHNCLOUD_UAK_SECRET / NHNCLOUD_IAAS_PASSWORD.",
       EXIT_PARAM_ERROR,
@@ -401,6 +413,7 @@ async function runNonInteractive(opts: ConfigureOptions): Promise<void> {
     iaas,
     ncr,
     ncs,
+    apigateway,
     opts.verify,
     logncrashUak,
   );
@@ -422,6 +435,7 @@ export const configureCommand = new Command("configure")
   .option("--iaas-region <region>", "iaas region (기본: kr1)", "kr1")
   .option("--ncr-appkey <key>", "ncr appkey (비대화형)")
   .option("--ncs-appkey <key>", "ncs appkey (비대화형)")
+  .option("--apigateway-appkey <key>", "API Gateway appkey (비대화형)")
   .option("--no-verify", "연결 테스트 생략")
   .action(async (opts: ConfigureOptions) => {
     const hasFlag =
@@ -433,7 +447,8 @@ export const configureCommand = new Command("configure")
       opts.iaasUsername !== undefined ||
       opts.iaasPassword !== undefined ||
       opts.ncrAppkey !== undefined ||
-      opts.ncsAppkey !== undefined;
+      opts.ncsAppkey !== undefined ||
+      opts.apigatewayAppkey !== undefined;
 
     try {
       if (hasFlag) {

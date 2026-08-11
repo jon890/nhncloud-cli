@@ -51,6 +51,7 @@ import { addonCommand as nksAddonCommand, addonTypeCommand as nksAddonTypeComman
 import { templateCommand as ncsTemplateCommand } from "./commands/ncs/template.js";
 import { workloadCommand as ncsWorkloadCommand } from "./commands/ncs/workload.js";
 import { malwareCommand as ncsMalwareCommand } from "./commands/ncs/malware.js";
+import { serviceCommand as apiGatewayServiceCommand } from "./commands/apigateway/service.js";
 import { listCommand as loadBalancerListCommand } from "./commands/loadbalancer/list.js";
 import { getCommand as loadBalancerGetCommand } from "./commands/loadbalancer/get.js";
 import { ipaclCommand as loadBalancerIpAclCommand } from "./commands/loadbalancer/ipacl.js";
@@ -302,6 +303,13 @@ ncsCommand.addCommand(ncsWorkloadCommand);
 ncsCommand.addCommand(ncsMalwareCommand);
 
 program.addCommand(ncsCommand);
+
+// API Gateway 커맨드 그룹
+const apiGatewayCommand = new Command("apigateway")
+  .description("NHN API Gateway 조회 명령");
+apiGatewayCommand.addCommand(apiGatewayServiceCommand);
+
+program.addCommand(apiGatewayCommand);
 program.addCommand(skillsCommand);
 program.addCommand(doctorCommand);
 program.addCommand(createCommandsCommand(program));

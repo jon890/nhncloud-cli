@@ -233,3 +233,30 @@ export function ncsHost(region: string): string {
   }
   return host;
 }
+
+// ── API Gateway ──────────────────────────────────────────────────────────────
+
+/**
+ * region → API Gateway API host 맵 (ADR-027).
+ * kr1·kr2·kr3 모두 실제 호출로 확인된 host 만 등록한다.
+ */
+const APIGATEWAY_HOST: Record<string, string> = {
+  kr1: "kr1-apigateway.api.nhncloudservice.com",
+  kr2: "kr2-apigateway.api.nhncloudservice.com",
+  kr3: "kr3-apigateway.api.nhncloudservice.com",
+};
+
+/**
+ * region 에 해당하는 API Gateway API host 를 반환한다.
+ * 미등록 region 은 사용 가능한 region 목록 안내와 함께 EXIT_PARAM_ERROR 를 던진다.
+ */
+export function apigatewayHost(region: string): string {
+  const host = APIGATEWAY_HOST[region];
+  if (!host) {
+    throw new NhnCloudCliError(
+      `지원하지 않는 API Gateway region 입니다: "${region}". 사용 가능한 region: ${Object.keys(APIGATEWAY_HOST).join(", ")}`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+  return host;
+}

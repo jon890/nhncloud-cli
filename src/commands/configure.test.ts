@@ -181,4 +181,23 @@ describe("configure logncrash Search v3", () => {
     expect(verifyNcs).toHaveBeenCalledWith(uak, "ncs-appkey");
     expect(setIaasCredential).toHaveBeenCalledWith("default", iaas);
   });
+
+  it("--apigateway-appkey 단독 호출이 apigateway 자격증명으로 저장된다", async () => {
+    await programWithConfigure().parseAsync([
+      "node",
+      "nhncloud",
+      "configure",
+      "--profile",
+      "profile-apigateway",
+      "--no-verify",
+      "--apigateway-appkey",
+      "apigateway-appkey",
+    ]);
+
+    expect(setServiceCredential).toHaveBeenCalledWith(
+      "profile-apigateway",
+      "apigateway",
+      { appkey: "apigateway-appkey" },
+    );
+  });
 });
