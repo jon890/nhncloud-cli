@@ -44,6 +44,52 @@ function resource(id: string) {
   };
 }
 
+function stage(id: string, stageName: string | null = null) {
+  return {
+    stageId: id,
+    apigwServiceId: "service-1",
+    regionCode: "kr1",
+    stageName,
+    stageDescription: `description-${id}`,
+    stageUrl: `https://${id}.example.com`,
+    backendEndpointUrl: "https://backend.example.com",
+    resourceUpdatedAt: "2026-08-03T00:00:00+09:00",
+    createdAt: "2026-08-01T00:00:00+09:00",
+    updatedAt: "2026-08-02T00:00:00+09:00",
+    stageCustomUrl: `https://custom-${id}.example.com`,
+    stageCustomDomainList: [
+      { customDomain: `custom-${id}.example.com`, createdAt: "2026-08-01T00:00:00+09:00" },
+    ],
+    stageAliasDomainList: [
+      { aliasDomain: `alias-${id}.example.com`, createdAt: "2026-08-01T00:00:00+09:00" },
+    ],
+  };
+}
+
+function stageResource(id: string) {
+  return {
+    stageResourceId: id,
+    path: "/pets",
+    methodType: null,
+    methodName: null,
+    methodDescription: null,
+    customBackendEndpointUrl: null,
+    updatedAt: "2026-08-02T00:00:00+09:00",
+    stageResourcePluginList: [{ pluginType: "CORS" }],
+  };
+}
+
+function deployHistory(id: string) {
+  return {
+    deployId: id,
+    stageId: "stage-1",
+    deployedAt: "2026-08-03T00:00:00+09:00",
+    rollbackAt: null,
+    deployDescription: `deploy-${id}`,
+    isBase: false,
+  };
+}
+
 function mockKyResponse(body: unknown) {
   return { json: async () => body } as never;
 }
@@ -314,6 +360,218 @@ describe("ApiGatewayClient.getResourceResponses", () => {
 
     const client = new ApiGatewayClient("token", "kr1", "appkey");
     await expect(client.getResourceResponses("service-1", "resource-1")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+});
+
+describe("ApiGatewayClient.listStages", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("두 페이지를 전수 수집하고 stageName null과 중첩 도메인을 허용한다", async () => {
+    vi.mocked(ky.get)
+      .mockReturnValueOnce(
+        mockKyResponse({
+          header: successfulHeader,
+          stageList: [stage("stage-1")],
+          paging: { limit: 1, page: 1, totalCount: 2 },
+        }),
+      )
+      .mockReturnValueOnce(
+        mockKyResponse({
+          header: successfulHeader,
+          stageList: [stage("stage-2", "production")],
+          paging: { limit: 1, page: 2, totalCount: 2 },
+        }),
+      );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    const result = await client.listStages("service/id");
+
+    expect(result.map((item) => item.stageId)).toEqual(["stage-1", "stage-2"]);
+    expect(result[0]?.stageName).toBeNull();
+    expect(ky.get).toHaveBeenCalledTimes(2);
+    expect(ky.get).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining("/services/service%2Fid/stages"),
+      expect.objectContaining({
+        headers: { "X-NHN-Authorization": "Bearer token" },
+        searchParams: { page: 1, limit: 1000 },
+      }),
+    );
+    expect(ky.get).toHaveBeenNthCalledWith(
+      2,
+      expect.any(String),
+      expect.objectContaining({ searchParams: { page: 2, limit: 1000 } }),
+    );
+  });
+
+  it("isSuccessful=false면 EXIT_API_ERROR", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: false, resultCode: 403100000, resultMessage: "Permission denied" },
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(client.listStages("service-1")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+});
+
+describe("ApiGatewayClient.getStageSwagger", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("사용자 정의 객체를 내부 필드 검증 없이 반환한다", async () => {
+    const swaggerData = { arbitrary: { nested: true }, list: [1, "two"] };
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({ header: successfulHeader, swaggerData }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(client.getStageSwagger("service/id", "stage/id")).resolves.toEqual(swaggerData);
+    expect(ky.get).toHaveBeenCalledWith(
+      expect.stringContaining("/services/service%2Fid/stages/stage%2Fid/swagger"),
+      expect.objectContaining({ headers: { "X-NHN-Authorization": "Bearer token" } }),
+    );
+  });
+
+  it("isSuccessful=false면 EXIT_API_ERROR", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: false, resultCode: 4041007, resultMessage: "URL Not Found" },
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(client.getStageSwagger("service-1", "stage-1")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+});
+
+describe("ApiGatewayClient.listStageResources", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("paging 없이 한 번만 조회하고 nullable stage resource 필드를 허용한다", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: successfulHeader,
+        stageResourceList: [stageResource("stage-resource-1")],
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    const result = await client.listStageResources("service/id", "stage/id");
+
+    expect(result[0]).toMatchObject({
+      methodType: null,
+      methodName: null,
+      methodDescription: null,
+      customBackendEndpointUrl: null,
+    });
+    expect(ky.get).toHaveBeenCalledTimes(1);
+    expect(ky.get).toHaveBeenCalledWith(
+      expect.stringContaining("/services/service%2Fid/stages/stage%2Fid/resources"),
+      expect.objectContaining({ headers: { "X-NHN-Authorization": "Bearer token" } }),
+    );
+    expect(vi.mocked(ky.get).mock.calls[0]?.[1]).not.toHaveProperty("searchParams");
+  });
+
+  it("isSuccessful=false면 EXIT_API_ERROR", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: false, resultCode: 403100000, resultMessage: "Permission denied" },
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(client.listStageResources("service-1", "stage-1")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+});
+
+describe("ApiGatewayClient.listDeploys", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("두 페이지를 전수 수집하고 rollbackAt null을 허용한다", async () => {
+    vi.mocked(ky.get)
+      .mockReturnValueOnce(
+        mockKyResponse({
+          header: successfulHeader,
+          stageDeployHistoryList: [deployHistory("deploy-1")],
+          paging: { limit: 1, page: 1, totalCount: 2 },
+        }),
+      )
+      .mockReturnValueOnce(
+        mockKyResponse({
+          header: successfulHeader,
+          stageDeployHistoryList: [deployHistory("deploy-2")],
+          paging: { limit: 1, page: 2, totalCount: 2 },
+        }),
+      );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    const result = await client.listDeploys("service/id", "stage/id");
+
+    expect(result.map((item) => item.deployId)).toEqual(["deploy-1", "deploy-2"]);
+    expect(result[0]?.rollbackAt).toBeNull();
+    expect(ky.get).toHaveBeenCalledTimes(2);
+    expect(ky.get).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining("/services/service%2Fid/stages/stage%2Fid/deploys"),
+      expect.objectContaining({ searchParams: { page: 2, limit: 1000 } }),
+    );
+  });
+
+  it("isSuccessful=false면 EXIT_API_ERROR", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: false, resultCode: 403100000, resultMessage: "Permission denied" },
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(client.listDeploys("service-1", "stage-1")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+});
+
+describe("ApiGatewayClient.getLatestDeploy", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("최신 배포와 중첩 stage resource를 반환한다", async () => {
+    const latestStageDeployResult = {
+      ...deployHistory("deploy-latest"),
+      deployStatus: "SUCCESS",
+      stageResourceList: [stageResource("stage-resource-1")],
+    };
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({ header: successfulHeader, latestStageDeployResult }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(client.getLatestDeploy("service/id", "stage/id")).resolves.toEqual(
+      latestStageDeployResult,
+    );
+    expect(ky.get).toHaveBeenCalledWith(
+      expect.stringContaining("/services/service%2Fid/stages/stage%2Fid/deploys/latest"),
+      expect.objectContaining({ headers: { "X-NHN-Authorization": "Bearer token" } }),
+    );
+  });
+
+  it("isSuccessful=false면 EXIT_API_ERROR", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: false, resultCode: 4041007, resultMessage: "URL Not Found" },
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(client.getLatestDeploy("service-1", "stage-1")).rejects.toMatchObject({
       exitCode: EXIT_API_ERROR,
     });
   });

@@ -152,3 +152,145 @@ export function isResourceResponses(value: unknown): value is ResourceResponses 
   const obj = value as Record<string, unknown>;
   return Array.isArray(obj["responseList"]) && Array.isArray(obj["contentTypeList"]);
 }
+
+export interface StageCustomDomain {
+  customDomain: string;
+  createdAt: string;
+}
+
+export interface StageAliasDomain {
+  aliasDomain: string;
+  createdAt: string;
+}
+
+/** API Gateway stage 목록 응답 항목 (ADR-027 실측 계약). */
+export interface Stage {
+  stageId: string;
+  apigwServiceId: string;
+  regionCode: string;
+  stageName: string | null;
+  stageDescription: string;
+  stageUrl: string;
+  backendEndpointUrl: string;
+  resourceUpdatedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  stageCustomUrl: string;
+  stageCustomDomainList: StageCustomDomain[];
+  stageAliasDomainList: StageAliasDomain[];
+  [key: string]: unknown;
+}
+
+export type StageResourcePlugin = Record<string, unknown>;
+
+/** 배포된 stage resource. service resource와 식별자·필드 계약이 다르다. */
+export interface StageResource {
+  stageResourceId: string;
+  path: string;
+  methodType: string | null;
+  methodName: string | null;
+  methodDescription: string | null;
+  customBackendEndpointUrl: string | null;
+  updatedAt: string;
+  stageResourcePluginList: StageResourcePlugin[];
+  [key: string]: unknown;
+}
+
+/** API Gateway stage 배포 이력. */
+export interface DeployHistory {
+  deployId: string;
+  stageId: string;
+  deployedAt: string;
+  rollbackAt: string | null;
+  deployDescription: string;
+  isBase: boolean;
+  [key: string]: unknown;
+}
+
+/** API Gateway stage 최신 배포 결과. */
+export interface LatestDeployResult extends DeployHistory {
+  deployStatus: string;
+  stageResourceList: StageResource[];
+}
+
+export type SwaggerData = Record<string, unknown>;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isStageCustomDomain(value: unknown): value is StageCustomDomain {
+  if (!isRecord(value)) return false;
+  return typeof value["customDomain"] === "string" && typeof value["createdAt"] === "string";
+}
+
+function isStageAliasDomain(value: unknown): value is StageAliasDomain {
+  if (!isRecord(value)) return false;
+  return typeof value["aliasDomain"] === "string" && typeof value["createdAt"] === "string";
+}
+
+export function isStage(value: unknown): value is Stage {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value["stageId"] === "string" &&
+    typeof value["apigwServiceId"] === "string" &&
+    typeof value["regionCode"] === "string" &&
+    isNullableString(value["stageName"]) &&
+    typeof value["stageDescription"] === "string" &&
+    typeof value["stageUrl"] === "string" &&
+    typeof value["backendEndpointUrl"] === "string" &&
+    typeof value["resourceUpdatedAt"] === "string" &&
+    typeof value["createdAt"] === "string" &&
+    typeof value["updatedAt"] === "string" &&
+    typeof value["stageCustomUrl"] === "string" &&
+    Array.isArray(value["stageCustomDomainList"]) &&
+    value["stageCustomDomainList"].every(isStageCustomDomain) &&
+    Array.isArray(value["stageAliasDomainList"]) &&
+    value["stageAliasDomainList"].every(isStageAliasDomain)
+  );
+}
+
+function isStageResourcePlugin(value: unknown): value is StageResourcePlugin {
+  return isRecord(value);
+}
+
+export function isStageResource(value: unknown): value is StageResource {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value["stageResourceId"] === "string" &&
+    typeof value["path"] === "string" &&
+    isNullableString(value["methodType"]) &&
+    isNullableString(value["methodName"]) &&
+    isNullableString(value["methodDescription"]) &&
+    isNullableString(value["customBackendEndpointUrl"]) &&
+    typeof value["updatedAt"] === "string" &&
+    Array.isArray(value["stageResourcePluginList"]) &&
+    value["stageResourcePluginList"].every(isStageResourcePlugin)
+  );
+}
+
+export function isDeployHistory(value: unknown): value is DeployHistory {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value["deployId"] === "string" &&
+    typeof value["stageId"] === "string" &&
+    typeof value["deployedAt"] === "string" &&
+    isNullableString(value["rollbackAt"]) &&
+    typeof value["deployDescription"] === "string" &&
+    typeof value["isBase"] === "boolean"
+  );
+}
+
+export function isLatestDeployResult(value: unknown): value is LatestDeployResult {
+  if (!isDeployHistory(value)) return false;
+  return (
+    typeof value["deployStatus"] === "string" &&
+    Array.isArray(value["stageResourceList"]) &&
+    value["stageResourceList"].every(isStageResource)
+  );
+}
+
+/** Swagger 본문은 사용자 정의 객체이므로 내부 키를 해석하지 않는다. */
+export function isSwaggerData(value: unknown): value is SwaggerData {
+  return isRecord(value);
+}

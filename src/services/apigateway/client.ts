@@ -8,14 +8,24 @@ import { EXIT_API_ERROR } from "../../utils/exit-codes.js";
 import {
   isApiGatewayPaging,
   isApiGatewayService,
+  isDeployHistory,
+  isLatestDeployResult,
   isResource,
   isResourceParameters,
   isResourceResponses,
+  isStage,
+  isStageResource,
+  isSwaggerData,
   type ApiGatewayService,
   type ApiGatewayServiceListParams,
+  type DeployHistory,
+  type LatestDeployResult,
   type Resource,
   type ResourceParameters,
   type ResourceResponses,
+  type Stage,
+  type StageResource,
+  type SwaggerData,
 } from "./types.js";
 
 interface ApiGatewayServiceListResponse extends NhnEnvelope<unknown> {
@@ -42,6 +52,28 @@ interface ResourceParametersResponse extends NhnEnvelope<unknown> {
 interface ResourceResponsesResponse extends NhnEnvelope<unknown> {
   responseList?: unknown;
   contentTypeList?: unknown;
+}
+
+interface StageListResponse extends NhnEnvelope<unknown> {
+  stageList?: unknown;
+  paging?: unknown;
+}
+
+interface StageSwaggerResponse extends NhnEnvelope<unknown> {
+  swaggerData?: unknown;
+}
+
+interface StageResourceListResponse extends NhnEnvelope<unknown> {
+  stageResourceList?: unknown;
+}
+
+interface DeployHistoryListResponse extends NhnEnvelope<unknown> {
+  stageDeployHistoryList?: unknown;
+  paging?: unknown;
+}
+
+interface LatestDeployResponse extends NhnEnvelope<unknown> {
+  latestStageDeployResult?: unknown;
 }
 
 /** API Gateway 조회 API 클라이언트 (ADR-027). */
@@ -223,6 +255,212 @@ export class ApiGatewayClient {
         );
       }
       return response;
+    } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /** paging.totalCount 를 기준으로 API Gateway stage 전체를 수집한다. */
+  async listStages(apigwServiceId: string): Promise<Stage[]> {
+    // 응답 paging의 page·limit·totalCount를 따라 마지막 페이지까지 순회한다.
+    const stages: Stage[] = [];
+    const limit = 1000;
+    let page = 1;
+
+    try {
+      while (true) {
+        const response = await ky
+          .get(
+            `${this.baseUrl}/services/${encodeURIComponent(apigwServiceId)}/stages`,
+            {
+              headers: this.authHeaders(),
+              searchParams: { page, limit },
+              retry: 0,
+              timeout: DEFAULT_TIMEOUT_MS,
+            },
+          )
+          .json<StageListResponse>();
+
+        unwrapHeader(response);
+        if (!Array.isArray(response.stageList) || !response.stageList.every(isStage)) {
+          throw new NhnCloudCliError(
+            "API Gateway 응답 형식 오류: stageList 가 올바른 배열이 아닙니다.",
+            EXIT_API_ERROR,
+          );
+        }
+        if (!isApiGatewayPaging(response.paging)) {
+          throw new NhnCloudCliError(
+            "API Gateway 응답 형식 오류: paging 필드가 없거나 올바르지 않습니다.",
+            EXIT_API_ERROR,
+          );
+        }
+
+        stages.push(...response.stageList);
+        if (response.paging.page * response.paging.limit >= response.paging.totalCount) {
+          break;
+        }
+        if (response.stageList.length === 0) {
+          throw new NhnCloudCliError(
+            "API Gateway 응답 형식 오류: paging.totalCount 전에 빈 stage 페이지가 반환되었습니다.",
+            EXIT_API_ERROR,
+          );
+        }
+        page = response.paging.page + 1;
+      }
+
+      return stages;
+    } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /** 사용자 정의 Swagger 객체를 내부 해석 없이 반환한다. */
+  async getStageSwagger(apigwServiceId: string, stageId: string): Promise<SwaggerData> {
+    try {
+      const response = await ky
+        .get(
+          `${this.baseUrl}/services/${encodeURIComponent(apigwServiceId)}/stages/${encodeURIComponent(stageId)}/swagger`,
+          {
+            headers: this.authHeaders(),
+            retry: 0,
+            timeout: DEFAULT_TIMEOUT_MS,
+          },
+        )
+        .json<StageSwaggerResponse>();
+
+      unwrapHeader(response);
+      if (!isSwaggerData(response.swaggerData)) {
+        throw new NhnCloudCliError(
+          "API Gateway 응답 형식 오류: swaggerData 필드가 없거나 객체가 아닙니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return response.swaggerData;
+    } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /** paging 없이 배포된 API Gateway stage resource 전체를 한 번에 조회한다. */
+  async listStageResources(
+    apigwServiceId: string,
+    stageId: string,
+  ): Promise<StageResource[]> {
+    try {
+      const response = await ky
+        .get(
+          `${this.baseUrl}/services/${encodeURIComponent(apigwServiceId)}/stages/${encodeURIComponent(stageId)}/resources`,
+          {
+            headers: this.authHeaders(),
+            retry: 0,
+            timeout: DEFAULT_TIMEOUT_MS,
+          },
+        )
+        .json<StageResourceListResponse>();
+
+      unwrapHeader(response);
+      if (
+        !Array.isArray(response.stageResourceList) ||
+        !response.stageResourceList.every(isStageResource)
+      ) {
+        throw new NhnCloudCliError(
+          "API Gateway 응답 형식 오류: stageResourceList 가 올바른 배열이 아닙니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return response.stageResourceList;
+    } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /** paging.totalCount 를 기준으로 API Gateway stage 배포 이력 전체를 수집한다. */
+  async listDeploys(apigwServiceId: string, stageId: string): Promise<DeployHistory[]> {
+    // 응답 paging의 page·limit·totalCount를 따라 마지막 페이지까지 순회한다.
+    const deploys: DeployHistory[] = [];
+    const limit = 1000;
+    let page = 1;
+
+    try {
+      while (true) {
+        const response = await ky
+          .get(
+            `${this.baseUrl}/services/${encodeURIComponent(apigwServiceId)}/stages/${encodeURIComponent(stageId)}/deploys`,
+            {
+              headers: this.authHeaders(),
+              searchParams: { page, limit },
+              retry: 0,
+              timeout: DEFAULT_TIMEOUT_MS,
+            },
+          )
+          .json<DeployHistoryListResponse>();
+
+        unwrapHeader(response);
+        if (
+          !Array.isArray(response.stageDeployHistoryList) ||
+          !response.stageDeployHistoryList.every(isDeployHistory)
+        ) {
+          throw new NhnCloudCliError(
+            "API Gateway 응답 형식 오류: stageDeployHistoryList 가 올바른 배열이 아닙니다.",
+            EXIT_API_ERROR,
+          );
+        }
+        if (!isApiGatewayPaging(response.paging)) {
+          throw new NhnCloudCliError(
+            "API Gateway 응답 형식 오류: paging 필드가 없거나 올바르지 않습니다.",
+            EXIT_API_ERROR,
+          );
+        }
+
+        deploys.push(...response.stageDeployHistoryList);
+        if (response.paging.page * response.paging.limit >= response.paging.totalCount) {
+          break;
+        }
+        if (response.stageDeployHistoryList.length === 0) {
+          throw new NhnCloudCliError(
+            "API Gateway 응답 형식 오류: paging.totalCount 전에 빈 deploy 페이지가 반환되었습니다.",
+            EXIT_API_ERROR,
+          );
+        }
+        page = response.paging.page + 1;
+      }
+
+      return deploys;
+    } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /** API Gateway stage 최신 배포 결과를 조회한다. */
+  async getLatestDeploy(
+    apigwServiceId: string,
+    stageId: string,
+  ): Promise<LatestDeployResult> {
+    try {
+      const response = await ky
+        .get(
+          `${this.baseUrl}/services/${encodeURIComponent(apigwServiceId)}/stages/${encodeURIComponent(stageId)}/deploys/latest`,
+          {
+            headers: this.authHeaders(),
+            retry: 0,
+            timeout: DEFAULT_TIMEOUT_MS,
+          },
+        )
+        .json<LatestDeployResponse>();
+
+      unwrapHeader(response);
+      if (!isLatestDeployResult(response.latestStageDeployResult)) {
+        throw new NhnCloudCliError(
+          "API Gateway 응답 형식 오류: latestStageDeployResult 필드가 없거나 올바르지 않습니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return response.latestStageDeployResult;
     } catch (err) {
       if (err instanceof NhnCloudCliError) throw err;
       throw toNhnCloudCliError(err);
