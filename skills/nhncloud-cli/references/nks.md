@@ -42,7 +42,7 @@ nhncloud nks nodegroup stop-node <cluster> <nodegroup> --nodes node-1,node-2
 nhncloud nks nodegroup start-node <cluster> <nodegroup> --nodes node-1,node-2
 nhncloud nks nodegroup set-autoscale <cluster> <nodegroup> --file ./autoscale.json
 nhncloud nks nodegroup set-metric-autoscale <cluster> <nodegroup> --file ./metric-autoscale.json
-nhncloud nks nodegroup upgrade <cluster> <nodegroup> --version v1.30.1
+nhncloud nks nodegroup upgrade <cluster> <nodegroup> --kube-version v1.30.1
 nhncloud nks nodegroup set-userscript <cluster> <nodegroup> --file ./userscript.sh
 nhncloud nks nodegroup update-flavor <cluster> <nodegroup> --flavor <flavor-uuid>
 nhncloud nks nodegroup set-fip-auto-bind <cluster> <nodegroup> --file ./fip-auto-bind.json
@@ -58,8 +58,8 @@ nhncloud nks addon list --k8s-version v1.30.1 --json
 nhncloud nks addon get <addon> --json
 nhncloud nks cluster addon list <cluster> --json
 nhncloud nks cluster addon get <cluster> <addon> --json
-nhncloud nks cluster addon install <cluster> --name coredns --version 1.0.0 --resolve-conflicts overwrite
-nhncloud nks cluster addon update <cluster> coredns --version 1.0.1 --resolve-conflicts preserve
+nhncloud nks cluster addon install <cluster> --name coredns --addon-version 1.0.0 --resolve-conflicts overwrite
+nhncloud nks cluster addon update <cluster> coredns --addon-version 1.0.1 --resolve-conflicts preserve
 nhncloud nks cluster addon remove <cluster> coredns --yes
 ```
 
