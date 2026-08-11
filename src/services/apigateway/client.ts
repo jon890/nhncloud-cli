@@ -16,16 +16,23 @@ import {
   isStage,
   isStageResource,
   isSwaggerData,
+  isUpdatedResource,
+  isUpdatedStage,
   type ApiGatewayService,
   type ApiGatewayServiceListParams,
   type DeployHistory,
   type LatestDeployResult,
+  type MethodPluginUpdateBody,
+  type PathPluginInput,
   type Resource,
   type ResourceParameters,
   type ResourceResponses,
   type Stage,
   type StageResource,
+  type StageUpdateBody,
   type SwaggerData,
+  type UpdatedResource,
+  type UpdatedStage,
 } from "./types.js";
 
 interface ApiGatewayServiceListResponse extends NhnEnvelope<unknown> {
@@ -38,6 +45,10 @@ interface ApiGatewayServiceGetResponse extends NhnEnvelope<unknown> {
 }
 
 interface ResourceListResponse extends NhnEnvelope<unknown> {
+  resourceList?: unknown;
+}
+
+interface ResourceUpdateResponse extends NhnEnvelope<unknown> {
   resourceList?: unknown;
 }
 
@@ -59,6 +70,10 @@ interface StageListResponse extends NhnEnvelope<unknown> {
   paging?: unknown;
 }
 
+interface StageUpdateResponse extends NhnEnvelope<unknown> {
+  stage?: unknown;
+}
+
 interface StageSwaggerResponse extends NhnEnvelope<unknown> {
   swaggerData?: unknown;
 }
@@ -76,7 +91,7 @@ interface LatestDeployResponse extends NhnEnvelope<unknown> {
   latestStageDeployResult?: unknown;
 }
 
-/** API Gateway 조회 API 클라이언트 (ADR-027). */
+/** API Gateway 조회·쓰기 API 클라이언트 (ADR-027, ADR-028). */
 export class ApiGatewayClient {
   private readonly accessToken: string;
   private readonly baseUrl: string;
@@ -196,6 +211,78 @@ export class ApiGatewayClient {
     } catch (err) {
       if (err instanceof NhnCloudCliError) throw err;
       throw toNhnCloudCliError(err);
+    }
+  }
+
+  /** API Gateway resource 경로 플러그인을 upsert한다. */
+  async setPathPlugins(
+    apigwServiceId: string,
+    resourceId: string,
+    pathPluginList: PathPluginInput[],
+  ): Promise<UpdatedResource[]> {
+    try {
+      const response = await ky
+        .put(
+          `${this.baseUrl}/services/${encodeURIComponent(apigwServiceId)}/resource-paths/${encodeURIComponent(resourceId)}`,
+          {
+            headers: this.authHeaders(),
+            json: { pathPluginList },
+            retry: 0,
+            timeout: DEFAULT_TIMEOUT_MS,
+          },
+        )
+        .json<ResourceUpdateResponse>();
+
+      unwrapHeader(response);
+      if (
+        !Array.isArray(response.resourceList) ||
+        !response.resourceList.every(isUpdatedResource)
+      ) {
+        throw new NhnCloudCliError(
+          "API Gateway 응답 형식 오류: resourceList 가 올바른 수정 응답 배열이 아닙니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return response.resourceList;
+    } catch (error) {
+      if (error instanceof NhnCloudCliError) throw error;
+      throw toNhnCloudCliError(error);
+    }
+  }
+
+  /** API Gateway resource 메서드 플러그인을 upsert한다. */
+  async setMethodPlugins(
+    apigwServiceId: string,
+    resourceId: string,
+    body: MethodPluginUpdateBody,
+  ): Promise<UpdatedResource[]> {
+    try {
+      const response = await ky
+        .put(
+          `${this.baseUrl}/services/${encodeURIComponent(apigwServiceId)}/resource-methods/${encodeURIComponent(resourceId)}`,
+          {
+            headers: this.authHeaders(),
+            json: body,
+            retry: 0,
+            timeout: DEFAULT_TIMEOUT_MS,
+          },
+        )
+        .json<ResourceUpdateResponse>();
+
+      unwrapHeader(response);
+      if (
+        !Array.isArray(response.resourceList) ||
+        !response.resourceList.every(isUpdatedResource)
+      ) {
+        throw new NhnCloudCliError(
+          "API Gateway 응답 형식 오류: resourceList 가 올바른 수정 응답 배열이 아닙니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return response.resourceList;
+    } catch (error) {
+      if (error instanceof NhnCloudCliError) throw error;
+      throw toNhnCloudCliError(error);
     }
   }
 
@@ -324,6 +411,39 @@ export class ApiGatewayClient {
     } catch (err) {
       if (err instanceof NhnCloudCliError) throw err;
       throw toNhnCloudCliError(err);
+    }
+  }
+
+  /** API Gateway stage의 backend endpoint와 설명을 수정한다. */
+  async updateStage(
+    apigwServiceId: string,
+    stageId: string,
+    body: StageUpdateBody,
+  ): Promise<UpdatedStage> {
+    try {
+      const response = await ky
+        .put(
+          `${this.baseUrl}/services/${encodeURIComponent(apigwServiceId)}/stages/${encodeURIComponent(stageId)}`,
+          {
+            headers: this.authHeaders(),
+            json: body,
+            retry: 0,
+            timeout: DEFAULT_TIMEOUT_MS,
+          },
+        )
+        .json<StageUpdateResponse>();
+
+      unwrapHeader(response);
+      if (!isUpdatedStage(response.stage)) {
+        throw new NhnCloudCliError(
+          "API Gateway 응답 형식 오류: stage 필드가 없거나 올바른 수정 응답이 아닙니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return response.stage;
+    } catch (error) {
+      if (error instanceof NhnCloudCliError) throw error;
+      throw toNhnCloudCliError(error);
     }
   }
 

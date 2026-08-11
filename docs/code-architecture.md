@@ -60,8 +60,8 @@ src/
       client.ts             # NcsClient — template / workload / malware 조회·쓰기 (Deploy OAuth Bearer 토큰 재사용 + appkey 경로 + 숫자 봉투, waitForRunning, [[adr-020]])
       types.ts              # Template / TemplateVersion / Workload / WorkloadTask / WorkloadHistory / MalwareConfig 응답 가드
     apigateway/
-      client.ts             # ApiGatewayClient — service / resource / stage / deploy 조회 (UAK OAuth 토큰 재사용, X-NHN-Authorization, appkey 경로, [[adr-027]])
-      types.ts              # ApiGatewayService / Resource / Stage / StageResource / DeployHistory / ResourceParameters / ResourceResponses 응답 가드 (nullable 필드 다수)
+      client.ts             # ApiGatewayClient — service / resource / stage / deploy 조회와 stage·플러그인 쓰기 (UAK OAuth 토큰 재사용, X-NHN-Authorization, appkey 경로, [[adr-027]], [[adr-028]])
+      types.ts              # ApiGatewayService / Resource / Stage / StageResource / DeployHistory / ResourceParameters / ResourceResponses 응답 가드 (nullable 필드 다수) + 쓰기 요청 타입과 수정 응답 전용 가드 ([[adr-028]])
   utils/
     errors.ts               # NhnCloudCliError(message, exitCode)
     exit-codes.ts           # EXIT_* 상수
@@ -211,6 +211,8 @@ dooray-cli 는 단일 `config` 와 `client` 로 충분했지만, NHN Cloud 는 �
   - ncs: `x-nhn-authorization: Bearer <token>` (Deploy OAuth 토큰 재사용), appkey 경로, region 별 ncs host, 숫자 봉투 ([[adr-020]])
   - apigateway: `X-NHN-Authorization: Bearer <token>` (공통 UAK OAuth 토큰 재사용), appkey 경로, region 별 apigateway host ([[adr-027]]).
     표준 `Authorization` 헤더로 보내면 유효한 토큰이어도 403 이 된다. pagination 은 `paging` 을 반환하는 엔드포인트에만 있다.
+    쓰기는 플러그인 upsert 라 기존 목록을 재구성하지 않으며, 수정 응답에 조회용 가드를 재사용하지 않는다 ([[adr-028]]).
+    appkey 는 profile 에서만 해석하고 명령 옵션으로 덮지 않는다 ([[adr-029]]).
 
 ## 커맨드 실행 흐름 (예: `nhncloud logncrash search`)
 

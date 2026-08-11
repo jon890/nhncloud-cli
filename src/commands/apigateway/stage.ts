@@ -1,26 +1,36 @@
 import { writeFile } from "node:fs/promises";
 import { Command } from "commander";
 import { output, printJson, type OutputOptions } from "../../formatters/table.js";
-import type { Stage, StageResource, SwaggerData } from "../../services/apigateway/types.js";
+import type {
+  Stage,
+  StageResource,
+  SwaggerData,
+  UpdatedStage,
+} from "../../services/apigateway/types.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { parseRequiredArgument } from "../parse-options.js";
 import { deployCommand } from "./deploy.js";
-import { resolveApiGatewayClient, sanitizeForTerminal } from "./helpers.js";
+import {
+  requireYes,
+  resolveApiGatewayClient,
+  sanitizeForTerminal,
+} from "./helpers.js";
 
 interface StageOptions extends OutputOptions {
   region?: string;
-  appKey?: string;
   profile?: string;
   output?: string;
   force?: boolean;
+  backendEndpointUrl?: string;
+  description?: string;
+  yes?: boolean;
 }
 
 function addApiGatewayOptions(command: Command): Command {
   return command
     .option("--region <region>", "API Gateway region (기본: kr1)", "kr1")
-    .option("--app-key <key>", "API Gateway appKey (profile 의 apigateway.appkey 보다 우선)")
     .option("--profile <name>", "사용할 profile 이름");
 }
 
@@ -168,9 +178,76 @@ const resourcesCommand = addApiGatewayOptions(
   });
 });
 
+const updateCommand = addApiGatewayOptions(
+  new Command("update")
+    .description("API Gateway stage의 backend endpoint URL과 설명을 수정한다")
+    .argument("<service-id>", "API Gateway service ID")
+    .argument("<stage-id>", "API Gateway stage ID")
+    .option("--backend-endpoint-url <url>", "변경할 backend endpoint URL")
+    .option("--description <text>", "변경할 stage 설명")
+    .option("--yes", "스테이지 수정을 확인한다"),
+).action(async (
+  serviceId: string,
+  stageId: string,
+  _opts: unknown,
+  command: Command,
+) => {
+  const opts = command.optsWithGlobals<StageOptions>();
+  const parsedServiceId = parseRequiredArgument(serviceId, "service-id");
+  const parsedStageId = parseRequiredArgument(stageId, "stage-id");
+
+  if (opts.backendEndpointUrl === undefined && opts.description === undefined) {
+    throw new NhnCloudCliError(
+      "스테이지 수정에서 바꿀 값이 없습니다. --backend-endpoint-url 또는 --description을 지정하세요.",
+      EXIT_PARAM_ERROR,
+    );
+  }
+  requireYes(opts.yes, "스테이지 수정");
+
+  const displayStageId = sanitizeForTerminal(parsedStageId);
+  const { client } = await resolveApiGatewayClient(opts);
+
+  startSpinner(`API Gateway stage "${displayStageId}" 수정 중...`);
+  let updatedStage: UpdatedStage;
+  try {
+    const stages = await client.listStages(parsedServiceId);
+    const existingStage = stages.find((stage) => stage.stageId === parsedStageId);
+    if (existingStage === undefined) {
+      throw new NhnCloudCliError(
+        `API Gateway stage "${displayStageId}"를 찾을 수 없습니다.`,
+        EXIT_PARAM_ERROR,
+      );
+    }
+
+    updatedStage = await client.updateStage(parsedServiceId, parsedStageId, {
+      backendEndpointUrl: opts.backendEndpointUrl ?? existingStage.backendEndpointUrl,
+      stageDescription: opts.description ?? existingStage.stageDescription,
+    });
+  } catch (error) {
+    stopSpinner(false);
+    throw error;
+  }
+  stopSpinner(true);
+
+  output(opts, {
+    headers: ["stageId", "stageName", "stageUrl", "backendEndpointUrl", "updatedAt"],
+    rows: [[
+      sanitizeForTerminal(updatedStage.stageId),
+      updatedStage.stageName === null ? "-" : sanitizeForTerminal(updatedStage.stageName),
+      sanitizeForTerminal(updatedStage.stageUrl),
+      sanitizeForTerminal(updatedStage.backendEndpointUrl),
+      sanitizeForTerminal(updatedStage.updatedAt),
+    ]],
+    raw: updatedStage,
+    ids: [sanitizeForTerminal(updatedStage.stageId)],
+  });
+  process.stderr.write("안내: 스테이지 변경 후 실제 트래픽 반영 상태를 확인하세요.\n");
+});
+
 export const stageCommand = new Command("stage")
-  .description("API Gateway stage 조회 명령")
+  .description("API Gateway stage 조회 및 변경 명령")
   .addCommand(listCommand)
   .addCommand(swaggerCommand)
   .addCommand(resourcesCommand)
+  .addCommand(updateCommand)
   .addCommand(deployCommand);

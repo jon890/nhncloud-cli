@@ -11,7 +11,7 @@ NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 TypeScript 와 Commande
 
 ## 단일 소스
 
-- 실제 명령 경로·인수·옵션은 Commander 트리에서 생성하는 `nhncloud commands --json`을 기준으로 삼으며, 현재 명령 카탈로그는 164개다.
+- 실제 명령 경로·인수·옵션은 Commander 트리에서 생성하는 `nhncloud commands --json`을 기준으로 삼으며, 현재 명령 카탈로그는 167개다.
 - 제품 요구사항과 흐름은 `docs/prd.md`와 `docs/flow.md`에서 관리한다.
 - 코드 경계와 디렉터리 책임은 `docs/code-architecture.md`에서 관리한다.
 - 자격증명과 설정 스키마는 `docs/data-schema.md`에서 관리한다.

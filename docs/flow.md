@@ -87,6 +87,35 @@ diff -u specs/apigateway-swagger.json /tmp/apigateway-swagger.json
 `service list`와 `stage list`는 모든 페이지를 모은 뒤 식별자를 출력한다.
 `resource list`와 `stage resources`는 pagination 없이 전체 목록을 한 번에 받는다.
 
+## API Gateway 설정 변경 흐름
+
+스테이지 수정과 리소스 플러그인 설정은 위험 변경이라 `--yes`를 요구한다([[adr-028]]).
+플러그인 설정값은 API 요청 형식 그대로 JSON 파일로 넘긴다.
+
+```bash
+nhncloud apigateway stage update "$SERVICE_ID" "$STAGE_ID" \
+  --backend-endpoint-url https://backend.example.com --yes
+
+nhncloud apigateway resource set-path-plugin "$SERVICE_ID" "$RESOURCE_ID" \
+  --config-file plugins/add-query-param.json --dry-run
+
+nhncloud apigateway resource set-path-plugin "$SERVICE_ID" "$RESOURCE_ID" \
+  --config-file plugins/add-query-param.json --yes
+```
+
+`applyChildPath`와 `delete`는 명령 옵션이 아니라 설정 파일의 항목 필드다.
+항목마다 값이 다를 수 있고, 두 곳에서 받으면 어느 쪽이 이겼는지 알 수 없다.
+
+`applyChildPath`가 참인 항목은 하위 경로와 메서드 전체에 번지므로 `--dry-run`으로 범위를 먼저 확인한다.
+`--dry-run`이 세는 범위는 `path` 접두 비교로 계산한 추정값이다.
+
+설정값에 없던 플러그인 타입은 추가되고, 있던 타입은 보낸 설정으로 바뀐다.
+보내지 않은 타입은 그대로 남으므로 기존 목록을 다시 만들어 보낼 필요가 없다.
+
+리소스 플러그인 변경은 서비스 설정에만 반영된다.
+스테이지로 가져오는 반영과 배포는 콘솔에서 수행한다.
+스테이지 수정이 즉시 반영되는지 배포가 필요한지는 공식 문서에 서술이 없어 확정하지 않았다.
+
 ## 공개 스킬 수명주기
 
 `nhncloud skills`는 현재 CLI 패키지와 Claude Code에 설치된 공개 스킬의 정합성을 관리한다([[adr-025]]).

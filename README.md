@@ -7,7 +7,7 @@
 
 [NHN Cloud](https://www.nhncloud.com) 를 AI 에이전트가 다룰 수 있게 만든 CLI 다.
 
-Compute·Network·Block Storage·Load Balancer·Container Registry·Kubernetes·Container Service·Log & Crash·Deploy 를 명령 한 줄로 다루고, 결과를 `--json` 으로 내보낸다.
+Compute·Network·Block Storage·Load Balancer·Container Registry·Kubernetes·Container Service·Log & Crash·Deploy·API Gateway 를 명령 한 줄로 다루고, 결과를 `--json` 으로 내보낸다.
 Claude Code 같은 에이전트에 스킬로 설치하면 "인스턴스 목록 보여줘" 같은 자연어 지시를 그대로 처리한다.
 
 ```bash
@@ -102,9 +102,10 @@ nhncloud nks cluster list                                     # Kubernetes 클�
 nhncloud deploy artifacts                                     # 배포 아티팩트
 nhncloud logncrash search --query '*' --from 1h --to now      # 최근 1시간 로그
 nhncloud apigateway service list                               # API Gateway 서비스
+nhncloud apigateway stage update <service-id> <stage-id> --description "설명" --yes  # API Gateway 스테이지 수정
 ```
 
-전체 명령과 옵션은 `--help` 로 본다. 현재 164개다.
+전체 명령과 옵션은 `--help` 로 본다. 현재 167개다.
 
 ```bash
 nhncloud --help

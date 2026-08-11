@@ -6,9 +6,11 @@ import type {
   Resource,
 } from "../../services/apigateway/types.js";
 import { startSpinner } from "../../utils/spinner.js";
+import { deployCommand } from "./deploy.js";
 import { resolveApiGatewayClient } from "./helpers.js";
 import { resourceCommand } from "./resource.js";
 import { serviceCommand } from "./service.js";
+import { stageCommand } from "./stage.js";
 
 vi.mock("./helpers.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./helpers.js")>();
@@ -43,6 +45,24 @@ function programWith(command: Command): Command {
     .option("--quiet")
     .addCommand(command);
 }
+
+function collectAppKeyOptionPaths(command: Command, parentPath = ""): string[] {
+  const path = [parentPath, command.name()].filter(Boolean).join(" ");
+  const ownPaths = command.options.some((option) => option.long === "--app-key")
+    ? [path]
+    : [];
+  return ownPaths.concat(
+    command.commands.flatMap((child) => collectAppKeyOptionPaths(child, path)),
+  );
+}
+
+describe("API Gateway 명령 옵션", () => {
+  it("모든 하위 명령에서 --app-key를 노출하지 않는다", () => {
+    const commands = [serviceCommand, resourceCommand, stageCommand, deployCommand];
+
+    expect(commands.flatMap((command) => collectAppKeyOptionPaths(command))).toEqual([]);
+  });
+});
 
 describe("API Gateway 터미널 출력 정제", () => {
   beforeEach(() => {

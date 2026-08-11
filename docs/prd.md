@@ -47,9 +47,13 @@ AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트�
 - `nhncloud loadbalancer` — Load Balancer와 IP ACL 그룹·대상을 조회하고 안전하게 변경한다([[adr-022]], [사용 흐름](flow.md#loadbalancer-ip-acl-흐름)).
 - `nhncloud apigateway` — API Gateway 서비스·리소스·스테이지·배포를 조회하고
   스테이지 Swagger 를 내보낸다.
-  - 결정은 [[adr-027]], [사용 흐름](flow.md#api-gateway-조회-자동화-흐름)을 따른다.
-  - 인증은 공통 UAK OAuth 토큰을 재사용하고 appkey 는 경로에 넣는다. 조회 전용이며 쓰기는 후속 범위다.
+  - 결정은 [[adr-027]]과 [[adr-028]], [사용 흐름](flow.md#api-gateway-조회-자동화-흐름)을 따른다.
+  - 인증은 공통 UAK OAuth 토큰을 재사용하고 appkey 는 경로에 넣는다.
+    appkey 는 profile 로만 지정하고 명령 단위 오버라이딩을 두지 않는다([[adr-029]]).
   - 저장해 둔 Swagger 스펙이 실제 설정과 어긋나는 것을 CI 에서 주기적으로 대조하는 용도를 우선한다.
+  - 스테이지의 백엔드 엔드포인트와 설명을 바꾸고, 리소스 경로·메서드에 플러그인을 설정한다([[adr-028]]).
+    콘솔 수작업이 비현실적인 규모에 플러그인을 한 번에 적용하는 것이 목적이다.
+  - 변경을 스테이지로 가져오는 반영과 배포·롤백은 후속 범위다.
 - `nhncloud skills` — 공개 스킬의 상태 조회·설치·갱신·제거. 버전과 콘텐츠 해시로 오래된 설치와 사용자 수정본을 구분한다([[adr-025]]).
 - profile 기반 자격증명 (`~/.nhncloud/credentials.json` 과 `~/.nhncloud/config.json`)
 - 출력 3모드 — 테이블 / `--json` / `--quiet`

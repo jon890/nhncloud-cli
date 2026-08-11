@@ -66,6 +66,20 @@ function stage(id: string, stageName: string | null = null) {
   };
 }
 
+function updatedStage(id: string) {
+  return {
+    stageId: id,
+    stageName: null,
+    stageUrl: `https://${id}.example.com`,
+    backendEndpointUrl: "https://updated-backend.example.com",
+    updatedAt: "2026-08-11T00:00:00+09:00",
+  };
+}
+
+function updatedResource(id: string, path: string) {
+  return { resourceId: id, path };
+}
+
 function stageResource(id: string) {
   return {
     stageResourceId: id,
@@ -616,5 +630,188 @@ describe("ApiGatewayClient.getLatestDeploy", () => {
     await expect(client.getLatestDeploy("service-1", "stage-1")).rejects.toMatchObject({
       exitCode: EXIT_API_ERROR,
     });
+  });
+});
+
+describe("ApiGatewayClient.updateStage", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("수정 응답 최소 필드를 반환하고 PUT URL·본문을 인코딩해 전달한다", async () => {
+    const responseStage = updatedStage("stage-1");
+    vi.mocked(ky.put).mockReturnValue(
+      mockKyResponse({ header: successfulHeader, stage: responseStage }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    const body = {
+      backendEndpointUrl: "https://updated-backend.example.com",
+      stageDescription: "updated",
+    };
+
+    await expect(client.updateStage("service/id", "stage/id", body)).resolves.toEqual(
+      responseStage,
+    );
+    expect(ky.put).toHaveBeenCalledWith(
+      "https://kr1-apigateway.api.nhncloudservice.com/v2.0/appkeys/appkey/services/service%2Fid/stages/stage%2Fid",
+      {
+        headers: { "X-NHN-Authorization": "Bearer token" },
+        json: body,
+        retry: 0,
+        timeout: expect.any(Number),
+      },
+    );
+  });
+
+  it("HTTP 200의 isSuccessful=false를 EXIT_API_ERROR로 거부한다", async () => {
+    vi.mocked(ky.put).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: false, resultCode: 403100000, resultMessage: "Permission denied" },
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(
+      client.updateStage("service-1", "stage-1", {
+        backendEndpointUrl: "https://backend.example.com",
+      }),
+    ).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
+  });
+
+  it("수정 응답 필수 필드가 빠지면 EXIT_API_ERROR로 거부한다", async () => {
+    const { stageUrl: _stageUrl, ...invalidStage } = updatedStage("stage-1");
+    vi.mocked(ky.put).mockReturnValue(
+      mockKyResponse({ header: successfulHeader, stage: invalidStage }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(
+      client.updateStage("service-1", "stage-1", {
+        backendEndpointUrl: "https://backend.example.com",
+      }),
+    ).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
+  });
+});
+
+describe("ApiGatewayClient.setPathPlugins", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("최소 resource 수정 응답을 반환하고 resource-paths에 목록 본문을 전달한다", async () => {
+    const resourceList = [updatedResource("resource-1", "/private")];
+    vi.mocked(ky.put).mockReturnValue(
+      mockKyResponse({ header: successfulHeader, resourceList }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    const pathPluginList = [
+      {
+        pluginType: "CORS",
+        pluginConfigJson: { allowedMethods: ["GET"] },
+        applyChildPath: true,
+      },
+    ];
+
+    await expect(
+      client.setPathPlugins("service/id", "resource/id", pathPluginList),
+    ).resolves.toEqual(resourceList);
+    expect(ky.put).toHaveBeenCalledWith(
+      "https://kr1-apigateway.api.nhncloudservice.com/v2.0/appkeys/appkey/services/service%2Fid/resource-paths/resource%2Fid",
+      {
+        headers: { "X-NHN-Authorization": "Bearer token" },
+        json: { pathPluginList },
+        retry: 0,
+        timeout: expect.any(Number),
+      },
+    );
+  });
+
+  it("HTTP 200의 isSuccessful=false를 EXIT_API_ERROR로 거부한다", async () => {
+    vi.mocked(ky.put).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: false, resultCode: 403100000, resultMessage: "Permission denied" },
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(
+      client.setPathPlugins("service-1", "resource-1", [{ pluginType: "CORS" }]),
+    ).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
+  });
+
+  it("resourceList 항목의 최소 필드가 빠지면 EXIT_API_ERROR로 거부한다", async () => {
+    vi.mocked(ky.put).mockReturnValue(
+      mockKyResponse({
+        header: successfulHeader,
+        resourceList: [{ resourceId: "resource-1" }],
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(
+      client.setPathPlugins("service-1", "resource-1", [{ pluginType: "CORS" }]),
+    ).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
+  });
+});
+
+describe("ApiGatewayClient.setMethodPlugins", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("최소 resource 수정 응답을 반환하고 resource-methods에 본문을 전달한다", async () => {
+    const resourceList = [updatedResource("resource-1", "/private")];
+    vi.mocked(ky.put).mockReturnValue(
+      mockKyResponse({ header: successfulHeader, resourceList }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    const body = {
+      methodName: "private-get",
+      methodDescription: "updated",
+      methodPluginList: [{ pluginType: "HTTP", pluginConfigJson: { method: "GET" } }],
+    };
+
+    await expect(
+      client.setMethodPlugins("service/id", "resource/id", body),
+    ).resolves.toEqual(resourceList);
+    expect(ky.put).toHaveBeenCalledWith(
+      "https://kr1-apigateway.api.nhncloudservice.com/v2.0/appkeys/appkey/services/service%2Fid/resource-methods/resource%2Fid",
+      {
+        headers: { "X-NHN-Authorization": "Bearer token" },
+        json: body,
+        retry: 0,
+        timeout: expect.any(Number),
+      },
+    );
+  });
+
+  it("HTTP 200의 isSuccessful=false를 EXIT_API_ERROR로 거부한다", async () => {
+    vi.mocked(ky.put).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: false, resultCode: 403100000, resultMessage: "Permission denied" },
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(
+      client.setMethodPlugins("service-1", "resource-1", {
+        methodName: "private-get",
+        methodPluginList: [{ pluginType: "HTTP" }],
+      }),
+    ).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
+  });
+
+  it("resourceList가 배열이 아니면 EXIT_API_ERROR로 거부한다", async () => {
+    vi.mocked(ky.put).mockReturnValue(
+      mockKyResponse({
+        header: successfulHeader,
+        resourceList: updatedResource("resource-1", "/private"),
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(
+      client.setMethodPlugins("service-1", "resource-1", {
+        methodName: "private-get",
+        methodPluginList: [{ pluginType: "HTTP" }],
+      }),
+    ).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
   });
 });

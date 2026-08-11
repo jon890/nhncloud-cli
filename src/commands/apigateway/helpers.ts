@@ -1,3 +1,4 @@
+import { readFile, stat } from "node:fs/promises";
 import { getAccessToken } from "../../api/oauth.js";
 import {
   getServiceCredential,
@@ -5,21 +6,98 @@ import {
   resolveProfileName,
 } from "../../config/credentials.js";
 import { ApiGatewayClient } from "../../services/apigateway/client.js";
+import type { Resource } from "../../services/apigateway/types.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
-import { EXIT_CONFIG_ERROR } from "../../utils/exit-codes.js";
+import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
+
+// 플러그인 설정은 보통 수 KB이며, 1 MB는 잘못된 파일 전체 읽기를 막는 보수적 상한이다.
+const MAX_PLUGIN_CONFIG_BYTES = 1_000_000;
 
 /** 외부 API 문자열의 ANSI escape와 제어 문자를 터미널 출력 전에 치환한다. */
 export function sanitizeForTerminal(value: string): string {
   return value.replace(/[\x00-\x1F\x7F]/g, "?");
 }
 
-/** --app-key 옵션 > profile 의 apigateway.appkey 순서로 appKey를 해석한다. */
-export async function resolveApiGatewayAppKey(
-  profileName: string,
-  appKeyOption?: string,
-): Promise<string> {
-  if (appKeyOption?.trim()) return appKeyOption.trim();
+function fileErrorReason(error: unknown): string {
+  if (typeof error === "object" && error !== null && "code" in error) {
+    const code = error.code;
+    if (typeof code === "string") return code;
+  }
+  return error instanceof Error ? error.message : String(error);
+}
 
+export function requireYes(yes: boolean | undefined, operation: string): true {
+  if (!yes) {
+    throw new NhnCloudCliError(
+      `${operation}에는 --yes 플래그가 필요합니다.`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+  return true;
+}
+
+/** 플러그인 설정 JSON을 검증 전 unknown 값으로 읽는다. */
+export async function readPluginConfigFile(path: string): Promise<unknown> {
+  let fileStat: Awaited<ReturnType<typeof stat>>;
+  try {
+    fileStat = await stat(path);
+  } catch (error) {
+    const reason = fileErrorReason(error);
+    throw new NhnCloudCliError(
+      `플러그인 설정 파일을 읽을 수 없습니다: ${JSON.stringify(path)} (${JSON.stringify(reason)}).`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+
+  if (!fileStat.isFile()) {
+    const reason = fileStat.isDirectory() ? "EISDIR" : "EINVAL";
+    throw new NhnCloudCliError(
+      `플러그인 설정 경로가 일반 파일이 아닙니다: ${JSON.stringify(path)} (${reason}).`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+  if (fileStat.size > MAX_PLUGIN_CONFIG_BYTES) {
+    throw new NhnCloudCliError(
+      `플러그인 설정 파일이 너무 큽니다 (${fileStat.size} 바이트). 허용 상한은 ${MAX_PLUGIN_CONFIG_BYTES} 바이트입니다.`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+
+  let raw: string;
+  try {
+    raw = await readFile(path, "utf-8");
+  } catch (error) {
+    const reason = fileErrorReason(error);
+    throw new NhnCloudCliError(
+      `플러그인 설정 파일을 읽을 수 없습니다: ${JSON.stringify(path)} (${JSON.stringify(reason)}).`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    const reason = sanitizeForTerminal(
+      error instanceof Error ? error.message : String(error),
+    );
+    throw new NhnCloudCliError(
+      `플러그인 설정 JSON 형식이 올바르지 않습니다: ${JSON.stringify(path)} (${reason}).`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+}
+
+/** 대상 경로와 구분자 기준 하위 경로를 dry-run 영향 범위로 모은다. */
+export function collectAffectedPaths(resources: Resource[], targetPath: string): Resource[] {
+  if (targetPath === "/") return resources;
+  const childPrefix = `${targetPath}/`;
+  return resources.filter(
+    (resource) => resource.path === targetPath || resource.path.startsWith(childPrefix),
+  );
+}
+
+/** profile 의 apigateway.appkey에서 appKey를 해석한다. */
+export async function resolveApiGatewayAppKey(profileName: string): Promise<string> {
   let credential: { appkey?: string } | undefined;
   try {
     credential = await getServiceCredential("apigateway", profileName);
@@ -31,8 +109,7 @@ export async function resolveApiGatewayAppKey(
 
   if (!credential?.appkey) {
     throw new NhnCloudCliError(
-      "API Gateway appKey가 없습니다. nhncloud configure --apigateway-appkey <key>로 설정하거나\n" +
-        "--app-key로 직접 넘기세요.",
+      "API Gateway appKey가 없습니다. nhncloud configure --apigateway-appkey <key>로 설정하세요.",
       EXIT_CONFIG_ERROR,
     );
   }
@@ -43,12 +120,11 @@ export async function resolveApiGatewayAppKey(
 export async function resolveApiGatewayClient(opts: {
   profile?: string;
   region?: string;
-  appKey?: string;
 }): Promise<{ client: ApiGatewayClient; profileName: string }> {
   const profileName = await resolveProfileName(opts.profile);
   const uak = await getUserAccessKey(profileName);
   const accessToken = await getAccessToken(profileName, uak.id, uak.secret);
-  const appKey = await resolveApiGatewayAppKey(profileName, opts.appKey);
+  const appKey = await resolveApiGatewayAppKey(profileName);
   return {
     client: new ApiGatewayClient(accessToken, opts.region ?? "kr1", appKey),
     profileName,

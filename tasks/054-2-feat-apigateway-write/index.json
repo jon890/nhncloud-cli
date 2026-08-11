@@ -1,0 +1,53 @@
+{
+  "name": "054-2-feat-apigateway-write",
+  "description": "API Gateway 변경 명령 3개를 추가한다 — stage update 와 리소스 경로·메서드 플러그인 설정 (ADR-028, 이슈 #64 의 쓰기 범위). apigateway 조회의 --app-key 오버라이딩도 함께 제거한다.",
+  "created_at": "2026-08-11T00:00:00Z",
+  "updated_at": "2026-08-11T10:53:30Z",
+  "status": "completed",
+  "current_phase": 5,
+  "total_phases": 5,
+  "error_message": null,
+  "blocked_reason": null,
+  "phases": [
+    {
+      "number": 1,
+      "title": "apigateway 조회 명령의 --app-key 오버라이딩 제거",
+      "file": "phase-01.md",
+      "status": "completed",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "execution_profile": "standard"
+    },
+    {
+      "number": 2,
+      "title": "쓰기 요청 타입, client 메서드 3개, 공용 헬퍼",
+      "file": "phase-02.md",
+      "status": "completed",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "execution_profile": "standard"
+    },
+    {
+      "number": 3,
+      "title": "apigateway stage update 명령",
+      "file": "phase-03.md",
+      "status": "completed",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "execution_profile": "standard"
+    },
+    {
+      "number": 4,
+      "title": "apigateway resource set-path-plugin 과 set-method-plugin 명령",
+      "file": "phase-04.md",
+      "status": "completed",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "execution_profile": "standard"
+    },
+    {
+      "number": 5,
+      "title": "통합 검증, 사용자 가이드 갱신, 수동 QA 절차",
+      "file": "phase-05.md",
+      "status": "completed",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "execution_profile": "standard"
+    }
+  ]
+}
