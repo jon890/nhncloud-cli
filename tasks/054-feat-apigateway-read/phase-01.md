@@ -186,8 +186,8 @@ test "$(exit_code_of node dist/index.js apigateway service list --profile __no_s
 pnpm tsc --noEmit 2>&1 | grep -c '^src/' | grep -qx 0
 pnpm test
 
-# 9. 명령 카탈로그가 2개 늘었다 (기준 149)
-test "$(node dist/index.js commands --json | python3 -c 'import json,sys;print(len(json.load(sys.stdin)["commands"]))')" = "151"
+# 9. 명령 카탈로그가 그룹 2개와 leaf 2개만큼 늘었다 (기준 149)
+test "$(node dist/index.js commands --json | python3 -c 'import json,sys;print(len(json.load(sys.stdin)["commands"]))')" = "153"
 
 git diff --check
 ```

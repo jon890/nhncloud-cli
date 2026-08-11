@@ -166,8 +166,8 @@ test "$(rg -c 'isSuccessful: false' src/services/apigateway/client.test.ts)" -ge
 pnpm tsc --noEmit 2>&1 | grep -c '^src/' | grep -qx 0
 pnpm test
 
-# 8. 카탈로그가 3개 늘었다 (Phase 1 후 151 기준)
-test "$(node dist/index.js commands --json | python3 -c 'import json,sys;print(len(json.load(sys.stdin)["commands"]))')" = "154"
+# 8. 카탈로그가 resource 그룹과 leaf 3개만큼 늘었다 (Phase 1 후 153 기준)
+test "$(node dist/index.js commands --json | python3 -c 'import json,sys;print(len(json.load(sys.stdin)["commands"]))')" = "157"
 
 git diff --check
 ```

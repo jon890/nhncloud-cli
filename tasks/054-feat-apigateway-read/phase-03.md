@@ -196,8 +196,8 @@ test "$(rg -c 'isSuccessful: false' src/services/apigateway/client.test.ts)" -ge
 pnpm tsc --noEmit 2>&1 | grep -c '^src/' | grep -qx 0
 pnpm test
 
-# 10. 카탈로그가 5개 늘었다 (Phase 2 후 154 기준)
-test "$(node dist/index.js commands --json | python3 -c 'import json,sys;print(len(json.load(sys.stdin)["commands"]))')" = "159"
+# 10. 카탈로그가 stage·deploy 그룹 2개와 leaf 5개만큼 늘었다 (Phase 2 후 157 기준)
+test "$(node dist/index.js commands --json | python3 -c 'import json,sys;print(len(json.load(sys.stdin)["commands"]))')" = "164"
 
 git diff --check
 ```

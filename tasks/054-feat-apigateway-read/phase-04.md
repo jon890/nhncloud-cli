@@ -97,7 +97,7 @@ done
 
 # 3. 카탈로그 수가 실측값과 일치하고 README 도 같은 수를 적는다
 COUNT=$(node dist/index.js commands --json | python3 -c 'import json,sys;print(len(json.load(sys.stdin)["commands"]))')
-test "$COUNT" = "159"
+test "$COUNT" = "164"
 grep -q "$COUNT" README.md
 
 # 4. 사용자 가이드 세 곳이 갱신됐다
@@ -141,4 +141,4 @@ test "$(git status --porcelain | grep -c '^??')" = "0"
 ## Blocked 조건
 
 - Phase 1~3 산출물이 없으면 `PHASE_BLOCKED: 선행 phase 미완` 을 보고하고 멈춘다.
-- 카탈로그 수가 159 가 아니면 어느 phase 의 명령이 누락됐는지 확인하고 `PHASE_BLOCKED: 명령 등록 누락` 을 보고한다.
+- 카탈로그 수가 164 가 아니면 어느 phase 의 그룹 또는 leaf 명령이 누락됐는지 확인하고 `PHASE_BLOCKED: 명령 등록 누락` 을 보고한다.
