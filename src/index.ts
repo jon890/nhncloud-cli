@@ -52,6 +52,7 @@ import { templateCommand as ncsTemplateCommand } from "./commands/ncs/template.j
 import { workloadCommand as ncsWorkloadCommand } from "./commands/ncs/workload.js";
 import { malwareCommand as ncsMalwareCommand } from "./commands/ncs/malware.js";
 import { serviceCommand as apiGatewayServiceCommand } from "./commands/apigateway/service.js";
+import { resourceCommand as apiGatewayResourceCommand } from "./commands/apigateway/resource.js";
 import { listCommand as loadBalancerListCommand } from "./commands/loadbalancer/list.js";
 import { getCommand as loadBalancerGetCommand } from "./commands/loadbalancer/get.js";
 import { ipaclCommand as loadBalancerIpAclCommand } from "./commands/loadbalancer/ipacl.js";
@@ -308,6 +309,7 @@ program.addCommand(ncsCommand);
 const apiGatewayCommand = new Command("apigateway")
   .description("NHN API Gateway 조회 명령");
 apiGatewayCommand.addCommand(apiGatewayServiceCommand);
+apiGatewayCommand.addCommand(apiGatewayResourceCommand);
 
 program.addCommand(apiGatewayCommand);
 program.addCommand(skillsCommand);

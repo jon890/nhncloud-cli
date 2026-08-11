@@ -29,6 +29,21 @@ function service(id: string, dedicatedId: string | null = null) {
   };
 }
 
+function resource(id: string) {
+  return {
+    resourceId: id,
+    apigwServiceId: "service-1",
+    parentPath: null,
+    path: "/pets",
+    methodType: null,
+    methodName: null,
+    methodDescription: null,
+    createdAt: "2026-08-01T00:00:00+09:00",
+    updatedAt: "2026-08-02T00:00:00+09:00",
+    resourcePluginList: [],
+  };
+}
+
 function mockKyResponse(body: unknown) {
   return { json: async () => body } as never;
 }
@@ -171,5 +186,135 @@ describe("ApiGatewayClient.getService", () => {
 
     const client = new ApiGatewayClient("token", "kr1", "appkey");
     await expect(client.getService("service-1")).rejects.toBe(error);
+  });
+});
+
+describe("ApiGatewayClient.listResources", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("paging 없이 한 번만 조회하고 nullable resource 필드를 허용한다", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({ header: successfulHeader, resourceList: [resource("resource-1")] }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    const result = await client.listResources("service/id");
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      parentPath: null,
+      methodType: null,
+      methodName: null,
+      methodDescription: null,
+    });
+    expect(ky.get).toHaveBeenCalledTimes(1);
+    expect(ky.get).toHaveBeenCalledWith(
+      expect.stringContaining("/services/service%2Fid/resources"),
+      expect.objectContaining({
+        headers: { "X-NHN-Authorization": "Bearer token" },
+        retry: 0,
+        timeout: expect.any(Number),
+      }),
+    );
+    expect(vi.mocked(ky.get).mock.calls[0]?.[1]).not.toHaveProperty("searchParams");
+  });
+
+  it("isSuccessful=false면 EXIT_API_ERROR", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: false, resultCode: 403100000, resultMessage: "Permission denied" },
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(client.listResources("service-1")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+});
+
+describe("ApiGatewayClient.getResourceParameters", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("빈 배열과 nullable requestBody를 정상 응답으로 반환한다", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: successfulHeader,
+        queryStringList: [],
+        headerList: [],
+        formDataList: [],
+        requestBody: { name: null, description: null, modelId: null },
+        contentTypeList: [],
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(client.getResourceParameters("service/id", "resource/id")).resolves.toEqual(
+      expect.objectContaining({
+        queryStringList: [],
+        requestBody: { name: null, description: null, modelId: null },
+      }),
+    );
+    expect(ky.get).toHaveBeenCalledWith(
+      expect.stringContaining("/services/service%2Fid/resources/resource%2Fid/parameters"),
+      expect.objectContaining({
+        headers: { "X-NHN-Authorization": "Bearer token" },
+        retry: 0,
+        timeout: expect.any(Number),
+      }),
+    );
+  });
+
+  it("isSuccessful=false면 EXIT_API_ERROR", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: false, resultCode: 4041007, resultMessage: "URL Not Found" },
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(client.getResourceParameters("service-1", "resource-1")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+});
+
+describe("ApiGatewayClient.getResourceResponses", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("빈 responseList와 contentTypeList를 정상 응답으로 반환한다", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: successfulHeader,
+        responseList: [],
+        contentTypeList: [],
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(client.getResourceResponses("service/id", "resource/id")).resolves.toEqual(
+      expect.objectContaining({ responseList: [], contentTypeList: [] }),
+    );
+    expect(ky.get).toHaveBeenCalledWith(
+      expect.stringContaining("/services/service%2Fid/resources/resource%2Fid/responses"),
+      expect.objectContaining({
+        headers: { "X-NHN-Authorization": "Bearer token" },
+        retry: 0,
+        timeout: expect.any(Number),
+      }),
+    );
+  });
+
+  it("isSuccessful=false면 EXIT_API_ERROR", async () => {
+    vi.mocked(ky.get).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: false, resultCode: 4041007, resultMessage: "URL Not Found" },
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(client.getResourceResponses("service-1", "resource-1")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
   });
 });

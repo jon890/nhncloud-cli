@@ -8,8 +8,14 @@ import { EXIT_API_ERROR } from "../../utils/exit-codes.js";
 import {
   isApiGatewayPaging,
   isApiGatewayService,
+  isResource,
+  isResourceParameters,
+  isResourceResponses,
   type ApiGatewayService,
   type ApiGatewayServiceListParams,
+  type Resource,
+  type ResourceParameters,
+  type ResourceResponses,
 } from "./types.js";
 
 interface ApiGatewayServiceListResponse extends NhnEnvelope<unknown> {
@@ -19,6 +25,23 @@ interface ApiGatewayServiceListResponse extends NhnEnvelope<unknown> {
 
 interface ApiGatewayServiceGetResponse extends NhnEnvelope<unknown> {
   apigwService?: unknown;
+}
+
+interface ResourceListResponse extends NhnEnvelope<unknown> {
+  resourceList?: unknown;
+}
+
+interface ResourceParametersResponse extends NhnEnvelope<unknown> {
+  queryStringList?: unknown;
+  headerList?: unknown;
+  formDataList?: unknown;
+  requestBody?: unknown;
+  contentTypeList?: unknown;
+}
+
+interface ResourceResponsesResponse extends NhnEnvelope<unknown> {
+  responseList?: unknown;
+  contentTypeList?: unknown;
 }
 
 /** API Gateway 조회 API 클라이언트 (ADR-027). */
@@ -110,6 +133,96 @@ export class ApiGatewayClient {
         );
       }
       return response.apigwService;
+    } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /** paging 없이 API Gateway resource 전체를 한 번에 조회한다. */
+  async listResources(apigwServiceId: string): Promise<Resource[]> {
+    try {
+      const response = await ky
+        .get(
+          `${this.baseUrl}/services/${encodeURIComponent(apigwServiceId)}/resources`,
+          {
+            headers: this.authHeaders(),
+            retry: 0,
+            timeout: DEFAULT_TIMEOUT_MS,
+          },
+        )
+        .json<ResourceListResponse>();
+
+      unwrapHeader(response);
+      if (!Array.isArray(response.resourceList) || !response.resourceList.every(isResource)) {
+        throw new NhnCloudCliError(
+          "API Gateway 응답 형식 오류: resourceList 가 올바른 배열이 아닙니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return response.resourceList;
+    } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /** API Gateway resource 요청 parameter를 조회한다. */
+  async getResourceParameters(
+    apigwServiceId: string,
+    resourceId: string,
+  ): Promise<ResourceParameters> {
+    try {
+      const response = await ky
+        .get(
+          `${this.baseUrl}/services/${encodeURIComponent(apigwServiceId)}/resources/${encodeURIComponent(resourceId)}/parameters`,
+          {
+            headers: this.authHeaders(),
+            retry: 0,
+            timeout: DEFAULT_TIMEOUT_MS,
+          },
+        )
+        .json<ResourceParametersResponse>();
+
+      unwrapHeader(response);
+      if (!isResourceParameters(response)) {
+        throw new NhnCloudCliError(
+          "API Gateway 응답 형식 오류: resource parameter 필드가 없거나 올바르지 않습니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return response;
+    } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /** API Gateway resource 응답 정의를 조회한다. */
+  async getResourceResponses(
+    apigwServiceId: string,
+    resourceId: string,
+  ): Promise<ResourceResponses> {
+    try {
+      const response = await ky
+        .get(
+          `${this.baseUrl}/services/${encodeURIComponent(apigwServiceId)}/resources/${encodeURIComponent(resourceId)}/responses`,
+          {
+            headers: this.authHeaders(),
+            retry: 0,
+            timeout: DEFAULT_TIMEOUT_MS,
+          },
+        )
+        .json<ResourceResponsesResponse>();
+
+      unwrapHeader(response);
+      if (!isResourceResponses(response)) {
+        throw new NhnCloudCliError(
+          "API Gateway 응답 형식 오류: resource response 필드가 없거나 올바르지 않습니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return response;
     } catch (err) {
       if (err instanceof NhnCloudCliError) throw err;
       throw toNhnCloudCliError(err);

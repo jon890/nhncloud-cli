@@ -9,6 +9,14 @@ interface IntegerOptionRange {
 const POSITIVE_INTEGER_PATTERN = /^[1-9]\d*$/;
 const NON_NEGATIVE_INTEGER_PATTERN = /^(0|[1-9]\d*)$/;
 
+export function parseRequiredArgument(value: string, label: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    throw new NhnCloudCliError(`${label} 인수가 비어있습니다.`, EXIT_PARAM_ERROR);
+  }
+  return trimmed;
+}
+
 function describeRange({ min, max }: IntegerOptionRange): string {
   if (min !== undefined && max !== undefined) return `${min} 이상 ${max} 이하의 정수`;
   if (min !== undefined) return `${min} 이상의 정수`;
