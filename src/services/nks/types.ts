@@ -66,6 +66,31 @@ export interface NksUuidResponse {
   [key: string]: unknown;
 }
 
+/**
+ * 클러스터 작업 이력(event). `NksNamedResource` 와 별개 스키마다.
+ *
+ * `name`·`status` 대신 `resource_name`·`state` 를 쓰고, `id` 가 **정수**다.
+ * `NksNamedResource` 는 `id` 가 문자열일 것을 요구하므로 이벤트에는 쓸 수 없다 (이슈 #79).
+ * 공식 문서와 실제 응답으로 확인한 필드다 — `contents` 는 성공한 작업에서 null 로 온다.
+ */
+export interface NksClusterEvent {
+  id: number;
+  uuid: string;
+  project_id?: string;
+  cluster_uuid?: string;
+  cluster_name?: string;
+  resource_uuid?: string;
+  resource_name?: string;
+  resource_type?: string;
+  type?: string;
+  state?: string;
+  contents?: string | null;
+  details?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  [key: string]: unknown;
+}
+
 export function isNksClusterSummary(val: unknown): val is NksClusterSummary {
   if (typeof val !== "object" || val === null) return false;
   const obj = val as Record<string, unknown>;
@@ -164,4 +189,14 @@ function isBooleanLike(val: unknown): val is boolean | "true" | "false" {
 
 export function isNksUuidResponse(val: unknown): val is NksUuidResponse {
   return isPlainObject(val) && typeof val["uuid"] === "string";
+}
+
+/**
+ * 이벤트 식별자 두 개만 필수로 본다.
+ * 나머지 필드는 선택적으로 두어 서버가 필드를 늘려도 조회가 깨지지 않게 한다.
+ */
+export function isNksClusterEvent(val: unknown): val is NksClusterEvent {
+  if (!isPlainObject(val)) return false;
+  if ("header" in val || "body" in val) return false;
+  return typeof val["id"] === "number" && typeof val["uuid"] === "string";
 }
