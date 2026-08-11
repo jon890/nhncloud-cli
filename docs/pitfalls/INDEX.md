@@ -86,7 +86,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 |---|---|---|
 | spinner·UX 순서 (validation 전 시작) | code-review | [spinner-before-validation](code-review/spinner-before-validation.md), [spinner-no-try-catch](code-review/spinner-no-try-catch.md), [resolver-after-editor](code-review/resolver-after-editor.md) |
 | 에러 처리 일관성 (exitCode·catch) | code-review | [exitcode-param-error-in-api-path](code-review/exitcode-param-error-in-api-path.md), [exitcode-missing](code-review/exitcode-missing.md), [credential-loader-reinvented-swallow](code-review/credential-loader-reinvented-swallow.md) |
-| 타입 안전성 (Map.get()! / 이중 단언 / optional 응답 필드) | code-review | [map-get-nonnull-assertion](code-review/map-get-nonnull-assertion.md), [double-assertion-unknown](code-review/double-assertion-unknown.md), [double-assertion-union-type](code-review/double-assertion-union-type.md), [optional-response-field-guard](code-review/optional-response-field-guard.md) |
+| 타입 안전성 (Map.get()! / 이중 단언 / optional 응답 필드) | code-review | [map-get-nonnull-assertion](code-review/map-get-nonnull-assertion.md), [double-assertion-unknown](code-review/double-assertion-unknown.md), [double-assertion-union-type](code-review/double-assertion-union-type.md), [optional-response-field-guard](code-review/optional-response-field-guard.md), [shared-guard-foreign-schema](code-review/shared-guard-foreign-schema.md) |
 | API/HTTP 패턴 (redirect·throwHttpErrors) | code-review | [redirect-manual-status-missing](code-review/redirect-manual-status-missing.md), [numeric-response-string-number-mixed](code-review/numeric-response-string-number-mixed.md) |
 | 봉투 검사 (200-고정 API·isSuccessful) | code-review | [write-method-envelope-unchecked](code-review/write-method-envelope-unchecked.md), [new-endpoint-envelope-assumed](plan/new-endpoint-envelope-assumed.md) |
 | exitCode 누락·mismatch | code-review | [exitcode-missing](code-review/exitcode-missing.md), [mock-reject-value-mismatch](code-review/mock-reject-value-mismatch.md), [exit-code-literal-no-constant](code-review/exit-code-literal-no-constant.md) |
@@ -205,6 +205,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [resolver-boundary-empty-id](code-review/resolver-boundary-empty-id.md)
 - [sensitive-file-mode-missing](code-review/sensitive-file-mode-missing.md)
 - [sequential-endpoint-partial-failure](code-review/sequential-endpoint-partial-failure.md)
+- [shared-guard-foreign-schema](code-review/shared-guard-foreign-schema.md)
 - [shared-helper-in-command-file](code-review/shared-helper-in-command-file.md)
 - [spinner-before-validation](code-review/spinner-before-validation.md)
 - [spinner-no-try-catch](code-review/spinner-no-try-catch.md)
