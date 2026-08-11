@@ -1,12 +1,12 @@
 import { chmod, writeFile } from "node:fs/promises";
 import { Command } from "commander";
 import chalk from "chalk";
-import { output, type OutputOptions } from "../../formatters/table.js";
+import { output, truncate, type OutputOptions } from "../../formatters/table.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
-import { parsePositiveInteger, readJsonFile, resolveNksClient } from "./helpers.js";
-import type { NksAddon, NksClusterIpAcl, NksClusterSummary, NksNamedResource, NksUuidResponse } from "../../services/nks/types.js";
+import { isUuid, parsePositiveInteger, readJsonFile, resolveClusterUuid, resolveNksClient } from "./helpers.js";
+import type { NksAddon, NksClusterEvent, NksClusterIpAcl, NksClusterSummary, NksNamedResource, NksUuidResponse } from "../../services/nks/types.js";
 import { nksClusterKubeTag } from "../../services/nks/types.js";
 
 interface ClusterListGlobalOpts extends OutputOptions {
@@ -76,6 +76,17 @@ function resourceRow(resource: NksNamedResource): string[] {
     resourceId(resource),
     resource.name ?? "",
     resource.status ?? "",
+  ];
+}
+
+function eventRow(event: NksClusterEvent): string[] {
+  return [
+    event.uuid,
+    String(event.id),
+    event.type ?? "",
+    event.state ?? "",
+    event.resource_name ?? "",
+    event.created_at ?? "",
   ];
 }
 
@@ -366,9 +377,11 @@ const eventsCommand = new Command("events")
     const { client } = await resolveNksClient(opts);
 
     startSpinner("NKS 클러스터 작업 이력 조회 중...");
-    let events: NksNamedResource[];
+    let events: NksClusterEvent[];
     try {
-      events = await client.listClusterEvents(cluster);
+      // 이벤트 엔드포인트는 이름을 받지 않는다. 이름을 준 경우 여기서 UUID 로 바꾼다.
+      const clusterUuid = await resolveClusterUuid(client, cluster);
+      events = await client.listClusterEvents(clusterUuid);
     } catch (err) {
       stopSpinner(false);
       throw err;
@@ -376,38 +389,51 @@ const eventsCommand = new Command("events")
     stopSpinner(true);
 
     output(opts, {
-      headers: ["id", "name", "status"],
-      rows: events.map(resourceRow),
+      headers: ["uuid", "id", "type", "state", "resource_name", "created_at"],
+      rows: events.map(eventRow),
       raw: events,
-      ids: events.map(resourceId),
+      // 단건 조회가 uuid 로만 되므로 --quiet 식별자도 uuid 를 쓴다.
+      ids: events.map((event) => event.uuid),
     });
   });
 
 const eventCommand = new Command("event")
   .description("NKS 클러스터 작업 이력 단건을 조회한다")
   .argument("<cluster>", "클러스터 UUID 또는 이름")
-  .argument("<event>", "작업 이력 UUID 또는 ID")
+  .argument("<event>", "작업 이력 UUID (정수 id 가 아니다)")
   .option("--region <region>", "region override (기본: iaas 자격증명의 region)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (cluster: string, event: string, _opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<ClusterGlobalOpts>();
+    if (!isUuid(event)) {
+      throw new NhnCloudCliError(
+        `작업 이력은 UUID 로 조회한다. events 출력의 uuid 열 값을 넘긴다 (입력: ${JSON.stringify(event)}).`,
+        EXIT_PARAM_ERROR,
+      );
+    }
     const { client } = await resolveNksClient(opts);
 
     startSpinner("NKS 클러스터 작업 이력 조회 중...");
-    let result: NksNamedResource;
+    let result: NksClusterEvent;
     try {
-      result = await client.getClusterEvent(cluster, event);
+      const clusterUuid = await resolveClusterUuid(client, cluster);
+      result = await client.getClusterEvent(clusterUuid, event);
     } catch (err) {
       stopSpinner(false);
       throw err;
     }
     stopSpinner(true);
 
+    // 단건은 contents / details 까지 봐야 의미가 있어 필드 표로 낸다.
+    // details 는 1000자를 넘는 요청 JSON 이라 표에서는 줄인다. 전문은 --json 으로 본다.
     output(opts, {
-      headers: ["id", "name", "status"],
-      rows: [resourceRow(result)],
+      headers: ["field", "value"],
+      rows: Object.entries(result).map(([key, value]) => [
+        key,
+        truncate(typeof value === "object" && value !== null ? JSON.stringify(value) : String(value), 80),
+      ]),
       raw: result,
-      ids: [resourceId(result)],
+      ids: [result.uuid],
     });
   });
 

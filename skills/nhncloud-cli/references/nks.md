@@ -22,11 +22,18 @@ nhncloud nks nodegroup list <cluster> --json
 nhncloud nks cluster list --json
 nhncloud nks cluster get <cluster> --json
 nhncloud nks cluster events <cluster> --json
-nhncloud nks cluster event <cluster> <event> --json
+nhncloud nks cluster event <cluster> <event-uuid> --json
 nhncloud nks cluster ipacl <cluster> --json
 nhncloud nks cluster kubeconfig <cluster>
 nhncloud nks cluster kubeconfig <cluster> --output ./kubeconfig
 ```
+
+`events`는 `<cluster>`에 이름과 UUID를 모두 받는다.
+NKS 이벤트 API 자체는 UUID만 받지만 CLI가 이름을 UUID로 해석한다.
+
+`event` 단건 조회는 `events` 출력의 `uuid` 열 값을 넘긴다.
+정수 `id`로는 조회되지 않는다.
+`details`는 표에서 줄여 보여 주므로 전문은 `--json`으로 본다.
 
 `kubeconfig`는 문자열을 stdout으로 출력하거나 `--output` 파일에 저장한다.
 

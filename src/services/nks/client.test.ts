@@ -673,3 +673,62 @@ describe("nksClusterKubeTag (이슈 #47)", () => {
     ).toBe("-");
   });
 });
+
+describe("NksClient 클러스터 작업 이력 (이슈 #79)", () => {
+  const ENDPOINT = "https://kr1-api-kubernetes-infrastructure.nhncloudservice.com/v1";
+
+  // 실제 응답에서 확인한 스키마다. id 는 정수이고 name / status 필드가 없다.
+  const EVENT = {
+    id: 1234,
+    uuid: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    project_id: "project-id",
+    cluster_uuid: "cluster-uuid",
+    cluster_name: "cluster-a",
+    resource_uuid: "cluster-uuid",
+    resource_name: "cluster-a",
+    resource_type: "cluster",
+    type: "CLUSTER_CREATE",
+    state: "SUCCESS",
+    contents: "",
+    details: "{}",
+    created_at: "2024-04-12T05:05:23+00:00",
+    updated_at: "2024-04-12T05:19:17+00:00",
+  };
+
+  beforeEach(() => vi.resetAllMocks());
+
+  it("listClusterEvents() 는 id 가 정수인 항목을 통과시킨다", async () => {
+    vi.mocked(ky.get).mockReturnValue({ json: async () => ({ events: [EVENT] }) } as never);
+
+    const result = await new NksClient("token-id", ENDPOINT).listClusterEvents("cluster-uuid");
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.id).toBe(1234);
+    expect(result[0]?.uuid).toBe(EVENT.uuid);
+  });
+
+  it("events 배열이 없으면 EXIT_API_ERROR 로 실패한다", async () => {
+    vi.mocked(ky.get).mockReturnValue({ json: async () => ({ items: [] }) } as never);
+
+    await expect(new NksClient("token-id", ENDPOINT).listClusterEvents("cluster-uuid")).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+    });
+  });
+
+  it("getClusterEvent() 는 봉투 없는 평평한 객체를 그대로 반환한다", async () => {
+    vi.mocked(ky.get).mockReturnValue({ json: async () => EVENT } as never);
+
+    const result = await new NksClient("token-id", ENDPOINT).getClusterEvent("cluster-uuid", EVENT.uuid);
+
+    expect(result.uuid).toBe(EVENT.uuid);
+    expect(result.details).toBe("{}");
+  });
+
+  it("id / uuid 가 없는 응답은 EXIT_API_ERROR 로 실패한다", async () => {
+    vi.mocked(ky.get).mockReturnValue({ json: async () => ({ name: "not-an-event" }) } as never);
+
+    await expect(
+      new NksClient("token-id", ENDPOINT).getClusterEvent("cluster-uuid", EVENT.uuid),
+    ).rejects.toBeInstanceOf(NhnCloudCliError);
+  });
+});

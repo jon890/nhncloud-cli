@@ -7,6 +7,7 @@ import {
   isNksAddon,
   isNksAddonType,
   isNksClusterSummary,
+  isNksClusterEvent,
   isNksClusterIpAcl,
   isNksNamedResource,
   isNksNodeGroupAutoscale,
@@ -15,6 +16,7 @@ import {
   isNksUuidResponse,
   type NksAddon,
   type NksAddonType,
+  type NksClusterEvent,
   type NksClusterIpAcl,
   type NksClusterSummary,
   type NksNamedResource,
@@ -38,8 +40,8 @@ function isClustersResponse(val: unknown): val is { clusters: NksClusterSummary[
   return isArrayFieldResponse("clusters", val, isNksClusterSummary);
 }
 
-function isNamedResourceArrayResponse(key: string, val: unknown): val is Record<string, NksNamedResource[]> {
-  return isArrayFieldResponse(key, val, isNksNamedResource);
+function isClusterEventsResponse(val: unknown): val is { events: NksClusterEvent[] } {
+  return isArrayFieldResponse("events", val, isNksClusterEvent);
 }
 
 function isConfigResponse(val: unknown): val is { config: string } {
@@ -196,19 +198,30 @@ export class NksClient {
     );
   }
 
-  async listClusterEvents(cluster: string): Promise<NksNamedResource[]> {
-    return this.getNamedResourceArray(
-      "events",
-      `/clusters/${encodeURIComponent(cluster)}/events`,
-      "nks cluster events 응답 형식이 올바르지 않습니다 — events 배열이 없습니다.",
-    );
+  /** 이벤트 엔드포인트는 클러스터 이름을 받지 않는다. 반드시 UUID 를 넘긴다. */
+  async listClusterEvents(clusterUuid: string): Promise<NksClusterEvent[]> {
+    const raw = await this.getJson(`/clusters/${encodeURIComponent(clusterUuid)}/events`);
+    if (!isClusterEventsResponse(raw)) {
+      throw new NhnCloudCliError(
+        "nks cluster events 응답 형식이 올바르지 않습니다 — events 배열이 없거나 항목에 id / uuid 가 없습니다.",
+        EXIT_API_ERROR,
+      );
+    }
+    return raw.events;
   }
 
-  async getClusterEvent(cluster: string, event: string): Promise<NksNamedResource> {
-    return this.getFlatNamedResource(
-      `/clusters/${encodeURIComponent(cluster)}/events/${encodeURIComponent(event)}`,
-      "nks cluster event 응답 형식이 올바르지 않습니다 — event 객체가 아닙니다.",
+  /** event 는 정수 `id` 가 아니라 `uuid` 로 조회한다. `id` 를 넘기면 서버가 400 을 준다. */
+  async getClusterEvent(clusterUuid: string, eventUuid: string): Promise<NksClusterEvent> {
+    const raw = await this.getJson(
+      `/clusters/${encodeURIComponent(clusterUuid)}/events/${encodeURIComponent(eventUuid)}`,
     );
+    if (!isNksClusterEvent(raw)) {
+      throw new NhnCloudCliError(
+        "nks cluster event 응답 형식이 올바르지 않습니다 — id / uuid 가 있는 event 객체가 아닙니다.",
+        EXIT_API_ERROR,
+      );
+    }
+    return raw;
   }
 
   async getClusterKubeconfig(cluster: string): Promise<string> {
@@ -473,14 +486,6 @@ export class NksClient {
     } catch (err) {
       throw toNhnCloudCliError(err);
     }
-  }
-
-  private async getNamedResourceArray(key: string, path: string, errorMessage: string): Promise<NksNamedResource[]> {
-    const raw = await this.getJson(path);
-    if (!isNamedResourceArrayResponse(key, raw)) {
-      throw new NhnCloudCliError(errorMessage, EXIT_API_ERROR);
-    }
-    return raw[key];
   }
 
   private async getFlatNamedResource(path: string, errorMessage: string): Promise<NksNamedResource> {
