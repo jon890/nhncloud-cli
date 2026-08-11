@@ -10,6 +10,8 @@ import type { Resource } from "../../services/apigateway/types.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 
+const MAX_JSON_PAYLOAD_BYTES = 1_000_000;
+
 /** 외부 API 문자열의 ANSI escape와 제어 문자를 터미널 출력 전에 치환한다. */
 export function sanitizeForTerminal(value: string): string {
   return value.replace(/[\x00-\x1F\x7F]/g, "?");
@@ -53,6 +55,12 @@ export async function readPluginConfigFile(path: string): Promise<unknown> {
       EXIT_PARAM_ERROR,
     );
   }
+  if (fileStat.size > MAX_JSON_PAYLOAD_BYTES) {
+    throw new NhnCloudCliError(
+      `플러그인 설정 파일이 너무 큽니다 (${fileStat.size} 바이트). JSON spec 한도 ${MAX_JSON_PAYLOAD_BYTES} 바이트.`,
+      EXIT_PARAM_ERROR,
+    );
+  }
 
   let raw: string;
   try {
@@ -68,7 +76,9 @@ export async function readPluginConfigFile(path: string): Promise<unknown> {
   try {
     return JSON.parse(raw);
   } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
+    const reason = sanitizeForTerminal(
+      error instanceof Error ? error.message : String(error),
+    );
     throw new NhnCloudCliError(
       `플러그인 설정 JSON 형식이 올바르지 않습니다: ${JSON.stringify(path)} (${reason}).`,
       EXIT_PARAM_ERROR,

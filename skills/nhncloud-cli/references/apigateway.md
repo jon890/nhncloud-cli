@@ -89,7 +89,9 @@ nhncloud apigateway service list --region kr1 --json
 `delete` 가 `true`면 해당 플러그인을 삭제하므로 `pluginConfigJson`을 생략할 수 있다.
 `applyChildPath`는 경로 플러그인에만 사용하며 메서드 설정에 넣으면 입력 오류로 거부된다.
 
-`set-path-plugin`과 `set-method-plugin`만 `--dry-run`을 제공한다. 하위 적용 범위를 서버가 판정하고 CORS 플러그인이 기존 OPTIONS 메서드를 삭제·대체하므로, 다른 위험 명령의 `--yes` 확인만으로는 되돌릴 수 없는 범위를 적용 전에 확인할 수 없기 때문이다.
+`set-path-plugin`과 `set-method-plugin`만 `--dry-run`을 제공한다.
+하위 적용 범위를 서버가 판정하고 CORS 플러그인이 기존 OPTIONS 메서드를 삭제·대체하므로,
+다른 위험 명령의 `--yes` 확인만으로는 되돌릴 수 없는 범위를 적용 전에 확인할 수 없기 때문이다.
 
 리소스 플러그인 변경을 스테이지에 반영하려면 별도의 리소스 반영과 배포가 필요하며, 리소스 반영·배포 명령은 아직 지원하지 않는다.
 

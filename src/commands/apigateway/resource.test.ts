@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { output } from "../../formatters/table.js";
 import type { Resource } from "../../services/apigateway/types.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
+import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { resolveApiGatewayClient } from "./helpers.js";
 import { resourceCommand } from "./resource.js";
 
@@ -99,6 +100,7 @@ describe("API Gateway resource 플러그인 설정", () => {
       run(["resource", "set-path-plugin", "service-1", "resource-1", "--config-file", path]),
     ).rejects.toMatchObject({ exitCode: EXIT_PARAM_ERROR });
     expect(resolveApiGatewayClient).not.toHaveBeenCalled();
+    expect(startSpinner).not.toHaveBeenCalled();
   });
 
   it("--dry-run은 --yes 없이 통과하고 쓰기 메서드를 호출하지 않는다", async () => {
@@ -118,6 +120,29 @@ describe("API Gateway resource 플러그인 설정", () => {
 
     expect(listResources).toHaveBeenCalledWith("service-1");
     expect(setPathPlugins).not.toHaveBeenCalled();
+    expect(startSpinner).toHaveBeenCalledWith(
+      'API Gateway resource "resource-1" 경로 플러그인 설정 중...',
+    );
+    expect(stopSpinner).toHaveBeenCalledWith(true);
+  });
+
+  it("경로 플러그인 변경 API 실패 시 spinner를 실패로 종료한다", async () => {
+    const path = await configFile("path.json", {
+      pathPluginList: [{ pluginType: "SET_RESPONSE_HEADER", pluginConfigJson: {} }],
+    });
+    setPathPlugins.mockRejectedValue(new Error("write failed"));
+
+    await expect(run([
+      "resource",
+      "set-path-plugin",
+      "service-1",
+      "resource-1",
+      "--config-file",
+      path,
+      "--yes",
+    ])).rejects.toThrow("write failed");
+
+    expect(stopSpinner).toHaveBeenCalledWith(false);
   });
 
   it("경로 명령에서 메서드 전용 HTTP 타입을 거부한다", async () => {
@@ -171,7 +196,31 @@ describe("API Gateway resource 플러그인 설정", () => {
         path,
         "--yes",
       ]),
-    ).rejects.toMatchObject({ exitCode: EXIT_PARAM_ERROR });
+    ).rejects.toMatchObject({
+      exitCode: EXIT_PARAM_ERROR,
+      message: expect.stringContaining("pluginConfigJson이 필요합니다"),
+    });
+  });
+
+  it("pluginConfigJson 값이 객체가 아니면 타입 불일치 메시지로 거부한다", async () => {
+    const path = await configFile("path.json", {
+      pathPluginList: [{ pluginType: "SET_REQUEST_HEADER", pluginConfigJson: "invalid" }],
+    });
+
+    await expect(
+      run([
+        "resource",
+        "set-path-plugin",
+        "service-1",
+        "resource-1",
+        "--config-file",
+        path,
+        "--yes",
+      ]),
+    ).rejects.toMatchObject({
+      exitCode: EXIT_PARAM_ERROR,
+      message: expect.stringContaining("pluginConfigJson은 JSON 객체여야 합니다"),
+    });
   });
 
   it("methodType이 null인 경로에 메서드 명령을 쓰면 거부한다", async () => {
@@ -192,6 +241,7 @@ describe("API Gateway resource 플러그인 설정", () => {
       ]),
     ).rejects.toMatchObject({ exitCode: EXIT_PARAM_ERROR });
     expect(setMethodPlugins).not.toHaveBeenCalled();
+    expect(stopSpinner).toHaveBeenCalledWith(false);
   });
 
   it("파일에 methodName이 없으면 기존 이름과 설명을 실어 보낸다", async () => {
@@ -216,6 +266,29 @@ describe("API Gateway resource 플러그인 설정", () => {
         { pluginType: "HTTP", pluginConfigJson: { url: "https://example.com" } },
       ],
     });
+    expect(startSpinner).toHaveBeenCalledWith(
+      'API Gateway resource "resource-1" 메서드 플러그인 설정 중...',
+    );
+    expect(stopSpinner).toHaveBeenCalledWith(true);
+  });
+
+  it("메서드 플러그인 변경 API 실패 시 spinner를 실패로 종료한다", async () => {
+    const path = await configFile("method.json", {
+      methodPluginList: [{ pluginType: "HTTP", pluginConfigJson: {} }],
+    });
+    setMethodPlugins.mockRejectedValue(new Error("write failed"));
+
+    await expect(run([
+      "resource",
+      "set-method-plugin",
+      "service-1",
+      "resource-1",
+      "--config-file",
+      path,
+      "--yes",
+    ])).rejects.toThrow("write failed");
+
+    expect(stopSpinner).toHaveBeenCalledWith(false);
   });
 
   it("없는 --config-file 경로를 EXIT_PARAM_ERROR로 거부한다", async () => {
@@ -230,6 +303,7 @@ describe("API Gateway resource 플러그인 설정", () => {
         "--yes",
       ]),
     ).rejects.toMatchObject({ exitCode: EXIT_PARAM_ERROR });
+    expect(startSpinner).not.toHaveBeenCalled();
   });
 
   it("목록에 없는 resource-id를 EXIT_PARAM_ERROR로 거부한다", async () => {
@@ -248,6 +322,7 @@ describe("API Gateway resource 플러그인 설정", () => {
         "--dry-run",
       ]),
     ).rejects.toMatchObject({ exitCode: EXIT_PARAM_ERROR });
+    expect(stopSpinner).toHaveBeenCalledWith(false);
   });
 
   it("applyChildPath dry-run은 하위 경로까지 출력한다", async () => {
@@ -282,6 +357,7 @@ describe("API Gateway resource 플러그인 설정", () => {
         ids: ["resource-1", "resource-2"],
       }),
     );
+    expect(stderr).toContain("추정값");
   });
 
   it("--dry-run --json은 영향 범위 객체를 stdout에 출력한다", async () => {
@@ -340,7 +416,7 @@ describe("API Gateway resource 플러그인 설정", () => {
     expect(stdout).not.toContain("추정");
   });
 
-  it("경로 dry-run 추정 경고는 stderr에만 출력한다", async () => {
+  it("applyChildPath가 false인 경로 dry-run은 확정 범위라 추정 경고를 내지 않는다", async () => {
     const path = await configFile("path.json", {
       pathPluginList: [{ pluginType: "SET_RESPONSE_HEADER", pluginConfigJson: {} }],
     });
@@ -356,7 +432,7 @@ describe("API Gateway resource 플러그인 설정", () => {
       "--dry-run",
     ]);
 
-    expect(stderr).toContain("추정값");
+    expect(stderr).not.toContain("추정값");
     expect(stdout).not.toContain("추정값");
   });
 
@@ -410,5 +486,9 @@ describe("API Gateway resource 플러그인 설정", () => {
     ]);
 
     expect(setPathPlugins).toHaveBeenCalledOnce();
+    expect(startSpinner).toHaveBeenCalledWith(
+      'API Gateway resource "resource-1" 경로 플러그인 설정 중...',
+    );
+    expect(stopSpinner).toHaveBeenCalledWith(true);
   });
 });

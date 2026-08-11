@@ -73,7 +73,7 @@ function parsePluginInput(
   if ("applyChildPath" in value && typeof value["applyChildPath"] !== "boolean") {
     return configError(`${label}의 applyChildPath는 boolean이어야 합니다.`);
   }
-  if (value["delete"] !== true && !isRecord(value["pluginConfigJson"])) {
+  if (value["delete"] !== true && value["pluginConfigJson"] === undefined) {
     return configError(`${label}에서 delete가 true가 아니면 pluginConfigJson이 필요합니다.`);
   }
   if (
@@ -282,36 +282,60 @@ const setPathPluginCommand = addApiGatewayOptions(
   const opts = command.optsWithGlobals<ResourceOptions>();
   const parsedServiceId = parseRequiredArgument(serviceId, "service-id");
   const parsedResourceId = parseRequiredArgument(resourceId, "resource-id");
+  // Commander requiredOption이 action 진입 전에 configFile을 보장한다.
   const plugins = parsePathPluginConfig(await readPluginConfigFile(opts.configFile!));
 
   if (!opts.dryRun) requireYes(opts.yes, "리소스 경로 플러그인 설정");
 
   const { client } = await resolveApiGatewayClient(opts);
-  const resources = await client.listResources(parsedServiceId);
-  const target = resources.find((resource) => resource.resourceId === parsedResourceId);
-  if (target === undefined) {
-    throw new NhnCloudCliError(
-      `API Gateway resource "${sanitizeForTerminal(parsedResourceId)}"를 찾을 수 없습니다.`,
-      EXIT_PARAM_ERROR,
+  const displayResourceId = sanitizeForTerminal(parsedResourceId);
+  startSpinner(`API Gateway resource "${displayResourceId}" 경로 플러그인 설정 중...`);
+  let target: Resource;
+  let applyChildPath: boolean;
+  let affected: Resource[];
+  let updatedResources: UpdatedResource[] = [];
+  try {
+    const resources = await client.listResources(parsedServiceId);
+    const matchedResource = resources.find(
+      (resource) => resource.resourceId === parsedResourceId,
     );
-  }
+    if (matchedResource === undefined) {
+      throw new NhnCloudCliError(
+        `API Gateway resource "${displayResourceId}"를 찾을 수 없습니다.`,
+        EXIT_PARAM_ERROR,
+      );
+    }
+    target = matchedResource;
 
-  const applyChildPath = plugins.some((plugin) => plugin.applyChildPath === true);
-  const affected = applyChildPath ? collectAffectedPaths(resources, target.path) : [target];
-  const appliedPluginTypes = plugins.map((plugin) => plugin.pluginType).join(",");
+    applyChildPath = plugins.some((plugin) => plugin.applyChildPath === true);
+    affected = applyChildPath ? collectAffectedPaths(resources, target.path) : [target];
 
-  if (plugins.some((plugin) => plugin.pluginType === "CORS")) {
-    process.stderr.write(
-      "경고: CORS 플러그인은 하위에 OPTIONS 메서드를 자동 생성하며 기존 OPTIONS를 삭제·대체합니다.\n",
-    );
+    if (plugins.some((plugin) => plugin.pluginType === "CORS")) {
+      process.stderr.write(
+        "경고: CORS 플러그인은 하위에 OPTIONS 메서드를 자동 생성하며 기존 OPTIONS를 삭제·대체합니다.\n",
+      );
+    }
+    if (plugins.some((plugin) => plugin.applyChildPath === true && plugin.delete === true)) {
+      process.stderr.write(
+        "경고: applyChildPath와 delete가 함께 true이면 하위 전체에서 해당 플러그인이 삭제됩니다.\n",
+      );
+    }
+
+    if (!opts.dryRun) {
+      updatedResources = await client.setPathPlugins(
+        parsedServiceId,
+        parsedResourceId,
+        plugins,
+      );
+    }
+  } catch (error) {
+    stopSpinner(false);
+    throw error;
   }
-  if (plugins.some((plugin) => plugin.applyChildPath === true && plugin.delete === true)) {
-    process.stderr.write(
-      "경고: applyChildPath와 delete가 함께 true이면 하위 전체에서 해당 플러그인이 삭제됩니다.\n",
-    );
-  }
+  stopSpinner(true);
 
   if (opts.dryRun) {
+    const appliedPluginTypes = plugins.map((plugin) => plugin.pluginType).join(",");
     output(opts, {
       headers: ["resourceId", "path", "methodType", "appliedPluginTypes"],
       rows: affected.map((resource) => [
@@ -323,17 +347,14 @@ const setPathPluginCommand = addApiGatewayOptions(
       raw: { targetPath: target.path, applyChildPath, plugins, affected },
       ids: affected.map((resource) => sanitizeForTerminal(resource.resourceId)),
     });
-    process.stderr.write(
-      "경고: dry-run 영향 범위는 path 접두 비교로 계산한 추정값이며 서버 판정과 다를 수 있습니다.\n",
-    );
+    if (applyChildPath) {
+      process.stderr.write(
+        "경고: dry-run 영향 범위는 path 접두 비교로 계산한 추정값이며 서버 판정과 다를 수 있습니다.\n",
+      );
+    }
     return;
   }
 
-  const updatedResources = await client.setPathPlugins(
-    parsedServiceId,
-    parsedResourceId,
-    plugins,
-  );
   updatedResourceOutput(opts, updatedResources);
 });
 
@@ -354,39 +375,69 @@ const setMethodPluginCommand = addApiGatewayOptions(
   const opts = command.optsWithGlobals<ResourceOptions>();
   const parsedServiceId = parseRequiredArgument(serviceId, "service-id");
   const parsedResourceId = parseRequiredArgument(resourceId, "resource-id");
+  // Commander requiredOption이 action 진입 전에 configFile을 보장한다.
   const config = parseMethodPluginConfig(await readPluginConfigFile(opts.configFile!));
 
   if (!opts.dryRun) requireYes(opts.yes, "리소스 메서드 플러그인 설정");
 
   const { client } = await resolveApiGatewayClient(opts);
-  const resources = await client.listResources(parsedServiceId);
-  const target = resources.find((resource) => resource.resourceId === parsedResourceId);
-  if (target === undefined) {
-    throw new NhnCloudCliError(
-      `API Gateway resource "${sanitizeForTerminal(parsedResourceId)}"를 찾을 수 없습니다.`,
-      EXIT_PARAM_ERROR,
+  const displayResourceId = sanitizeForTerminal(parsedResourceId);
+  startSpinner(`API Gateway resource "${displayResourceId}" 메서드 플러그인 설정 중...`);
+  let target: Resource;
+  let methodName: string;
+  let methodDescription: string | undefined;
+  let updatedResources: UpdatedResource[] = [];
+  try {
+    const resources = await client.listResources(parsedServiceId);
+    const matchedResource = resources.find(
+      (resource) => resource.resourceId === parsedResourceId,
     );
-  }
-  if (target.methodType === null) {
-    throw new NhnCloudCliError(
-      "대상 resource는 메서드가 아닌 경로입니다. set-path-plugin을 사용하세요.",
-      EXIT_PARAM_ERROR,
-    );
-  }
+    if (matchedResource === undefined) {
+      throw new NhnCloudCliError(
+        `API Gateway resource "${displayResourceId}"를 찾을 수 없습니다.`,
+        EXIT_PARAM_ERROR,
+      );
+    }
+    target = matchedResource;
+    if (target.methodType === null) {
+      throw new NhnCloudCliError(
+        "대상 resource는 메서드가 아닌 경로입니다. set-path-plugin을 사용하세요.",
+        EXIT_PARAM_ERROR,
+      );
+    }
 
-  const methodName = config.methodName ?? target.methodName;
-  if (methodName === null) {
-    throw new NhnCloudCliError(
-      "기존 methodName이 없습니다. 설정 파일에 methodName을 넣으세요.",
-      EXIT_PARAM_ERROR,
-    );
+    const resolvedMethodName = config.methodName ?? target.methodName;
+    if (resolvedMethodName === null) {
+      throw new NhnCloudCliError(
+        "기존 methodName이 없습니다. 설정 파일에 methodName을 넣으세요.",
+        EXIT_PARAM_ERROR,
+      );
+    }
+    methodName = resolvedMethodName;
+    methodDescription = config.methodDescription ?? target.methodDescription ?? undefined;
+
+    if (!opts.dryRun) {
+      const body: MethodPluginUpdateBody = {
+        methodName,
+        ...(methodDescription === undefined ? {} : { methodDescription }),
+        methodPluginList: config.methodPluginList,
+      };
+      updatedResources = await client.setMethodPlugins(
+        parsedServiceId,
+        parsedResourceId,
+        body,
+      );
+    }
+  } catch (error) {
+    stopSpinner(false);
+    throw error;
   }
-  const methodDescription = config.methodDescription ?? target.methodDescription ?? undefined;
-  const appliedPluginTypes = config.methodPluginList
-    .map((plugin) => plugin.pluginType)
-    .join(",");
+  stopSpinner(true);
 
   if (opts.dryRun) {
+    const appliedPluginTypes = config.methodPluginList
+      .map((plugin) => plugin.pluginType)
+      .join(",");
     output(opts, {
       headers: [
         "resourceId",
@@ -413,16 +464,6 @@ const setMethodPluginCommand = addApiGatewayOptions(
     return;
   }
 
-  const body: MethodPluginUpdateBody = {
-    methodName,
-    ...(methodDescription === undefined ? {} : { methodDescription }),
-    methodPluginList: config.methodPluginList,
-  };
-  const updatedResources = await client.setMethodPlugins(
-    parsedServiceId,
-    parsedResourceId,
-    body,
-  );
   updatedResourceOutput(opts, updatedResources);
 });
 

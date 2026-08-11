@@ -83,6 +83,19 @@ describe("readPluginConfigFile", () => {
     });
   });
 
+  it("1,000,000 바이트를 초과한 파일은 읽기 전에 크기와 한도를 알려 거부한다", async () => {
+    const directory = await makeTempDirectory();
+    const path = join(directory, "large.json");
+    await writeFile(path, "x".repeat(1_000_001), "utf-8");
+
+    await expect(readPluginConfigFile(path)).rejects.toMatchObject({
+      message: expect.stringContaining(
+        "플러그인 설정 파일이 너무 큽니다 (1000001 바이트). JSON spec 한도 1000000 바이트.",
+      ),
+      exitCode: EXIT_PARAM_ERROR,
+    });
+  });
+
   it("JSON 파싱 실패 메시지에 인용된 경로를 포함한다", async () => {
     const directory = await makeTempDirectory();
     const path = join(directory, "broken config.json");
@@ -92,6 +105,18 @@ describe("readPluginConfigFile", () => {
       message: expect.stringContaining(JSON.stringify(path)),
       exitCode: EXIT_PARAM_ERROR,
     });
+  });
+
+  it("JSON 파싱 실패 상세의 ANSI escape와 제어 문자를 치환한다", async () => {
+    const directory = await makeTempDirectory();
+    const path = join(directory, "unsafe.json");
+    await writeFile(path, "not-\u001b[31m-json", "utf-8");
+
+    const error = await readPluginConfigFile(path).catch((caught: unknown) => caught);
+
+    expect(error).toMatchObject({ exitCode: EXIT_PARAM_ERROR });
+    expect((error as Error).message).not.toContain("\u001b");
+    expect((error as Error).message).toContain("not-?[31m-json");
   });
 });
 
