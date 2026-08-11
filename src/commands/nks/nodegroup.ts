@@ -298,13 +298,13 @@ const setMetricAutoscaleCommand = new Command("set-metric-autoscale")
   });
 
 const upgradeCommand = new Command("upgrade")
-  .description("NKS 노드 그룹 Kubernetes version 을 업그레이드한다")
+  .description("NKS 노드 그룹 Kubernetes version 을 업그레이드한다 (default-master 로 control plane 업그레이드)")
   .argument("<cluster>", "클러스터 UUID 또는 이름")
-  .argument("<nodegroup>", "노드 그룹 UUID 또는 이름")
+  .argument("<nodegroup>", "노드 그룹 UUID 또는 이름. control plane 은 default-master 로 지정한다")
   // `--version` 은 root program 의 CLI 버전 플래그라 공백 구분 형식이 가로채인다 (이슈 #76).
   .requiredOption("--kube-version <v>", "대상 Kubernetes version")
-  .option("--num-buffer-nodes <n>", "buffer node 수")
-  .option("--num-max-unavailable-nodes <n>", "최대 unavailable node 수")
+  .option("--num-buffer-nodes <n>", "축출된 파드를 받을 여유 노드 수 (기본 1, 작업 후 자동 삭제, 인스턴스 요금 발생)")
+  .option("--num-max-unavailable-nodes <n>", "한 번에 서비스 불가 상태로 둘 노드 수 (기본 1, 크면 빠르고 가용성 낮음)")
   .option("--region <region>", "region override (기본: iaas 자격증명의 region)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (cluster: string, nodegroup: string, _opts: unknown, cmd: Command) => {
@@ -358,8 +358,8 @@ const updateFlavorCommand = new Command("update-flavor")
   .argument("<cluster>", "클러스터 UUID 또는 이름")
   .argument("<nodegroup>", "노드 그룹 UUID 또는 이름")
   .requiredOption("--flavor <uuid>", "변경할 flavor UUID")
-  .option("--num-buffer-nodes <n>", "buffer node 수")
-  .option("--num-max-unavailable-nodes <n>", "최대 unavailable node 수")
+  .option("--num-buffer-nodes <n>", "축출된 파드를 받을 여유 노드 수 (기본 1, 작업 후 자동 삭제, 인스턴스 요금 발생)")
+  .option("--num-max-unavailable-nodes <n>", "한 번에 서비스 불가 상태로 둘 노드 수 (기본 1, 크면 빠르고 가용성 낮음)")
   .option("--region <region>", "region override (기본: iaas 자격증명의 region)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (cluster: string, nodegroup: string, _opts: unknown, cmd: Command) => {
