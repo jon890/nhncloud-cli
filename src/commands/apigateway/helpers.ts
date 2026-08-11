@@ -13,13 +13,8 @@ export function sanitizeForTerminal(value: string): string {
   return value.replace(/[\x00-\x1F\x7F]/g, "?");
 }
 
-/** --app-key 옵션 > profile 의 apigateway.appkey 순서로 appKey를 해석한다. */
-export async function resolveApiGatewayAppKey(
-  profileName: string,
-  appKeyOption?: string,
-): Promise<string> {
-  if (appKeyOption?.trim()) return appKeyOption.trim();
-
+/** profile 의 apigateway.appkey에서 appKey를 해석한다. */
+export async function resolveApiGatewayAppKey(profileName: string): Promise<string> {
   let credential: { appkey?: string } | undefined;
   try {
     credential = await getServiceCredential("apigateway", profileName);
@@ -31,8 +26,7 @@ export async function resolveApiGatewayAppKey(
 
   if (!credential?.appkey) {
     throw new NhnCloudCliError(
-      "API Gateway appKey가 없습니다. nhncloud configure --apigateway-appkey <key>로 설정하거나\n" +
-        "--app-key로 직접 넘기세요.",
+      "API Gateway appKey가 없습니다. nhncloud configure --apigateway-appkey <key>로 설정하세요.",
       EXIT_CONFIG_ERROR,
     );
   }
@@ -43,12 +37,11 @@ export async function resolveApiGatewayAppKey(
 export async function resolveApiGatewayClient(opts: {
   profile?: string;
   region?: string;
-  appKey?: string;
 }): Promise<{ client: ApiGatewayClient; profileName: string }> {
   const profileName = await resolveProfileName(opts.profile);
   const uak = await getUserAccessKey(profileName);
   const accessToken = await getAccessToken(profileName, uak.id, uak.secret);
-  const appKey = await resolveApiGatewayAppKey(profileName, opts.appKey);
+  const appKey = await resolveApiGatewayAppKey(profileName);
   return {
     client: new ApiGatewayClient(accessToken, opts.region ?? "kr1", appKey),
     profileName,

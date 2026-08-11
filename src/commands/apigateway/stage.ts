@@ -11,7 +11,6 @@ import { resolveApiGatewayClient, sanitizeForTerminal } from "./helpers.js";
 
 interface StageOptions extends OutputOptions {
   region?: string;
-  appKey?: string;
   profile?: string;
   output?: string;
   force?: boolean;
@@ -20,7 +19,6 @@ interface StageOptions extends OutputOptions {
 function addApiGatewayOptions(command: Command): Command {
   return command
     .option("--region <region>", "API Gateway region (기본: kr1)", "kr1")
-    .option("--app-key <key>", "API Gateway appKey (profile 의 apigateway.appkey 보다 우선)")
     .option("--profile <name>", "사용할 profile 이름");
 }
 

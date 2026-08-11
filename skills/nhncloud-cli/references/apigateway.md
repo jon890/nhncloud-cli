@@ -6,8 +6,7 @@
 ## 인증과 설정
 
 공통 UAK와 API Gateway `appKey`가 필요하다.
-`nhncloud configure --apigateway-appkey <appkey>`로 `profile`의 `apigateway.appkey`를 설정하거나, 명령마다 `--app-key <appkey>`를 넘긴다.
-`--app-key`가 `profile` 설정보다 우선한다.
+`nhncloud configure --apigateway-appkey <appkey>`로 `profile`의 `apigateway.appkey`를 설정한다.
 
 API 요청은 공통 UAK로 발급한 Bearer 토큰을 `X-NHN-Authorization` 헤더에 담는다.
 표준 `Authorization` 헤더가 아니므로 직접 API를 호출할 때 혼동하지 않는다.
@@ -15,12 +14,12 @@ API 요청은 공통 UAK로 발급한 Bearer 토큰을 `X-NHN-Authorization` 헤
 지원 `region`은 `kr1`, `kr2`, `kr3`이며 기본값은 `kr1`이다.
 
 ```bash
-nhncloud apigateway service list --region kr1 --app-key <appkey> --json
+nhncloud apigateway service list --region kr1 --json
 ```
 
 ## 명령
 
-아래 표의 공통 옵션은 `--region <region>`, `--app-key <key>`, `--profile <name>`이다.
+아래 표의 공통 옵션은 `--region <region>`, `--profile <name>`이다.
 루트 전역 옵션인 `--json`과 `--quiet`도 사용할 수 있다.
 
 | 명령 경로 | 인수 | 명령 옵션 |

@@ -7,14 +7,12 @@ import { resolveApiGatewayClient, sanitizeForTerminal } from "./helpers.js";
 
 interface ServiceOptions extends OutputOptions {
   region?: string;
-  appKey?: string;
   profile?: string;
 }
 
 const listCommand = new Command("list")
   .description("API Gateway service 목록을 조회한다 (전체 필드는 --json)")
   .option("--region <region>", "API Gateway region (기본: kr1)", "kr1")
-  .option("--app-key <key>", "API Gateway appKey (profile 의 apigateway.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (_opts: unknown, command: Command) => {
     const opts = command.optsWithGlobals<ServiceOptions>();
@@ -54,7 +52,6 @@ const getCommand = new Command("get")
   .description("API Gateway service 한 건을 조회한다 (전체 필드는 --json)")
   .argument("<service-id>", "API Gateway service ID")
   .option("--region <region>", "API Gateway region (기본: kr1)", "kr1")
-  .option("--app-key <key>", "API Gateway appKey (profile 의 apigateway.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (serviceId: string, _opts: unknown, command: Command) => {
     const opts = command.optsWithGlobals<ServiceOptions>();
