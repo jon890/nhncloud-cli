@@ -101,9 +101,10 @@ nhncloud ncr list                                             # 컨테이너 레
 nhncloud nks cluster list                                     # Kubernetes 클러스터
 nhncloud deploy artifacts                                     # 배포 아티팩트
 nhncloud logncrash search --query '*' --from 1h --to now      # 최근 1시간 로그
+nhncloud apigateway service list                               # API Gateway 서비스
 ```
 
-전체 명령과 옵션은 `--help` 로 본다. 현재 149개다.
+전체 명령과 옵션은 `--help` 로 본다. 현재 164개다.
 
 ```bash
 nhncloud --help
