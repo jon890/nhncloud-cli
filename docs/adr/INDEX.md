@@ -35,3 +35,4 @@ ADR-NNN 내용은 `docs/adr/NNN-*.md` 로 찾는다(번호 glob — slug 몰라�
 - [ADR-025](025-managed-skill-lifecycle.md): 공개 스킬 명시 갱신과 버전·콘텐츠 해시별 관리 저장소
 - [ADR-026](026-request-timeout-global-control.md): HTTP 요청 타임아웃 전역 제어 — `--request-timeout` 과 deploy 상한 max 규칙
 - [ADR-027](027-apigateway-read-api.md): API Gateway 조회 API — 인증 헤더, endpoint, 엔드포인트별 pagination 비대칭
+- [ADR-028](028-apigateway-write-api.md): API Gateway 쓰기 API — 플러그인 upsert, 필수 필드 보존, 하위 일괄 적용
