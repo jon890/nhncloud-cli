@@ -15,9 +15,14 @@ live 쓰기 검증 절차를 사용자가 실행할 수 있는 형태로 남긴�
 **범위 외**: `docs/adr/`·`docs/prd.md`·`docs/flow.md`·`docs/code-architecture.md` 는
 planning 이 이미 갱신하고 커밋했다. 이 phase 에서 다시 고치지 않는다.
 
+`AGENTS.md` 도 이 phase 의 대상이 아니다.
+명령 카탈로그 수는 구현이 끝난 뒤에만 확정되지만 그 파일은 결정 문서라 소유자가 team-lead 다.
+team-lead 가 phase 루프 밖에서 실제 건수를 세어 갱신하고 별도 커밋으로 남긴다.
+구현자는 `AGENTS.md` 를 편집하지 않는다.
+
 ---
 
-## 작업 항목 (4)
+## 작업 항목 (3)
 
 ### 1. `skills/nhncloud-cli/references/apigateway.md` — 변경 명령 추가
 
@@ -29,6 +34,11 @@ phase 01 이 `--app-key` 서술을 걷어낸 상태에서 이어 작성한다.
 - 자동화 시나리오에 플러그인 일괄 적용 예시를 넣는다.
   `--dry-run` 으로 범위를 먼저 보고 `--yes` 로 적용하는 두 단계다
 - 변경이 스테이지에 반영되려면 별도 반영과 배포가 필요하고 그 명령은 아직 없다는 한 줄을 남긴다
+- 이 두 명령만 `--dry-run` 을 제공하는 이유를 한 줄 남긴다.
+  다른 위험 명령은 `--yes` 확인만 두는데, 하위 적용 범위를 서버가 판정하고
+  CORS 플러그인이 기존 OPTIONS 메서드를 대체하므로 되돌릴 수 없는 범위를
+  미리 볼 방법이 필요하기 때문이다.
+  근거를 남기지 않으면 다음 쓰기 명령이 무엇을 따라야 할지 알 수 없다
 - 실제 appkey·서비스 식별자·사내 도메인을 쓰지 않는다. `<appkey>`·`<service-id>`·
   `https://backend.example.com` 같은 placeholder 만 쓴다
 
@@ -42,12 +52,6 @@ intro 의 "지원 명령" 문구가 조회만 가리키면 변경까지 포함�
 `apigateway` 항목이 조회 전용으로 서술돼 있으면 변경까지 포함하도록 고친다.
 프론트매터 `description` 이 서비스 목록을 담고 있으면 함께 확인한다.
 
-### 4. `AGENTS.md` — 명령 카탈로그 수 갱신
-
-`nhncloud commands --json` 의 실제 건수를 세어 14번째 줄의 수치를 그 값으로 바꾼다.
-직전 값은 164 이고 이 plan 이 명령 3개를 더하므로 167 이 예상값이다.
-예상과 다르면 수치를 실제 값으로 적고, 차이가 난 이유를 커밋 메시지에 남긴다.
-
 ---
 
 ## Critical Files
@@ -57,7 +61,6 @@ intro 의 "지원 명령" 문구가 조회만 가리키면 변경까지 포함�
 | `skills/nhncloud-cli/references/apigateway.md` | 수정 |
 | `README.md` | 수정 |
 | `skills/nhncloud-cli/SKILL.md` | 수정 |
-| `AGENTS.md` | 수정 |
 | `tasks/054-2-feat-apigateway-write/index.json` | 수정 |
 
 ## 검증
@@ -68,14 +71,22 @@ pnpm tsc --noEmit
 pnpm test
 pnpm run build
 
-# 카탈로그 건수와 AGENTS.md 수치가 일치한다
-COUNT="$(node dist/index.js commands --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>process.stdout.write(String(JSON.parse(s).commands.length)))')"
-grep -q "명령 카탈로그는 ${COUNT}개다" AGENTS.md
+# AGENTS.md 는 손대지 않는다 — 카탈로그 수 갱신은 team-lead 소유다
+test "$(git diff origin/main --name-only -- AGENTS.md | grep -c .)" = "0"
 
-# 세 명령이 공개 가이드에 등재됐다
+# 세 명령이 서비스 참조 문서에 등재됐다
 for cmd in "stage update" "resource set-path-plugin" "resource set-method-plugin"; do
-  grep -q "$cmd" skills/nhncloud-cli/references/apigateway.md || { echo "MISSING: $cmd"; exit 1; }
+  grep -q "$cmd" skills/nhncloud-cli/references/apigateway.md || { echo "MISSING in references: $cmd"; exit 1; }
 done
+
+# router 와 README 도 변경 명령을 노출한다.
+# 신규 고유 토큰으로 검사한다 — 이 토큰은 이 plan 이전에 저장소에 없었다
+grep -q "set-path-plugin" skills/nhncloud-cli/SKILL.md
+grep -q "apigateway" README.md
+test "$(grep -c 'set-path-plugin\|stage update' README.md)" -ge "1"
+
+# --dry-run 을 이 두 명령만 제공하는 근거가 참조 문서에 남았다
+grep -q "dry-run" skills/nhncloud-cli/references/apigateway.md
 
 # 공개 저장소 정보 보호 검사 2건이 0 건이다
 test "$(grep -rnoE '(https?://|@)[A-Za-z0-9.-]+\.(com|co\.kr|net)' README.md skills/ docs/ AGENTS.md CLAUDE.md src/ 2>/dev/null | grep -vE 'nhncloud\.com|nhncloudservice\.com|github\.com|npmjs\.com|example\.com|openai\.com|anthropic\.com' | grep -c .)" = "0"
@@ -142,7 +153,9 @@ git diff --check
 
 - 사용자 가이드를 마지막 phase 에 두는 이유는 명령 표면이 phase 03·04 에서 확정되기 때문이다.
   먼저 쓰면 옵션 이름이 바뀔 때마다 두 번 고친다.
-- 카탈로그 수를 실제 건수로 세어 대조하는 이유는 예상값을 그대로 적으면
-  중간에 명령이 늘거나 줄었을 때 문서만 어긋나기 때문이다.
+- `AGENTS.md` 를 이 phase 에서 떼어낸 이유는 그 파일이 결정 문서이기 때문이다.
+  값은 구현 뒤에만 확정되지만 소유자는 team-lead 라, 편집 시점과 소유권을 구분한다.
+- 신규 고유 토큰으로 문서 갱신을 검사하는 이유는 "조회" 같은 기존 단어로 grep 하면
+  손대지 않은 문서도 통과하기 때문이다.
 - 수동 QA 를 설명 변경부터 시작하는 이유는 백엔드 URL 변경이 트래픽 경로를 바꾸는 반면
   설명은 되돌리기 쉬워 절차 자체를 안전하게 검증할 수 있기 때문이다.

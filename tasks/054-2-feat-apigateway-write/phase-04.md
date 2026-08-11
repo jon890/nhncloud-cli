@@ -53,12 +53,30 @@ nhncloud apigateway resource set-path-plugin <service-id> <resource-id>
 5. 항목 중 하나라도 `applyChildPath` 가 참이면 `client.listResources(serviceId)` 로 목록을 받아
    `collectAffectedPaths` 로 영향 범위를 계산한다.
    대상 `resource-id` 의 `path` 를 목록에서 찾아 기준 경로로 쓴다
-6. `--dry-run` 이면 영향 범위와 적용될 플러그인 타입을 stdout 으로 출력하고
-   쓰기 호출 없이 종료한다
+6. `--dry-run` 이면 영향 범위를 출력하고 쓰기 호출 없이 종료한다
 7. `--dry-run` 이 아니면 `client.setPathPlugins` 를 호출하고 결과를 출력한다
 
-`--dry-run` 출력에는 계산이 추정임을 stderr 로 함께 알린다.
-범위는 `path` 접두 비교로 구한 값이고 서버 판정과 완전히 같다고 보장할 수 없다.
+`--dry-run` 의 조기 반환도 세 출력 모드를 모두 지킨다.
+이 저장소에 `--dry-run` 선례가 없으므로 계약을 여기서 정한다.
+조기 반환 경로가 `output()` 을 타지 않으면 `--json` 이 사람용 표를 내거나
+`--quiet` 이 아무것도 내지 않아, 자동화가 범위를 확인할 수 없다.
+
+```ts
+output(opts, {
+  headers: ["resourceId", "path", "methodType", "appliedPluginTypes"],
+  rows: affected.map(...),   // methodType 이 null 이면 "-"
+  raw: { targetPath, applyChildPath, plugins, affected },
+  ids: affected.map((r) => r.resourceId),
+});
+```
+
+- 기본(표) — 영향받는 리소스별 한 행. 적용될 플러그인 타입을 마지막 열에 넣는다
+- `--json` — `raw` 객체 그대로. 기준 경로·하위 적용 여부·플러그인 목록·영향 리소스를 담는다
+- `--quiet` — 영향 리소스 ID 목록만 한 줄에 하나씩. 다음 명령에 파이프할 수 있어야 한다
+
+`--dry-run` 은 범위가 추정임을 stderr 로 함께 알린다.
+`path` 접두 비교로 구한 값이라 서버 판정과 완전히 같다고 보장할 수 없다.
+이 경고는 stderr 이므로 `--json` 출력을 오염시키지 않는다.
 
 `CORS` 타입이 포함되면 하위에 OPTIONS 메서드가 자동 생성되고 기존 OPTIONS 가
 삭제·대체된다는 경고를 호출 전 stderr 로 낸다.
@@ -88,6 +106,20 @@ nhncloud apigateway resource set-method-plugin <service-id> <resource-id>
 파일에 그 필드가 있으면 무시하지 않고 `EXIT_PARAM_ERROR` 로 거부한다 —
 조용히 무시하면 사용자가 하위에 적용됐다고 오해한다.
 
+`--dry-run` 은 경로 명령과 같은 출력 계약을 쓰되 영향 범위가 항상 자기 자신 하나다.
+하위 적용이 없어 접두 비교를 하지 않으므로 추정 경고도 내지 않는다.
+대신 실제로 실릴 `methodName` 과 `methodDescription` 을 함께 보여 준다 —
+파일에 이름을 넣지 않은 호출이 무엇을 그대로 유지하게 되는지 미리 확인할 수 있다.
+
+```ts
+output(opts, {
+  headers: ["resourceId", "path", "methodType", "methodName", "appliedPluginTypes"],
+  rows: [...],
+  raw: { target, methodName, methodDescription, plugins },
+  ids: [target.resourceId],
+});
+```
+
 ### 3. `src/commands/apigateway/resource.ts` — 옵션 인터페이스와 그룹 등록
 
 `ResourceOptions` 에 `configFile?: string`·`dryRun?: boolean`·`yes?: boolean` 을 더한다.
@@ -105,6 +137,10 @@ nhncloud apigateway resource set-method-plugin <service-id> <resource-id>
 - 파일에 `methodName` 이 없으면 기존 값을 실어 보낸다
 - 없는 `--config-file` 경로는 `EXIT_PARAM_ERROR` 로 던진다
 - `applyChildPath` 가 참인 `--dry-run` 이 하위 경로 건수를 출력한다
+- `--dry-run --json` 이 `targetPath`·`applyChildPath`·`plugins`·`affected` 를 담은 객체를 stdout 에 낸다
+- `--dry-run --quiet` 이 영향 리소스 ID 만 한 줄에 하나씩 낸다 (표 머리글·경고가 stdout 에 섞이지 않는다)
+- `--dry-run` 의 추정 경고가 stdout 이 아니라 stderr 로 나간다
+- 메서드 명령의 `--dry-run` 은 영향 리소스가 1건이고 추정 경고를 내지 않는다
 
 ---
 
@@ -137,6 +173,16 @@ test "$(node dist/index.js apigateway resource set-path-plugin --help | grep -c 
 
 # 플러그인 타입 상수를 명령이 실제로 참조한다
 test "$(grep -c 'PATH_PLUGIN_TYPES\|METHOD_PLUGIN_TYPES' src/commands/apigateway/resource.ts)" -ge "2"
+
+# --dry-run 조기 반환도 output() 을 타서 세 출력 모드를 지킨다.
+# 변경 전 resource.ts 의 output(opts 호출은 3회(조회 3개)다. 두 명령이 최소 2회를 더한다
+test "$(grep -c 'output(opts' src/commands/apigateway/resource.ts)" -ge "5"
+
+# 출력 모드를 우회하는 직접 쓰기가 없다 (변경 전에도 0회다)
+test "$(grep -c 'process.stdout.write' src/commands/apigateway/resource.ts)" = "0"
+
+# 위 grep 은 하한만 본다. dry-run 의 세 출력 모드 계약은 테스트가 실제로 강제한다
+test "$(grep -c 'dry-run' src/commands/apigateway/resource.test.ts)" -ge "4"
 
 git diff --check
 ```

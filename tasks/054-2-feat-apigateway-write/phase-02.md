@@ -35,6 +35,8 @@ export interface MethodPluginUpdateBody { methodName: string; methodDescription?
 - `PATH_PLUGIN_TYPES` — `CORS`, `SET_REQUEST_HEADER`, `SET_RESPONSE_HEADER`, `ADD_REQUEST_QUERY_PARAMETER`
 - `METHOD_PLUGIN_TYPES` — `HTTP`, `MOCK`, `SET_REQUEST_HEADER`, `SET_RESPONSE_HEADER`, `ADD_REQUEST_QUERY_PARAMETER`
 
+쓰기 응답에는 조회용 가드를 재사용하지 않는다. 두 응답의 필드 집합이 실제로 다르다.
+
 스테이지 **수정 응답** 전용 타입 `UpdatedStage` 와 가드 `isUpdatedStage` 를 새로 만든다.
 기존 `isStage` 를 재사용하면 안 된다 — 조회 응답에는 있는 `stageCustomUrl` 과
 `stageAliasDomainList` 가 수정 응답에는 없어, 성공 응답이 가드에서 거부된다.
@@ -42,14 +44,26 @@ export interface MethodPluginUpdateBody { methodName: string; methodDescription?
 `stageDescription`·`stageUrl`·`backendEndpointUrl`·`resourceUpdatedAt`·`createdAt`·`updatedAt` 과
 배열 `stageCustomDomainList` 다. 나머지는 인덱스 시그니처로 흘린다.
 
+플러그인 **수정 응답** 전용 타입 `UpdatedResource` 와 가드 `isUpdatedResource` 도 같은 이유로 만든다.
+기존 `isResource` 를 재사용하면 안 된다.
+그 가드는 `parentPath`·`methodType`·`methodName`·`methodDescription`·`createdAt`·`updatedAt`·
+`resourcePluginList` 를 전부 필수로 요구하는데, `resource-paths`·`resource-methods` 응답이
+그 일곱 필드를 같은 형태로 준다는 근거가 공식 문서에 없다(응답 예시가 잘려 있다).
+스테이지에서 실제로 확인된 것과 같은 필드 축소가 일어나면
+쓰기가 이미 성공한 뒤 CLI 가 응답 형식 오류로 끝나고, 사용자는 재적용을 시도한다.
+
+`isUpdatedResource` 는 `resourceId`(string)와 `path`(string) 둘만 필수로 요구한다.
+나머지는 optional 로 두고 인덱스 시그니처로 흘려, 서버가 필드를 줄여도 성공을 성공으로 보고한다.
+출력에서 쓰는 필드는 값이 없을 때 대체 문자를 넣는다 — 조회 명령이 nullable 필드에 쓰는 방식과 같다.
+
 ### 2. `src/services/apigateway/client.ts` — 쓰기 메서드 3개
 
 기존 조회 메서드와 같은 방식으로 `authHeaders()`·`DEFAULT_TIMEOUT_MS`·`toNhnCloudCliError` 를 쓴다.
 
 ```ts
 async updateStage(apigwServiceId: string, stageId: string, body: StageUpdateBody): Promise<UpdatedStage>
-async setPathPlugins(apigwServiceId: string, resourceId: string, pathPluginList: PathPluginInput[]): Promise<Resource[]>
-async setMethodPlugins(apigwServiceId: string, resourceId: string, body: MethodPluginUpdateBody): Promise<Resource[]>
+async setPathPlugins(apigwServiceId: string, resourceId: string, pathPluginList: PathPluginInput[]): Promise<UpdatedResource[]>
+async setMethodPlugins(apigwServiceId: string, resourceId: string, body: MethodPluginUpdateBody): Promise<UpdatedResource[]>
 ```
 
 경로는 아래와 같다. 리소스 쓰기는 조회의 `resources` 가 아니라 별도 경로다.
@@ -64,8 +78,9 @@ async setMethodPlugins(apigwServiceId: string, resourceId: string, body: MethodP
 이 API 는 권한 오류를 HTTP 200 에 `isSuccessful: false` 로 주므로
 봉투를 검사하지 않으면 실패가 성공으로 보고된다.
 `updateStage` 는 `stage` 키를 `isUpdatedStage` 로 좁히고,
-플러그인 두 메서드는 `resourceList` 배열을 기존 `isResource` 로 좁힌다.
+플러그인 두 메서드는 `resourceList` 배열을 `isUpdatedResource` 로 좁힌다.
 좁히기에 실패하면 `NhnCloudCliError(..., EXIT_API_ERROR)` 를 던진다.
+쓰기 경로에서 조회용 `isStage`·`isResource` 를 호출하지 않는다.
 
 catch 블록은 `if (error instanceof NhnCloudCliError) throw error;` 를 먼저 두고
 그 뒤에 `toNhnCloudCliError(error)` 를 쓴다.
@@ -103,6 +118,10 @@ export function collectAffectedPaths(resources: Resource[], targetPath: string):
 넣지 않는다. 문서의 수정 응답이 그 두 필드를 주지 않으며, 이 fixture 가 조회용 가드
 재사용을 막는 회귀 테스트가 된다.
 
+플러그인 두 메서드의 성공 fixture 는 `resourceList` 항목에 `resourceId` 와 `path` 만 담는다.
+서버가 필드를 줄여도 성공을 성공으로 보고해야 하므로, 이 fixture 가 `isResource` 재사용을
+막는 회귀 테스트가 된다. `isResource` 로 좁히면 이 케이스에서 실패한다.
+
 `helpers.test.ts` 에는 `collectAffectedPaths` 의 경계를 넣는다 —
 루트 `/` 입력, `/private` 대 `/private2` 구분, 정확히 일치하는 경로 포함.
 
@@ -130,12 +149,20 @@ pnpm run build
 test "$(grep -c 'unwrapHeader' src/services/apigateway/client.ts)" -ge "14"
 
 # 쓰기 경로가 resource-paths / resource-methods 로 들어갔다
-test "$(grep -c 'resource-paths' src/services/apigateway/client.ts)" = "1"
-test "$(grep -c 'resource-methods' src/services/apigateway/client.ts)" = "1"
+test "$(grep -c 'resource-paths' src/services/apigateway/client.ts)" -ge "1"
+test "$(grep -c 'resource-methods' src/services/apigateway/client.ts)" -ge "1"
 
-# 수정 응답 전용 가드가 있고 조회 가드를 재사용하지 않는다
+# 수정 응답 전용 가드 두 개가 정의되고 client 가 둘 다 쓴다
 test "$(grep -c 'isUpdatedStage' src/services/apigateway/types.ts)" -ge "2"
+test "$(grep -c 'isUpdatedResource' src/services/apigateway/types.ts)" -ge "2"
 test "$(grep -c 'isUpdatedStage' src/services/apigateway/client.ts)" -ge "1"
+test "$(grep -c 'isUpdatedResource' src/services/apigateway/client.ts)" -ge "1"
+
+# 쓰기 메서드가 조회용 가드를 재사용하지 않는다 (ADR-028 결정)
+# 세 쓰기 메서드 본문에서 isStage / isResource 호출이 0건이어야 한다.
+# isUpdatedStage·isUpdatedResource 가 부분 일치로 잡히지 않게 앞 문자를 제한한다
+# (macOS BSD grep 은 \b 지원이 불확실하므로 문자 클래스를 쓴다)
+test "$(awk '/async (updateStage|setPathPlugins|setMethodPlugins)\(/,/^  }$/' src/services/apigateway/client.ts | grep -cE '(^|[^A-Za-z])(isStage|isResource)\(')" = "0"
 
 # JSON 파싱 결과를 as 로 단언하지 않는다
 test "$(grep -n 'JSON.parse' src/commands/apigateway/helpers.ts | grep -c ' as ')" = "0"

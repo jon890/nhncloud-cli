@@ -85,6 +85,8 @@ pnpm run build
 test "$(grep -rn -- '--app-key' src/commands/apigateway/ skills/nhncloud-cli/references/apigateway.md | grep -c .)" = "0"
 
 # deploy·ncr·ncs 의 --app-key 는 그대로 유지 (이 phase 대상 아님)
+# 38 = deploy 8 + ncr 4 + ncs 26. 옵션 정의만 세므로 두 서비스 helpers 의 오류 메시지·JSDoc 은 포함되지 않는다.
+# 이슈 #85(세 서비스에서 --app-key 제거)가 먼저 머지되면 이 값과 검사 자체가 무의미해지니 그때 함께 지운다
 test "$(grep -rn -- '"--app-key' src/commands/deploy/ src/commands/ncr/ src/commands/ncs/ | grep -c .)" = "38"
 
 # 커맨드 트리에 apigateway --app-key 옵션 0건
