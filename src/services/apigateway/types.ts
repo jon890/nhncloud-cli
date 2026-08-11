@@ -64,6 +64,42 @@ export interface ApiGatewayServiceListParams {
   limit?: number;
 }
 
+export interface StageUpdateBody {
+  backendEndpointUrl: string;
+  stageDescription?: string;
+}
+
+export interface PluginInput {
+  pluginType: string;
+  pluginConfigJson?: Record<string, unknown>;
+  delete?: boolean;
+}
+
+export interface PathPluginInput extends PluginInput {
+  applyChildPath?: boolean;
+}
+
+export interface MethodPluginUpdateBody {
+  methodName: string;
+  methodDescription?: string;
+  methodPluginList: PluginInput[];
+}
+
+export const PATH_PLUGIN_TYPES = [
+  "CORS",
+  "SET_REQUEST_HEADER",
+  "SET_RESPONSE_HEADER",
+  "ADD_REQUEST_QUERY_PARAMETER",
+] as const;
+
+export const METHOD_PLUGIN_TYPES = [
+  "HTTP",
+  "MOCK",
+  "SET_REQUEST_HEADER",
+  "SET_RESPONSE_HEADER",
+  "ADD_REQUEST_QUERY_PARAMETER",
+] as const;
+
 /** API Gateway resource 목록 응답 항목 (ADR-027 실측 계약). */
 export interface Resource {
   resourceId: string;
@@ -76,6 +112,14 @@ export interface Resource {
   createdAt: string;
   updatedAt: string;
   resourcePluginList: unknown[];
+  [key: string]: unknown;
+}
+
+/** resource-paths·resource-methods 수정 응답 항목 (ADR-028). */
+export interface UpdatedResource {
+  resourceId: string;
+  path: string;
+  methodType?: string | null;
   [key: string]: unknown;
 }
 
@@ -133,6 +177,17 @@ export function isResource(value: unknown): value is Resource {
   );
 }
 
+/** `isUpdatedResource`는 수정 출력에 필요한 최소 필드만 요구한다. */
+export function isUpdatedResource(value: unknown): value is UpdatedResource {
+  if (typeof value !== "object" || value === null) return false;
+  const obj = value as Record<string, unknown>;
+  return (
+    typeof obj["resourceId"] === "string" &&
+    typeof obj["path"] === "string" &&
+    (obj["methodType"] === undefined || isNullableString(obj["methodType"]))
+  );
+}
+
 /** API Gateway resource parameter 응답 타입 가드. */
 export function isResourceParameters(value: unknown): value is ResourceParameters {
   if (typeof value !== "object" || value === null) return false;
@@ -178,6 +233,16 @@ export interface Stage {
   stageCustomUrl: string;
   stageCustomDomainList: StageCustomDomain[];
   stageAliasDomainList: StageAliasDomain[];
+  [key: string]: unknown;
+}
+
+/** stage 수정 응답 항목. 조회 응답보다 필드가 적으므로 별도 계약을 둔다. */
+export interface UpdatedStage {
+  stageId: string;
+  stageName: string | null;
+  stageUrl: string;
+  backendEndpointUrl: string;
+  updatedAt: string;
   [key: string]: unknown;
 }
 
@@ -247,6 +312,18 @@ export function isStage(value: unknown): value is Stage {
     value["stageCustomDomainList"].every(isStageCustomDomain) &&
     Array.isArray(value["stageAliasDomainList"]) &&
     value["stageAliasDomainList"].every(isStageAliasDomain)
+  );
+}
+
+/** `isUpdatedStage`는 수정 성공 뒤 재시도를 유발하지 않도록 출력 필드만 좁힌다. */
+export function isUpdatedStage(value: unknown): value is UpdatedStage {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value["stageId"] === "string" &&
+    isNullableString(value["stageName"]) &&
+    typeof value["stageUrl"] === "string" &&
+    typeof value["backendEndpointUrl"] === "string" &&
+    typeof value["updatedAt"] === "string"
   );
 }
 
