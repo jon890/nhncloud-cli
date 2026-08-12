@@ -1,12 +1,18 @@
 import { Command } from "commander";
-import { rename, rm } from "node:fs/promises";
+import { rename, rm, truncate } from "node:fs/promises";
 import { createWriteStream, statSync } from "node:fs";
 import { randomBytes } from "node:crypto";
-import { resolveTime, assertSearchRange } from "../../utils/time.js";
+import {
+  resolveTime,
+  assertSearchRange,
+  MIN_SPLIT_WINDOW_MS,
+  splitTimeRange,
+} from "../../utils/time.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR, EXIT_API_ERROR } from "../../utils/exit-codes.js";
 import { LogncrashClient } from "../../services/logncrash/client.js";
+import { LogncrashServerError } from "../../services/logncrash/errors.js";
 import type { ScrollResult } from "../../services/logncrash/types.js";
 import { resolveLogncrashClient } from "./helpers.js";
 
@@ -100,44 +106,85 @@ export const exportCommand = new Command("export")
     // 한 번에 JSON.stringify 하면 큰 로그에서 V8 string 한계로 OOM 한다.
     // 진행 표시는 spinner.text 로만 갱신(별도 stderr.write 는 ora 와 줄이 뒤섞임).
     const tmp = opts.output + "." + randomBytes(4).toString("hex") + ".tmp";
-    const stream = createWriteStream(tmp, { encoding: "utf-8" });
+    let stream = createWriteStream(tmp, { encoding: "utf-8" });
     const spinner = startSpinner("로그 추출 중...");
 
     let count = 0;
     let total = 0;
     let first = true;
+    let bytePosition = 0;
+    const write = (chunk: string): void => {
+      stream.write(chunk);
+      bytePosition += Buffer.byteLength(chunk, "utf-8");
+    };
     const writePage = (data: Record<string, unknown>[]): void => {
       for (const log of data) {
         if (count >= MAX_TOTAL) break;
         const json = JSON.stringify(log);
-        stream.write(format === "json" ? (first ? json : "," + json) : json + "\n");
+        write(format === "json" ? (first ? json : "," + json) : json + "\n");
         first = false;
         count++;
       }
     };
 
     try {
-      if (format === "json") stream.write("[");
-      let res: ScrollResult = await client.scrollStart({
-        query: opts.query,
-        from: fromIso,
-        to: toIso,
-      });
-      total = res.totalItems;
-      writePage(res.data);
-      spinner.text = `로그 추출 중... ${count}/${total}`;
+      if (format === "json") write("[");
 
-      while (res.data.length > 0 && res.scrollKey && count < Math.min(total, MAX_TOTAL)) {
-        res = await scrollNextWithHint(client, res.scrollKey);
-        writePage(res.data);
-        spinner.text = `로그 추출 중... ${count}/${total}`;
+      let pendingWindows = [{ from: fromIso, to: toIso }];
+      let completedWindows = 0;
+      while (pendingWindows.length > 0) {
+        const window = pendingWindows.shift();
+        if (!window) break;
+        const checkpoint: {
+          bytesWritten: number;
+          count: number;
+          first: boolean;
+          total: number;
+        } = {
+          bytesWritten: bytePosition,
+          count,
+          first,
+          total,
+        };
+
+        try {
+          let res: ScrollResult = await client.scrollStart({
+            query: opts.query,
+            from: window.from,
+            to: window.to,
+          });
+          total += res.totalItems;
+          writePage(res.data);
+          spinner.text = `로그 추출 중... 창 ${completedWindows + 1}/${completedWindows + pendingWindows.length + 1} ${count}/${total}`;
+
+          while (res.data.length > 0 && res.scrollKey && count < Math.min(total, MAX_TOTAL)) {
+            res = await scrollNextWithHint(client, res.scrollKey);
+            writePage(res.data);
+            spinner.text = `로그 추출 중... 창 ${completedWindows + 1}/${completedWindows + pendingWindows.length + 1} ${count}/${total}`;
+          }
+          completedWindows++;
+        } catch (err) {
+          if (!(err instanceof LogncrashServerError)) throw err;
+
+          // pending write 를 모두 flush 한 뒤에만 실패한 창의 시작 위치로 되돌린다.
+          await endAndClose(stream);
+          await truncate(tmp, checkpoint.bytesWritten);
+          stream = createWriteStream(tmp, { encoding: "utf-8", flags: "a" });
+          bytePosition = checkpoint.bytesWritten;
+          count = checkpoint.count;
+          first = checkpoint.first;
+          total = checkpoint.total;
+
+          const currentWindowMs = new Date(window.to).getTime() - new Date(window.from).getTime();
+          const smallerWindowMs = Math.ceil(currentWindowMs / 2);
+          if (smallerWindowMs < MIN_SPLIT_WINDOW_MS) throw err;
+          pendingWindows = splitTimeRange(window.from, toIso, smallerWindowMs);
+        }
       }
-      if (format === "json") stream.write("]\n");
 
-      await new Promise<void>((resolve, reject) => {
-        stream.once("error", reject);
-        stream.end(resolve);
-      });
+      if (format === "json") write("]\n");
+
+      await endAndClose(stream);
     } catch (err) {
       stopSpinner(false);
       // createWriteStream 은 파일을 지연 open 한다. destroy() 의 close 를 기다리지 않고 rm 하면
@@ -183,6 +230,7 @@ async function scrollNextWithHint(client: LogncrashClient, scrollKey: string): P
   try {
     return await client.scrollNext(scrollKey);
   } catch (err) {
+    if (err instanceof LogncrashServerError) throw err;
     if (err instanceof NhnCloudCliError && err.exitCode === EXIT_API_ERROR) {
       throw new NhnCloudCliError(
         `scroll 다음 페이지 요청이 실패했습니다 (원인: ${err.message}). 검색 범위를 좁혀 다시 실행하세요.`,
@@ -191,4 +239,13 @@ async function scrollNextWithHint(client: LogncrashClient, scrollKey: string): P
     }
     throw err;
   }
+}
+
+/** stream.end() 뒤 close 까지 기다려 지연 write 가 디스크에 반영되도록 한다. */
+async function endAndClose(stream: ReturnType<typeof createWriteStream>): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    stream.once("error", reject);
+    stream.once("close", resolve);
+    stream.end();
+  });
 }

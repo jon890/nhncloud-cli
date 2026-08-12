@@ -1,8 +1,10 @@
 import { Command } from "commander";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { output } from "../../formatters/table.js";
+import { LogncrashServerError } from "../../services/logncrash/errors.js";
+import { NhnCloudCliError } from "../../utils/errors.js";
 import { startSpinner } from "../../utils/spinner.js";
-import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
+import { EXIT_API_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { resolveLogncrashClient } from "./helpers.js";
 import { searchCommand } from "./search.js";
 
@@ -121,5 +123,38 @@ describe("logncrash search v3 cursor", () => {
         raw: expect.objectContaining({ nextCursor }),
       }),
     );
+  });
+
+  it("500에는 추정 안내와 정제한 requestId를 붙여 다시 던진다", async () => {
+    cursorSearch.mockRejectedValue(
+      new LogncrashServerError("API 호출 실패 (500)", "request\n-id"),
+    );
+
+    await expect(programWithSearch().parseAsync(baseArgs())).rejects.toMatchObject({
+      requestId: "request\n-id",
+      message: expect.stringMatching(
+        /API 호출 실패 \(500\).*검색 기간이 넓어.*export.*requestId: request\?-id/s,
+      ),
+    });
+  });
+
+  it("requestId가 null인 500에는 requestId 부분 없이 추정 안내만 붙인다", async () => {
+    cursorSearch.mockRejectedValue(
+      new LogncrashServerError("API 호출 실패 (500)", null),
+    );
+
+    await expect(programWithSearch().parseAsync(baseArgs())).rejects.toMatchObject({
+      requestId: null,
+      message: expect.stringMatching(
+        /^(?!.*requestId:).*검색 기간이 넓어 서버가 처리하지 못했을 수 있습니다/s,
+      ),
+    });
+  });
+
+  it("401은 안내를 붙이지 않고 원본 오류를 그대로 전달한다", async () => {
+    const error = new NhnCloudCliError("인증 실패 (401)", EXIT_API_ERROR);
+    cursorSearch.mockRejectedValue(error);
+
+    await expect(programWithSearch().parseAsync(baseArgs())).rejects.toBe(error);
   });
 });
