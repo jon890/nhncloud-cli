@@ -2,14 +2,18 @@ import { HTTPError } from "ky";
 import { toNhnCloudCliError } from "../../api/httpError.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_API_ERROR } from "../../utils/exit-codes.js";
+import { sanitizeForTerminal } from "../../utils/terminal.js";
 
 export class LogncrashServerError extends NhnCloudCliError {
+  public readonly requestId: string | null;
+
   constructor(
     message: string,
-    public readonly requestId: string | null,
+    requestId: string | null,
   ) {
     super(message, EXIT_API_ERROR);
     this.name = "LogncrashServerError";
+    this.requestId = requestId === null ? null : sanitizeForTerminal(requestId);
   }
 }
 

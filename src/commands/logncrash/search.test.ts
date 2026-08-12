@@ -131,7 +131,7 @@ describe("logncrash search v3 cursor", () => {
     );
 
     await expect(programWithSearch().parseAsync(baseArgs())).rejects.toMatchObject({
-      requestId: "request\n-id",
+      requestId: "request?-id",
       message: expect.stringMatching(
         /API 호출 실패 \(500\).*검색 기간이 넓어.*export.*requestId: request\?-id/s,
       ),

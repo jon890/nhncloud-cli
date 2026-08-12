@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
+import { sanitizeForTerminal } from "../../utils/terminal.js";
 import {
   rebindIpAclSnapshots,
   retryArgv,
   retryCommand,
-  sanitizeForTerminal,
   snapshotIpAclBindings,
   type IpAclBindingSnapshot,
 } from "./rebind.js";

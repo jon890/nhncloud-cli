@@ -17,14 +17,14 @@ function makeHttpError(status: number, body?: string): HTTPError {
 }
 
 describe("toLogncrashError", () => {
-  it("500 응답의 requestId와 API 오류 종료 코드를 보존한다", async () => {
+  it("500 응답의 requestId를 정제하고 API 오류 종료 코드를 보존한다", async () => {
     const result = await toLogncrashError(
-      makeHttpError(500, JSON.stringify({ requestId: "request-id" })),
+      makeHttpError(500, JSON.stringify({ requestId: "request\n-id" })),
     );
 
     expect(result).toBeInstanceOf(LogncrashServerError);
     expect(result).toMatchObject({
-      requestId: "request-id",
+      requestId: "request?-id",
       exitCode: EXIT_API_ERROR,
     });
     expect(result.message).toContain("API 호출 실패 (500):");

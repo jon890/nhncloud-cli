@@ -111,6 +111,7 @@ export const exportCommand = new Command("export")
 
     let count = 0;
     let total = 0;
+    let hasUnqueriedWindows = false;
     let first = true;
     let bytePosition = 0;
     const write = (chunk: string): void => {
@@ -163,6 +164,10 @@ export const exportCommand = new Command("export")
             spinner.text = `로그 추출 중... 창 ${completedWindows + 1}/${completedWindows + pendingWindows.length + 1} ${count}/${total}`;
           }
           completedWindows++;
+          if (count >= MAX_TOTAL && pendingWindows.length > 0) {
+            hasUnqueriedWindows = true;
+            break;
+          }
         } catch (err) {
           if (!(err instanceof LogncrashServerError)) throw err;
 
@@ -214,9 +219,12 @@ export const exportCommand = new Command("export")
     }
 
     // No-silent-caps: 실제로 상한에 걸려 잘렸을 때만 경고(부분 수집을 cap 으로 오인하지 않도록).
-    if (count >= MAX_TOTAL && total > MAX_TOTAL) {
+    if (count >= MAX_TOTAL && (total > MAX_TOTAL || hasUnqueriedWindows)) {
+      const totalDescription = hasUnqueriedWindows
+        ? `조회한 창에서 ${total}건을 확인했고 남은 창을 조회하지 않은 채`
+        : `전체 ${total}건 중`;
       process.stderr.write(
-        `경고: 전체 ${total}건 중 상한 ${MAX_TOTAL}건까지만 추출했습니다. 검색 범위를 좁혀 나눠 추출하세요.\n`,
+        `경고: ${totalDescription} 상한 ${MAX_TOTAL}건까지만 추출했습니다. 검색 범위를 좁혀 나눠 추출하세요.\n`,
       );
     }
 

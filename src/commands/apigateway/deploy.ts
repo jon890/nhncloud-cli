@@ -5,8 +5,9 @@ import type {
   LatestDeployResult,
 } from "../../services/apigateway/types.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
+import { sanitizeForTerminal } from "../../utils/terminal.js";
 import { parseRequiredArgument } from "../parse-options.js";
-import { resolveApiGatewayClient, sanitizeForTerminal } from "./helpers.js";
+import { resolveApiGatewayClient } from "./helpers.js";
 
 interface DeployOptions extends OutputOptions {
   region?: string;

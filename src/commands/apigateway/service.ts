@@ -2,8 +2,9 @@ import { Command } from "commander";
 import { output, type OutputOptions } from "../../formatters/table.js";
 import type { ApiGatewayService } from "../../services/apigateway/types.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
+import { sanitizeForTerminal } from "../../utils/terminal.js";
 import { parseRequiredArgument } from "../parse-options.js";
-import { resolveApiGatewayClient, sanitizeForTerminal } from "./helpers.js";
+import { resolveApiGatewayClient } from "./helpers.js";
 
 interface ServiceOptions extends OutputOptions {
   region?: string;

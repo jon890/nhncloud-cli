@@ -89,19 +89,24 @@ export function splitTimeRange(
     );
   }
 
-  const fromMs = new Date(fromIso).getTime();
-  const toMs = new Date(toIso).getTime();
-  if (windowMs >= toMs - fromMs) {
-    return [{ from: fromIso, to: toIso }];
+  const normalizedWindowMs = Math.floor(windowMs / 1000) * 1000;
+  const fromMs = floorToSecond(new Date(fromIso).getTime());
+  const toMs = floorToSecond(new Date(toIso).getTime());
+  const normalizedFrom = formatSplitBoundary(fromMs, fromIso);
+  const normalizedTo = formatSplitBoundary(toMs, fromIso);
+  if (normalizedWindowMs >= toMs - fromMs) {
+    return [{ from: normalizedFrom, to: normalizedTo }];
   }
 
   const windows: Array<{ from: string; to: string }> = [];
   let windowFromMs = fromMs;
-  let windowFrom = fromIso;
+  let windowFrom = normalizedFrom;
 
   while (windowFromMs < toMs) {
-    const windowToMs = Math.min(windowFromMs + windowMs, toMs);
-    const windowTo = windowToMs === toMs ? toIso : formatSplitBoundary(windowToMs, fromIso);
+    const windowToMs = Math.min(windowFromMs + normalizedWindowMs, toMs);
+    const windowTo = windowToMs === toMs
+      ? normalizedTo
+      : formatSplitBoundary(windowToMs, fromIso);
     windows.push({ from: windowFrom, to: windowTo });
     windowFromMs = windowToMs;
     windowFrom = windowTo;
@@ -110,22 +115,27 @@ export function splitTimeRange(
   return windows;
 }
 
-/** 입력이 가진 Z 또는 숫자 오프셋을 중간 경계에도 유지한다. */
+function floorToSecond(timestampMs: number): number {
+  return Math.floor(timestampMs / 1000) * 1000;
+}
+
+/** 입력이 가진 Z 또는 숫자 오프셋을 모든 경계에 적용하고 밀리초를 제거한다. */
 function formatSplitBoundary(timestampMs: number, referenceIso: string): string {
+  const secondTimestampMs = floorToSecond(timestampMs);
   if (referenceIso.endsWith("Z")) {
-    return new Date(timestampMs).toISOString().replace(".000Z", "Z");
+    return `${new Date(secondTimestampMs).toISOString().slice(0, 19)}Z`;
   }
 
   const offsetMatch = referenceIso.match(/([+-])(\d{2}):(\d{2})$/);
   if (!offsetMatch) {
-    return toLocalISOString(new Date(timestampMs));
+    return toLocalISOString(new Date(secondTimestampMs));
   }
 
   const direction = offsetMatch[1] === "+" ? 1 : -1;
   const offsetMinutes = direction * (Number(offsetMatch[2]) * 60 + Number(offsetMatch[3]));
-  const shifted = new Date(timestampMs + offsetMinutes * 60_000)
+  const shifted = new Date(secondTimestampMs + offsetMinutes * 60_000)
     .toISOString()
-    .replace(".000Z", "");
+    .slice(0, 19);
   return `${shifted}${offsetMatch[0]}`;
 }
 

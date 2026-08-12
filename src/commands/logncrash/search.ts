@@ -6,7 +6,7 @@ import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { output, truncate, type OutputOptions } from "../../formatters/table.js";
 import { LogncrashServerError } from "../../services/logncrash/errors.js";
 import type { CursorSearchResult } from "../../services/logncrash/types.js";
-import { sanitizeForTerminal } from "../apigateway/helpers.js";
+import { sanitizeForTerminal } from "../../utils/terminal.js";
 import { parseIntegerOption, parseNonNegativeIntegerOption } from "../parse-options.js";
 import { resolveLogncrashClient } from "./helpers.js";
 

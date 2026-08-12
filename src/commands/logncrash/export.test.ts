@@ -207,6 +207,23 @@ describe("logncrash export v3 scroll", () => {
     expect(spinner.text).toContain("5/5");
   });
 
+  it("상한에 도달하면 남은 창을 조회하지 않고 절단 경고를 남긴다", async () => {
+    scrollStart
+      .mockRejectedValueOnce(new LogncrashServerError("server 500", null))
+      .mockResolvedValueOnce({
+        totalItems: 100_000,
+        data: Array(100_000).fill({ id: 1 }),
+      });
+    const output = join(directory, "logs.jsonl");
+
+    await programWithExport().parseAsync(args(output));
+
+    expect(scrollStart).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(process.stderr.write).mock.calls.flat().join(" ")).toContain(
+      "남은 창을 조회하지 않은 채 상한 100000건까지만 추출했습니다",
+    );
+  });
+
   it("500이 아닌 scrollStart 오류는 분할 재시도하지 않는다", async () => {
     const error = new NhnCloudCliError("unauthorized", EXIT_API_ERROR);
     scrollStart.mockRejectedValue(error);
