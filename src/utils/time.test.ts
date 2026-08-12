@@ -53,6 +53,8 @@ describe("splitTimeRange", () => {
     )).toBe(true);
   });
 
+  // splitTimeRange 는 순수 함수라 어떤 표기가 들어와도 양 끝을 보존해야 한다.
+  // CLI 경로에서는 resolveTime 이 date-only 를 먼저 거부하므로 이 입력은 도달하지 않는다.
   it("date-only 입력에서도 첫 창 from 과 마지막 창 to 가 입력 원본과 같다", () => {
     const windows = splitTimeRange(
       "2026-08-03",
