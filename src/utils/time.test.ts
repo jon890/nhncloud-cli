@@ -23,11 +23,11 @@ describe("splitTimeRange", () => {
   it("창이 전체 범위 이상이면 입력 범위 하나를 그대로 반환한다", () => {
     expect(
       splitTimeRange(
-        "2026-08-03T00:00:00Z",
-        "2026-08-03T01:00:00Z",
-        60 * 60 * 1000,
+        "2026-08-03",
+        "2026-08-04",
+        24 * 60 * 60 * 1000,
       ),
-    ).toEqual([{ from: "2026-08-03T00:00:00Z", to: "2026-08-03T01:00:00Z" }]);
+    ).toEqual([{ from: "2026-08-03", to: "2026-08-04" }]);
   });
 
   it("최소 창보다 작으면 파라미터 오류로 거부한다", () => {
@@ -53,17 +53,14 @@ describe("splitTimeRange", () => {
     )).toBe(true);
   });
 
-  it("date-only 입력도 분할 전에 같은 ISO8601 표기로 정규화한다", () => {
+  it("date-only 입력에서도 첫 창 from 과 마지막 창 to 가 입력 원본과 같다", () => {
     const windows = splitTimeRange(
       "2026-08-03",
       "2026-08-04",
       12 * 60 * 60 * 1000,
     );
-    const boundaries = [windows[0]?.from, ...windows.map(({ to }) => to)];
 
-    expect(boundaries.every((boundary) =>
-      boundary !== undefined && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/.test(boundary)
-    )).toBe(true);
-    expect(new Set(boundaries.map((boundary) => boundary?.slice(-6))).size).toBe(1);
+    expect(windows[0]?.from).toBe("2026-08-03");
+    expect(windows.at(-1)?.to).toBe("2026-08-04");
   });
 });

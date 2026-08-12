@@ -92,20 +92,18 @@ export function splitTimeRange(
   const normalizedWindowMs = Math.floor(windowMs / 1000) * 1000;
   const fromMs = floorToSecond(new Date(fromIso).getTime());
   const toMs = floorToSecond(new Date(toIso).getTime());
-  const normalizedFrom = formatSplitBoundary(fromMs, fromIso);
-  const normalizedTo = formatSplitBoundary(toMs, fromIso);
   if (normalizedWindowMs >= toMs - fromMs) {
-    return [{ from: normalizedFrom, to: normalizedTo }];
+    return [{ from: fromIso, to: toIso }];
   }
 
   const windows: Array<{ from: string; to: string }> = [];
   let windowFromMs = fromMs;
-  let windowFrom = normalizedFrom;
+  let windowFrom = fromIso;
 
   while (windowFromMs < toMs) {
     const windowToMs = Math.min(windowFromMs + normalizedWindowMs, toMs);
     const windowTo = windowToMs === toMs
-      ? normalizedTo
+      ? toIso
       : formatSplitBoundary(windowToMs, fromIso);
     windows.push({ from: windowFrom, to: windowTo });
     windowFromMs = windowToMs;

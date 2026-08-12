@@ -6,7 +6,6 @@ import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { output, truncate, type OutputOptions } from "../../formatters/table.js";
 import { LogncrashServerError } from "../../services/logncrash/errors.js";
 import type { CursorSearchResult } from "../../services/logncrash/types.js";
-import { sanitizeForTerminal } from "../../utils/terminal.js";
 import { parseIntegerOption, parseNonNegativeIntegerOption } from "../parse-options.js";
 import { resolveLogncrashClient } from "./helpers.js";
 
@@ -92,7 +91,7 @@ export const searchCommand = new Command("search")
       if (err instanceof LogncrashServerError) {
         const requestId = err.requestId === null
           ? ""
-          : ` (requestId: ${sanitizeForTerminal(err.requestId)})`;
+          : ` (requestId: ${err.requestId})`;
         throw new LogncrashServerError(
           `${err.message}\n검색 기간이 넓어 서버가 처리하지 못했을 수 있습니다. 기간을 줄여 다시 시도하거나 logncrash export를 사용하세요.${requestId}`,
           err.requestId,
