@@ -23,10 +23,12 @@ Log & Crash 검색이 받는 HTTP 500 을 다른 오류와 구분하고, 응답 
 
 ```ts
 export class LogncrashServerError extends NhnCloudCliError {
-  readonly requestId: string | null;
+  readonly requestId: string | null;   // 본문에서 못 꺼내면 null
 }
 export async function toLogncrashError(err: unknown): Promise<NhnCloudCliError>
 ```
+
+종료 코드는 `EXIT_API_ERROR` 로 고정한다. 500 은 서버 오류이고 기존 변환기도 5xx 를 그 코드로 다룬다.
 
 `toLogncrashError` 는 `HTTPError` 이고 `status === 500` 일 때만 `LogncrashServerError` 를 만든다.
 그 외는 기존 `toNhnCloudCliError(err)` 결과를 그대로 반환한다.
@@ -49,7 +51,7 @@ export async function toLogncrashError(err: unknown): Promise<NhnCloudCliError>
 
 ### 2. `src/services/logncrash/client.ts` — 500 경로만 새 변환기로 교체
 
-`searchCursor`·`scrollStart`·`scrollNext` 세 메서드의 `catch` 를 바꾼다.
+`cursorSearch`·`scrollStart`·`scrollNext` 세 메서드의 `catch` 를 바꾼다.
 
 ```ts
 } catch (err) {
@@ -68,11 +70,16 @@ export function splitTimeRange(fromIso: string, toIso: string, windowMs: number)
 ```
 
 - 창은 `from` 부터 `windowMs` 씩 끊고 마지막 창의 끝은 `toIso` 로 맞춘다
-- 반환 배열의 창은 겹치지 않고 빈틈도 없어야 한다.
-  이전 창의 `to` 와 다음 창의 `from` 이 같으면 경계 로그가 두 창에 모두 잡힐 수 있다 —
-  다음 창의 `from` 을 1밀리초 뒤로 밀어 중복을 없앤다
+- **경계를 밀지 않는다.** 이전 창의 `to` 와 다음 창의 `from` 을 같은 값으로 둔다.
+  서버가 경계를 한쪽만 포함하는 것을 실측으로 확인했다 —
+  4시간 구간을 2시간씩 두 창으로 나눠 조회했을 때 두 창의 `totalItems` 합이
+  전체 조회값과 **정확히 일치**했다(541만 건 규모, 차이 0).
+  경계를 밀면 오히려 그 폭만큼 로그가 빠진다.
+  `toLocalISOString`(`src/utils/time.ts`)이 초 정밀도라 밀리초 단위 시프트는 표현할 수도 없다
 - `windowMs` 가 전체 범위 이상이면 원래 범위 하나만 담은 배열을 반환한다
-- `windowMs` 가 `MIN_SPLIT_WINDOW_MS` 미만이면 `NhnCloudCliError`(`EXIT_PARAM_ERROR`)로 거부한다
+- `windowMs` 가 `MIN_SPLIT_WINDOW_MS` 미만이면 `NhnCloudCliError`(`EXIT_PARAM_ERROR`)로 거부한다.
+  10분은 관측된 실패 경계(한쪽 6시간, 다른 쪽 10일)보다 충분히 아래라고 본 **추정값**이다.
+  로그가 더 많은 프로젝트에서는 부족할 수 있어 phase 03 의 수동 QA 에서 재확인한다
 - 출력은 입력과 같은 ISO8601 문자열 형식이다
 
 기존 `assertSearchRange` 는 손대지 않는다. 90일·31일 사전 검증은 공식 문서 근거가 있어 유지한다.
@@ -86,7 +93,7 @@ export function splitTimeRange(fromIso: string, toIso: string, windowMs: number)
 | `src/services/logncrash/errors.ts` | 신규 |
 | `src/services/logncrash/client.ts` | 수정 |
 | `src/utils/time.ts` | 수정 |
-| `src/services/logncrash/client.test.ts` | 수정 |
+| `src/services/logncrash/errors.test.ts` | 신규 |
 | `src/utils/time.test.ts` | 수정 |
 
 ## 검증
@@ -102,7 +109,8 @@ export function splitTimeRange(fromIso: string, toIso: string, windowMs: number)
 test "$(git diff origin/main --name-only -- src/api/httpError.ts | grep -c .)" = "0"
 
 # 검색 세 메서드가 새 변환기를 쓴다 (send 는 제외라 3 이다)
-test "$(grep -c 'toLogncrashError' src/services/logncrash/client.ts)" = "3"
+# import 1줄 + catch 3줄 = 4 다. 호출만 세려면 아래처럼 좁힌다
+test "$(grep -c 'await toLogncrashError' src/services/logncrash/client.ts)" = "3"
 
 # 500 본문 파싱을 as 로 단언하지 않는다
 test "$(grep -rnE 'json\(\).*\)\s+as\b' src/services/logncrash/errors.ts | grep -c .)" = "0"
@@ -114,12 +122,19 @@ grep -q 'export function splitTimeRange' src/utils/time.ts
 git diff --check
 ```
 
+오류 변환 테스트는 **`src/services/logncrash/errors.test.ts` 를 새로 만들어** 넣는다.
+`client.test.ts` 에 넣지 않는다 — 그 파일은 최상단에서 `vi.mock("ky")` 를 하는데
+`toLogncrashError` 의 `err instanceof HTTPError` 는 실제 인스턴스를 요구한다.
+mock 된 모듈과 실제 모듈이 엇갈리면 500 분기를 타지 않고 다른 이유로 통과한다.
+실제 인스턴스를 만드는 선례가 있다 — `src/api/httpError.test.ts`,
+`src/services/loadbalancer/client.test.ts` 의 `new HTTPError(response, request, {} as never)`.
+
 테스트에 아래를 넣는다.
 
-- `LogncrashServerError` — 500 응답에서 `requestId` 를 꺼낸다
+- `LogncrashServerError` — 500 응답에서 `requestId` 를 꺼내고 `exitCode` 가 `EXIT_API_ERROR` 다
 - 500 본문이 JSON 이 아니거나 `requestId` 가 없으면 `null` 이 된다
 - 401·403 은 기존과 같이 `EXIT_AUTH_ERROR` 로 남는다 (새 변환기가 그 경로를 바꾸지 않는다)
-- `splitTimeRange` — 창이 겹치지 않고 빈틈이 없다, 마지막 창 끝이 `toIso` 와 같다
+- `splitTimeRange` — 이전 창의 `to` 와 다음 창의 `from` 이 같고 마지막 창 끝이 `toIso` 와 같다
 - `splitTimeRange` — `windowMs` 가 전체 범위 이상이면 창 1개
 - `splitTimeRange` — `MIN_SPLIT_WINDOW_MS` 미만이면 `EXIT_PARAM_ERROR`
 
@@ -129,5 +144,5 @@ git diff --check
   401·403·4xx 는 기간을 줄여도 같은 결과라 재시도가 낭비다.
 - `requestId` 를 살리는 이유는 CLI 가 500 의 원인을 확정할 수 없기 때문이다(ADR-030).
   사용자가 서버 쪽에 문의할 때 그 값이 유일한 단서다.
-- 창 경계를 1밀리초 밀어 두는 이유는 `from`·`to` 가 양끝을 포함하는지 문서가 명시하지 않아서다.
-  겹치면 같은 로그가 파일에 두 번 들어간다.
+- 창 경계를 밀지 않는 이유는 실측이 그렇게 나왔기 때문이다.
+  문서가 `from`·`to` 의 포함 여부를 명시하지 않아 추측 대신 두 창의 합과 전체를 대조했고 차이가 0 이었다.

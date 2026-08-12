@@ -65,9 +65,10 @@ grep -rq '절반' skills/nhncloud-cli/references/logncrash.md
 grep -rq 'requestId' skills/nhncloud-cli/references/logncrash.md
 
 # 카탈로그 수는 그대로다 — 이 plan 은 명령을 추가하지 않는다
+# 환경변수는 명령 앞에 둔다. 뒤에 붙이면 argv 로 들어가 process.env 가 undefined 다
 BEFORE="$(git show origin/main:AGENTS.md | grep -oE '카탈로그는 [0-9]+개' | grep -oE '[0-9]+')"
 node dist/index.js commands --json \
-  | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const n=JSON.parse(s).commands.length;if(String(n)!==process.env.BEFORE){console.error('카탈로그 수 변경: '+n);process.exit(1)}})" BEFORE="$BEFORE"
+  | BEFORE="$BEFORE" node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const n=JSON.parse(s).commands.length;if(String(n)!==process.env.BEFORE){console.error('카탈로그 수 변경: '+n+' (기대 '+process.env.BEFORE+')');process.exit(1)}})"
 
 # AGENTS.md 를 손대지 않았다
 test "$(git diff origin/main --name-only -- AGENTS.md | grep -c .)" = "0"
@@ -81,6 +82,16 @@ git diff --check
 
 마지막으로 `tasks/061-fix-logncrash-search-range-split/index.json` 의 `status` 를 `completed` 로,
 `current_phase` 를 `3` 으로, 모든 phase 의 `status` 를 `completed` 로 바꾸고 `updated_at` 을 갱신한다.
+
+마킹이 실제로 됐는지 확인한다. task 레벨 1개와 phase 3개를 합쳐 4개여야 한다.
+
+```bash
+# cwd: <repo root>
+IDX=tasks/061-fix-logncrash-search-range-split/index.json
+test "$(grep -c '"status": "completed"' "$IDX")" = "4"
+grep -q '"current_phase": 3' "$IDX"
+test "$(grep -c '"status": "pending"' "$IDX")" = "0"
+```
 
 ---
 
