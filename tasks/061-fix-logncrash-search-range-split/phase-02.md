@@ -18,6 +18,11 @@ phase 01 이 만든 아래가 실재해야 한다. 없으면 `PHASE_BLOCKED` 를
 
 **이 phase 도 실제 Log & Crash API 를 호출하지 않는다.** 테스트는 client 를 mock 한다.
 
+**범위 외**: 사용자 가이드 갱신과 완료 마킹은 phase 03 이다.
+`src/services/logncrash/errors.ts` 와 `src/utils/time.ts` 는 phase 01 이 만들었다. 다시 고치지 않는다.
+`assertSearchRange` 의 90일·31일 사전 검증도 손대지 않는다 — 공식 문서 근거가 있어 유지한다.
+명령과 옵션을 추가하지 않는다. 적응형 분할은 기본 동작이다.
+
 ---
 
 ## 작업 항목 (3)
