@@ -66,7 +66,7 @@ src/
     errors.ts               # NhnCloudCliError(message, exitCode)
     exit-codes.ts           # EXIT_* 상수
     spinner.ts              # ora 래퍼 (quiet 모드 no-op)
-    time.ts                 # 상대시간 → ISO8601 변환
+    time.ts                 # 상대시간 → ISO8601 변환 + 검색 범위 사전 검증·기간 분할 ([[adr-030]])
   formatters/
     table.ts                # 테이블 / json / quiet 출력
   commands/
