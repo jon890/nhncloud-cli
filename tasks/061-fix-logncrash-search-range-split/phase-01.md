@@ -13,7 +13,9 @@ Log & Crash 검색이 받는 HTTP 500 을 다른 오류와 구분하고, 응답 
 
 **범위 외**: 명령 계층 변경은 phase 02 다. 이 phase 는 서비스·유틸 계층만 만든다.
 
-**이 phase 는 실제 Log & Crash API 를 호출하지 않는다.** 테스트는 `ky` 를 mock 한다.
+**이 phase 는 실제 Log & Crash API 를 호출하지 않는다.**
+단 `errors.test.ts` 는 `ky` 를 mock 하지 않고 실제 `HTTPError` 인스턴스를 만들어 쓴다 —
+`instanceof` 분기를 타야 하기 때문이다. 아래 작업 항목 3의 설명을 따른다.
 
 ---
 

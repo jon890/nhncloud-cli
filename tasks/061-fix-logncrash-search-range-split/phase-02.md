@@ -61,8 +61,26 @@ phase 01 이 만든 아래가 실재해야 한다. 없으면 `PHASE_BLOCKED` 를
 `scrollNext` 를 여러 번 성공한 뒤에도 난다. 그 시점에는 이미 `writePage` 가 temp 에 append 를 마쳤고,
 같은 구간을 다시 돌면 그 로그가 파일에 두 번 들어간다.
 스트림은 append-only 라 그냥 이어 쓰면 되돌릴 수 없으므로, 창 시작 시점의 바이트 위치를 남겨 두고
-실패 시 그 길이로 잘라낸 뒤 이어 쓴다(`fs.truncate` 후 append 모드로 다시 연다).
-`count` 와 `first`(JSON 배열 구분자 플래그)도 같은 지점으로 되돌린다.
+실패 시 그 길이로 잘라낸 뒤 이어 쓴다.
+
+되돌리기는 **반드시 아래 순서**로 한다.
+
+1. 현재 stream 을 `end`·`close` 해 버퍼에 남은 write 를 디스크까지 내린다
+2. `fs.truncate(tmp, 기억한 바이트 길이)` 로 자른다
+3. `createWriteStream(tmp, { flags: "a" })` 로 다시 열어 이어 쓴다
+
+1번을 건너뛰면 안 된다. `createWriteStream` 은 버퍼링하므로 `stream.write()` 한 내용이
+아직 디스크에 없을 수 있고, pending write 가 남은 채 자르면 그 바이트가 뒤늦게 기록돼
+되돌리기가 무효가 되거나 파일이 뒤섞인다.
+`export.ts` 의 기존 catch 블록 주석이 같은 지연 I/O 함정을 설명한다 —
+"파일을 지연 open 한다 ... close 까지 기다린 뒤 지운다". 그 근거가 truncate 에도 그대로 적용된다.
+
+`writePage` 가 클로저로 stream 을 붙잡고 있으므로 재개방한 stream 을 보도록 참조를 갱신한다
+(`const` 가 아니라 `let` 으로 두거나 writePage 가 현재 stream 을 조회하게 한다).
+
+되돌릴 상태는 넷이다 — 파일 바이트 길이, `count`, `first`(JSON 배열 구분자 플래그),
+그리고 **누적 `total`**. 실패한 창의 `scrollStart` 가 반환한 `totalItems` 는 이미 합계에 더해져 있어,
+되돌리지 않으면 분모가 부풀고 그 값이 곧바로 절단 경고 조건(`total > MAX_TOTAL`)에 쓰인다.
 
 지켜야 할 것들이다.
 
@@ -105,8 +123,8 @@ phase 01 이 만든 아래가 실재해야 한다. 없으면 `PHASE_BLOCKED` 를
 |---|---|
 | `src/commands/logncrash/search.ts` | 수정 |
 | `src/commands/logncrash/export.ts` | 수정 |
-| `src/commands/logncrash/export.test.ts` | 신규 또는 수정 |
-| `src/commands/logncrash/search.test.ts` | 신규 또는 수정 |
+| `src/commands/logncrash/export.test.ts` | 수정 |
+| `src/commands/logncrash/search.test.ts` | 수정 |
 
 ## 검증
 
@@ -126,8 +144,10 @@ grep -q 'LogncrashServerError' src/commands/logncrash/export.ts
 # 실패한 창을 되돌리는 처리가 있다 (append-only 스트림의 중복 방지)
 grep -qE 'truncate|bytesWritten' src/commands/logncrash/export.ts
 
-# scrollNextWithHint 가 500 전용 오류를 감싸지 않는다
-grep -q 'LogncrashServerError' src/commands/logncrash/export.ts
+# scrollNextWithHint 함수 본문이 500 전용 오류를 그대로 통과시킨다.
+# 파일 전체 grep 은 앞 검사와 같은 명령이라 변별력이 없으므로 함수 범위로 좁힌다
+sed -n '/async function scrollNextWithHint/,$p' src/commands/logncrash/export.ts \
+  | grep -q 'LogncrashServerError'
 
 # 진행 표시가 spinner 를 우회하지 않는다.
 # 기존 stderr.write 3곳(--size 폐기 경고·MAX_TOTAL 절단 경고·저장 완료)은 정당하므로 그대로 둔다.
