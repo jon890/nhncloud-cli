@@ -23,11 +23,11 @@ describe("splitTimeRange", () => {
   it("창이 전체 범위 이상이면 입력 범위 하나를 그대로 반환한다", () => {
     expect(
       splitTimeRange(
-        "2026-08-03",
-        "2026-08-04",
+        "2026-08-03T00:00:00Z",
+        "2026-08-04T00:00:00Z",
         24 * 60 * 60 * 1000,
       ),
-    ).toEqual([{ from: "2026-08-03", to: "2026-08-04" }]);
+    ).toEqual([{ from: "2026-08-03T00:00:00Z", to: "2026-08-04T00:00:00Z" }]);
   });
 
   it("최소 창보다 작으면 파라미터 오류로 거부한다", () => {
@@ -66,17 +66,18 @@ describe("splitTimeRange", () => {
 });
 
 describe("resolveTime", () => {
-  it("날짜만 준 값은 거부하고 시각을 지정하라고 안내한다", () => {
-    // 서버가 "invalid datetime format" 400 으로 거부하는 것을 실측으로 확인했다
-    expect(() => resolveTime("2026-08-03")).toThrow("날짜만으로는 검색할 수 없습니다");
-    expect(() => resolveTime("2026-08-03")).toThrowError(
-      expect.objectContaining({ exitCode: EXIT_PARAM_ERROR }),
-    );
+  it("초나 시간대가 빠진 값은 거부한다", () => {
+    // 서버가 아래 셋 중 앞의 둘을 "invalid datetime format" 400 으로 거부하는 것을 실측했다
+    for (const partial of ["2026-08-03", "2026-08-03T00:00", "2026-08-03T00:00:00"]) {
+      expect(() => resolveTime(partial)).toThrow("초와 시간대까지 지정해야 합니다");
+      expect(() => resolveTime(partial)).toThrowError(
+        expect.objectContaining({ exitCode: EXIT_PARAM_ERROR }),
+      );
+    }
   });
 
-  it("시각을 포함한 ISO8601 은 그대로 통과시킨다", () => {
+  it("초와 시간대를 갖춘 ISO8601 만 그대로 통과시킨다", () => {
     expect(resolveTime("2026-08-03T00:00:00+09:00")).toBe("2026-08-03T00:00:00+09:00");
     expect(resolveTime("2026-08-03T00:00:00Z")).toBe("2026-08-03T00:00:00Z");
-    expect(resolveTime("2026-08-03T00:00")).toBe("2026-08-03T00:00");
   });
 });
