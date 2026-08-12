@@ -33,6 +33,7 @@ src/
   services/
     logncrash/
       client.ts             # LogncrashClient — 커서 검색 / v3 scroll / collector send (adr-014, adr-024)
+      errors.ts             # LogncrashServerError — 검색 500 을 구분하고 응답에서 requestId 추출 (adr-030)
       types.ts              # CursorSearchParams/Result / LogSendParams / LogLevel / ScrollStartParams / ScrollResult
     deploy/
       client.ts             # DeployClient — run / artifacts / serverGroups / histories / binaryGroups / binaries / uploadBinary(multipart) / downloadBinary(봉투 우회, adr-015)
