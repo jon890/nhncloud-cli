@@ -28,7 +28,7 @@ nhncloud logncrash search \
 |------|:---:|------|
 | `--query <lucene>` | 예 | Lucene 질의 문자열. API에 그대로 전달 |
 | `--from <time>` | 예 | 검색 시작. 초와 시간대를 갖춘 ISO8601 또는 상대시간 |
-| `--to <time>` | 예 | 검색 끝. ISO8601, 상대시간, `now` |
+| `--to <time>` | 예 | 검색 끝. 초와 시간대를 갖춘 ISO8601, 상대시간, `now` |
 | `--page <n>` | 아니오 | 전환 호환용 pageNumber. 기본 0이며 0만 허용 |
 | `--size <n>` | 아니오 | pageSize. 기본 10, 범위 1~100 |
 | `--cursor <value>` | 아니오 | 직전 JSON 응답의 불투명한 `nextCursor` |

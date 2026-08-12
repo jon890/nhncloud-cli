@@ -69,7 +69,7 @@ describe("splitTimeRange", () => {
 
 describe("resolveTime", () => {
   it("초나 시간대가 빠진 값은 거부한다", () => {
-    // 서버가 아래 셋 중 앞의 둘을 "invalid datetime format" 400 으로 거부하는 것을 실측했다
+    // 아래 셋 모두 서버가 "invalid datetime format" 400 으로 거부하는 것을 실측했다
     for (const partial of ["2026-08-03", "2026-08-03T00:00", "2026-08-03T00:00:00"]) {
       expect(() => resolveTime(partial)).toThrow("초와 시간대까지 지정해야 합니다");
       expect(() => resolveTime(partial)).toThrowError(

@@ -171,7 +171,7 @@ nhncloud logncrash search [options]
 | 옵션 | 필수 | 설명 |
 |------|:---:|------|
 | `--query <lucene>` | 예 | Lucene 질의 문자열. API 에 그대로 전달 |
-| `--from <time>` | 예 | 검색 시작. ISO8601 또는 상대시간 (`1h`/`30m`/`2d`/`now`) |
+| `--from <time>` | 예 | 검색 시작. 초·시간대 포함 ISO8601 또는 상대시간 (`1h`/`30m`/`2d`/`now`) |
 | `--to <time>` | 예 | 검색 끝. 형식 동일 |
 | `--cursor <value>` | 아니오 | 직전 JSON 응답의 `nextCursor`. 첫 페이지에서는 생략 |
 | `--page <n>` | 아니오 | 전환 호환용. `0`만 허용하며 그 외 값은 `--cursor` 사용을 안내하고 입력 오류로 종료 |
