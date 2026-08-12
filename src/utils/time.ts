@@ -56,10 +56,19 @@ export function resolveTime(input: string): string {
     return toLocalISOString(now);
   }
 
-  // ISO8601 형식 검증 (기본 패턴: YYYY-MM-DD 또는 YYYY-MM-DDTHH:mm... 포함)
-  const isoPattern = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?([+-]\d{2}:\d{2}|Z)?)?$/;
+  // ISO8601 형식 검증. 날짜만 준 값(YYYY-MM-DD)은 받지 않는다 —
+  // 서버가 `invalid datetime format` 400 으로 거부하는 것을 실측으로 확인했다.
+  const isoPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?([+-]\d{2}:\d{2}|Z)?$/;
   if (isoPattern.test(trimmed)) {
     return trimmed;
+  }
+
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(trimmed);
+  if (dateOnly) {
+    throw new NhnCloudCliError(
+      `시간 형식 오류: "${input}" — 날짜만으로는 검색할 수 없습니다. 시각까지 지정하세요 (예: ${trimmed}T00:00:00+09:00).`,
+      EXIT_PARAM_ERROR,
+    );
   }
 
   throw new NhnCloudCliError(

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { EXIT_PARAM_ERROR } from "./exit-codes.js";
-import { MIN_SPLIT_WINDOW_MS, splitTimeRange } from "./time.js";
+import { MIN_SPLIT_WINDOW_MS, resolveTime, splitTimeRange } from "./time.js";
 
 describe("splitTimeRange", () => {
   it("인접 창이 같은 경계를 공유하고 마지막 창은 원래 끝에서 끝난다", () => {
@@ -62,5 +62,21 @@ describe("splitTimeRange", () => {
 
     expect(windows[0]?.from).toBe("2026-08-03");
     expect(windows.at(-1)?.to).toBe("2026-08-04");
+  });
+});
+
+describe("resolveTime", () => {
+  it("날짜만 준 값은 거부하고 시각을 지정하라고 안내한다", () => {
+    // 서버가 "invalid datetime format" 400 으로 거부하는 것을 실측으로 확인했다
+    expect(() => resolveTime("2026-08-03")).toThrow("날짜만으로는 검색할 수 없습니다");
+    expect(() => resolveTime("2026-08-03")).toThrowError(
+      expect.objectContaining({ exitCode: EXIT_PARAM_ERROR }),
+    );
+  });
+
+  it("시각을 포함한 ISO8601 은 그대로 통과시킨다", () => {
+    expect(resolveTime("2026-08-03T00:00:00+09:00")).toBe("2026-08-03T00:00:00+09:00");
+    expect(resolveTime("2026-08-03T00:00:00Z")).toBe("2026-08-03T00:00:00Z");
+    expect(resolveTime("2026-08-03T00:00")).toBe("2026-08-03T00:00");
   });
 });
