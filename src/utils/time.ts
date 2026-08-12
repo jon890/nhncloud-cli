@@ -71,6 +71,64 @@ export function resolveTime(input: string): string {
 const MAX_RANGE_DAYS = 31;
 const MAX_LOOKBACK_DAYS = 90;
 
+export const MIN_SPLIT_WINDOW_MS = 10 * 60 * 1000;
+
+/**
+ * ISO8601 범위를 고정 크기 창으로 나눈다.
+ * 인접 창은 같은 경계 문자열을 공유해 경계 로그가 빠지지 않게 한다.
+ */
+export function splitTimeRange(
+  fromIso: string,
+  toIso: string,
+  windowMs: number,
+): Array<{ from: string; to: string }> {
+  if (windowMs < MIN_SPLIT_WINDOW_MS) {
+    throw new NhnCloudCliError(
+      `검색 분할 창은 최소 ${MIN_SPLIT_WINDOW_MS / 60_000}분이어야 합니다.`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+
+  const fromMs = new Date(fromIso).getTime();
+  const toMs = new Date(toIso).getTime();
+  if (windowMs >= toMs - fromMs) {
+    return [{ from: fromIso, to: toIso }];
+  }
+
+  const windows: Array<{ from: string; to: string }> = [];
+  let windowFromMs = fromMs;
+  let windowFrom = fromIso;
+
+  while (windowFromMs < toMs) {
+    const windowToMs = Math.min(windowFromMs + windowMs, toMs);
+    const windowTo = windowToMs === toMs ? toIso : formatSplitBoundary(windowToMs, fromIso);
+    windows.push({ from: windowFrom, to: windowTo });
+    windowFromMs = windowToMs;
+    windowFrom = windowTo;
+  }
+
+  return windows;
+}
+
+/** 입력이 가진 Z 또는 숫자 오프셋을 중간 경계에도 유지한다. */
+function formatSplitBoundary(timestampMs: number, referenceIso: string): string {
+  if (referenceIso.endsWith("Z")) {
+    return new Date(timestampMs).toISOString().replace(".000Z", "Z");
+  }
+
+  const offsetMatch = referenceIso.match(/([+-])(\d{2}):(\d{2})$/);
+  if (!offsetMatch) {
+    return toLocalISOString(new Date(timestampMs));
+  }
+
+  const direction = offsetMatch[1] === "+" ? 1 : -1;
+  const offsetMinutes = direction * (Number(offsetMatch[2]) * 60 + Number(offsetMatch[3]));
+  const shifted = new Date(timestampMs + offsetMinutes * 60_000)
+    .toISOString()
+    .replace(".000Z", "");
+  return `${shifted}${offsetMatch[0]}`;
+}
+
 /**
  * 검색 범위 사전 검증.
  * - from > to: 에러

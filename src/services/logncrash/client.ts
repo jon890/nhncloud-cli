@@ -12,6 +12,7 @@ import type {
   ScrollStartParams,
   ScrollResult,
 } from "./types.js";
+import { toLogncrashError } from "./errors.js";
 
 export class LogncrashClient {
   private readonly appkey: string;
@@ -47,7 +48,7 @@ export class LogncrashClient {
 
       return unwrap(res);
     } catch (err) {
-      throw toNhnCloudCliError(err);
+      throw await toLogncrashError(err);
     }
   }
 
@@ -75,7 +76,7 @@ export class LogncrashClient {
 
       return unwrap(res);
     } catch (err) {
-      throw toNhnCloudCliError(err);
+      throw await toLogncrashError(err);
     }
   }
 
@@ -98,7 +99,7 @@ export class LogncrashClient {
 
       return unwrap(res);
     } catch (err) {
-      throw toNhnCloudCliError(err);
+      throw await toLogncrashError(err);
     }
   }
 
