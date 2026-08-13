@@ -1,10 +1,11 @@
 import { Command } from "commander";
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_API_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
+import { LogncrashServerError } from "../../services/logncrash/errors.js";
 import { startSpinner } from "../../utils/spinner.js";
 import { resolveLogncrashClient } from "./helpers.js";
 import { exportCommand } from "./export.js";
@@ -126,6 +127,124 @@ describe("logncrash export v3 scroll", () => {
       exitCode: EXIT_API_ERROR,
       message: expect.stringContaining("upstream 503"),
     });
+    expect(scrollStart).toHaveBeenCalledTimes(1);
     expect(readdirSync(directory)).toEqual([]);
+  });
+
+  it("첫 500 뒤 절반 창으로 재시도해 전체 범위를 추출한다", async () => {
+    scrollStart
+      .mockRejectedValueOnce(new LogncrashServerError("server 500", "req-1"))
+      .mockResolvedValueOnce({ totalItems: 1, data: [{ id: 1 }] })
+      .mockResolvedValueOnce({ totalItems: 1, data: [{ id: 2 }] });
+    const output = join(directory, "logs.jsonl");
+
+    await programWithExport().parseAsync(args(output));
+
+    expect(scrollStart.mock.calls.map(([body]) => body)).toEqual([
+      { query: "*", from: "2026-08-03T00:00:00Z", to: "2026-08-03T01:00:00Z" },
+      { query: "*", from: "2026-08-03T00:00:00Z", to: "2026-08-03T00:30:00Z" },
+      { query: "*", from: "2026-08-03T00:30:00Z", to: "2026-08-03T01:00:00Z" },
+    ]);
+    expect(readFileSync(output, "utf-8")).toBe('{"id":1}\n{"id":2}\n');
+  });
+
+  it("찾아낸 성공 창 크기를 남은 구간에 재사용한다", async () => {
+    scrollStart
+      .mockRejectedValueOnce(new LogncrashServerError("server 500", null))
+      .mockRejectedValueOnce(new LogncrashServerError("server 500", null))
+      .mockResolvedValue({ totalItems: 0, data: [] });
+    const output = join(directory, "logs.jsonl");
+
+    await programWithExport().parseAsync(args(output));
+
+    expect(scrollStart.mock.calls.slice(2).map(([body]) => body)).toEqual([
+      { query: "*", from: "2026-08-03T00:00:00Z", to: "2026-08-03T00:15:00Z" },
+      { query: "*", from: "2026-08-03T00:15:00Z", to: "2026-08-03T00:30:00Z" },
+      { query: "*", from: "2026-08-03T00:30:00Z", to: "2026-08-03T00:45:00Z" },
+      { query: "*", from: "2026-08-03T00:45:00Z", to: "2026-08-03T01:00:00Z" },
+    ]);
+  });
+
+  it("최소 창에서도 500이면 실패하고 결과와 임시 파일을 남기지 않는다", async () => {
+    scrollStart.mockRejectedValue(new LogncrashServerError("server 500", null));
+    const output = join(directory, "logs.jsonl");
+
+    await expect(programWithExport().parseAsync(args(output))).rejects.toBeInstanceOf(
+      LogncrashServerError,
+    );
+
+    expect(scrollStart).toHaveBeenCalledTimes(3);
+    expect(existsSync(output)).toBe(false);
+    expect(readdirSync(directory)).toEqual([]);
+  });
+
+  it("scrollNext에서 일부를 쓴 뒤 500이어도 분할하고 실패 창의 로그를 되돌린다", async () => {
+    scrollStart
+      .mockResolvedValueOnce({ totalItems: 3, scrollKey: "full-1", data: [{ id: 1 }] })
+      .mockResolvedValueOnce({ totalItems: 2, data: [{ id: 1 }, { id: 2 }] })
+      .mockResolvedValueOnce({ totalItems: 1, data: [{ id: 3 }] });
+    scrollNext
+      .mockResolvedValueOnce({ totalItems: 3, scrollKey: "full-2", data: [{ id: 2 }] })
+      .mockRejectedValueOnce(new LogncrashServerError("next 500", "req-next"));
+    const output = join(directory, "logs.jsonl");
+
+    await programWithExport().parseAsync(args(output));
+
+    expect(scrollNext).toHaveBeenCalledTimes(2);
+    expect(readFileSync(output, "utf-8")).toBe('{"id":1}\n{"id":2}\n{"id":3}\n');
+  });
+
+  it("여러 창의 totalItems를 누적해 진행률 분모를 유지한다", async () => {
+    scrollStart
+      .mockRejectedValueOnce(new LogncrashServerError("server 500", null))
+      .mockResolvedValueOnce({ totalItems: 2, data: [{ id: 1 }, { id: 2 }] })
+      .mockResolvedValueOnce({ totalItems: 3, data: [{ id: 3 }, { id: 4 }, { id: 5 }] });
+    const output = join(directory, "logs.jsonl");
+
+    await programWithExport().parseAsync(args(output));
+
+    const spinner = vi.mocked(startSpinner).mock.results[0]?.value as { text: string };
+    expect(spinner.text).toContain("5/5");
+  });
+
+  it("상한에 도달하면 남은 창을 조회하지 않고 절단 경고를 남긴다", async () => {
+    scrollStart
+      .mockRejectedValueOnce(new LogncrashServerError("server 500", null))
+      .mockResolvedValueOnce({
+        totalItems: 100_000,
+        data: Array(100_000).fill({ id: 1 }),
+      });
+    const output = join(directory, "logs.jsonl");
+
+    await programWithExport().parseAsync(args(output));
+
+    expect(scrollStart).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(process.stderr.write).mock.calls.flat().join(" ")).toContain(
+      "남은 창을 조회하지 않은 채 상한 100000건까지만 추출했습니다",
+    );
+  });
+
+  it("500이 아닌 scrollStart 오류는 분할 재시도하지 않는다", async () => {
+    const error = new NhnCloudCliError("unauthorized", EXIT_API_ERROR);
+    scrollStart.mockRejectedValue(error);
+    const output = join(directory, "logs.jsonl");
+
+    await expect(programWithExport().parseAsync(args(output))).rejects.toBe(error);
+
+    expect(scrollStart).toHaveBeenCalledTimes(1);
+    expect(readdirSync(directory)).toEqual([]);
+  });
+
+  it("JSON 형식은 여러 창에서도 하나의 올바른 배열을 만든다", async () => {
+    scrollStart
+      .mockRejectedValueOnce(new LogncrashServerError("server 500", null))
+      .mockResolvedValueOnce({ totalItems: 1, data: [{ id: 1 }] })
+      .mockResolvedValueOnce({ totalItems: 1, data: [{ id: 2 }] });
+    const output = join(directory, "logs.json");
+
+    await programWithExport().parseAsync(args(output, ["--format", "json"]));
+
+    expect(JSON.parse(readFileSync(output, "utf-8"))).toEqual([{ id: 1 }, { id: 2 }]);
+    expect(readFileSync(output, "utf-8")).toBe('[{"id":1},{"id":2}]\n');
   });
 });

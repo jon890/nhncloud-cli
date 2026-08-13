@@ -25,10 +25,6 @@ export interface IpAclRetryContext {
 type SnapshotClient = Pick<LoadBalancerClient, "getLoadBalancer">;
 type RebindClient = Pick<LoadBalancerClient, "bindIpAclGroups">;
 
-export function sanitizeForTerminal(value: string): string {
-  return value.replace(/[\x00-\x1F\x7F]/g, "?");
-}
-
 export function shellQuote(value: string): string {
   return `'${value.replace(/'/g, `'\"'\"'`)}'`;
 }

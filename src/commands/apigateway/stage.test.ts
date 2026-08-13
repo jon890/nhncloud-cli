@@ -7,7 +7,8 @@ import { output } from "../../formatters/table.js";
 import type { Stage, UpdatedStage } from "../../services/apigateway/types.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
-import { resolveApiGatewayClient, sanitizeForTerminal } from "./helpers.js";
+import { sanitizeForTerminal } from "../../utils/terminal.js";
+import { resolveApiGatewayClient } from "./helpers.js";
 import { stageCommand, writeStageSwaggerFile } from "./stage.js";
 
 vi.mock("./helpers.js", async (importOriginal) => {

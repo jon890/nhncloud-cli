@@ -17,12 +17,12 @@ import {
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
+import { sanitizeForTerminal } from "../../utils/terminal.js";
 import {
   collectAffectedPaths,
   readPluginConfigFile,
   requireYes,
   resolveApiGatewayClient,
-  sanitizeForTerminal,
 } from "./helpers.js";
 
 interface ResourceOptions extends OutputOptions {

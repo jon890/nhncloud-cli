@@ -10,12 +10,12 @@ import type {
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
+import { sanitizeForTerminal } from "../../utils/terminal.js";
 import { parseRequiredArgument } from "../parse-options.js";
 import { deployCommand } from "./deploy.js";
 import {
   requireYes,
   resolveApiGatewayClient,
-  sanitizeForTerminal,
 } from "./helpers.js";
 
 interface StageOptions extends OutputOptions {

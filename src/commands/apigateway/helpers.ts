@@ -9,14 +9,10 @@ import { ApiGatewayClient } from "../../services/apigateway/client.js";
 import type { Resource } from "../../services/apigateway/types.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
+import { sanitizeForTerminal } from "../../utils/terminal.js";
 
 // 플러그인 설정은 보통 수 KB이며, 1 MB는 잘못된 파일 전체 읽기를 막는 보수적 상한이다.
 const MAX_PLUGIN_CONFIG_BYTES = 1_000_000;
-
-/** 외부 API 문자열의 ANSI escape와 제어 문자를 터미널 출력 전에 치환한다. */
-export function sanitizeForTerminal(value: string): string {
-  return value.replace(/[\x00-\x1F\x7F]/g, "?");
-}
 
 function fileErrorReason(error: unknown): string {
   if (typeof error === "object" && error !== null && "code" in error) {

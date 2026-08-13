@@ -6,6 +6,7 @@ import type {
 } from "../../services/loadbalancer/types.js";
 import { EXIT_API_ERROR } from "../../utils/exit-codes.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
+import { sanitizeForTerminal } from "../../utils/terminal.js";
 import {
   optionalTrimmed,
   parseIpOrCidr,
@@ -16,7 +17,6 @@ import {
 } from "./helpers.js";
 import {
   rebindIpAclSnapshots,
-  sanitizeForTerminal,
   skippedRebindResult,
   snapshotIpAclBindings,
   type IpAclRebindResult,

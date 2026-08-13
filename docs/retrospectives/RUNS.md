@@ -23,3 +23,5 @@
 | 2026-08-11 | build-with-teams | 054-feat-apigateway-read | A | 4 | 1 | 1 | 3 | 있음 | 2 | PR #80 |
 | 2026-08-11 | planning | 054-2-feat-apigateway-write | - | 5 | - | - | 1 | 없음 | 3 | task·branch push |
 | 2026-08-12 | build-with-teams | 054-2-feat-apigateway-write | A | 5 | 1 | 2 | 2 | 없음 | 2 | PR #86 |
+| 2026-08-12 | planning | 061-fix-logncrash-search-range-split | - | 3 | - | - | 1 | 없음 | 3 | task·branch push |
+| 2026-08-12 | build-with-teams | 061-fix-logncrash-search-range-split | A | 3 | 2 | 2 | 2 | 없음 | 2 | PR #89 |

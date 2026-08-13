@@ -56,10 +56,22 @@ export function resolveTime(input: string): string {
     return toLocalISOString(now);
   }
 
-  // ISO8601 형식 검증 (기본 패턴: YYYY-MM-DD 또는 YYYY-MM-DDTHH:mm... 포함)
-  const isoPattern = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?([+-]\d{2}:\d{2}|Z)?)?$/;
+  // ISO8601 형식 검증. 서버는 초와 타임존이 모두 있어야 받는다 —
+  // 아래 셋을 실측으로 확인했고 앞의 둘은 `invalid datetime format` 400 이었다.
+  //   2026-08-11T00:00          400
+  //   2026-08-11T00:00:00       400
+  //   2026-08-11T00:00:00+09:00 OK   (Z 표기도 OK)
+  const isoPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}([+-]\d{2}:\d{2}|Z)$/;
   if (isoPattern.test(trimmed)) {
     return trimmed;
+  }
+
+  const partialIso = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?)?$/.test(trimmed);
+  if (partialIso) {
+    throw new NhnCloudCliError(
+      `시간 형식 오류: "${input}" — 초와 시간대까지 지정해야 합니다 (예: 2026-08-03T00:00:00+09:00 또는 2026-08-03T00:00:00Z).`,
+      EXIT_PARAM_ERROR,
+    );
   }
 
   throw new NhnCloudCliError(
@@ -70,6 +82,72 @@ export function resolveTime(input: string): string {
 
 const MAX_RANGE_DAYS = 31;
 const MAX_LOOKBACK_DAYS = 90;
+
+export const MIN_SPLIT_WINDOW_MS = 10 * 60 * 1000;
+
+/**
+ * ISO8601 범위를 고정 크기 창으로 나눈다.
+ * 인접 창은 같은 경계 문자열을 공유해 경계 로그가 빠지지 않게 한다.
+ */
+export function splitTimeRange(
+  fromIso: string,
+  toIso: string,
+  windowMs: number,
+): Array<{ from: string; to: string }> {
+  if (windowMs < MIN_SPLIT_WINDOW_MS) {
+    throw new NhnCloudCliError(
+      `검색 분할 창은 최소 ${MIN_SPLIT_WINDOW_MS / 60_000}분이어야 합니다.`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+
+  const normalizedWindowMs = Math.floor(windowMs / 1000) * 1000;
+  const fromMs = floorToSecond(new Date(fromIso).getTime());
+  const toMs = floorToSecond(new Date(toIso).getTime());
+  if (normalizedWindowMs >= toMs - fromMs) {
+    return [{ from: fromIso, to: toIso }];
+  }
+
+  const windows: Array<{ from: string; to: string }> = [];
+  let windowFromMs = fromMs;
+  let windowFrom = fromIso;
+
+  while (windowFromMs < toMs) {
+    const windowToMs = Math.min(windowFromMs + normalizedWindowMs, toMs);
+    const windowTo = windowToMs === toMs
+      ? toIso
+      : formatSplitBoundary(windowToMs, fromIso);
+    windows.push({ from: windowFrom, to: windowTo });
+    windowFromMs = windowToMs;
+    windowFrom = windowTo;
+  }
+
+  return windows;
+}
+
+function floorToSecond(timestampMs: number): number {
+  return Math.floor(timestampMs / 1000) * 1000;
+}
+
+/** 입력이 가진 Z 또는 숫자 오프셋을 모든 경계에 적용하고 밀리초를 제거한다. */
+function formatSplitBoundary(timestampMs: number, referenceIso: string): string {
+  const secondTimestampMs = floorToSecond(timestampMs);
+  if (referenceIso.endsWith("Z")) {
+    return `${new Date(secondTimestampMs).toISOString().slice(0, 19)}Z`;
+  }
+
+  const offsetMatch = referenceIso.match(/([+-])(\d{2}):(\d{2})$/);
+  if (!offsetMatch) {
+    return toLocalISOString(new Date(secondTimestampMs));
+  }
+
+  const direction = offsetMatch[1] === "+" ? 1 : -1;
+  const offsetMinutes = direction * (Number(offsetMatch[2]) * 60 + Number(offsetMatch[3]));
+  const shifted = new Date(secondTimestampMs + offsetMinutes * 60_000)
+    .toISOString()
+    .slice(0, 19);
+  return `${shifted}${offsetMatch[0]}`;
+}
 
 /**
  * 검색 범위 사전 검증.

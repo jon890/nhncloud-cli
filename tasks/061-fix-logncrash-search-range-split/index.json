@@ -1,0 +1,37 @@
+{
+  "name": "061-fix-logncrash-search-range-split",
+  "description": "logncrash 검색이 넓은 기간에서 받는 서버 500 을 다룬다 — export 는 기간을 절반으로 줄여 자동 재시도하고 search 는 원인을 단정하지 않는 안내와 requestId 를 낸다 (ADR-030, 이슈 #87).",
+  "created_at": "2026-08-12T00:00:00Z",
+  "updated_at": "2026-08-12T05:07:39Z",
+  "status": "completed",
+  "current_phase": 3,
+  "total_phases": 3,
+  "error_message": null,
+  "blocked_reason": null,
+  "phases": [
+    {
+      "number": 1,
+      "title": "500 전용 오류와 requestId 보존, 기간 분할 유틸",
+      "file": "phase-01.md",
+      "status": "completed",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "execution_profile": "standard"
+    },
+    {
+      "number": 2,
+      "title": "search 500 안내와 export 적응형 기간 분할",
+      "file": "phase-02.md",
+      "status": "completed",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "execution_profile": "standard"
+    },
+    {
+      "number": 3,
+      "title": "사용자 가이드 갱신과 완료 마킹",
+      "file": "phase-03.md",
+      "status": "completed",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "execution_profile": "standard"
+    }
+  ]
+}

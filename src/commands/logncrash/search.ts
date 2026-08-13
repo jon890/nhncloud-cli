@@ -4,6 +4,7 @@ import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { output, truncate, type OutputOptions } from "../../formatters/table.js";
+import { LogncrashServerError } from "../../services/logncrash/errors.js";
 import type { CursorSearchResult } from "../../services/logncrash/types.js";
 import { parseIntegerOption, parseNonNegativeIntegerOption } from "../parse-options.js";
 import { resolveLogncrashClient } from "./helpers.js";
@@ -32,8 +33,8 @@ function formatLogRow(log: Record<string, unknown>): string[] {
 export const searchCommand = new Command("search")
   .description("Log & Crash 로그 검색")
   .option("--query <lucene>", "Lucene 질의 문자열 (필수)")
-  .option("--from <time>", "검색 시작: ISO8601 또는 상대시간 (1h/30m/2d/now) (필수)")
-  .option("--to <time>", "검색 끝: ISO8601 또는 상대시간 (필수)")
+  .option("--from <time>", "검색 시작: 초·시간대 포함 ISO8601 또는 상대시간 (1h/30m/2d/now) (필수)")
+  .option("--to <time>", "검색 끝: 초·시간대 포함 ISO8601 또는 상대시간 (필수)")
   .option("--page <n>", "전환 호환용 pageNumber. 0만 허용 (다음 페이지는 --cursor)", "0")
   .option("--size <n>", "pageSize (기본 10, 최대 100)", "10")
   .option("--cursor <value>", "다음 페이지 조회용 opaque cursor")
@@ -87,6 +88,15 @@ export const searchCommand = new Command("search")
       });
     } catch (err) {
       stopSpinner(false);
+      if (err instanceof LogncrashServerError) {
+        const requestId = err.requestId === null
+          ? ""
+          : ` (requestId: ${err.requestId})`;
+        throw new LogncrashServerError(
+          `${err.message}\n검색 기간이 넓어 서버가 처리하지 못했을 수 있습니다. 기간을 줄여 다시 시도하거나 logncrash export를 사용하세요.${requestId}`,
+          err.requestId,
+        );
+      }
       throw err;
     }
 
