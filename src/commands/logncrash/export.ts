@@ -133,6 +133,13 @@ export const exportCommand = new Command("export")
 
       let pendingWindows = [{ from: fromIso, to: toIso }];
       let completedWindows = 0;
+      // 창이 하나면 분할이 일어나지 않았다는 뜻이라 `창 1/1` 을 붙이지 않는다.
+      // 현재 창은 이미 shift 된 상태라 남은 개수에 1 을 더해 전체를 센다.
+      const progressText = (): string => {
+        const totalWindows = completedWindows + pendingWindows.length + 1;
+        const windowPart = totalWindows > 1 ? `창 ${completedWindows + 1}/${totalWindows} ` : "";
+        return `로그 추출 중... ${windowPart}${count}/${total}`;
+      };
       while (pendingWindows.length > 0) {
         const window = pendingWindows.shift();
         if (!window) break;
@@ -156,12 +163,12 @@ export const exportCommand = new Command("export")
           });
           total += res.totalItems;
           writePage(res.data);
-          spinner.text = `로그 추출 중... 창 ${completedWindows + 1}/${completedWindows + pendingWindows.length + 1} ${count}/${total}`;
+          spinner.text = progressText();
 
           while (res.data.length > 0 && res.scrollKey && count < Math.min(total, MAX_TOTAL)) {
             res = await scrollNextWithHint(client, res.scrollKey);
             writePage(res.data);
-            spinner.text = `로그 추출 중... 창 ${completedWindows + 1}/${completedWindows + pendingWindows.length + 1} ${count}/${total}`;
+            spinner.text = progressText();
           }
           completedWindows++;
           if (count >= MAX_TOTAL && pendingWindows.length > 0) {

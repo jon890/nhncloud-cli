@@ -4,9 +4,7 @@ import { getAccessToken } from "../../api/oauth.js";
 import { NcsClient } from "../../services/ncs/client.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
-
-/** `--file <json>` spec 파일 크기 상한 (1 MB) — deploy upload(512 MiB, 바이너리) 보다 훨씬 보수적. JSON spec 용도라 그 이상은 비정상 입력. */
-const MAX_JSON_PAYLOAD_BYTES = 1_000_000;
+import { MAX_JSON_INPUT_BYTES } from "../../utils/limits.js";
 const NCS_RFC3339_PATTERN =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(Z|([+-])(\d{2}):(\d{2}))$/;
 const NCS_RELATIVE_TIME_PATTERN = /^(\d+)(m|h|d)$/;
@@ -241,9 +239,9 @@ export function readJsonPayload(filePath: string): unknown {
   if (!stat.isFile()) {
     throw new NhnCloudCliError(`--file 이 일반 파일이 아닙니다: ${filePath}`, EXIT_PARAM_ERROR);
   }
-  if (stat.size > MAX_JSON_PAYLOAD_BYTES) {
+  if (stat.size > MAX_JSON_INPUT_BYTES) {
     throw new NhnCloudCliError(
-      `--file 이 너무 큽니다 (${stat.size} 바이트). JSON spec 한도 ${MAX_JSON_PAYLOAD_BYTES} 바이트.`,
+      `--file 이 너무 큽니다 (${stat.size} 바이트). JSON spec 한도 ${MAX_JSON_INPUT_BYTES} 바이트.`,
       EXIT_PARAM_ERROR,
     );
   }
