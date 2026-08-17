@@ -42,12 +42,16 @@
 `stage import-resources`, `stage deploy create`·`rollback` 을 같은 형식으로 덧붙인다.
 행이 길어지면 조회와 쓰기를 나눠 읽히게 다듬되, 링크 대상과 표 구조는 바꾸지 않는다.
 
+프론트매터의 `description` 은 **그대로 둔다.** 그 문장은 apigateway 를 명령 열거 없이
+"API Gateway 작업" 으로 포괄하므로 명령이 늘어도 어긋나지 않는다.
+판단을 다시 하지 말고 손대지 않는다.
+
 ### 3. `README.md` — 사용 예와 명령 수 (필수)
 
 `README.md:104-105` 에 apigateway 사용 예 2줄이 있고 그중 하나가 쓰기 예시다.
 배포까지 잇는 예시 한 줄을 그 아래에 더한다. 기존 두 줄은 지우지 않는다.
 
-`README.md:107` 의 `전체 명령과 옵션은 --help 로 본다. 현재 167개다.` 를 **170개**로 고친다.
+`README.md:108` 의 `전체 명령과 옵션은 --help 로 본다. 현재 167개다.` 를 **170개**로 고친다.
 이 문장을 놓치면 README 와 `AGENTS.md`·카탈로그가 서로 다른 수를 말하게 된다.
 
 ### 4. `tasks/054-3-feat-apigateway-deploy/index.json` — 완료 마킹
@@ -112,9 +116,13 @@ print('완료 마킹 OK')"
 - 롤백 응답이 `customEndpointUrl` 인지 `customBackendEndpointUrl` 인지
 - 변경 사항이 없을 때 반영과 배포가 각각 어떤 응답·오류를 주는지
 - 배포 직후 `deploys/latest` 가 `DEPLOYING` 을 주는지, 결과까지 실제로 얼마나 걸리는지
-- **배포 직후 `deploys/latest` 가 직전 배포 레코드를 얼마나 오래 주는지** —
-  `waitForDeploy` 가 `baselineDeployId` 를 비교하는 이유가 이것이다.
-  새 `deployId` 가 나타나기까지의 시간을 재 두면 폴링 간격과 기본 상한을 근거 있게 조정할 수 있다.
+- **배포하면 새 `deployId` 레코드가 생기는가 — 예/아니오로 답한다.**
+  `waitForDeploy` 의 종료 조건이 이 전제 위에 있다.
+  서버가 최근 레코드의 상태만 제자리에서 바꾸는 구조라면 `deployId` 가 영원히 그대로여서
+  `deploy create` 기본 경로가 **매번 상한을 채우고 실패한다.**
+  "아니오" 면 종료 조건을 상태 기준으로 되돌리고 ADR-031 과 phase-01 을 함께 고쳐야 한다.
+  `deploy list` 가 이력을 배열로 주고 항목마다 `deployId` 가 다르므로 "예" 쪽이 유력하지만, 확정은 실측이다.
+- 새 `deployId` 가 나타나기까지 걸린 시간 — 폴링 간격 3초와 기본 상한 300초를 조정할 근거가 된다
 - `--description` 200자 경계가 문자 기준인지 바이트 기준인지 — 한글 200자를 넣어 확인한다
 
 수동 검증이 문서 기반 설계와 어긋나면 PR 을 열어 둔 채 정정한다.

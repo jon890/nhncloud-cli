@@ -98,6 +98,11 @@ new Command("create")
 5. `opts.wait` 이면 배포 전에 `client.getLatestDeploy(...)` 로 기준 `deployId` 를 읽는다.
    이 조회가 실패하면 **배포를 막지 않는다.** 배포 이력이 없는 스테이지일 수 있다.
    실패를 삼키고 `baselineDeployId = null` 로 진행한다.
+   다만 `null` 로 떨어지면 완료 판정이 상태 하나로 느슨해진다 —
+   이력이 있는데 일시적 5xx 로 조회만 실패한 경우, 직전 배포가 `COMPLETE` 면
+   그것을 이번 결과로 읽을 수 있다. 그래서 `stopSpinner` 뒤 stderr 에 한 줄 남긴다.
+   `안내: 직전 배포 ID 를 읽지 못해 상태만으로 완료를 판정합니다.`
+   spinner 구간 안에서 쓰지 않는다.
 6. `client.createDeploy(serviceId, stageId, { deployDescription: opts.description })`
 7. `opts.wait` 이면 `client.waitForDeploy(...)` 에 위에서 만든 `timeoutMs` 를 넘긴다.
 8. 결과 판정 — `deployStatus` 가 `DEPLOY_STATUS_COMPLETE` 가 아니면 실패다.

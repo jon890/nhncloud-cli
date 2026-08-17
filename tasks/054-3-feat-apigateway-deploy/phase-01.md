@@ -178,7 +178,8 @@ grep -c "export function isWrittenStageResource\b" src/services/apigateway/types
 sed -n '/export function isWrittenStageResource/,/^}/p' src/services/apigateway/types.ts | grep -c customBackendEndpointUrl || true   # 0
 
 # 쓰기 가드가 stageResourceId·path 외에는 필수로 요구하지 않는다 (undefined 허용)
-sed -n '/export function isWrittenStageResource/,/^}/p' src/services/apigateway/types.ts | grep -c "undefined"   # 3 이상
+# grep -c 는 일치 횟수가 아니라 줄 수를 세므로 한 줄에 몰아 쓰면 1 이 된다. 횟수를 센다
+sed -n '/export function isWrittenStageResource/,/^}/p' src/services/apigateway/types.ts | grep -o "undefined" | wc -l   # 3 이상
 
 # waitForDeploy 가 baselineDeployId 를 판정에 쓴다 (timeout 메시지에만 쓰면 결함)
 sed -n '/async waitForDeploy/,/^  }/p' src/services/apigateway/client.ts | grep -c "baselineDeployId"   # 2 이상
