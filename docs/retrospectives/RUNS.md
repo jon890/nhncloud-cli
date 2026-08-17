@@ -25,3 +25,4 @@
 | 2026-08-12 | build-with-teams | 054-2-feat-apigateway-write | A | 5 | 1 | 2 | 2 | 없음 | 2 | PR #86 |
 | 2026-08-12 | planning | 061-fix-logncrash-search-range-split | - | 3 | - | - | 1 | 없음 | 3 | task·branch push |
 | 2026-08-12 | build-with-teams | 061-fix-logncrash-search-range-split | A | 3 | 2 | 2 | 2 | 없음 | 2 | PR #89 |
+| 2026-08-13 | planning | 054-3-feat-apigateway-deploy | - | 3 | - | - | 1 | 없음 | 3 | task·branch push |
