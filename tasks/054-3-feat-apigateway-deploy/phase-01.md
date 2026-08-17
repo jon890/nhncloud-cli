@@ -152,6 +152,21 @@ baselineDeployId === null:  deployStatus !== DEPLOYING
 
 ---
 
+## Critical Files
+
+| 파일 | 무엇을 하는가 |
+| --- | --- |
+| `src/services/apigateway/types.ts` | `WrittenStageResource` 타입과 `isWrittenStageResource` 가드, 배포 상태 상수 3개를 더한다. 기존 `isStageResource` 는 건드리지 않는다 |
+| `src/services/apigateway/client.ts` | `importStageResources`·`createDeploy`·`rollbackDeploy`·`waitForDeploy` 4개와 폴링 간격 상수를 더한다 |
+| `src/services/apigateway/client.test.ts` | 위 검증 목록의 테스트를 이 파일에 추가한다. 새 테스트 파일을 만들지 않는다 |
+
+읽기만 하는 참고 파일이다.
+
+- `src/services/instance/client.ts` — `waitForActive`(716행)의 deadline·대기 형태를 그대로 따른다
+- `docs/adr/031-apigateway-stage-deploy.md` — 결정 근거
+
+---
+
 ## 검증
 
 ```bash

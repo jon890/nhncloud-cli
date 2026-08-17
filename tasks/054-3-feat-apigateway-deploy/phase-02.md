@@ -153,6 +153,23 @@ new Command("rollback")
 
 ---
 
+## Critical Files
+
+| 파일 | 무엇을 하는가 |
+| --- | --- |
+| `src/commands/apigateway/stage.ts` | `import-resources` 를 더하고 `stageCommand` 에 등록한다. `addApiGatewayOptions`(31행)로 감싼다 |
+| `src/commands/apigateway/deploy.ts` | `create`·`rollback` 을 더하고 `deployCommand` 에 등록한다. 105행의 상위 설명도 고친다 |
+| `src/commands/apigateway/stage.test.ts` | `import-resources` 테스트를 여기에 추가한다 |
+| `src/commands/apigateway/commands.test.ts` | `deploy create`·`rollback` 테스트를 여기에 추가한다 |
+
+읽기만 하는 참고 파일이다.
+
+- `src/formatters/table.ts` — `output()` 의 `json`·`quiet`·table 3분기
+- `src/commands/apigateway/helpers.ts` — `requireYes`·`parseRequiredArgument`·`resolveApiGatewayClient`
+- `src/commands/instance/create.ts` — `--timeout` 파싱과 대기 출력 선례
+
+---
+
 ## 검증
 
 ```bash

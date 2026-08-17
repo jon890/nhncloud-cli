@@ -61,6 +61,19 @@
 
 ---
 
+## Critical Files
+
+| 파일 | 무엇을 하는가 |
+| --- | --- |
+| `skills/nhncloud-cli/references/apigateway.md` | 반영·배포·롤백 절을 더한다 |
+| `skills/nhncloud-cli/SKILL.md` | 40행 라우터 행에 새 명령 3개를 넣는다. 프론트매터 `description` 은 손대지 않는다 |
+| `README.md` | apigateway 사용 예 한 줄을 더하고 108행의 명령 수를 170 으로 고친다 |
+| `tasks/054-3-feat-apigateway-deploy/index.json` | 완료 마킹 |
+
+`AGENTS.md` 와 `docs/` 아래 결정 문서는 **이 phase 에서 편집하지 않는다.** 이미 갱신돼 있다.
+
+---
+
 ## 검증
 
 ```bash
