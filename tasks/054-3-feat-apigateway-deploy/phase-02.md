@@ -23,6 +23,10 @@ nhncloud apigateway stage deploy rollback <service-id> <stage-id> <deploy-id> --
 
 ## 공통 규칙 (세 명령 모두)
 
+- **각 명령을 `addApiGatewayOptions(...)` 로 감싼다.** 그 헬퍼가 `--region`(기본 kr1)과 `--profile` 을 붙인다.
+  `stage.ts:31` 과 `deploy.ts:17` 에 파일별로 하나씩 있고, 기존 6개 명령이 모두 이것을 통과한다.
+  빠뜨리면 새 명령만 region 을 못 바꾸고, `--profile` 은 root 전역 옵션이 아니라서 **profile 지정 자체가 불가능**해진다.
+  아래 예시 코드는 `new Command(...)` 부분만 보여주므로, 등록할 때 반드시 감싼다.
 - 인수는 `parseRequiredArgument` 로 검증한다. 기존 `stage update`(`src/commands/apigateway/stage.ts:182`)가 선례다.
 - **API 호출 전에** `requireYes(opts.yes, "<작업 이름>")` 를 검증한다. 세 명령 모두 `--yes` 를 요구한다.
 - 클라이언트는 `resolveApiGatewayClient(opts)` 로 얻는다.
@@ -30,6 +34,8 @@ nhncloud apigateway stage deploy rollback <service-id> <stage-id> <deploy-id> --
   **spinner 구간 안에서 `process.stderr.write` 를 호출하지 않는다** — ora 출력과 줄이 뒤섞인다.
   안내는 `stopSpinner` 뒤에 낸다.
 - 출력은 `output(opts, {...})` 를 쓴다. 사용자에게 보이는 문자열은 `sanitizeForTerminal` 로 감싼다.
+  `output()` 은 `--json` → `--quiet`(ids) → 테이블 3분기다(`src/formatters/table.ts`).
+  **`ids` 를 빠뜨리면 `--quiet` 가 조용히 빈 출력이 된다.** 세 명령 모두 `ids` 를 지정한다.
 - 데이터는 stdout, 안내·경고는 stderr 로 나간다.
 
 ---
@@ -82,7 +88,10 @@ new Command("create")
 
 1. 인수 검증
 2. `--description` 길이 검증. 200자를 넘으면 `EXIT_PARAM_ERROR` 로 끝낸다.
-   길이는 `[...text].length` 로 센다 — 서버 상한이 문자 수 기준이다.
+   길이는 `[...text].length` 로 센다.
+   **근거**: 공식 문서 "스테이지 배포" 의 Request Body 표가 `deployDescription` 을
+   `String / 선택 / 유효 범위: 최대 200자` 로 적는다. 추측값이 아니다.
+   문서가 바이트인지 문자인지 밝히지 않아 문자 수로 세고, 실제 경계는 phase 03 의 수동 검증 목록에서 확인한다.
 3. `const timeoutMs = parsePositiveIntegerOption(opts.timeout ?? "300", "--timeout") * 1000;`
    `--no-wait` 여도 파싱한다. 값이 틀렸는데 조용히 무시되면 다음 호출에서 놀란다.
 4. `requireYes(opts.yes, "스테이지 배포")`
@@ -99,12 +108,15 @@ new Command("create")
 
 출력.
 
-- `--no-wait`: 서버가 배포 ID 를 주지 않으므로 보여줄 데이터가 없다.
-  stdout 에 표를 내지 않고 stderr 안내만 낸다 —
-  `안내: 배포를 요청했습니다. 결과는 apigateway stage deploy latest 로 확인하세요.`
-  `--json` 이면 `{ "requested": true }` 를 stdout 에 낸다. 종료 코드는 0 이다.
-- 대기했으면 헤더 `["deployId", "deployStatus", "deployedAt", "deployDescription"]` 한 행을 낸다.
-  `raw` 는 `waitForDeploy` 가 돌려준 객체다.
+- **`--no-wait`**: 서버가 배포 ID 를 주지 않으므로 보여줄 식별자가 없다.
+  - 기본: stdout 에 표를 내지 않고 stderr 안내만 낸다 —
+    `안내: 배포를 요청했습니다. 결과는 apigateway stage deploy latest 로 확인하세요.`
+  - `--json`: `{ "requested": true }` 를 stdout 에 낸다.
+  - `--quiet`: **stdout 에 아무것도 내지 않는다.** 낼 식별자가 없어서이고, 빈 줄도 내지 않는다.
+    `--quiet` 는 파이프로 id 를 받는 용도라 없는 값을 지어내지 않는다.
+  - 종료 코드는 세 경우 모두 0 이다.
+- **대기했으면** 헤더 `["deployId", "deployStatus", "deployedAt", "deployDescription"]` 한 행을 낸다.
+  `raw` 는 `waitForDeploy` 가 돌려준 객체이고, `ids` 는 `[deployId]` 다.
 
 ### 3. `src/commands/apigateway/deploy.ts` — `rollback`
 
@@ -127,7 +139,12 @@ new Command("rollback")
   `deploy list` 는 성공 이력만 주므로 사전 검증이 또 한 번의 호출을 늘리기만 하고,
   그 사이에 상태가 바뀌면 검증이 무의미해진다. 서버 오류를 그대로 전달한다.
 
-두 명령을 `deployCommand` 에 `.addCommand()` 로 등록한다.
+두 명령을 `addApiGatewayOptions(...)` 로 감싼 뒤 `deployCommand` 에 `.addCommand()` 로 등록한다.
+
+`deployCommand` 의 설명도 함께 고친다(`src/commands/apigateway/deploy.ts:105`).
+지금은 `"API Gateway stage 배포 이력 조회 명령"` 인데 쓰기 두 개가 붙으면 틀린 설명이 된다.
+`"API Gateway stage 배포 조회와 실행 명령"` 처럼 조회와 쓰기를 함께 담는 문구로 바꾼다.
+`stageCommand` 의 설명(`stage.ts:248`, `"API Gateway stage 조회 및 변경 명령"`)은 이미 변경을 포함하므로 그대로 둔다.
 
 ---
 
@@ -151,16 +168,34 @@ node dist/index.js commands --json | python3 -c "import json,sys; print(len(json
 # 세 명령이 카탈로그에 있다
 node dist/index.js commands --json | grep -c "stage import-resources\|stage deploy create\|stage deploy rollback"   # 3
 
-# spinner 구간 안에서 stderr 로 쓰지 않는다 (세 명령 모두 0)
-awk '/startSpinner/,/stopSpinner/' src/commands/apigateway/deploy.ts | grep -c 'process.stderr.write'   # 0
-awk '/startSpinner/,/stopSpinner/' src/commands/apigateway/stage.ts | grep -c 'process.stderr.write'    # 0
+# spinner 구간 안에서 stderr 로 쓰지 않는다 (grep -c 는 0건일 때 exit 1 이라 || true 필요)
+awk '/startSpinner/,/stopSpinner/' src/commands/apigateway/deploy.ts | grep -c 'process.stderr.write' || true   # 0
+awk '/startSpinner/,/stopSpinner/' src/commands/apigateway/stage.ts | grep -c 'process.stderr.write' || true    # 0
 
-# 옵션 파싱과 --yes 검증이 API 호출보다 앞선다
-# parsePositiveIntegerOption 과 requireYes 의 줄 번호가 resolveApiGatewayClient 보다 작아야 한다
-grep -n "parsePositiveIntegerOption\|requireYes\|resolveApiGatewayClient" src/commands/apigateway/deploy.ts
+# 세 명령이 모두 --region·--profile 을 받는다
+node dist/index.js apigateway stage import-resources --help 2>&1 | grep -c -- "--region"      # 1
+node dist/index.js apigateway stage deploy create --help 2>&1 | grep -c -- "--profile"        # 1
+node dist/index.js apigateway stage deploy rollback --help 2>&1 | grep -c -- "--region"       # 1
+
+# 옵션 파싱과 --yes 검증이 자격증명·API 호출보다 앞선다 — 줄 번호가 오름차순인지 눈이 아니라 셸이 판정한다
+python3 - <<'PY'
+import re
+src = open("src/commands/apigateway/deploy.ts").read().split("\n")
+def first(pat):
+    for i, l in enumerate(src, 1):
+        if re.search(pat, l): return i
+    return None
+parse, yes, client = first(r"parsePositiveIntegerOption"), first(r"requireYes"), first(r"resolveApiGatewayClient")
+print("parse", parse, "yes", yes, "client", client)
+assert parse and yes and client, "세 호출이 모두 있어야 한다"
+assert parse < client and yes < client, "옵션 파싱과 --yes 가 자격증명 해석보다 앞서야 한다"
+print("순서 OK")
+PY
 ```
 
-명령별 테스트를 추가한다. 최소 다음을 덮는다.
+테스트는 **기존 파일에 추가한다.** `import-resources` 는 `src/commands/apigateway/stage.test.ts`,
+`deploy create`·`rollback` 은 `src/commands/apigateway/commands.test.ts` 를 쓴다. 새 파일을 만들지 않는다.
+최소 다음을 덮는다.
 
 - `--yes` 없이 호출하면 API 를 호출하지 않고 실패한다 (세 명령 모두)
 - `--description` 이 200자를 넘으면 API 를 호출하지 않고 `EXIT_PARAM_ERROR` 로 끝낸다
@@ -170,6 +205,8 @@ grep -n "parsePositiveIntegerOption\|requireYes\|resolveApiGatewayClient" src/co
 - 대기 경로에서 `getLatestDeploy` 가 던져도 배포가 진행된다 (`baselineDeployId = null`)
 - `--timeout 0` 이나 `--timeout abc` 는 `createDeploy` 를 호출하지 않고 `EXIT_PARAM_ERROR` 로 끝낸다
   (`--no-wait` 와 함께 줘도 같다)
+- `--quiet` 로 대기 경로를 돌면 stdout 에 `deployId` 한 줄만 나온다
+- `--quiet --no-wait` 는 stdout 이 비어 있다
 
 ---
 

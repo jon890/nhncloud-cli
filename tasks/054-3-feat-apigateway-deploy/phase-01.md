@@ -39,19 +39,28 @@
 export interface WrittenStageResource {
   stageResourceId: string;
   path: string;
-  methodType: string | null;
-  methodName: string | null;
-  stageResourcePluginList: StageResourcePlugin[];
+  methodType?: string | null;
+  methodName?: string | null;
+  stageResourcePluginList?: StageResourcePlugin[];
   [key: string]: unknown;
 }
 ```
 
 가드 `isWrittenStageResource` 를 `isStageResource` 옆에 추가한다.
-요구 필드는 위 인터페이스의 다섯 개뿐이다.
-`customBackendEndpointUrl`·`methodDescription`·`updatedAt` 을 **요구하지 않는다** — 출력에 쓰지 않기 때문이다.
+
+**필수는 `stageResourceId` 와 `path` 둘뿐이다.** 나머지는 존재할 때만 형식을 검사한다
+(`undefined` 를 허용한다). 같은 이유로 만들어진 선례가
+`isUpdatedResource`(`src/services/apigateway/types.ts:181`)이고 그 형태를 그대로 따른다.
+
+느슨하게 두는 이유는 실패 방향이 다르기 때문이다.
+쓰기 응답을 거부하면 **서버 상태가 이미 바뀐 뒤에** CLI 가 실패로 끝난다.
+되돌리기가 성공했는데 실패로 보고하는 쪽이, 필드 하나를 못 읽는 쪽보다 비싸다.
+조회 경로는 다시 부르면 되지만 쓰기는 그렇지 않다.
+
+`customBackendEndpointUrl`·`methodDescription`·`updatedAt` 은 요구하지 않는다 — 출력에 쓰지 않는다.
 기존 `isStageResource` 는 그대로 둔다. 조회 명령이 쓰고 있다.
 
-`isNullableString` 은 이미 이 파일에 있다. 새로 만들지 않는다.
+`isNullableString` 은 이미 이 파일에 있다(모듈 로컬). 새로 만들지 않는다.
 
 ### 2. `src/services/apigateway/types.ts` — 배포 상태 상수
 
@@ -110,18 +119,36 @@ async waitForDeploy(
   `src/services/instance/client.ts:716` 의 `waitForActive` 가 같은 형태다 — deadline 계산과
   `Math.min(intervalMs, remaining)` 대기를 그대로 따른다.
 - 매 회차 `this.getLatestDeploy(apigwServiceId, stageId)` 를 호출한다.
-- **종료 조건은 하나다 — `deployStatus` 가 `DEPLOYING` 이 아니게 되면 끝낸다.**
-  `deployId` 는 판정에 쓰지 않는다. 서버가 새 ID 로 바꾸든 같은 ID 의 상태만 바꾸든
-  `DEPLOYING` 을 벗어난 시점이 곧 결과가 나온 시점이고, 두 경우를 가릴 이유가 없다.
-- `deployStatus` 가 문서에 없는 값이면 `DEPLOYING` 이 아니므로 종료 조건에 걸린다.
-  상태 문자열을 그대로 담아 돌려주고 판정은 호출부가 한다.
-- timeout 을 넘기면 마지막으로 본 `deployStatus` 와 `deployId` 를 담아
-  `EXIT_API_ERROR` 로 던진다. 마지막 조회가 없었으면 그 사실을 적는다.
-- `getLatestDeploy` 가 던지는 오류는 그대로 전파한다. 폴링 중 오류를 삼키지 않는다.
 
-**`baselineDeployId` 를 왜 받는가** — 배포 이력이 하나도 없는 스테이지에서 `getLatestDeploy` 가
-실패할 수 있어, 호출부가 `null` 을 넘길 수 있어야 한다. timeout 메시지에 "직전 배포 ID" 를
-적어 사용자가 콘솔에서 대조할 수 있게 한다.
+**종료 조건 — `baselineDeployId` 를 반드시 판정에 쓴다.**
+
+```
+baselineDeployId !== null:  deployId !== baselineDeployId && deployStatus !== DEPLOYING
+baselineDeployId === null:  deployStatus !== DEPLOYING
+```
+
+`deployStatus !== DEPLOYING` 만으로 끝내면 **이번 배포가 아니라 직전 배포의 결과를 읽는다.**
+공식 문서가 "배포 결과가 업데이트되기까지 최대 1분 정도까지 소요될 수 있다" 고 적는다.
+그동안 `deploys/latest` 는 이전 배포 레코드를 그대로 준다.
+폴링 간격이 3초라 첫 회차는 거의 항상 그 창 안에 들어가고,
+직전 배포가 `COMPLETE` 였다면 CLI 가 즉시 성공으로 끝낸다.
+나중에 이번 배포가 `FAILURE` 가 돼도 사용자는 성공으로 보고받는다.
+대기를 기본으로 둔 이유가 바로 그 오해를 막는 것이라, 이 조건을 빠뜨리면 기능이 목적을 잃는다.
+
+`baselineDeployId === null` 은 배포 이력이 없는 스테이지다.
+비교할 직전 값이 없으므로 상태만으로 판정한다.
+
+- `deployStatus` 가 문서에 없는 값이면 `DEPLOYING` 이 아니므로 종료 조건에 걸린다.
+  상태 문자열을 그대로 담아 돌려주고 성공·실패 판정은 호출부가 한다.
+- timeout 을 넘기면 마지막으로 본 `deployStatus`·`deployId` 와 `baselineDeployId` 를 담아
+  `EXIT_API_ERROR` 로 던진다. 사용자가 콘솔에서 대조할 수 있어야 한다.
+  마지막 조회가 없었으면 그 사실을 적는다.
+- `getLatestDeploy` 가 던지는 오류는 그대로 전파한다. 폴링 중 오류를 삼키지 않는다.
+  일시적 5xx 한 번이 대기를 끝내지만, 배포는 이미 접수됐고
+  `deploy latest` 가 결과를 그대로 돌려준다.
+  오류를 삼키고 계속 돌면 진짜 장애를 최대 300초 동안 감춘다.
+  대기가 끊겨도 배포 자체는 취소되지 않는다.
+  `waitForActive`(`src/services/instance/client.ts:716`)와 같은 정책이다.
 
 ---
 
@@ -147,18 +174,31 @@ grep -c "export function isStageResource\b" src/services/apigateway/types.ts    
 grep -c "export function isWrittenStageResource\b" src/services/apigateway/types.ts   # 1
 
 # 쓰기 가드가 어긋난 필드를 요구하지 않는다
-sed -n '/export function isWrittenStageResource/,/^}/p' src/services/apigateway/types.ts | grep -c customBackendEndpointUrl   # 0
+# grep -c 는 0건일 때 exit 1 이므로 || true 를 붙여야 셸이 중단되지 않는다
+sed -n '/export function isWrittenStageResource/,/^}/p' src/services/apigateway/types.ts | grep -c customBackendEndpointUrl || true   # 0
+
+# 쓰기 가드가 stageResourceId·path 외에는 필수로 요구하지 않는다 (undefined 허용)
+sed -n '/export function isWrittenStageResource/,/^}/p' src/services/apigateway/types.ts | grep -c "undefined"   # 3 이상
+
+# waitForDeploy 가 baselineDeployId 를 판정에 쓴다 (timeout 메시지에만 쓰면 결함)
+sed -n '/async waitForDeploy/,/^  }/p' src/services/apigateway/client.ts | grep -c "baselineDeployId"   # 2 이상
 
 # 명령은 아직 늘지 않았다
 node dist/index.js commands --json | python3 -c "import json,sys; print(len(json.load(sys.stdin)['commands']))"   # 167
 ```
 
-테스트를 추가한다 — `src/services/apigateway/` 에 기존 테스트 파일이 있으면 거기에, 없으면
-`client.test.ts` 를 새로 만든다. 최소 다음을 덮는다.
+테스트는 **기존 `src/services/apigateway/client.test.ts` 에 추가한다.** 새 파일을 만들지 않는다.
+최소 다음을 덮는다.
 
 - `isWrittenStageResource` 가 `customEndpointUrl` 만 있는 롤백 응답 예시를 통과시킨다
 - `isWrittenStageResource` 가 `customBackendEndpointUrl` 이 있는 조회형 응답도 통과시킨다
+- `isWrittenStageResource` 가 `stageResourcePluginList` 없는 응답도 통과시킨다
+- `isWrittenStageResource` 가 `stageResourceId` 나 `path` 가 없으면 거부한다
 - `waitForDeploy` 가 `DEPLOYING` → `COMPLETE` 전이에서 결과를 돌려준다
+- **`waitForDeploy` 가 직전 배포의 `COMPLETE` 를 이번 배포 결과로 오해하지 않는다**
+  — `baselineDeployId` 와 같은 `deployId` 로 `COMPLETE` 가 오면 계속 기다린다.
+  이 케이스가 없으면 F2 결함이 회귀해도 테스트가 통과한다
+- `baselineDeployId` 가 `null` 이면 `deployId` 비교 없이 상태만으로 끝낸다
 - `waitForDeploy` 가 `FAILURE` 를 오류로 바꾸지 않고 그대로 돌려준다 (판정은 호출부 몫)
 - `waitForDeploy` 가 timeout 을 넘기면 마지막 상태를 담아 `EXIT_API_ERROR` 로 던진다
 
