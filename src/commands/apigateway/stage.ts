@@ -6,6 +6,7 @@ import type {
   StageResource,
   SwaggerData,
   UpdatedStage,
+  WrittenStageResource,
 } from "../../services/apigateway/types.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
@@ -244,10 +245,58 @@ const updateCommand = addApiGatewayOptions(
   process.stderr.write("안내: 스테이지 변경 후 실제 트래픽 반영 상태를 확인하세요.\n");
 });
 
+const importResourcesCommand = addApiGatewayOptions(
+  new Command("import-resources")
+    .description("API Gateway service 의 리소스를 stage 로 가져온다")
+    .argument("<service-id>", "API Gateway service ID")
+    .argument("<stage-id>", "API Gateway stage ID")
+    .option("--yes", "스테이지 반영을 확인한다"),
+).action(async (
+  serviceId: string,
+  stageId: string,
+  _opts: unknown,
+  command: Command,
+) => {
+  const opts = command.optsWithGlobals<StageOptions>();
+  const parsedServiceId = parseRequiredArgument(serviceId, "service-id");
+  const parsedStageId = parseRequiredArgument(stageId, "stage-id");
+  requireYes(opts.yes, "스테이지 반영");
+
+  const displayStageId = sanitizeForTerminal(parsedStageId);
+  const { client } = await resolveApiGatewayClient(opts);
+
+  startSpinner(`API Gateway stage "${displayStageId}" 리소스 반영 중...`);
+  let resources: WrittenStageResource[];
+  try {
+    resources = await client.importStageResources(parsedServiceId, parsedStageId);
+  } catch (error) {
+    stopSpinner(false);
+    throw error;
+  }
+  stopSpinner(true);
+
+  output(opts, {
+    headers: ["stageResourceId", "path", "methodType", "methodName", "plugins"],
+    rows: resources.map((resource) => [
+      sanitizeForTerminal(resource.stageResourceId),
+      sanitizeForTerminal(resource.path),
+      resource.methodType == null ? "-" : sanitizeForTerminal(resource.methodType),
+      resource.methodName == null ? "-" : sanitizeForTerminal(resource.methodName),
+      String(resource.stageResourcePluginList?.length ?? 0),
+    ]),
+    raw: resources,
+    ids: resources.map((resource) => sanitizeForTerminal(resource.stageResourceId)),
+  });
+  process.stderr.write(
+    "안내: 반영은 스테이지 설정만 바꿉니다. 서비스에 적용하려면 apigateway stage deploy create 를 실행하세요.\n",
+  );
+});
+
 export const stageCommand = new Command("stage")
   .description("API Gateway stage 조회 및 변경 명령")
   .addCommand(listCommand)
   .addCommand(swaggerCommand)
   .addCommand(resourcesCommand)
   .addCommand(updateCommand)
+  .addCommand(importResourcesCommand)
   .addCommand(deployCommand);

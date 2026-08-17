@@ -4,7 +4,11 @@ import { join } from "node:path";
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { output } from "../../formatters/table.js";
-import type { Stage, UpdatedStage } from "../../services/apigateway/types.js";
+import type {
+  Stage,
+  UpdatedStage,
+  WrittenStageResource,
+} from "../../services/apigateway/types.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { sanitizeForTerminal } from "../../utils/terminal.js";
@@ -26,7 +30,8 @@ vi.mock("../../utils/spinner.js", () => ({
 
 const listStages = vi.fn();
 const updateStage = vi.fn();
-const client = { listStages, updateStage };
+const importStageResources = vi.fn();
+const client = { listStages, updateStage, importStageResources };
 
 function programWith(command: Command): Command {
   return new Command("nhncloud")
@@ -59,6 +64,65 @@ const updatedStage: UpdatedStage = {
   backendEndpointUrl: "https://updated-backend.example.com",
   updatedAt: "2026-08-11T01:00:00Z",
 };
+
+const importedResources: WrittenStageResource[] = [
+  {
+    stageResourceId: "stage-resource-1",
+    path: "/users",
+    methodType: null,
+    methodName: null,
+    stageResourcePluginList: [{ pluginType: "CORS", pluginConfig: {} }],
+  },
+];
+
+describe("stage import-resources", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(resolveApiGatewayClient).mockResolvedValue({ client } as never);
+    importStageResources.mockResolvedValue(importedResources);
+  });
+
+  it("--yes가 없으면 client 생성과 API 호출 전에 거부한다", async () => {
+    await expect(programWith(stageCommand).parseAsync([
+      "node",
+      "nhncloud",
+      "stage",
+      "import-resources",
+      "service-1",
+      "stage-1",
+    ])).rejects.toMatchObject({
+      exitCode: EXIT_PARAM_ERROR,
+      message: expect.stringContaining("--yes"),
+    });
+
+    expect(resolveApiGatewayClient).not.toHaveBeenCalled();
+    expect(importStageResources).not.toHaveBeenCalled();
+  });
+
+  it("반영 결과를 stage resource 출력 계약으로 전달한다", async () => {
+    await programWith(stageCommand).parseAsync([
+      "node",
+      "nhncloud",
+      "--quiet",
+      "stage",
+      "import-resources",
+      "service-1",
+      "stage-1",
+      "--yes",
+    ]);
+
+    expect(importStageResources).toHaveBeenCalledWith("service-1", "stage-1");
+    expect(output).toHaveBeenCalledWith(
+      expect.objectContaining({ quiet: true }),
+      {
+        headers: ["stageResourceId", "path", "methodType", "methodName", "plugins"],
+        rows: [["stage-resource-1", "/users", "-", "-", "1"]],
+        raw: importedResources,
+        ids: ["stage-resource-1"],
+      },
+    );
+  });
+});
 
 describe("stage update", () => {
   beforeEach(() => {
