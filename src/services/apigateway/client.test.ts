@@ -3,6 +3,12 @@ import ky from "ky";
 import { ApiGatewayClient } from "./client.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_API_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
+import {
+  DEPLOY_STATUS_COMPLETE,
+  DEPLOY_STATUS_DEPLOYING,
+  DEPLOY_STATUS_FAILURE,
+  isWrittenStageResource,
+} from "./types.js";
 
 vi.mock("ky");
 
@@ -104,9 +110,72 @@ function deployHistory(id: string) {
   };
 }
 
+function latestDeploy(id: string, deployStatus: string) {
+  return {
+    ...deployHistory(id),
+    deployStatus,
+    stageResourceList: [],
+  };
+}
+
 function mockKyResponse(body: unknown) {
   return { json: async () => body } as never;
 }
+
+describe("isWrittenStageResource", () => {
+  it("customEndpointUrl 만 있는 롤백 응답 예시를 허용한다", () => {
+    expect(
+      isWrittenStageResource({
+        stageResourceId: "stage-resource-1",
+        path: "/",
+        methodType: null,
+        methodName: null,
+        customEndpointUrl: null,
+        stageResourcePluginList: [],
+      }),
+    ).toBe(true);
+  });
+
+  it("customBackendEndpointUrl 이 있는 조회형 응답도 허용한다", () => {
+    expect(
+      isWrittenStageResource({
+        stageResourceId: "stage-resource-1",
+        path: "/",
+        customBackendEndpointUrl: null,
+      }),
+    ).toBe(true);
+  });
+
+  it("stageResourcePluginList 가 없는 응답을 허용한다", () => {
+    expect(isWrittenStageResource({ stageResourceId: "stage-resource-1", path: "/" })).toBe(
+      true,
+    );
+  });
+
+  it.each([
+    { path: "/" },
+    { stageResourceId: "stage-resource-1" },
+  ])("stageResourceId 나 path 가 없으면 거부한다", (value) => {
+    expect(isWrittenStageResource(value)).toBe(false);
+  });
+
+  it("optional 필드가 있을 때 형식이 어긋나면 거부한다", () => {
+    expect(
+      isWrittenStageResource({
+        stageResourceId: "stage-resource-1",
+        path: "/",
+        methodType: 1,
+      }),
+    ).toBe(false);
+    expect(
+      isWrittenStageResource({
+        stageResourceId: "stage-resource-1",
+        path: "/",
+        stageResourcePluginList: [null],
+      }),
+    ).toBe(false);
+  });
+});
 
 describe("ApiGatewayClient.listServices", () => {
   beforeEach(() => vi.resetAllMocks());
@@ -549,6 +618,147 @@ describe("ApiGatewayClient.listStageResources", () => {
   });
 });
 
+describe("ApiGatewayClient.importStageResources", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("반영 응답을 반환하고 요청 본문 없이 PUT 호출한다", async () => {
+    const stageResourceList = [
+      { stageResourceId: "stage-resource-1", path: "/", customEndpointUrl: null },
+    ];
+    vi.mocked(ky.put).mockReturnValue(
+      mockKyResponse({ header: successfulHeader, stageResourceList }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(client.importStageResources("service/id", "stage/id")).resolves.toEqual(
+      stageResourceList,
+    );
+    expect(ky.put).toHaveBeenCalledWith(
+      "https://kr1-apigateway.api.nhncloudservice.com/v2.0/appkeys/appkey/services/service%2Fid/stages/stage%2Fid/resources",
+      {
+        headers: { "X-NHN-Authorization": "Bearer token" },
+        retry: 0,
+        timeout: expect.any(Number),
+      },
+    );
+    expect(vi.mocked(ky.put).mock.calls[0]?.[1]).not.toHaveProperty("json");
+  });
+
+  it("반영 응답 필수 필드가 빠지면 EXIT_API_ERROR 로 거부한다", async () => {
+    vi.mocked(ky.put).mockReturnValue(
+      mockKyResponse({
+        header: successfulHeader,
+        stageResourceList: [{ stageResourceId: "stage-resource-1" }],
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(
+      client.importStageResources("service-1", "stage-1"),
+    ).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
+  });
+
+  it("HTTP 200의 isSuccessful=false를 EXIT_API_ERROR로 거부한다", async () => {
+    vi.mocked(ky.put).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: false, resultCode: 500, resultMessage: "FAILURE" },
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(
+      client.importStageResources("service-1", "stage-1"),
+    ).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
+  });
+});
+
+describe("ApiGatewayClient.createDeploy", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("배포 설명을 본문에 담고 공통 헤더 응답을 검사한다", async () => {
+    vi.mocked(ky.post).mockReturnValue(mockKyResponse({ header: successfulHeader }));
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(
+      client.createDeploy("service/id", "stage/id", { deployDescription: "release" }),
+    ).resolves.toBeUndefined();
+    expect(ky.post).toHaveBeenCalledWith(
+      "https://kr1-apigateway.api.nhncloudservice.com/v2.0/appkeys/appkey/services/service%2Fid/stages/stage%2Fid/deploys",
+      {
+        headers: { "X-NHN-Authorization": "Bearer token" },
+        json: { deployDescription: "release" },
+        retry: 0,
+        timeout: expect.any(Number),
+      },
+    );
+  });
+
+  it("배포 설명이 없으면 빈 객체 본문을 보낸다", async () => {
+    vi.mocked(ky.post).mockReturnValue(mockKyResponse({ header: successfulHeader }));
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await client.createDeploy("service-1", "stage-1", {});
+
+    expect(ky.post).toHaveBeenCalledWith(
+      expect.stringContaining("/services/service-1/stages/stage-1/deploys"),
+      expect.objectContaining({ json: {} }),
+    );
+  });
+
+  it("HTTP 200의 isSuccessful=false를 EXIT_API_ERROR로 거부한다", async () => {
+    vi.mocked(ky.post).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: false, resultCode: 500, resultMessage: "FAILURE" },
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(
+      client.createDeploy("service-1", "stage-1", {}),
+    ).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
+  });
+});
+
+describe("ApiGatewayClient.rollbackDeploy", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("롤백 응답을 반환하고 요청 본문 없이 POST 호출한다", async () => {
+    const stageResourceList = [
+      { stageResourceId: "stage-resource-1", path: "/", customEndpointUrl: null },
+    ];
+    vi.mocked(ky.post).mockReturnValue(
+      mockKyResponse({ header: successfulHeader, stageResourceList }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(
+      client.rollbackDeploy("service/id", "stage/id", "deploy/id"),
+    ).resolves.toEqual(stageResourceList);
+    expect(ky.post).toHaveBeenCalledWith(
+      "https://kr1-apigateway.api.nhncloudservice.com/v2.0/appkeys/appkey/services/service%2Fid/stages/stage%2Fid/deploys/deploy%2Fid/rollback",
+      {
+        headers: { "X-NHN-Authorization": "Bearer token" },
+        retry: 0,
+        timeout: expect.any(Number),
+      },
+    );
+    expect(vi.mocked(ky.post).mock.calls[0]?.[1]).not.toHaveProperty("json");
+  });
+
+  it("HTTP 200의 isSuccessful=false를 EXIT_API_ERROR로 거부한다", async () => {
+    vi.mocked(ky.post).mockReturnValue(
+      mockKyResponse({
+        header: { isSuccessful: false, resultCode: 500, resultMessage: "FAILURE" },
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(
+      client.rollbackDeploy("service-1", "stage-1", "deploy-1"),
+    ).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
+  });
+});
+
 describe("ApiGatewayClient.listDeploys", () => {
   beforeEach(() => vi.resetAllMocks());
 
@@ -630,6 +840,122 @@ describe("ApiGatewayClient.getLatestDeploy", () => {
     await expect(client.getLatestDeploy("service-1", "stage-1")).rejects.toMatchObject({
       exitCode: EXIT_API_ERROR,
     });
+  });
+});
+
+describe("ApiGatewayClient.waitForDeploy", () => {
+  beforeEach(() => vi.restoreAllMocks());
+
+  it("DEPLOYING 이후 COMPLETE 가 되면 최종 결과를 반환한다", async () => {
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    const complete = latestDeploy("deploy-2", DEPLOY_STATUS_COMPLETE);
+    vi.spyOn(client, "getLatestDeploy")
+      .mockResolvedValueOnce(latestDeploy("deploy-2", DEPLOY_STATUS_DEPLOYING))
+      .mockResolvedValueOnce(complete);
+
+    await expect(
+      client.waitForDeploy("service-1", "stage-1", {
+        intervalMs: 1,
+        timeoutMs: 1_000,
+        baselineDeployId: "deploy-1",
+      }),
+    ).resolves.toEqual(complete);
+    expect(client.getLatestDeploy).toHaveBeenCalledTimes(2);
+  });
+
+  it("직전 배포의 COMPLETE 를 이번 배포 결과로 오해하지 않는다", async () => {
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    const current = latestDeploy("deploy-new", DEPLOY_STATUS_COMPLETE);
+    vi.spyOn(client, "getLatestDeploy")
+      .mockResolvedValueOnce(latestDeploy("deploy-old", DEPLOY_STATUS_COMPLETE))
+      .mockResolvedValueOnce(current);
+
+    await expect(
+      client.waitForDeploy("service-1", "stage-1", {
+        intervalMs: 1,
+        timeoutMs: 1_000,
+        baselineDeployId: "deploy-old",
+      }),
+    ).resolves.toEqual(current);
+    expect(client.getLatestDeploy).toHaveBeenCalledTimes(2);
+  });
+
+  it("baselineDeployId 가 null 이면 deployId 비교 없이 상태로 종료한다", async () => {
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    const complete = latestDeploy("deploy-1", DEPLOY_STATUS_COMPLETE);
+    vi.spyOn(client, "getLatestDeploy").mockResolvedValue(complete);
+
+    await expect(
+      client.waitForDeploy("service-1", "stage-1", {
+        intervalMs: 1,
+        timeoutMs: 1_000,
+        baselineDeployId: null,
+      }),
+    ).resolves.toEqual(complete);
+    expect(client.getLatestDeploy).toHaveBeenCalledTimes(1);
+  });
+
+  it("FAILURE 를 오류로 바꾸지 않고 그대로 반환한다", async () => {
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    const failure = latestDeploy("deploy-2", DEPLOY_STATUS_FAILURE);
+    vi.spyOn(client, "getLatestDeploy").mockResolvedValue(failure);
+
+    await expect(
+      client.waitForDeploy("service-1", "stage-1", {
+        intervalMs: 1,
+        timeoutMs: 1_000,
+        baselineDeployId: "deploy-1",
+      }),
+    ).resolves.toEqual(failure);
+  });
+
+  it("문서에 없는 상태도 DEPLOYING 이 아니면 그대로 반환한다", async () => {
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    const unknownStatus = latestDeploy("deploy-2", "UNKNOWN_STATUS");
+    vi.spyOn(client, "getLatestDeploy").mockResolvedValue(unknownStatus);
+
+    await expect(
+      client.waitForDeploy("service-1", "stage-1", {
+        intervalMs: 1,
+        timeoutMs: 1_000,
+        baselineDeployId: "deploy-1",
+      }),
+    ).resolves.toEqual(unknownStatus);
+  });
+
+  it("최신 배포 조회 오류를 삼키지 않고 그대로 전파한다", async () => {
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    const apiError = new NhnCloudCliError("조회 실패", EXIT_API_ERROR);
+    vi.spyOn(client, "getLatestDeploy").mockRejectedValue(apiError);
+
+    await expect(
+      client.waitForDeploy("service-1", "stage-1", {
+        intervalMs: 1,
+        timeoutMs: 1_000,
+        baselineDeployId: "deploy-1",
+      }),
+    ).rejects.toBe(apiError);
+  });
+
+  it("타임아웃에 마지막 상태·배포 ID·기준 ID를 담아 EXIT_API_ERROR로 종료한다", async () => {
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    vi.spyOn(client, "getLatestDeploy").mockResolvedValue(
+      latestDeploy("deploy-2", DEPLOY_STATUS_DEPLOYING),
+    );
+
+    const error = await client
+      .waitForDeploy("service-1", "stage-1", {
+        intervalMs: 2,
+        timeoutMs: 10,
+        baselineDeployId: "deploy-1",
+      })
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(NhnCloudCliError);
+    expect(error).toMatchObject({ exitCode: EXIT_API_ERROR });
+    expect((error as Error).message).toContain(`마지막 상태: ${DEPLOY_STATUS_DEPLOYING}`);
+    expect((error as Error).message).toContain("마지막 배포 ID: deploy-2");
+    expect((error as Error).message).toContain("기준 배포 ID: deploy-1");
   });
 });
 
