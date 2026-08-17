@@ -61,8 +61,8 @@ src/
       client.ts             # NcsClient — template / workload / malware 조회·쓰기 (Deploy OAuth Bearer 토큰 재사용 + appkey 경로 + 숫자 봉투, waitForRunning, [[adr-020]])
       types.ts              # Template / TemplateVersion / Workload / WorkloadTask / WorkloadHistory / MalwareConfig 응답 가드
     apigateway/
-      client.ts             # ApiGatewayClient — service / resource / stage / deploy 조회와 stage·플러그인 쓰기 (UAK OAuth 토큰 재사용, X-NHN-Authorization, appkey 경로, [[adr-027]], [[adr-028]])
-      types.ts              # ApiGatewayService / Resource / Stage / StageResource / DeployHistory / ResourceParameters / ResourceResponses 응답 가드 (nullable 필드 다수) + 쓰기 요청 타입과 수정 응답 전용 가드 ([[adr-028]])
+      client.ts             # ApiGatewayClient — service / resource / stage / deploy 조회와 stage·플러그인 쓰기, 스테이지 반영·배포·롤백과 배포 완료 대기 (UAK OAuth 토큰 재사용, X-NHN-Authorization, appkey 경로, [[adr-027]], [[adr-028]], [[adr-031]])
+      types.ts              # ApiGatewayService / Resource / Stage / StageResource / DeployHistory / ResourceParameters / ResourceResponses 응답 가드 (nullable 필드 다수) + 쓰기 요청 타입과 수정·반영·롤백 응답 전용 가드 ([[adr-028]], [[adr-031]])
   utils/
     errors.ts               # NhnCloudCliError(message, exitCode)
     exit-codes.ts           # EXIT_* 상수
