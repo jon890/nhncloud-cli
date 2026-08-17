@@ -35,8 +35,11 @@ nhncloud apigateway service list --region kr1 --json
 | `nhncloud apigateway stage swagger` | `<service-id> <stage-id>` | 공통 옵션, `--output <file>`, `--force` |
 | `nhncloud apigateway stage resources` | `<service-id> <stage-id>` | 공통 옵션 |
 | `nhncloud apigateway stage update` | `<service-id> <stage-id>` | 공통 옵션, `--backend-endpoint-url <url>`, `--description <text>`, `--yes` |
+| `nhncloud apigateway stage import-resources` | `<service-id> <stage-id>` | 공통 옵션, `--yes` |
+| `nhncloud apigateway stage deploy create` | `<service-id> <stage-id>` | 공통 옵션, `--description <text>`, `--no-wait`, `--timeout <sec>`, `--yes` |
 | `nhncloud apigateway stage deploy list` | `<service-id> <stage-id>` | 공통 옵션 |
 | `nhncloud apigateway stage deploy latest` | `<service-id> <stage-id>` | 공통 옵션 |
+| `nhncloud apigateway stage deploy rollback` | `<service-id> <stage-id> <deploy-id>` | 공통 옵션, `--yes` |
 
 `--quiet`가 식별자를 출력하는 명령은 다음과 같다.
 
@@ -93,7 +96,24 @@ nhncloud apigateway service list --region kr1 --json
 하위 적용 범위를 서버가 판정하고 CORS 플러그인이 기존 OPTIONS 메서드를 삭제·대체하므로,
 다른 위험 명령의 `--yes` 확인만으로는 되돌릴 수 없는 범위를 적용 전에 확인할 수 없기 때문이다.
 
-리소스 플러그인 변경을 스테이지에 반영하려면 별도의 리소스 반영과 배포가 필요하며, 리소스 반영·배포 명령은 아직 지원하지 않는다.
+리소스 플러그인 변경을 스테이지에 반영하려면 별도의 리소스 반영과 배포가 필요하다.
+
+## 반영·배포·롤백
+
+리소스 변경이 트래픽에 적용되려면 서비스 리소스를 스테이지로 반영한 뒤 스테이지를 배포하는 두 단계를 거친다.
+반영·배포·롤백 명령은 모두 API 호출 전에 `--yes`가 필요하다.
+
+```text
+nhncloud apigateway stage import-resources <service-id> <stage-id> --yes
+nhncloud apigateway stage deploy create <service-id> <stage-id> [--description <text>] [--no-wait] [--timeout <sec>] --yes
+nhncloud apigateway stage deploy rollback <service-id> <stage-id> <deploy-id> --yes
+```
+
+배포 요청과 배포 결과 조회는 별도 API이므로 `deploy create`는 기본적으로 최신 배포 결과를 조회하며 완료까지 기다린다.
+요청 직후 반환하려면 `--no-wait`를 사용하고, 기다리는 시간의 상한은 `--timeout <sec>`로 지정한다.
+
+`deploy rollback`은 선택한 배포 이력으로 스테이지 설정만 되돌린다.
+되돌린 설정을 트래픽에 적용하려면 `deploy create`를 다시 실행해야 한다.
 
 ## JSON 구조
 
@@ -152,4 +172,11 @@ nhncloud apigateway resource set-path-plugin <service-id> <resource-id> \
 
 nhncloud apigateway resource set-path-plugin <service-id> <resource-id> \
   --config-file path-plugins.json --yes
+```
+
+변경된 서비스 리소스를 스테이지에 반영하고 배포 완료까지 기다릴 수 있다.
+
+```bash
+nhncloud apigateway stage import-resources <service-id> <stage-id> --yes
+nhncloud apigateway stage deploy create <service-id> <stage-id> --yes
 ```
