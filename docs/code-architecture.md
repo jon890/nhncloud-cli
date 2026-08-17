@@ -67,6 +67,8 @@ src/
     errors.ts               # NhnCloudCliError(message, exitCode)
     exit-codes.ts           # EXIT_* 상수
     spinner.ts              # ora 래퍼 (quiet 모드 no-op)
+    terminal.ts             # 터미널 출력 전 제어 문자 정제 — 한 줄용과 개행 보존용 두 함수
+    limits.ts               # `--file` JSON 입력 크기 상한 (ncs·apigateway 공용)
     time.ts                 # 상대시간 → ISO8601 변환 + 검색 범위 사전 검증·기간 분할 ([[adr-030]])
   formatters/
     table.ts                # 테이블 / json / quiet 출력

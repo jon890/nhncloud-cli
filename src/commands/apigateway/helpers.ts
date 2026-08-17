@@ -10,9 +10,7 @@ import type { Resource } from "../../services/apigateway/types.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { sanitizeForTerminal } from "../../utils/terminal.js";
-
-// 플러그인 설정은 보통 수 KB이며, 1 MB는 잘못된 파일 전체 읽기를 막는 보수적 상한이다.
-const MAX_PLUGIN_CONFIG_BYTES = 1_000_000;
+import { MAX_JSON_INPUT_BYTES } from "../../utils/limits.js";
 
 function fileErrorReason(error: unknown): string {
   if (typeof error === "object" && error !== null && "code" in error) {
@@ -52,9 +50,9 @@ export async function readPluginConfigFile(path: string): Promise<unknown> {
       EXIT_PARAM_ERROR,
     );
   }
-  if (fileStat.size > MAX_PLUGIN_CONFIG_BYTES) {
+  if (fileStat.size > MAX_JSON_INPUT_BYTES) {
     throw new NhnCloudCliError(
-      `플러그인 설정 파일이 너무 큽니다 (${fileStat.size} 바이트). 허용 상한은 ${MAX_PLUGIN_CONFIG_BYTES} 바이트입니다.`,
+      `플러그인 설정 파일이 너무 큽니다 (${fileStat.size} 바이트). 허용 상한은 ${MAX_JSON_INPUT_BYTES} 바이트입니다.`,
       EXIT_PARAM_ERROR,
     );
   }

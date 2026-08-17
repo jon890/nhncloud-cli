@@ -19,6 +19,7 @@ import {
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_AUTH_ERROR, EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../utils/exit-codes.js";
 import type { UserAccessKey, ServiceCredential, IaasCredential } from "../config/types.js";
+import { sanitizeMultilineForTerminal } from "../utils/terminal.js";
 
 interface ConfigureOptions {
   profile?: string;
@@ -304,7 +305,8 @@ async function runInteractive(opts: ConfigureOptions): Promise<void> {
       await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, undefined, true, uak);
     } catch (err) {
       if (err instanceof NhnCloudCliError && err.exitCode === EXIT_AUTH_ERROR) {
-        process.stderr.write(chalk.red(`  ✗ ${err.message}\n`));
+        // 여기서 catch 해 대화를 이어가므로 index.ts 의 출력 관문을 지나지 않는다.
+        process.stderr.write(chalk.red(`  ✗ ${sanitizeMultilineForTerminal(err.message)}\n`));
         const saveDespite = await confirm({
           message: "검증 실패에도 저장하시겠습니까?",
           default: false,
