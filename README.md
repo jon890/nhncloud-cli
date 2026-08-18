@@ -52,6 +52,7 @@ CI·자동화는 flag 로 비대화형 설정한다. 비밀번호는 환경변�
 NHNCLOUD_IAAS_PASSWORD=<api-password> nhncloud configure \
   --uak-id <uak-id> --uak-secret <uak-secret> \
   --logncrash-appkey <appkey> \
+  [--deploy-appkey <appkey>] [--ncr-appkey <appkey>] [--ncs-appkey <appkey>] \
   --iaas-tenant-id <tenant-id> --iaas-username <iam-username> --iaas-region kr1 \
   --no-verify
 ```
@@ -186,8 +187,8 @@ src/
 | [docs/flow.md](docs/flow.md) | 사용자 흐름 |
 | [docs/code-architecture.md](docs/code-architecture.md) | 디렉터리 트리, 레이어, 경계 |
 | [docs/data-schema.md](docs/data-schema.md) | 자격증명과 캐시 스키마 |
-| [docs/adr/INDEX.md](docs/adr/INDEX.md) | 기술 의사결정 기록 (27건) |
-| [docs/pitfalls/INDEX.md](docs/pitfalls/INDEX.md) | 반복해서 발견된 회피 패턴 (104건) |
+| [docs/adr/INDEX.md](docs/adr/INDEX.md) | 기술 의사결정 기록 (33건) |
+| [docs/pitfalls/INDEX.md](docs/pitfalls/INDEX.md) | 반복해서 발견된 회피 패턴 (108건) |
 
 ## 기여하기
 
