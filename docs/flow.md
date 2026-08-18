@@ -13,7 +13,7 @@ nhncloud configure --profile playground
 
 1. profile 이름 (기본 `default`). profile = 프로젝트 하나에 대응한다 — 여러 프로젝트는 profile 을 나눠 `--profile` 로 전환한다.
 2. 개인 UAK — id, secret (password 입력). 기존 profile 에 UAK 가 있으면 재사용할지 먼저 묻는다(멀티 프로젝트에서 계정 단위 UAK 중복 입력을 줄임).
-3. 서비스별 자격증명 — logncrash appkey, ncr appkey, ncs appkey (각 건너뛰기 가능, appkey 는 빈값 검증).
+3. 서비스별 자격증명 — deploy appkey, logncrash appkey, ncr appkey, ncs appkey (각 건너뛰기 가능, appkey 는 빈값 검증).
 4. 연결 테스트 (UAK → OAuth 발급, logncrash → 최소 검색, ncr·ncs → kr1 목록 조회).
 5. 기존 값과 머지 저장 (`credentials.json` 0600, all-or-nothing).
 
@@ -25,7 +25,7 @@ flag 가 하나라도 있으면 비대화형으로 동작한다.
 nhncloud configure --profile playground \
   --uak-id <id> --uak-secret <secret> \
   --logncrash-appkey <appkey> \
-  [--ncr-appkey <appkey>] [--ncs-appkey <appkey>] \
+  [--deploy-appkey <appkey>] [--ncr-appkey <appkey>] [--ncs-appkey <appkey>] \
   [--apigateway-appkey <appkey>] [--no-verify]
 ```
 
@@ -35,6 +35,7 @@ nhncloud configure --profile playground \
 | `--uak-id` / `--uak-secret` | 개인 UAK |
 | `--logncrash-appkey` | logncrash 프로젝트 appkey. 검색 인증은 profile 공통 UAK 토큰을 사용 |
 | `--logncrash-secret` | 전환 호환용 폐기 예정 옵션. 경고 후 값을 저장하거나 사용하지 않음 |
+| `--deploy-appkey <key>` | Deploy appkey. 인증은 공통 UAK OAuth 를 재사용한다 ([[adr-033]]) |
 | `--ncr-appkey <key>` | NCR(Container Registry) appkey (인증 secret 은 공통 UAK 재사용) |
 | `--ncs-appkey <key>` | NCS(Container Service) appkey (인증 토큰은 공통 UAK OAuth 재사용) |
 | `--apigateway-appkey <key>` | API Gateway appkey. `configure`는 저장만 수행하고 연결은 조회 명령에서 검증 |
@@ -349,35 +350,36 @@ nhncloud logncrash send [options]
 
 ## deploy 흐름
 
-배포 좌표는 `config.json` 의 named target 으로 참조하고, OAuth 토큰은 캐시한다 ([[adr-007]], [[adr-008]]).
+appkey 는 profile 에서 읽고 배포 좌표는 명령 옵션으로 받는다. OAuth 토큰은 캐시한다 ([[adr-007]], [[adr-033]]).
 
 ### 인증 흐름
 
 1. profile 공통 `userAccessKey` 블록에서 UAK(id+secret) 로드 ([[adr-004]])
 2. 캐시된 access_token 이 만료 전이면 재사용, 아니면 OAuth 교환 후 캐시
 3. `X-NHN-AUTHORIZATION: Bearer <token>` 로 Deploy API 호출
+4. appkey 는 profile 의 `deploy.appkey` 에서 읽는다. 명령 옵션으로 지정하는 경로는 없다 ([[adr-033]])
 
 ### 명령 시그니처
 
 ```
-nhncloud deploy run <target> [options]      # 배포 실행
-nhncloud deploy artifacts [options]          # 아티팩트 목록
-nhncloud deploy server-groups <target> [options]   # 서버그룹 목록
-nhncloud deploy histories <target> [options]       # 배포 이력
-nhncloud deploy binary-groups <target> [options]   # 바이너리 그룹 목록
-nhncloud deploy binaries <target> --binary-group <key> [options]  # 바이너리 목록
-nhncloud deploy upload <target> --file <p> --binary-group <key>   # 바이너리 업로드 (multipart)
-nhncloud deploy download <target> --binary-group <k> --binary-key <bk> -o <f>  # 바이너리 다운로드 (--force)
+nhncloud deploy run --artifact-id <id> --server-group-id <id> --scenario-ids <ids>   # 배포 실행
+nhncloud deploy artifacts [options]                                    # 아티팩트 목록
+nhncloud deploy server-groups --artifact-id <id> [options]             # 서버그룹 목록
+nhncloud deploy histories --artifact-id <id> [options]                 # 배포 이력
+nhncloud deploy binary-groups --artifact-id <id> [options]             # 바이너리 그룹 목록
+nhncloud deploy binaries --artifact-id <id> --binary-group <key> [options]   # 바이너리 목록
+nhncloud deploy upload --artifact-id <id> --file <p> --binary-group <key>    # 바이너리 업로드 (multipart)
+nhncloud deploy download --artifact-id <id> --binary-group <k> --binary-key <bk> -o <f>  # 바이너리 다운로드 (--force)
 ```
 
-`<target>` 은 config.json 의 deploy target 이름이다. target 이 좌표(appKey·artifactId·serverGroupId·scenarioIds)를 공급하며, 아래 flag 로 개별 override 한다.
+배포 좌표는 명령 옵션으로 받는다. 반복되는 값은 클라이언트의 스크립트나 CI 변수가 관리한다 ([[adr-033]]).
+`artifacts` 는 좌표가 필요 없어 옵션 없이 호출한다.
 
 | 옵션 | 적용 | 설명 |
 |------|------|------|
-| `--app-key <k>` | 전체 | target 의 appKey override |
-| `--artifact-id <id>` | 전체 | target 의 artifactId override |
-| `--server-group-id <id>` | run, server-groups | target override |
-| `--scenario-ids <csv>` | run | target override |
+| `--artifact-id <id>` | artifacts 외 전체 | 대상 아티팩트 |
+| `--server-group-id <id>` | run, server-groups | 대상 서버그룹 |
+| `--scenario-ids <csv>` | run | 실행할 시나리오 |
 | `--target-hosts <csv>` | run | 대상 호스트. 생략 시 서버그룹 전체 |
 | `--concurrent <n>` | run | 병렬 배포 수 (기본 1) |
 | `--next-when-fail` | run | 시나리오 실패 시에도 진행 |

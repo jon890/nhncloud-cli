@@ -70,6 +70,9 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, 서비�
         "id": "<user-access-key-id>",
         "secret": "<secret-access-key>"
       },
+      "deploy": {
+        "appkey": "<appkey>"
+      },
       "logncrash": {
         "appkey": "<appkey>"
       },
@@ -92,7 +95,8 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, 서비�
 
 - `userAccessKey` — profile 공통 개인 UAK. deploy·ncs·logncrash 검색·apigateway 등 OAuth 서비스가 공유 ([[adr-007]], [[adr-024]], [[adr-027]])
   - OAuth 로 교환한 `access_token` 을 `X-NHN-AUTHORIZATION: Bearer` 로 사용
-  - deploy 는 자체 자격증명 블록 없이 이 UAK 와 `config.json` target 좌표로 동작 ([[adr-008]])
+- `deploy` — appkey 만. 인증 토큰은 `userAccessKey` OAuth 를 재사용한다(secret 불요, [[adr-033]])
+  - 배포 좌표(`artifactId` 등)는 자격증명이 아니라 명령 옵션으로 받는다
 - `logncrash` — appkey(path)만 저장한다. 검색 인증은 `userAccessKey` OAuth 토큰을 재사용한다. 기존 `secret` 필드는 마이그레이션 후 읽지 않는다 ([[adr-024]])
 - `ncs` — appkey(path)만. 인증 토큰은 `userAccessKey` OAuth 를 재사용한다(secret 불요, [[adr-020]])
 - `apigateway` — appkey(path)만. 인증 토큰은 `userAccessKey` OAuth 를 재사용하며 헤더 이름이 `X-NHN-Authorization` 이다(secret 불요, [[adr-027]])
@@ -106,23 +110,13 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, 서비�
 ```json
 {
   "version": 1,
-  "defaultProfile": "default",
-  "deploy": {
-    "targets": {
-      "<target-name>": {
-        "appKey": "<appkey>",
-        "artifactId": "<artifactId>",
-        "serverGroupId": "<serverGroupId>",
-        "scenarioIds": "<id1,id2>"
-      }
-    }
-  }
+  "defaultProfile": "default"
 }
 ```
 
 - `defaultProfile` — `--profile` 미지정 시 사용할 profile
-- `deploy.targets.<name>` — 배포 좌표 묶음. `nhncloud deploy run <name>` 으로 참조, flag override ([[adr-008]])
-- 비밀이 아닌 값만 (UAK 비밀은 credentials.json)
+- CLI 동작 설정만 둔다. 자격증명은 credentials.json, 배포 좌표는 명령 옵션이다 ([[adr-033]])
+- `deploy.targets` 는 폐지됐다. 남아 있으면 읽지 않고 경고로 옮기는 방법을 알린다
 
 ## 토큰 캐시
 

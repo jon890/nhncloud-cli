@@ -205,7 +205,7 @@ dooray-cli 는 단일 `config` 와 `client` 로 충분했지만, NHN Cloud 는 �
 - 각 `services/<svc>/client.ts` — 위 조각을 조합해 서비스 고유 헤더 부착
   - logncrash 검색: `X-NHN-Authorization: Bearer <token>`, appkey 경로, 숫자 봉투 ([[adr-024]])
   - logncrash collector: 인증 헤더 없음과 body의 `projectName=appkey` ([[adr-014]])
-  - deploy: `X-NHN-AUTHORIZATION: Bearer <token>` 과 config target 좌표 ([[adr-008]])
+  - deploy: `X-NHN-AUTHORIZATION: Bearer <token>` 과 profile `deploy.appkey`, 좌표는 명령 옵션 ([[adr-033]])
   - instance: `X-Auth-Token: <tokenId>` 과 region 별 compute endpoint
   - network: `X-Auth-Token: <tokenId>` 과 region 별 network endpoint (instance 와 토큰 공유, [[adr-013]])
   - loadbalancer: `X-Auth-Token: <tokenId>` 과 network endpoint의 `/lbaas` 경로 재사용. 그룹 변경 후 자동 재바인딩과 부분 실패 복구는 [[adr-022]]
