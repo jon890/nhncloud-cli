@@ -139,7 +139,8 @@ nhncloud apigateway stage deploy rollback <service-id> <stage-id> <deploy-id> --
 
 `deploy rollback`은 선택한 배포 이력으로 스테이지 설정만 되돌린다.
 되돌린 설정을 트래픽에 적용하려면 `deploy create`를 다시 실행해야 한다.
-명령은 실행 후 `주의: 되돌리기는 현재 스테이지 설정을 모두 지웁니다.`라고 경고한다.
+되돌리면 직전까지의 스테이지 설정은 남지 않는다.
+명령은 실행 후 `완료: 직전까지의 스테이지 설정은 이 배포 이력의 내용으로 대체됐습니다.`라고 알린다.
 
 ## JSON 구조
 

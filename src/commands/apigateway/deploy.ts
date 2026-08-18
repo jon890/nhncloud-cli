@@ -279,7 +279,8 @@ const rollbackCommand = addApiGatewayOptions(
   process.stderr.write(
     "안내: 되돌리기는 스테이지 설정만 바꿉니다. 서비스에 적용하려면 apigateway stage deploy create 를 실행하세요.\n",
   );
-  process.stderr.write("주의: 되돌리기는 현재 스테이지 설정을 모두 지웁니다.\n");
+  // 이 시점엔 이미 되돌린 뒤다. "지웁니다" 같은 사전 경고체를 쓰면 시점이 어긋난다.
+  process.stderr.write("완료: 직전까지의 스테이지 설정은 이 배포 이력의 내용으로 대체됐습니다.\n");
 });
 
 export const deployCommand = new Command("deploy")
