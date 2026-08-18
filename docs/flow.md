@@ -133,8 +133,15 @@ nhncloud apigateway stage deploy create "$SERVICE_ID" "$STAGE_ID" \
 문서 기준으로 결과 반영에 최대 1분이 걸린다.
 기다리지 않으려면 `--no-wait` 를 준다. 대기 상한은 `--timeout <sec>` 이고 기본은 300 이다.
 
-변경 사항이 없을 때 두 명령의 처리가 다르다.
-반영은 아무 일도 하지 않고 끝나며, 배포는 요청이 실패한다.
+변경 사항이 없으면 두 명령 모두 오류로 끝난다(종료 코드 1).
+
+```text
+반영: API 오류: The latest resource has already been applied.
+배포: API 오류: Failed to deploy because stage is not changed.
+```
+
+이미 반영·배포된 상태를 확인하려는 목적이라면 `deploy latest` 로 조회한다.
+반복 실행하는 자동화라면 이 오류를 정상 종료로 다룰지 미리 정해 둔다.
 
 되돌리려면 배포 이력의 ID 로 롤백한다.
 

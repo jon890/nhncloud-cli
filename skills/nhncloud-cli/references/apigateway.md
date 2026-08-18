@@ -127,6 +127,16 @@ nhncloud apigateway stage deploy rollback <service-id> <stage-id> <deploy-id> --
 배포가 `FAILURE`로 끝난 경우에는 이 경고가 나오지 않는다.
 결과가 이미 확정됐으므로 원인을 고쳐 다시 배포하면 된다.
 
+바꿀 것이 없으면 반영과 배포 모두 오류로 끝난다(종료 코드 1). 빈 결과를 돌려주지 않는다.
+
+```text
+반영: API 오류: The latest resource has already been applied.
+배포: API 오류: Failed to deploy because stage is not changed.
+```
+
+반복 실행하는 자동화는 이 오류를 실패로 볼지 "이미 최신"으로 볼지 미리 정해 둔다.
+현재 상태만 알고 싶다면 `deploy latest`로 조회한다.
+
 `deploy rollback`은 선택한 배포 이력으로 스테이지 설정만 되돌린다.
 되돌린 설정을 트래픽에 적용하려면 `deploy create`를 다시 실행해야 한다.
 명령은 실행 후 `주의: 되돌리기는 현재 스테이지 설정을 모두 지웁니다.`라고 경고한다.
