@@ -25,17 +25,7 @@ export interface Credentials {
   profiles: Record<string, ProfileCredentials>;
 }
 
-export interface DeployTarget {
-  appKey: string;
-  artifactId: string;
-  serverGroupId: string;
-  scenarioIds: string;
-}
-
 export interface Config {
   version: 1;
   defaultProfile?: string;
-  deploy?: {
-    targets?: Record<string, DeployTarget>;
-  };
 }

@@ -28,8 +28,9 @@ AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트�
 - `nhncloud configure` — 대화형/flag 자격증명 설정 마법사 (UAK 와 서비스별 키, 연결 테스트)
 - `nhncloud logncrash search` — Log & Crash Search v3 커서 기반 로그 검색 ([[adr-024]])
 - `nhncloud deploy` — 배포 실행과 조회 (자주 쓰는 핵심 명령군)
-  - `run <target>` — 배포 실행 (OAuth 토큰 교환, 동기/`--async`)
-  - `artifacts` / `server-groups <target>` / `histories <target>` — 조회
+  - `run` — 배포 실행 (OAuth 토큰 교환, 동기/`--async`)
+  - `artifacts` / `server-groups` / `histories` — 조회
+  - appkey 는 profile 로만 지정하고 배포 좌표는 명령 옵션으로만 받는다([[adr-033]])
 - `nhncloud instance` — Compute 인스턴스 제어 (OpenStack Nova v2 호환, 일회성 CI 러너 자동화)
   - `create` — 발급 (비동기 기본, `--wait` 로 ACTIVE+IP 대기)
   - `list` / `get <id>` / `delete <id>` — 조회·삭제 (`--yes` 로 즉시 삭제)

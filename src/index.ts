@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { setQuiet } from "./utils/spinner.js";
+import { warnLegacyDeployTargets } from "./config/credentials.js";
 import { NhnCloudCliError } from "./utils/errors.js";
 import { sanitizeMultilineForTerminal } from "./utils/terminal.js";
 import { setRequestTimeoutMs } from "./api/timeout.js";
@@ -81,9 +82,9 @@ Agent workflow:
 
 const deployAgentWorkflow = `
 Agent workflow:
-  1. nhncloud deploy artifacts <target> --json
-  2. nhncloud deploy server-groups <target> --json
-  3. nhncloud deploy run <target>
+  1. nhncloud deploy artifacts --json
+  2. nhncloud deploy server-groups --artifact-id <artifact-id> --json
+  3. nhncloud deploy run --artifact-id <artifact-id> --server-group-id <server-group-id> --scenario-ids <ids>
 `;
 
 const instanceAgentWorkflow = `
@@ -197,6 +198,11 @@ program.addCommand(logncrashCommand);
 const deployCommand = new Command("deploy")
   .description("NHN Cloud Deploy 관련 명령")
   .addHelpText("after", deployAgentWorkflow);
+// 폐지된 deploy.targets 경고는 하위 명령 진입 전 한 곳에서만 낸다 (ADR-033).
+// 하위 명령의 action 에 두면 구형 호출(`deploy run <이름>`)이 잉여 인수로 먼저 거부돼 경고가 닿지 않는다.
+deployCommand.hook("preSubcommand", async () => {
+  await warnLegacyDeployTargets();
+});
 deployCommand.addCommand(runCommand);
 deployCommand.addCommand(artifactsCommand);
 deployCommand.addCommand(serverGroupsCommand);

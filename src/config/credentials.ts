@@ -1,9 +1,10 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import chalk from "chalk";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../utils/exit-codes.js";
-import type { Credentials, Config, ServiceCredential, UserAccessKey, IaasCredential, DeployTarget } from "./types.js";
+import type { Credentials, Config, ServiceCredential, UserAccessKey, IaasCredential } from "./types.js";
 
 const CREDENTIALS_PATH = join(homedir(), ".nhncloud", "credentials.json");
 const CONFIG_PATH = join(homedir(), ".nhncloud", "config.json");
@@ -76,7 +77,11 @@ async function loadCredentials(): Promise<Credentials> {
   return parsed;
 }
 
-async function loadConfig(): Promise<Config | null> {
+/**
+ * config.json 을 파싱해 `unknown` 으로 돌려준다. 파일이 없으면 null.
+ * 스키마를 아직 모르는 값을 봐야 하는 곳(폐지된 블록 경고)이 있어 스키마 검사와 분리한다.
+ */
+async function readConfigJson(): Promise<unknown> {
   let raw: string;
   try {
     raw = await readFile(CONFIG_PATH, "utf-8");
@@ -84,16 +89,18 @@ async function loadConfig(): Promise<Config | null> {
     return null;
   }
 
-  let parsed: unknown;
   try {
-    parsed = JSON.parse(raw);
+    return JSON.parse(raw);
   } catch {
     throw new NhnCloudCliError(
       `설정 파일 파싱 오류: ${CONFIG_PATH} — 올바른 JSON 형식인지 확인하세요.`,
       EXIT_CONFIG_ERROR,
     );
   }
+}
 
+async function loadConfig(): Promise<Config | null> {
+  const parsed = await readConfigJson();
   if (!isConfig(parsed)) {
     return null;
   }
@@ -319,27 +326,49 @@ export async function setIaasCredential(
   await saveCredentials(creds);
 }
 
+/** 폐지된 블록. 읽지 않고 경고만 하려고 형태만 남긴다 (ADR-033). */
+interface LegacyDeployConfig {
+  targets?: Record<string, unknown>;
+}
+
+function isLegacyDeployConfig(value: unknown): value is LegacyDeployConfig {
+  if (typeof value !== "object" || value === null) return false;
+  const targets = (value as Record<string, unknown>)["targets"];
+  return targets === undefined || (typeof targets === "object" && targets !== null);
+}
+
 /**
- * config.json 의 deploy.targets[name] 좌표 묶음을 반환한다.
- * 해당 target 이 없으면 사용 가능한 target 목록을 안내하며 EXIT_PARAM_ERROR 를 던진다.
+ * config.json 에 폐지된 deploy.targets 가 남아 있으면 stderr 로 한 줄 경고한다 (ADR-033).
+ *
+ * 값을 읽어 쓰지 않고, 파일을 자동으로 고치지도 않는다 —
+ * appkey 는 자격증명이라 CLI 가 0600 파일을 임의로 쓰는 것보다 사용자가 확인하고 옮기는 편이 안전하다.
+ * `--quiet` 에서도 낸다. stderr 이므로 `--json` stdout 계약은 그대로다.
+ * target 이름은 담지 않는다 — 사용자 리소스 식별자라 CI 출력이나 로그에 남는다.
  */
-export async function getDeployTarget(name: string): Promise<DeployTarget> {
-  const config = await loadConfig();
-
-  const targets = config?.deploy?.targets;
-
-  const target = targets?.[name];
-  if (!target) {
-    const available = targets ? Object.keys(targets) : [];
-    const hint =
-      available.length > 0
-        ? `사용 가능한 target: ${available.join(", ")}`
-        : `config.json 에 deploy.targets 블록이 없습니다. ${CONFIG_PATH} 를 확인하세요.`;
-    throw new NhnCloudCliError(
-      `deploy target "${name}" 을 찾을 수 없습니다. ${hint}`,
-      EXIT_PARAM_ERROR,
-    );
+export async function warnLegacyDeployTargets(): Promise<void> {
+  // 경고는 부수 기능이다. 손상된 config.json 때문에 이 hook 이 먼저 죽으면
+  // 좌표 누락(종료 코드 3)이 config 오류로 뒤바뀐다 — 파싱 실패는 조용히 넘긴다.
+  // 삼키는 것은 readConfigJson 의 파싱 오류 하나뿐이다. 파일 부재는 그 함수가 이미 null 로 돌려준다.
+  // deploy 가 config.json 에서 읽는 값은 defaultProfile 뿐이라 이 정보는 경고에 필요 없고,
+  // --profile 을 주지 않았다면 뒤따르는 resolveProfileName 이 같은 오류를 제자리에서 낸다.
+  let parsed: unknown;
+  try {
+    parsed = await readConfigJson();
+  } catch (err) {
+    if (err instanceof NhnCloudCliError && err.exitCode === EXIT_CONFIG_ERROR) return;
+    throw err;
   }
+  if (typeof parsed !== "object" || parsed === null) return;
 
-  return target;
+  const deploy = (parsed as Record<string, unknown>)["deploy"];
+  if (!isLegacyDeployConfig(deploy)) return;
+  if (!deploy.targets || Object.keys(deploy.targets).length === 0) return;
+
+  process.stderr.write(
+    chalk.yellow(
+      "경고: config.json 의 deploy.targets 는 더 이상 사용되지 않습니다. " +
+        "appkey 는 nhncloud configure --deploy-appkey 로 옮기고, " +
+        "나머지 좌표는 --artifact-id 등 옵션으로 넘기세요.\n",
+    ),
+  );
 }

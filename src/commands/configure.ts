@@ -34,6 +34,7 @@ interface ConfigureOptions {
   ncrAppkey?: string;
   ncsAppkey?: string;
   apigatewayAppkey?: string;
+  deployAppkey?: string;
   verify: boolean;
 }
 
@@ -48,6 +49,7 @@ async function saveAndVerify(
   ncr: ServiceCredential | undefined,
   ncs: ServiceCredential | undefined,
   apigateway: ServiceCredential | undefined,
+  deploy: ServiceCredential | undefined,
   doVerify: boolean,
   logncrashUak: UserAccessKey | undefined = uak,
 ): Promise<void> {
@@ -162,6 +164,9 @@ async function saveAndVerify(
   }
   if (apigateway) {
     await setServiceCredential(profileName, "apigateway", apigateway);
+  }
+  if (deploy) {
+    await setServiceCredential(profileName, "deploy", deploy);
   }
 
   process.stderr.write(chalk.green(`\n✓ profile "${profileName}" 설정이 저장되었습니다.\n`));
@@ -294,7 +299,23 @@ async function runInteractive(opts: ConfigureOptions): Promise<void> {
     ncs = { appkey: ncsAppkey.trim() };
   }
 
-  // 7. 연결 테스트 + 저장
+  // 7. deploy 설정 여부
+  let deploy: ServiceCredential | undefined;
+  const setupDeploy = await confirm({
+    message: "deploy 자격증명도 설정하시겠습니까?",
+    default: false,
+  });
+
+  if (setupDeploy) {
+    process.stderr.write(chalk.gray("\n— deploy 자격증명 —\n"));
+    const deployAppkey = await input({
+      message: "deploy appkey",
+      validate: (v) => v.trim().length > 0 || "deploy appkey 를 입력하세요",
+    });
+    deploy = { appkey: deployAppkey.trim() };
+  }
+
+  // 8. 연결 테스트 + 저장
   if (opts.verify) {
     process.stderr.write(chalk.gray("\n— 연결 테스트 중… —\n"));
   }
@@ -302,7 +323,7 @@ async function runInteractive(opts: ConfigureOptions): Promise<void> {
   if (opts.verify) {
     // 대화형: 실패 시 저장 여부 재확인
     try {
-      await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, undefined, true, uak);
+      await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, undefined, deploy, true, uak);
     } catch (err) {
       if (err instanceof NhnCloudCliError && err.exitCode === EXIT_AUTH_ERROR) {
         // 여기서 catch 해 대화를 이어가므로 index.ts 의 출력 관문을 지나지 않는다.
@@ -315,13 +336,13 @@ async function runInteractive(opts: ConfigureOptions): Promise<void> {
           process.stderr.write(chalk.yellow("저장이 취소되었습니다.\n"));
           return;
         }
-        await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, undefined, false, uak);
+        await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, undefined, deploy, false, uak);
       } else {
         throw err;
       }
     }
   } else {
-    await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, undefined, false, uak);
+    await saveAndVerify(profileName, uak, logncrash, iaas, ncr, ncs, undefined, deploy, false, uak);
   }
 }
 
@@ -347,6 +368,9 @@ async function runNonInteractive(opts: ConfigureOptions): Promise<void> {
   }
   if (opts.apigatewayAppkey !== undefined && opts.apigatewayAppkey.trim().length === 0) {
     throw new NhnCloudCliError("--apigateway-appkey 값은 비어 있을 수 없습니다.", EXIT_PARAM_ERROR);
+  }
+  if (opts.deployAppkey !== undefined && opts.deployAppkey.trim().length === 0) {
+    throw new NhnCloudCliError("--deploy-appkey 값은 비어 있을 수 없습니다.", EXIT_PARAM_ERROR);
   }
   if (opts.logncrashSecret !== undefined) {
     process.stderr.write(
@@ -388,11 +412,16 @@ async function runNonInteractive(opts: ConfigureOptions): Promise<void> {
     ? { appkey: opts.apigatewayAppkey.trim() }
     : undefined;
 
-  if (!uak && !logncrash && !iaas && !ncr && !ncs && !apigateway) {
+  const deploy: ServiceCredential | undefined = opts.deployAppkey?.trim()
+    ? { appkey: opts.deployAppkey.trim() }
+    : undefined;
+
+  if (!uak && !logncrash && !iaas && !ncr && !ncs && !apigateway && !deploy) {
     throw new NhnCloudCliError(
       "비대화형 모드: --uak-id + UAK secret, --logncrash-appkey,\n" +
         "--iaas-tenant-id + --iaas-username + iaas password,\n" +
-        "--ncr-appkey, --ncs-appkey, 또는 --apigateway-appkey 중 하나가 필요합니다.\n" +
+        "--ncr-appkey, --ncs-appkey, --apigateway-appkey, 또는 --deploy-appkey\n" +
+        "중 하나가 필요합니다.\n" +
         "secret/password 는 노출 방지를 위해 환경변수 권장:\n" +
         "NHNCLOUD_UAK_SECRET / NHNCLOUD_IAAS_PASSWORD.",
       EXIT_PARAM_ERROR,
@@ -416,6 +445,7 @@ async function runNonInteractive(opts: ConfigureOptions): Promise<void> {
     ncr,
     ncs,
     apigateway,
+    deploy,
     opts.verify,
     logncrashUak,
   );
@@ -438,6 +468,7 @@ export const configureCommand = new Command("configure")
   .option("--ncr-appkey <key>", "ncr appkey (비대화형)")
   .option("--ncs-appkey <key>", "ncs appkey (비대화형)")
   .option("--apigateway-appkey <key>", "API Gateway appkey (비대화형)")
+  .option("--deploy-appkey <key>", "deploy appkey (비대화형)")
   .option("--no-verify", "연결 테스트 생략")
   .action(async (opts: ConfigureOptions) => {
     const hasFlag =
@@ -450,7 +481,8 @@ export const configureCommand = new Command("configure")
       opts.iaasPassword !== undefined ||
       opts.ncrAppkey !== undefined ||
       opts.ncsAppkey !== undefined ||
-      opts.apigatewayAppkey !== undefined;
+      opts.apigatewayAppkey !== undefined ||
+      opts.deployAppkey !== undefined;
 
     try {
       if (hasFlag) {

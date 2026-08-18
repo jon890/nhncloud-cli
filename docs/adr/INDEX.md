@@ -40,3 +40,4 @@ ADR-NNN 내용은 `docs/adr/NNN-*.md` 로 찾는다(번호 glob — slug 몰라�
 - [ADR-030](030-logncrash-search-range-adaptive-split.md): Log & Crash 검색 기간 상한은 고정값이 아님 — export 적응형 분할과 추정 안내
 - [ADR-031](031-apigateway-stage-deploy.md): API Gateway 스테이지 반영과 배포 — 비동기 배포 확인, 2단계 롤백, 응답 스키마 불일치 회피
 - [ADR-032](032-logncrash-rate-limit.md): Log & Crash 조회 횟수 제한 — 봉투 429 판별, 자동 재시도 배제, 부분 결과 보존
+- [ADR-033](033-deploy-appkey-and-coordinates.md): deploy 의 appkey 는 자격증명 — 좌표에서 분리하고 named target 폐지
