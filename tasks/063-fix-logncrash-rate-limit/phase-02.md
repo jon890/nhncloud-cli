@@ -1,6 +1,6 @@
 # Phase 02 — export 부분 결과 보존과 안내 문구 교체
 
-**Execution profile**: standard
+**Execution profile**: deep
 
 ---
 
