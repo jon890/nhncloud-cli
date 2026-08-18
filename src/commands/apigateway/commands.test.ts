@@ -13,6 +13,7 @@ import {
 } from "../../services/apigateway/types.js";
 import { EXIT_API_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { startSpinner } from "../../utils/spinner.js";
+import { collectAppKeyOptionPaths } from "../appkey-option.test-helper.js";
 import { deployCommand } from "./deploy.js";
 import { resolveApiGatewayClient } from "./helpers.js";
 import { resourceCommand } from "./resource.js";
@@ -59,16 +60,6 @@ function programWith(command: Command): Command {
     .option("--json")
     .option("--quiet")
     .addCommand(command);
-}
-
-function collectAppKeyOptionPaths(command: Command, parentPath = ""): string[] {
-  const path = [parentPath, command.name()].filter(Boolean).join(" ");
-  const ownPaths = command.options.some((option) => option.long === "--app-key")
-    ? [path]
-    : [];
-  return ownPaths.concat(
-    command.commands.flatMap((child) => collectAppKeyOptionPaths(child, path)),
-  );
 }
 
 async function captureStdout(run: () => Promise<unknown>): Promise<string> {

@@ -2,6 +2,10 @@ import { Command } from "commander";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
+import {
+  collectAppKeyOptionPaths,
+  collectOptionPaths,
+} from "../appkey-option.test-helper.js";
 
 const mocks = vi.hoisted(() => ({
   resolveProfileName: vi.fn(),
@@ -50,18 +54,9 @@ const leafCommands = [
   uploadCommand,
 ];
 
-/** ncr/commands.test.ts 와 같은 형태 — 특정 long 옵션을 노출하는 명령 경로를 모은다. */
-function collectOptionPaths(command: Command, long: string, parentPath = ""): string[] {
-  const path = [parentPath, command.name()].filter(Boolean).join(" ");
-  const ownPaths = command.options.some((option) => option.long === long) ? [path] : [];
-  return ownPaths.concat(
-    command.commands.flatMap((child) => collectOptionPaths(child, long, path)),
-  );
-}
-
 describe("deploy 명령 옵션", () => {
   it("모든 하위 명령에서 --app-key 를 노출하지 않는다", () => {
-    expect(leafCommands.flatMap((command) => collectOptionPaths(command, "--app-key"))).toEqual(
+    expect(leafCommands.flatMap((command) => collectAppKeyOptionPaths(command))).toEqual(
       [],
     );
   });
