@@ -6,6 +6,7 @@ import { DEFAULT_TIMEOUT_MS } from "../../api/timeout.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_API_ERROR } from "../../utils/exit-codes.js";
 import {
+  DEPLOY_STATUS_DEPLOYING,
   isApiGatewayPaging,
   isApiGatewayService,
   isDeployHistory,
@@ -18,6 +19,7 @@ import {
   isSwaggerData,
   isUpdatedResource,
   isUpdatedStage,
+  isWrittenStageResource,
   type ApiGatewayService,
   type ApiGatewayServiceListParams,
   type DeployHistory,
@@ -33,7 +35,10 @@ import {
   type SwaggerData,
   type UpdatedResource,
   type UpdatedStage,
+  type WrittenStageResource,
 } from "./types.js";
+
+const DEFAULT_DEPLOY_POLL_INTERVAL_MS = 3_000;
 
 interface ApiGatewayServiceListResponse extends NhnEnvelope<unknown> {
   apigwServiceList?: unknown;
@@ -509,6 +514,106 @@ export class ApiGatewayClient {
     }
   }
 
+  /** API Gateway service resource를 stage에 반영한다. */
+  async importStageResources(
+    apigwServiceId: string,
+    stageId: string,
+  ): Promise<WrittenStageResource[]> {
+    try {
+      const response = await ky
+        .put(
+          `${this.baseUrl}/services/${encodeURIComponent(apigwServiceId)}/stages/${encodeURIComponent(stageId)}/resources`,
+          {
+            headers: this.authHeaders(),
+            retry: 0,
+            timeout: DEFAULT_TIMEOUT_MS,
+          },
+        )
+        .json<StageResourceListResponse>();
+
+      unwrapHeader(response);
+      if (
+        !Array.isArray(response.stageResourceList) ||
+        !response.stageResourceList.every(isWrittenStageResource)
+      ) {
+        throw new NhnCloudCliError(
+          "API Gateway 응답 형식 오류: stageResourceList 가 올바른 배열이 아닙니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return response.stageResourceList;
+    } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /** API Gateway stage 배포를 요청한다. */
+  async createDeploy(
+    apigwServiceId: string,
+    stageId: string,
+    body: { deployDescription?: string },
+  ): Promise<void> {
+    const json =
+      body.deployDescription === undefined
+        ? {}
+        : { deployDescription: body.deployDescription };
+
+    try {
+      const response = await ky
+        .post(
+          `${this.baseUrl}/services/${encodeURIComponent(apigwServiceId)}/stages/${encodeURIComponent(stageId)}/deploys`,
+          {
+            headers: this.authHeaders(),
+            json,
+            retry: 0,
+            timeout: DEFAULT_TIMEOUT_MS,
+          },
+        )
+        .json<NhnEnvelope<unknown>>();
+
+      unwrapHeader(response);
+    } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
+      throw toNhnCloudCliError(err);
+    }
+  }
+
+  /** 배포 이력의 설정으로 API Gateway stage를 롤백한다. */
+  async rollbackDeploy(
+    apigwServiceId: string,
+    stageId: string,
+    deployId: string,
+  ): Promise<WrittenStageResource[]> {
+    try {
+      const response = await ky
+        .post(
+          `${this.baseUrl}/services/${encodeURIComponent(apigwServiceId)}/stages/${encodeURIComponent(stageId)}/deploys/${encodeURIComponent(deployId)}/rollback`,
+          {
+            headers: this.authHeaders(),
+            retry: 0,
+            timeout: DEFAULT_TIMEOUT_MS,
+          },
+        )
+        .json<StageResourceListResponse>();
+
+      unwrapHeader(response);
+      if (
+        !Array.isArray(response.stageResourceList) ||
+        !response.stageResourceList.every(isWrittenStageResource)
+      ) {
+        throw new NhnCloudCliError(
+          "API Gateway 응답 형식 오류: stageResourceList 가 올바른 배열이 아닙니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return response.stageResourceList;
+    } catch (err) {
+      if (err instanceof NhnCloudCliError) throw err;
+      throw toNhnCloudCliError(err);
+    }
+  }
+
   /** paging.totalCount 를 기준으로 API Gateway stage 배포 이력 전체를 수집한다. */
   async listDeploys(apigwServiceId: string, stageId: string): Promise<DeployHistory[]> {
     // 응답 paging의 page·limit·totalCount를 따라 마지막 페이지까지 순회한다.
@@ -596,5 +701,44 @@ export class ApiGatewayClient {
       if (err instanceof NhnCloudCliError) throw err;
       throw toNhnCloudCliError(err);
     }
+  }
+
+  /** 직전 배포 ID와 상태를 비교해 이번 stage 배포가 종료될 때까지 대기한다. */
+  async waitForDeploy(
+    apigwServiceId: string,
+    stageId: string,
+    opts: { intervalMs?: number; timeoutMs: number; baselineDeployId: string | null },
+  ): Promise<LatestDeployResult> {
+    const intervalMs = opts.intervalMs ?? DEFAULT_DEPLOY_POLL_INTERVAL_MS;
+    const deadline = Date.now() + opts.timeoutMs;
+    let lastDeploy: LatestDeployResult | null = null;
+
+    while (Date.now() < deadline) {
+      const deploy = await this.getLatestDeploy(apigwServiceId, stageId);
+      lastDeploy = deploy;
+
+      const isNewDeploy =
+        opts.baselineDeployId === null || deploy.deployId !== opts.baselineDeployId;
+      if (isNewDeploy && deploy.deployStatus !== DEPLOY_STATUS_DEPLOYING) {
+        return deploy;
+      }
+
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) break;
+
+      await new Promise<void>((resolve) =>
+        setTimeout(resolve, Math.min(intervalMs, remaining)),
+      );
+    }
+
+    const lastDeploySummary = lastDeploy
+      ? `마지막 상태: ${lastDeploy.deployStatus}, 마지막 배포 ID: ${lastDeploy.deployId}`
+      : "마지막 조회 없음";
+    const baselineDeployId = opts.baselineDeployId ?? "없음";
+    throw new NhnCloudCliError(
+      `API Gateway stage 배포가 완료되지 않았습니다 (${lastDeploySummary}, 기준 배포 ID: ${baselineDeployId}). ` +
+        `대기 상한(${Math.round(opts.timeoutMs / 1000)}초)을 넘겼습니다. --timeout 으로 늘릴 수 있습니다.`,
+      EXIT_API_ERROR,
+    );
   }
 }

@@ -261,6 +261,19 @@ export interface StageResource {
   [key: string]: unknown;
 }
 
+/**
+ * 반영·롤백 응답의 stage resource. 조회 응답과 필드가 어긋나므로 출력에 쓰는 것만 요구한다
+ * (문서 예시는 customEndpointUrl, 필드 표는 customBackendEndpointUrl 로 서로 다르다).
+ */
+export interface WrittenStageResource {
+  stageResourceId: string;
+  path: string;
+  methodType?: string | null;
+  methodName?: string | null;
+  stageResourcePluginList?: StageResourcePlugin[];
+  [key: string]: unknown;
+}
+
 /** API Gateway stage 배포 이력. */
 export interface DeployHistory {
   deployId: string;
@@ -277,6 +290,11 @@ export interface LatestDeployResult extends DeployHistory {
   deployStatus: string;
   stageResourceList: StageResource[];
 }
+
+/** 스테이지 배포 상태. 공식 Enum 코드 문서 기준 세 값이다. */
+export const DEPLOY_STATUS_COMPLETE = "COMPLETE";
+export const DEPLOY_STATUS_FAILURE = "FAILURE";
+export const DEPLOY_STATUS_DEPLOYING = "DEPLOYING";
 
 export type SwaggerData = Record<string, unknown>;
 
@@ -343,6 +361,19 @@ export function isStageResource(value: unknown): value is StageResource {
     typeof value["updatedAt"] === "string" &&
     Array.isArray(value["stageResourcePluginList"]) &&
     value["stageResourcePluginList"].every(isStageResourcePlugin)
+  );
+}
+
+export function isWrittenStageResource(value: unknown): value is WrittenStageResource {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value["stageResourceId"] === "string" &&
+    typeof value["path"] === "string" &&
+    (value["methodType"] === undefined || isNullableString(value["methodType"])) &&
+    (value["methodName"] === undefined || isNullableString(value["methodName"])) &&
+    (value["stageResourcePluginList"] === undefined ||
+      (Array.isArray(value["stageResourcePluginList"]) &&
+        value["stageResourcePluginList"].every(isStageResourcePlugin)))
   );
 }
 

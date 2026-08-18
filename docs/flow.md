@@ -113,8 +113,47 @@ nhncloud apigateway resource set-path-plugin "$SERVICE_ID" "$RESOURCE_ID" \
 보내지 않은 타입은 그대로 남으므로 기존 목록을 다시 만들어 보낼 필요가 없다.
 
 리소스 플러그인 변경은 서비스 설정에만 반영된다.
-스테이지로 가져오는 반영과 배포는 콘솔에서 수행한다.
-스테이지 수정이 즉시 반영되는지 배포가 필요한지는 공식 문서에 서술이 없어 확정하지 않았다.
+스테이지로 가져와 배포해야 실제 트래픽이 바뀐다.
+
+## API Gateway 반영과 배포 흐름
+
+변경이 트래픽에 닿기까지 세 단계를 거친다([[adr-031]]).
+
+```bash
+nhncloud apigateway stage import-resources "$SERVICE_ID" "$STAGE_ID" --yes
+nhncloud apigateway stage deploy create "$SERVICE_ID" "$STAGE_ID" \
+  --description "plugin rollout" --yes
+```
+
+반영은 서비스 리소스를 스테이지로 가져오고, 배포는 스테이지 설정을 서비스에 적용한다.
+반영만 하면 트래픽은 그대로다.
+
+배포 요청의 응답에는 배포 ID 도 상태도 없다.
+그래서 `deploy create` 는 최근 배포 결과를 조회해 `COMPLETE` 나 `FAILURE` 를 확인할 때까지 기다린다.
+문서 기준으로 결과 반영에 최대 1분이 걸린다.
+기다리지 않으려면 `--no-wait` 를 준다. 대기 상한은 `--timeout <sec>` 이고 기본은 300 이다.
+
+변경 사항이 없으면 두 명령 모두 오류로 끝난다(종료 코드 1).
+
+```text
+반영: API 오류: The latest resource has already been applied.
+배포: API 오류: Failed to deploy because stage is not changed.
+```
+
+이미 반영·배포된 상태를 확인하려는 목적이라면 `deploy latest` 로 조회한다.
+반복 실행하는 자동화라면 이 오류를 정상 종료로 다룰지 미리 정해 둔다.
+
+되돌리려면 배포 이력의 ID 로 롤백한다.
+
+```bash
+nhncloud apigateway stage deploy list "$SERVICE_ID" "$STAGE_ID"
+nhncloud apigateway stage deploy rollback "$SERVICE_ID" "$STAGE_ID" "$DEPLOY_ID" --yes
+nhncloud apigateway stage deploy create "$SERVICE_ID" "$STAGE_ID" --yes
+```
+
+롤백은 스테이지 설정을 되돌리기만 한다.
+되돌린 설정을 서비스에 적용하려면 배포를 다시 해야 하므로 두 명령이 필요하다.
+롤백은 현재 스테이지 설정을 모두 지우고, 배포 실패 상태의 이력으로는 되돌릴 수 없다.
 
 ## 공개 스킬 수명주기
 

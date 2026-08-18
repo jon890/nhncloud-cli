@@ -103,9 +103,10 @@ nhncloud deploy artifacts                                     # 배포 아티팩
 nhncloud logncrash search --query '*' --from 1h --to now      # 최근 1시간 로그
 nhncloud apigateway service list                               # API Gateway 서비스
 nhncloud apigateway stage update <service-id> <stage-id> --description "설명" --yes  # API Gateway 스테이지 수정
+nhncloud apigateway stage deploy create <service-id> <stage-id> --yes                 # API Gateway 스테이지 배포
 ```
 
-전체 명령과 옵션은 `--help` 로 본다. 현재 167개다.
+전체 명령과 옵션은 `--help` 로 본다. 현재 170개다.
 
 ```bash
 nhncloud --help

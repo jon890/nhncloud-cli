@@ -6,10 +6,14 @@ import {
   resolveProfileName,
 } from "../../config/credentials.js";
 import { ApiGatewayClient } from "../../services/apigateway/client.js";
-import type { Resource } from "../../services/apigateway/types.js";
+import type {
+  Resource,
+  WrittenStageResource,
+} from "../../services/apigateway/types.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { sanitizeForTerminal } from "../../utils/terminal.js";
+import type { output } from "../../formatters/table.js";
 import { MAX_JSON_INPUT_BYTES } from "../../utils/limits.js";
 
 function fileErrorReason(error: unknown): string {
@@ -88,6 +92,24 @@ export function collectAffectedPaths(resources: Resource[], targetPath: string):
   return resources.filter(
     (resource) => resource.path === targetPath || resource.path.startsWith(childPrefix),
   );
+}
+
+/** 반영·롤백 응답의 출력 형태. `output` 의 계약이 바뀌면 tsc 가 여기서 잡는다. */
+export function writtenStageResourceOutput(
+  resources: WrittenStageResource[],
+): Parameters<typeof output>[1] {
+  return {
+    headers: ["stageResourceId", "path", "methodType", "methodName", "plugins"],
+    rows: resources.map((resource) => [
+      sanitizeForTerminal(resource.stageResourceId),
+      sanitizeForTerminal(resource.path),
+      resource.methodType == null ? "-" : sanitizeForTerminal(resource.methodType),
+      resource.methodName == null ? "-" : sanitizeForTerminal(resource.methodName),
+      String(resource.stageResourcePluginList?.length ?? 0),
+    ]),
+    raw: resources,
+    ids: resources.map((resource) => sanitizeForTerminal(resource.stageResourceId)),
+  };
 }
 
 /** profile 의 apigateway.appkey에서 appKey를 해석한다. */
