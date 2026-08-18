@@ -1,6 +1,6 @@
 {
   "name": "@bifos/nhncloud-cli",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "CLI tool for NHN Cloud services — AI agent & terminal friendly",
   "keywords": [
     "nhncloud",
