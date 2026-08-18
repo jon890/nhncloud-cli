@@ -346,7 +346,15 @@ function isLegacyDeployConfig(value: unknown): value is LegacyDeployConfig {
  * target 이름은 담지 않는다 — 사용자 리소스 식별자라 CI 출력이나 로그에 남는다.
  */
 export async function warnLegacyDeployTargets(): Promise<void> {
-  const parsed = await readConfigJson();
+  // 경고는 부수 기능이다. 손상된 config.json 때문에 이 hook 이 먼저 죽으면
+  // 좌표 누락(종료 코드 3)이 config 오류로 뒤바뀐다 — 파싱 실패는 조용히 넘기고
+  // 뒤따르는 resolveProfileName 이 같은 오류를 제자리에서 내게 둔다.
+  let parsed: unknown;
+  try {
+    parsed = await readConfigJson();
+  } catch {
+    return;
+  }
   if (typeof parsed !== "object" || parsed === null) return;
 
   const deploy = (parsed as Record<string, unknown>)["deploy"];

@@ -21,3 +21,13 @@ export function collectOptionPaths(command: Command, long: string, parentPath = 
 export function collectAppKeyOptionPaths(command: Command): string[] {
   return collectOptionPaths(command, "--app-key");
 }
+
+/**
+ * 위치 인수를 노출하는 명령 경로를 Commander 트리에서 모은다.
+ * 좌표를 옵션으로만 받는 서비스는 반환값이 빈 배열이어야 한다 (ADR-033).
+ */
+export function collectArgumentPaths(command: Command, parentPath = ""): string[] {
+  const path = [parentPath, command.name()].filter(Boolean).join(" ");
+  const ownPaths = command.registeredArguments.length > 0 ? [path] : [];
+  return ownPaths.concat(command.commands.flatMap((child) => collectArgumentPaths(child, path)));
+}

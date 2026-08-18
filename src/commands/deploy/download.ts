@@ -67,9 +67,9 @@ export const downloadCommand = new Command("download")
       // requiredOption 이 존재 보장 → narrowing 용
       throw new NhnCloudCliError("--binary-group / --binary-key 가 필요합니다.", EXIT_PARAM_ERROR);
     }
+    const artifactId = requireCoordinate(opts.artifactId, "--artifact-id");
     const outPath = opts.output!; // requiredOption 보장
     assertWritable(outPath, opts.force ?? false); // 덮어쓰기 정책 — 네트워크 호출 전 차단
-    const artifactId = requireCoordinate(opts.artifactId, "--artifact-id");
 
     // ── 2. 인증 체인 + appKey 해석 (spinner 시작 전) ──
     const { client, profileName } = await createDeployClient(opts.profile);

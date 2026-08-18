@@ -84,12 +84,12 @@ src/
       export.ts             # nhncloud logncrash export (v3 scroll 대량 추출 → 파일, adr-030, adr-032)
       send.ts               # nhncloud logncrash send (--body/--file/stdin, 8MB 한도, adr-014)
     deploy/
-      run.ts                # nhncloud deploy run <target>
+      run.ts                # nhncloud deploy run (좌표 옵션 셋 필수, adr-033)
       artifacts.ts          # nhncloud deploy artifacts
-      server-groups.ts      # nhncloud deploy server-groups <target>
-      histories.ts          # nhncloud deploy histories <target>
-      binary-groups.ts      # nhncloud deploy binary-groups <target>
-      binaries.ts           # nhncloud deploy binaries <target> --binary-group <key>
+      server-groups.ts      # nhncloud deploy server-groups --artifact-id <id>
+      histories.ts          # nhncloud deploy histories --artifact-id <id>
+      binary-groups.ts      # nhncloud deploy binary-groups --artifact-id <id>
+      binaries.ts           # nhncloud deploy binaries --artifact-id <id> --binary-group <key>
       upload.ts             # nhncloud deploy upload (multipart 파일 업로드 + 파일 가드, adr-015)
       download.ts           # nhncloud deploy download (봉투 우회 파일 저장 + 덮어쓰기 정책, adr-015)
     instance/

@@ -13,7 +13,7 @@ nhncloud configure --profile playground
 
 1. profile 이름 (기본 `default`). profile = 프로젝트 하나에 대응한다 — 여러 프로젝트는 profile 을 나눠 `--profile` 로 전환한다.
 2. 개인 UAK — id, secret (password 입력). 기존 profile 에 UAK 가 있으면 재사용할지 먼저 묻는다(멀티 프로젝트에서 계정 단위 UAK 중복 입력을 줄임).
-3. 서비스별 자격증명 — deploy appkey, logncrash appkey, ncr appkey, ncs appkey (각 건너뛰기 가능, appkey 는 빈값 검증).
+3. 서비스별 자격증명 — logncrash appkey, iaas 자격증명, ncr appkey, ncs appkey, deploy appkey 순으로 묻는다 (각 건너뛰기 가능, appkey 는 빈값 검증).
 4. 연결 테스트 (UAK → OAuth 발급, logncrash → 최소 검색, ncr·ncs → kr1 목록 조회).
 5. 기존 값과 머지 저장 (`credentials.json` 0600, all-or-nothing).
 
@@ -404,8 +404,9 @@ nhncloud deploy download --artifact-id <id> --binary-group <k> --binary-key <bk>
 
 | 상황 | exit code |
 |------|-----------|
-| UAK 누락 / OAuth 발급 실패 | `EXIT_CONFIG_ERROR` 또는 `EXIT_AUTH_ERROR` |
-| target 미존재 (config 에 없음) | `EXIT_PARAM_ERROR` |
+| UAK 누락 / profile 에 deploy appkey 없음 | `EXIT_CONFIG_ERROR` |
+| 필수 좌표 옵션(`--artifact-id`·`--server-group-id`·`--scenario-ids`) 누락 | `EXIT_PARAM_ERROR` |
+| OAuth 발급 실패 | `EXIT_AUTH_ERROR` |
 | Deploy API 4xx·5xx / 봉투 실패 | `EXIT_API_ERROR` |
 
 ## instance 흐름

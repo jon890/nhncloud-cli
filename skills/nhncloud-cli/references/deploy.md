@@ -101,6 +101,11 @@ nhncloud deploy histories --artifact-id <id> --json | jq '.[0] | {deployKey, dep
 | 상황 | exit code |
 |------|-----------|
 | UAK 누락 또는 profile에 deploy appkey 없음 | 4 |
-| 필수 좌표 옵션(`--artifact-id` 등) 누락 | 3 |
+| 좌표 옵션(`--artifact-id`·`--server-group-id`·`--scenario-ids`) 누락 | 3 |
 | OAuth 인증 실패 | 2 |
 | Deploy API 오류 또는 봉투 실패 | 1 |
+| `--binary-group`·`--binary-key`·`--file`·`-o` 누락 | 1 |
+
+마지막 두 행이 같은 값인 것은 우연이 아니라 필수 옵션을 강제하는 방식이 둘이기 때문이다.
+좌표 옵션은 CLI 가 직접 검증해 3 을 내고, 나머지 필수 옵션은 Commander 가 거부해 1 을 낸다.
+종료 코드로 분기하는 자동화는 이 차이를 알아야 한다.

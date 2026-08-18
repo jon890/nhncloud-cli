@@ -1,6 +1,10 @@
 import { Command } from "commander";
 import { describe, expect, it } from "vitest";
-import { collectAppKeyOptionPaths, collectOptionPaths } from "./appkey-option.test-helper.js";
+import {
+  collectAppKeyOptionPaths,
+  collectArgumentPaths,
+  collectOptionPaths,
+} from "./appkey-option.test-helper.js";
 
 /**
  * 이 파일은 헬퍼 자체의 양성 대조다.
@@ -29,5 +33,17 @@ describe("appkey-option 테스트 헬퍼", () => {
 
   it("노출하지 않는 트리에서는 빈 배열이다", () => {
     expect(collectAppKeyOptionPaths(new Command("root"))).toEqual([]);
+  });
+
+  it("위치 인수를 받는 명령 경로를 찾는다", () => {
+    const leaf = new Command("leaf").argument("[target]", "폐지된 위치 인수");
+    const root = new Command("root");
+    root.addCommand(leaf);
+
+    expect(collectArgumentPaths(root)).toEqual(["root leaf"]);
+  });
+
+  it("위치 인수가 없는 트리에서는 빈 배열이다", () => {
+    expect(collectArgumentPaths(new Command("root"))).toEqual([]);
   });
 });

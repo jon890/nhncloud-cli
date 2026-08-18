@@ -53,6 +53,9 @@ export const uploadCommand = new Command("upload")
       throw new NhnCloudCliError("--binary-group 이 필요합니다.", EXIT_PARAM_ERROR);
     }
 
+    // 좌표는 파일을 읽기 전에 본다 — 플래그 하나가 없다고 512 MiB 까지 메모리로 올릴 이유가 없다.
+    const artifactId = requireCoordinate(opts.artifactId, "--artifact-id");
+
     // ── 파일 가드: 읽기 전에 statSync 로 errno·파일유형·크기 차단 (code-review-pitfalls 9-1 파일입력) ──
     const filePath = opts.file!; // requiredOption 으로 Commander 가 보장
     let stat: ReturnType<typeof statSync>;
@@ -77,7 +80,6 @@ export const uploadCommand = new Command("upload")
     }
     const fileBuffer = readFileSync(filePath);
     const fileName = basename(filePath);
-    const artifactId = requireCoordinate(opts.artifactId, "--artifact-id");
 
     // ── 2. 인증 체인 + appKey 해석 (spinner 시작 전) ──
     const { client, profileName } = await createDeployClient(opts.profile);

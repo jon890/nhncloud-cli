@@ -29,8 +29,9 @@ export async function createDeployClient(
  * 여기서 다시 `resolveProfileName` 을 부르면 두 해석이 갈릴 수 있다.
  */
 export async function resolveDeployAppKey(profileName: string): Promise<string> {
-  // deploy 블록 부재(EXIT_CONFIG_ERROR)만 친절한 안내로 변환하고,
-  // profile 자체 부재·credentials.json 파싱 오류 등은 원인을 보존해 rethrow.
+  // getServiceCredential 의 EXIT_CONFIG_ERROR 만 친절한 안내로 변환하고 나머지는 원인을 보존해 rethrow.
+  // 그 코드에는 deploy 블록 부재와 profile 자체 부재가 함께 들어온다 — 둘을 가리지 않는다.
+  // profile 오타는 앞선 createDeployClient 의 getUserAccessKey 가 먼저 잡으므로 실제로 가려지지 않는다.
   let cred: { appkey?: string; secret?: string } | undefined;
   try {
     cred = await getServiceCredential("deploy", profileName);

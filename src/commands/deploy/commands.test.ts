@@ -4,6 +4,7 @@ import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import {
   collectAppKeyOptionPaths,
+  collectArgumentPaths,
   collectOptionPaths,
 } from "../appkey-option.test-helper.js";
 
@@ -90,30 +91,40 @@ describe("deploy 명령 옵션", () => {
   });
 });
 
-/** 좌표를 옵션으로만 받으므로 deploy 명령에는 위치 인수가 없어야 한다 (ADR-033). */
-function collectArgumentPaths(command: Command, parentPath = ""): string[] {
-  const path = [parentPath, command.name()].filter(Boolean).join(" ");
-  const ownPaths = command.registeredArguments.length > 0 ? [path] : [];
-  return ownPaths.concat(command.commands.flatMap((child) => collectArgumentPaths(child, path)));
-}
-
 /**
  * 하위 명령을 실제로 실행한다.
- * action 핸들러는 공개 API 로 꺼낼 수 없어 원본 명령을 그대로 붙이고,
- * `optsWithGlobals` 가 읽는 전역 옵션만 최소로 재현한 부모를 씌운다.
+ * action 핸들러는 공개 API 로 꺼낼 수 없어 import 한 원본 명령을 그대로 붙인다.
+ * `optsWithGlobals` 가 읽는 전역 옵션만 최소로 재현한 부모를 씌우고,
  * 종료는 exitOverride 로 가로채 vitest 프로세스가 죽지 않게 한다.
+ *
+ * 원본 명령의 exitOverride·configureOutput 설정은 부모를 통해서만 상속받게 두고
+ * 여기서 직접 덮지 않는다 — import 한 싱글턴을 변형하면 다른 테스트에 새어 나간다.
  */
 async function parseLeaf(command: Command, args: string[], globals: string[] = []): Promise<void> {
   const silent = { writeErr: () => {}, writeOut: () => {} };
-  command.exitOverride().configureOutput(silent);
   const parent = new Command("deploy")
     .exitOverride()
     .configureOutput(silent)
     .option("--json", "JSON 출력")
     .option("--quiet", "식별자만 출력");
   parent.addCommand(command);
+  parent.commands.forEach((child) => child.exitOverride().configureOutput(silent));
 
   await parent.parseAsync([...globals, command.name(), ...args], { from: "user" });
+}
+
+/** parseLeaf 를 한 번만 실행해 던진 오류를 돌려준다 — 두 번 부르면 action 이 두 번 돈다. */
+async function captureLeafError(
+  command: Command,
+  args: string[],
+  globals: string[] = [],
+): Promise<unknown> {
+  try {
+    await parseLeaf(command, args, globals);
+  } catch (err) {
+    return err;
+  }
+  throw new Error("오류를 던질 것으로 기대했는데 정상 종료했다.");
 }
 
 describe("deploy 명령 위치 인수", () => {
@@ -143,10 +154,10 @@ describe("deploy 좌표 옵션 검증", () => {
   it.each(requiresArtifactId)(
     "%s 는 --artifact-id 없이 부르면 EXIT_PARAM_ERROR 로 거부한다",
     async (_name, command, args) => {
-      await expect(parseLeaf(command, args)).rejects.toThrow(
-        expect.objectContaining({ exitCode: EXIT_PARAM_ERROR }),
-      );
-      await expect(parseLeaf(command, args)).rejects.toThrow(/--artifact-id 가 필요합니다/);
+      const err = await captureLeafError(command, args);
+
+      expect(err).toMatchObject({ exitCode: EXIT_PARAM_ERROR });
+      expect(err).toMatchObject({ message: expect.stringContaining("--artifact-id 가 필요합니다") });
     },
   );
 
@@ -155,10 +166,10 @@ describe("deploy 좌표 옵션 검증", () => {
     ["--server-group-id", ["--artifact-id", "1"]],
     ["--scenario-ids", ["--artifact-id", "1", "--server-group-id", "2"]],
   ])("run 은 %s 가 없으면 EXIT_PARAM_ERROR 로 거부한다", async (flag, args) => {
-    await expect(parseLeaf(runCommand, args)).rejects.toThrow(
-      expect.objectContaining({ exitCode: EXIT_PARAM_ERROR }),
-    );
-    await expect(parseLeaf(runCommand, args)).rejects.toThrow(new RegExp(`${flag} 가 필요합니다`));
+    const err = await captureLeafError(runCommand, args);
+
+    expect(err).toMatchObject({ exitCode: EXIT_PARAM_ERROR });
+    expect(err).toMatchObject({ message: expect.stringContaining(`${flag} 가 필요합니다`) });
   });
 
   it("좌표 검증은 spinner 시작과 인증 체인보다 앞선다", async () => {
