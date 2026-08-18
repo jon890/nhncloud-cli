@@ -15,12 +15,12 @@
 - `scrollNextWithHint` 가 500 이 아닌 모든 API 오류를 "검색 범위를 좁혀 다시 실행하세요" 로 감싼다.
   rate limit 이 여기 걸리는데, 호출 비용이 기간에 거의 비례하지 않아 범위를 좁히면 오히려 손해다([[adr-032]]).
 
-**범위 외**: `resultCode` 보존과 `isRateLimitError` 는 phase-01 이 이미 만들었다. 다시 만들지 않고 import 한다.
+**범위 외**: `resultCode` 보존과 `isRateLimitError`·`withRateLimitHint` 는 phase-01 이 이미 만들었다. 다시 만들지 않고 import 한다.
 사용자 가이드 갱신은 phase-03 이 맡는다.
 [[adr-030]] 의 적응형 분할 자체는 바꾸지 않는다. 500 대응으로 유효하다.
 자동 재시도와 백오프는 넣지 않는다. [[adr-032]] 가 기각했다.
 
-이 phase 는 phase-01 이 만드는 `isRateLimitError` 를 전제한다. 없으면 base 를 확인하고 멈춘다.
+이 phase 는 phase-01 이 만드는 `isRateLimitError` 와 `withRateLimitHint` 를 전제한다. 없으면 base 를 확인하고 멈춘다.
 
 ---
 
@@ -51,6 +51,11 @@
 
 `.partial` 이 이미 있으면 덮어쓴다. 실패 산출물이라 이전 잔여를 보존할 이유가 없다.
 `--force` 검사 대상이 아니다. 그 정책은 `--output` 에만 적용한다.
+
+**보존에 실패해도 원본 오류를 가리지 않는다.**
+`.partial` 자리에 디렉터리가 있거나 권한이 없으면 `rename` 이 던진다.
+그 오류가 rate limit 오류를 덮으면 사용자는 진짜 원인을 볼 수 없다.
+`rename` 과 `appendFile` 의 실패는 삼키고, 그 사실만 stderr 한 줄로 알린 뒤 원본 `err` 를 던진다.
 
 ### 2. 이어받을 지점을 창 경계로 기록한다
 
@@ -148,6 +153,9 @@ grep -n 'lastLogTime' src/commands/logncrash/export.ts || true
 - `scrollStart` 단계의 rate limit 도 같은 안내를 받는다.
 - rate limit 이 적응형 분할을 유발하지 않는다. `scrollStart` 호출 횟수로 확인한다.
 - `resumeFrom` 이 비어 있으면 이어받기 안내 줄이 나오지 않는다.
+  이것은 방어 분기이고 정상 경로에서는 도달하지 않는다.
+  첫 창을 `shift` 한 직후 값이 세워지고, 그 전에 실패하면 받은 건수가 0 이라 부분 파일 자체가 없다.
+  억지 mock 을 만들지 말고 분기 존재만 확인한다.
 
 ## 의도 메모 (왜)
 
@@ -170,5 +178,5 @@ grep -n 'lastLogTime' src/commands/logncrash/export.ts || true
 
 ## Blocked 조건
 
-- `src/services/logncrash/errors.ts` 에 `isRateLimitError` 가 없으면
+- `src/services/logncrash/errors.ts` 에 `isRateLimitError` 또는 `withRateLimitHint` 가 없으면
   `PHASE_BLOCKED: phase-01 산출물 부재` 를 출력하고 종료한다.

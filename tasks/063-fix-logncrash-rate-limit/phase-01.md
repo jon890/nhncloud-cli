@@ -127,11 +127,12 @@ grep -c 'withRateLimitHint' src/commands/logncrash/search.ts || true
 grep -n 'status === 429' src/services/logncrash/errors.ts || true
 ```
 
-테스트는 아래 세 가지를 각각 덮는다.
+테스트는 아래 네 가지를 각각 덮는다.
 
 - `unwrapHeader` 가 봉투 실패에서 `resultCode` 를 보존하고 메시지는 기존과 같다.
 - `isRateLimitError` 가 `429` 와 `"429"` 를 모두 참으로, 다른 코드와 `HTTPError` 를 거짓으로 판정한다.
 - `search` 가 rate limit 에서 기간을 좁히라고 안내하지 **않는다**.
+- `withRateLimitHint` 가 원본의 exit code 를 그대로 보존한다.
 
 ## 의도 메모 (왜)
 
