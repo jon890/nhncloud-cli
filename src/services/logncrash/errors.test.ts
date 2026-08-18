@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { HTTPError } from "ky";
 import { EXIT_API_ERROR, EXIT_AUTH_ERROR } from "../../utils/exit-codes.js";
-import { LogncrashServerError, toLogncrashError } from "./errors.js";
+import {
+  isRateLimitError,
+  LogncrashServerError,
+  toLogncrashError,
+  withRateLimitHint,
+} from "./errors.js";
+import { NhnEnvelopeError } from "../../api/envelope.js";
+import { NhnCloudCliError } from "../../utils/errors.js";
 
 function makeHttpError(status: number, body?: string): HTTPError {
   const response = new Response(body, {
@@ -45,5 +52,53 @@ describe("toLogncrashError", () => {
 
     expect(result).not.toBeInstanceOf(LogncrashServerError);
     expect(result.exitCode).toBe(EXIT_AUTH_ERROR);
+  });
+});
+
+describe("isRateLimitError", () => {
+  // ADR-032: 서버가 HTTP 200 으로 응답하므로 상태 코드로는 걸러지지 않는다.
+  it.each([
+    [429, "숫자"],
+    ["429", "문자열"],
+  ])("봉투 resultCode 가 %s 429 면 참이다 (%s)", (resultCode: number | string, _label: string) => {
+    expect(isRateLimitError(new NhnEnvelopeError(resultCode, "Rate limit exceeded."))).toBe(true);
+  });
+
+  it.each([
+    [0, "성공 코드"],
+    [-401, "인증 실패 코드"],
+    ["ERROR", "숫자가 아닌 코드"],
+  ])("다른 resultCode 는 거짓이다 (%s)", (resultCode: number | string, _label: string) => {
+    expect(isRateLimitError(new NhnEnvelopeError(resultCode, "fail"))).toBe(false);
+  });
+
+  it("봉투 오류가 아니면 거짓이다", () => {
+    expect(isRateLimitError(makeHttpError(429))).toBe(false);
+    expect(isRateLimitError(new NhnCloudCliError("API 오류: fail", EXIT_API_ERROR))).toBe(false);
+    expect(isRateLimitError(undefined)).toBe(false);
+  });
+});
+
+describe("withRateLimitHint", () => {
+  it("원본 메시지 뒤에 대처 방법을 덧붙인다", () => {
+    const result = withRateLimitHint(
+      new NhnEnvelopeError(429, "Rate limit exceeded. Please try again later."),
+    );
+
+    expect(result.message).toContain("API 오류: Rate limit exceeded.");
+    expect(result.message).toContain("시간을 두고 다시 실행하세요");
+    // 기간을 좁히라는 유도는 이 오류에서 상황을 악화시킨다.
+    expect(result.message).toContain("검색 기간을 좁혀도 풀리지 않습니다");
+  });
+
+  it("원본의 종료 코드를 그대로 보존한다", () => {
+    const original = new NhnEnvelopeError(429, "Rate limit exceeded.");
+    expect(withRateLimitHint(original).exitCode).toBe(original.exitCode);
+  });
+
+  it("실측한 회복 속도나 소모량을 숫자로 담지 않는다", () => {
+    const result = withRateLimitHint(new NhnEnvelopeError(429, "Rate limit exceeded."));
+    const hint = result.message.split("\n")[1] ?? "";
+    expect(hint).not.toMatch(/\d/);
   });
 });

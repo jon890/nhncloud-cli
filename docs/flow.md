@@ -229,7 +229,10 @@ nhncloud logncrash search [options]
 - logType 검색: `logType:"ERROR"`
 
 전송 직후에는 인덱싱 지연으로 잠시 0건이 나올 수 있다.
-반복 검색이나 넓은 wildcard 검색은 API rate limit 에 걸릴 수 있으므로 시간 범위를 좁혀 확인한다.
+
+짧은 시간에 여러 번 조회하면 rate limit 에 걸린다.
+이때는 시간 범위를 좁혀도 풀리지 않는다. 호출 한 번의 비용이 조회 기간에 거의 비례하지 않기 때문이다([[adr-032]]).
+시간을 두고 다시 실행해야 한다.
 
 ### 시간 입력 해석
 
@@ -239,6 +242,7 @@ nhncloud logncrash search [options]
 - API 제약: 최근 90일 이내, 범위 31일 이하 (초과 시 사전 에러).
 - 그보다 짧은 기간에서도 서버가 500 을 반환할 수 있다. 실패 경계는 프로젝트의 로그 양에 따라 다르다([[adr-030]]).
   `search` 는 이 500 을 분할하지 않고, 원인을 단정하지 않는 안내와 서버 `requestId` 를 함께 보여 준다.
+- rate limit 은 이 500 과 별개다. HTTP 200 에 봉투 `resultCode` 로 오므로 CLI 가 둘을 구분해 안내한다([[adr-032]]).
 
 ### 출력
 
@@ -253,6 +257,7 @@ nhncloud logncrash search [options]
 | 자격증명 누락 | `EXIT_CONFIG_ERROR` |
 | UAK 토큰 또는 appkey 인증 실패 (401/403) | `EXIT_AUTH_ERROR` |
 | 봉투 `isSuccessful: false` / 기타 4xx·5xx | `EXIT_API_ERROR` |
+| 봉투 `resultCode` 가 rate limit 을 가리킴 | `EXIT_API_ERROR` |
 | 시간 범위 초과 등 입력 오류 | `EXIT_PARAM_ERROR` |
 
 ## logncrash export 흐름
@@ -278,17 +283,24 @@ v3 공개 명세는 `scrollKey` 유효기간을 정의하지 않는다.
 
 **500 은 예외다.** 다음 페이지 요청에서 500 이 나면 아래 "출력" 절의 적응형 분할이
 그 창을 자동으로 다시 나눠 처리하므로 사용자가 범위를 좁힐 필요가 없다([[adr-030]]).
+rate limit 도 예외다. 봉투로 구분되므로 범위를 좁히라는 안내 대신 시간을 두고 재실행하라고 알린다([[adr-032]]).
+
 이 문단은 그 밖의 5xx·네트워크 오류와 키 만료에 한정한다.
 그 경우는 원인을 구분할 수 없으므로 검색 범위를 좁혀 처음부터 다시 실행하도록 안내한다.
 
 ### 출력
 
 - `--output <file>` 필수. 기본 JSON Lines (한 줄당 한 로그), `--format json` 이면 JSON 배열. 기존 파일은 기본 거부 — `--force` 로만 덮어쓴다 (deploy download 와 동일 정책).
-- 진행 상황(수집/전체 건수)은 spinner(stderr), 데이터는 파일에만 쓴다. 페이지 수신 즉시 temp 파일에 스트리밍 append (전량 메모리 적재 회피) 후 원자적으로 교체한다 (중단 시 부분 파일 방지, 실패 시 temp 정리).
+- 진행 상황(수집/전체 건수)은 spinner(stderr), 데이터는 파일에만 쓴다. 페이지 수신 즉시 temp 파일에 스트리밍 append (전량 메모리 적재 회피) 후 원자적으로 교체한다.
+  성공하지 않은 실행이 `--output` 을 만드는 일은 없다. 실패한 temp 는 `<output>.partial` 로 옮긴다([[adr-032]]).
 - 시간 범위 제한은 search 와 동일 (90일 이내·31일 이하).
 - 요청 기간에서 서버가 500 을 반환하면 기간을 절반으로 줄여 다시 시도한다([[adr-030]]).
   성공한 창 크기를 나머지 구간에 재사용하고, 최소 창 10분에서도 실패하면 오류로 끝낸다.
-  일부 창이 실패하면 파일을 남기지 않는다.
+- rate limit 을 만나면 분할하지 않고 즉시 멈춘다.
+  분할은 호출 수를 늘려 제한을 앞당길 뿐이다([[adr-032]]).
+- 실패로 끝나면 `--output` 은 만들지 않는다.
+  대신 그때까지 받은 결과를 `<output>.partial` 에 남기고 위치와 이어받는 방법을 stderr 로 알린다([[adr-032]]).
+  `--format json` 이면 부분 파일도 배열을 닫아 그대로 파싱된다.
 
 ## logncrash send 흐름
 

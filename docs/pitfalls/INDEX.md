@@ -95,6 +95,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 | CLI option parser/helper 적용 | plan | [option-parse-before-side-effects](plan/option-parse-before-side-effects.md), [numeric-param-range-unverified](plan/numeric-param-range-unverified.md), [positive-int-number-only](code-review/positive-int-number-only.md) |
 | 공용 helper 배치·중복 (DRY) | code-review | [shared-helper-in-command-file](code-review/shared-helper-in-command-file.md), [duplicate-map-block-no-helper](code-review/duplicate-map-block-no-helper.md), [noninteractive-interactive-duplication](code-review/noninteractive-interactive-duplication.md) |
 | ADR·이슈 본문에 외부 상태를 근거로 쓸 때 | plan | [stale-context-as-doc-evidence](plan/stale-context-as-doc-evidence.md), [external-state-gate-missing](plan/external-state-gate-missing.md) |
+| 기존 동작을 반대로 뒤집는 변경 (실패 경로·보존 정책) | plan | [goal-reversed-logic-reuse](plan/goal-reversed-logic-reuse.md), [stale-code-in-reuse-claim](plan/stale-code-in-reuse-claim.md) |
 | 되돌릴 수 없는 쓰기 명령 (배포·삭제·전송) | plan | [safety-note-without-user-facing-text](plan/safety-note-without-user-facing-text.md), [write-command-executor-live-call](plan/write-command-executor-live-call.md) |
 | plan 작성 (phase 항목·검증 명령·완료 조건) | plan | [numeric-estimation](plan/numeric-estimation.md), [manual-verification-criterion](plan/manual-verification-criterion.md), [last-phase-completed-marking](plan/last-phase-completed-marking.md) |
 | 팀원 스폰·메시지 (build-with-teams) | team | [sendmessage-reply-missing](team/sendmessage-reply-missing.md), [member-premature-execution](team/member-premature-execution.md), [executor-premature-execution](plan/executor-premature-execution.md) |
@@ -104,7 +105,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 
 ## 카테고리별 패턴 목록
 
-### [plan/](plan/) (44)
+### [plan/](plan/) (45)
 
 - [cache-bypass-in-verify-helper](plan/cache-bypass-in-verify-helper.md)
 - [carve-out-conflicting-prohibition](plan/carve-out-conflicting-prohibition.md)
@@ -117,6 +118,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [filter-type-narrowing-lost](plan/filter-type-narrowing-lost.md)
 - [four-face-guard-missing](plan/four-face-guard-missing.md)
 - [function-signature-unverified](plan/function-signature-unverified.md)
+- [goal-reversed-logic-reuse](plan/goal-reversed-logic-reuse.md)
 - [import-identifier-collision](plan/import-identifier-collision.md)
 - [input-validation-policy-asymmetry](plan/input-validation-policy-asymmetry.md)
 - [integrated-command-partial-surface](plan/integrated-command-partial-surface.md)

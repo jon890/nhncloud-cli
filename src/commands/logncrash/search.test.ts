@@ -2,6 +2,7 @@ import { Command } from "commander";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { output } from "../../formatters/table.js";
 import { LogncrashServerError } from "../../services/logncrash/errors.js";
+import { NhnEnvelopeError } from "../../api/envelope.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { startSpinner } from "../../utils/spinner.js";
 import { EXIT_API_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
@@ -156,5 +157,29 @@ describe("logncrash search v3 cursor", () => {
     cursorSearch.mockRejectedValue(error);
 
     await expect(programWithSearch().parseAsync(baseArgs())).rejects.toBe(error);
+  });
+
+  // ADR-032: rate limit 은 기간을 좁혀도 풀리지 않는다. 500 안내를 붙이면 반대 방향이다.
+  it("rate limit 에는 기간을 좁히라고 안내하지 않고 시간을 두라고 알린다", async () => {
+    cursorSearch.mockRejectedValue(
+      new NhnEnvelopeError(429, "Rate limit exceeded. Please try again later."),
+    );
+
+    await expect(programWithSearch().parseAsync(baseArgs())).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+      message: expect.stringContaining("시간을 두고 다시 실행하세요"),
+    });
+    await expect(programWithSearch().parseAsync(baseArgs())).rejects.toMatchObject({
+      message: expect.not.stringContaining("검색 기간이 넓어"),
+    });
+  });
+
+  // 판별 없이 모든 봉투 오류를 감싸는 구현을 막는다.
+  it("rate limit 이 아닌 봉투 오류에는 그 안내가 붙지 않는다", async () => {
+    cursorSearch.mockRejectedValue(new NhnEnvelopeError(-401, "Authentication failed."));
+
+    await expect(programWithSearch().parseAsync(baseArgs())).rejects.toMatchObject({
+      message: expect.not.stringContaining("조회 횟수 제한"),
+    });
   });
 });
