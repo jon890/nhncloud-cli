@@ -19,10 +19,21 @@ phase-01·02 가 바꾼 동작을 공개 문서에 반영한다.
 
 ## 작업 항목 (3)
 
-### 1. `skills/nhncloud-cli/references/logncrash.md` — rate limit 절을 추가하고 낡은 안내를 고친다
+### 1. `skills/nhncloud-cli/references/logncrash.md` — 낡은 안내를 고치고 rate limit 을 설명한다
 
-현재 이 파일의 "API 제약" 절은 500 만 다루고 rate limit 을 언급하지 않는다.
-"대량 export" 절은 실패 시 파일을 남기지 않는 것으로 서술돼 있다. 둘 다 바뀌었다.
+이 파일의 절은 `검색` / `검색 출력` / `대량 export` / `로그 전송` / `에러 코드` 다.
+착수 전에 `grep -n "^## "` 로 실제 절 구성을 확인한다.
+
+고쳐야 할 낡은 안내는 **`대량 export` 절 바로 앞의 이 문장**이다.
+
+```
+반복 검색이나 넓은 wildcard 검색은 시간 범위를 좁혀 확인한다.
+```
+
+범위를 좁히는 것이 해법이 아니므로 이 문장을 바꾼다.
+
+`에러 코드` 절에 rate limit 행이 필요한지도 함께 판단한다.
+그 절의 기존 형식을 보고 결정하며, 형식이 맞지 않으면 넣지 않고 그 사유를 phase 보고에 적는다.
 
 담을 내용이다.
 
@@ -35,9 +46,7 @@ phase-01·02 가 바꾼 동작을 공개 문서에 반영한다.
 
 회복 속도와 소모량을 숫자로 적지 않는다. 측정값이지 서버 계약이 아니다([[adr-032]]).
 
-기존 문장 중 아래는 사실과 어긋나므로 고친다.
-
-- "더 나눌 수 없는 기간에서도 500 응답이 계속되거나 다른 오류가 발생하면 CLI가 원본 오류를 보존한다" 뒤에 부분 파일 동작을 잇는다.
+`대량 export` 절의 "더 나눌 수 없는 기간에서도 500 응답이 계속되거나 다른 오류가 발생하면 CLI가 원본 오류를 보존한다" 뒤에 부분 파일 동작을 잇는다.
 
 ### 2. `README.md` — logncrash 안내가 있으면 대조한다
 
@@ -76,16 +85,21 @@ pnpm run build
 node dist/index.js commands --json | jq '.commands | length'
 ```
 
+pnpm 이 `ERR_PNPM_IGNORED_BUILDS` 로 실패하면 `./node_modules/.bin/tsup` 을 직접 실행한다.
+
 명령 카탈로그는 **170** 이어야 한다. 이번 변경은 명령이나 옵션을 추가하지 않는다.
 달라지면 의도치 않은 표면 변경이므로 멈추고 원인을 보고한다.
 
 ```bash
 # cwd: <repo root>
-# 낡은 안내가 남아 있지 않은지 — logncrash 문서에서 0건이어야 한다
-grep -n "rate limit 에 걸릴 수 있으므로 시간 범위를 좁혀" skills/nhncloud-cli/references/logncrash.md || true
+# 낡은 안내가 사라졌는지 — 출력이 없어야 한다 (변경 전에는 1건 나온다)
+grep -n "시간 범위를 좁혀 확인한다" skills/nhncloud-cli/references/logncrash.md || true
 
-# 부분 파일 동작이 문서에 있는지 — 1건 이상이어야 한다
+# 부분 파일 동작이 문서에 있는지 — 1 이상이어야 한다 (변경 전 baseline 은 0)
 grep -c "partial" skills/nhncloud-cli/references/logncrash.md || true
+
+# rate limit 설명이 들어갔는지 — 1 이상이어야 한다
+grep -c "rate limit" skills/nhncloud-cli/references/logncrash.md || true
 ```
 
 공개 저장소 정보 노출 검사도 통과해야 한다. 두 명령 모두 출력이 0줄이어야 한다.
