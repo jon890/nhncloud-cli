@@ -1,0 +1,37 @@
+{
+  "name": "063-fix-logncrash-rate-limit",
+  "description": "이슈 #91 — logncrash 조회 횟수 제한을 봉투 resultCode 로 구분해 안내하고, export 실패 시 받은 결과를 <output>.partial 로 보존한다 (ADR-032)",
+  "created_at": "2026-08-18T00:00:00Z",
+  "updated_at": "2026-08-18T00:00:00Z",
+  "status": "pending",
+  "current_phase": 0,
+  "total_phases": 3,
+  "error_message": null,
+  "blocked_reason": null,
+  "phases": [
+    {
+      "number": 1,
+      "title": "봉투 resultCode 보존과 rate limit 판별",
+      "file": "phase-01.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    },
+    {
+      "number": 2,
+      "title": "export 부분 결과 보존과 안내 문구 교체",
+      "file": "phase-02.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    },
+    {
+      "number": 3,
+      "title": "사용자 가이드 갱신과 완료 마킹",
+      "file": "phase-03.md",
+      "status": "pending",
+      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "model": "sonnet"
+    }
+  ]
+}
