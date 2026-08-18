@@ -155,12 +155,17 @@ const createCommand = addApiGatewayOptions(
   let baselineLookupFailed = false;
   let deploy: LatestDeployResult | undefined;
 
+  // 기준 배포 조회는 배포 스피너 밖에서 한다. 실패 안내를 배포 시작 전에 내야
+  // 성공·실패·타임아웃 모든 경로에서 사용자가 판정이 약해진 것을 볼 수 있다.
   if (opts.wait) {
+    startSpinner("직전 배포 확인 중...");
     try {
       const baseline = await client.getLatestDeploy(parsedServiceId, parsedStageId);
       baselineDeployId = baseline.deployId;
+      stopSpinner(true);
     } catch {
       baselineLookupFailed = true;
+      stopSpinner(false);
     }
   }
   if (baselineLookupFailed) {
@@ -169,6 +174,9 @@ const createCommand = addApiGatewayOptions(
 
   startSpinner(`API Gateway stage "${displayStageId}" 배포 중...`);
   let deployAccepted = false;
+  // 서버가 결과를 알려준 경우다. 이때는 사용자가 원인을 고쳐 다시 배포해야 하므로
+  // "재실행하지 말라" 는 안내가 오히려 반대 지시가 된다.
+  let deployResultKnown = false;
   try {
     await client.createDeploy(parsedServiceId, parsedStageId, {
       deployDescription: opts.description,
@@ -181,6 +189,7 @@ const createCommand = addApiGatewayOptions(
         baselineDeployId,
       });
       if (deploy.deployStatus !== DEPLOY_STATUS_COMPLETE) {
+        deployResultKnown = true;
         throw new NhnCloudCliError(
           `API Gateway stage 배포 실패: deployId=${deploy.deployId}, deployStatus=${deploy.deployStatus}`,
           EXIT_API_ERROR,
@@ -189,7 +198,7 @@ const createCommand = addApiGatewayOptions(
     }
   } catch (error) {
     stopSpinner(false);
-    if (deployAccepted) {
+    if (deployAccepted && !deployResultKnown) {
       process.stderr.write(
         "주의: 배포 요청은 이미 접수됐습니다. 재실행하지 말고 apigateway stage deploy latest 로 결과를 확인하세요.\n",
       );

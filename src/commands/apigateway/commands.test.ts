@@ -249,6 +249,38 @@ describe("deploy create", () => {
     }
   });
 
+  it("배포가 FAILURE 로 끝나면 재실행 방지 안내를 출력하지 않는다", async () => {
+    // 결과를 아는 상태다. 사용자가 할 일은 원인을 고쳐 다시 배포하는 것이라
+    // "재실행하지 말라" 는 안내가 반대 지시가 된다.
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    waitForDeploy.mockResolvedValue({
+      deployId: "deploy-2",
+      stageId: "stage-1",
+      deployStatus: "FAILURE",
+      deployDescription: "",
+      deployedAt: "2026-08-18T00:00:00.000Z",
+      rollbackAt: null,
+      isBase: false,
+      stageResourceList: [],
+    });
+
+    try {
+      await expect(programWith(deployCommand).parseAsync([
+        "node",
+        "nhncloud",
+        "deploy",
+        "create",
+        "service-1",
+        "stage-1",
+        "--yes",
+      ])).rejects.toThrow("deployStatus=FAILURE");
+
+      expect(stderr).not.toHaveBeenCalledWith(expect.stringContaining("배포 요청은 이미 접수됐습니다"));
+    } finally {
+      stderr.mockRestore();
+    }
+  });
+
   it("배포 요청 자체가 실패하면 접수 안내를 출력하지 않는다", async () => {
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     createDeploy.mockRejectedValue(new Error("request failed"));
@@ -294,8 +326,15 @@ describe("deploy create", () => {
       expect(stderr).toHaveBeenCalledWith(
         "안내: 직전 배포 ID 를 읽지 못해 상태만으로 완료를 판정합니다.\n",
       );
+      // 안내는 배포 스피너보다 먼저 나와야 한다. 그래야 실패·타임아웃 경로에서도 보인다.
+      // 스피너는 둘이다 — 기준 배포 조회용이 먼저이고 배포용이 그 뒤다.
+      const deploySpinnerCallIndex = vi
+        .mocked(startSpinner)
+        .mock.calls.findIndex((call) => String(call[0]).includes("배포 중"));
+      expect(deploySpinnerCallIndex).toBeGreaterThanOrEqual(0);
       expect(stderr.mock.invocationCallOrder[0]).toBeLessThan(
-        vi.mocked(startSpinner).mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER,
+        vi.mocked(startSpinner).mock.invocationCallOrder[deploySpinnerCallIndex] ??
+          Number.MAX_SAFE_INTEGER,
       );
     } finally {
       stderr.mockRestore();

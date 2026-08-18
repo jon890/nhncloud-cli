@@ -13,6 +13,7 @@ import type {
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { sanitizeForTerminal } from "../../utils/terminal.js";
+import type { output } from "../../formatters/table.js";
 import { MAX_JSON_INPUT_BYTES } from "../../utils/limits.js";
 
 function fileErrorReason(error: unknown): string {
@@ -93,9 +94,10 @@ export function collectAffectedPaths(resources: Resource[], targetPath: string):
   );
 }
 
+/** 반영·롤백 응답의 출력 형태. `output` 의 계약이 바뀌면 tsc 가 여기서 잡는다. */
 export function writtenStageResourceOutput(
   resources: WrittenStageResource[],
-): { headers: string[]; rows: string[][]; raw: unknown; ids: string[] } {
+): Parameters<typeof output>[1] {
   return {
     headers: ["stageResourceId", "path", "methodType", "methodName", "plugins"],
     rows: resources.map((resource) => [
