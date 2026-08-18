@@ -6,9 +6,22 @@ UAK를 OAuth `client_credentials`로 교환한 Bearer token으로 인증하고, 
 ## 설정
 
 `~/.nhncloud/credentials.json`에 profile 공통 `userAccessKey`가 필요하다.
+appkey는 `nhncloud configure --deploy-appkey <key>`로 profile에 설정한다.
 `nhncloud configure` 사용을 권장한다.
 
-`~/.nhncloud/config.json`에는 named deploy target을 둔다.
+배포 좌표(아티팩트·서버그룹·시나리오 등)는 config에 두지 않는다.
+매 호출마다 명령 옵션으로 넘긴다.
+반복되는 값은 호출하는 쪽의 스크립트나 CI 변수가 관리한다.
+
+**여러 배포 대상을 쓰려면 profile 을 나눈다.**
+profile 하나에 appkey 하나다.
+
+```bash
+nhncloud configure --profile projA --deploy-appkey <keyA>
+nhncloud deploy run --profile projA --artifact-id <id> --server-group-id <id> --scenario-ids <ids>
+```
+
+구버전에서 쓰던 config.json 의 이름 붙은 배포 대상 설정이 남아 있으면 경고가 나오며 읽지 않는다.
 
 Discovery:
 
@@ -16,39 +29,19 @@ Discovery:
 nhncloud commands --json | jq '.commands[] | select(.path|startswith("deploy"))'
 ```
 
-```json
-{
-  "version": 1,
-  "defaultProfile": "default",
-  "deploy": {
-    "targets": {
-      "my-service": {
-        "appKey": "<appKey>",
-        "artifactId": "<artifactId>",
-        "serverGroupId": "<serverGroupId>",
-        "scenarioIds": "<id1,id2>"
-      }
-    }
-  }
-}
-```
-
 ## 배포 실행
 
 ```bash
-nhncloud deploy run my-service
-nhncloud deploy run my-service --async
-nhncloud deploy run my-service --target-hosts <host1,host2>
+nhncloud deploy run --artifact-id <id> --server-group-id <id> --scenario-ids <id1,id2>
+nhncloud deploy run --artifact-id <id> --server-group-id <id> --scenario-ids <id1,id2> --async
+nhncloud deploy run --artifact-id <id> --server-group-id <id> --scenario-ids <id1,id2> --target-hosts <host1,host2>
 ```
-
-`<target>`은 config의 deploy target 이름이다.
 
 | 옵션 | 설명 |
 |------|------|
-| `--app-key <k>` | target의 appKey override |
-| `--artifact-id <id>` | target의 artifactId override |
-| `--server-group-id <id>` | target의 serverGroupId override |
-| `--scenario-ids <csv>` | target의 scenarioIds override |
+| `--artifact-id <id>` | 배포할 아티팩트 ID (`artifacts`로 확인) |
+| `--server-group-id <id>` | 배포 대상 서버그룹 ID (`server-groups`로 확인) |
+| `--scenario-ids <csv>` | 실행할 시나리오 ID 목록 (쉼표 구분) |
 | `--target-hosts <csv>` | 대상 호스트. 생략 시 서버그룹 전체 |
 | `--concurrent <n>` | 병렬 배포 수. 기본 1 |
 | `--next-when-fail` | 시나리오 실패 시에도 진행 |
@@ -62,22 +55,22 @@ nhncloud deploy run my-service --target-hosts <host1,host2>
 ## 조회 명령
 
 ```bash
-nhncloud deploy artifacts my-service --json
-nhncloud deploy server-groups my-service --json
-nhncloud deploy histories my-service --json
-nhncloud deploy binary-groups my-service --json
-nhncloud deploy binaries my-service --binary-group <key> --json
+nhncloud deploy artifacts --json
+nhncloud deploy server-groups --artifact-id <id> --json
+nhncloud deploy histories --artifact-id <id> --json
+nhncloud deploy binary-groups --artifact-id <id> --json
+nhncloud deploy binaries --binary-group <key> --artifact-id <id> --json
 ```
 
 의도별 명령:
 
 | 의도 | 명령 |
 |------|------|
-| 아티팩트 목록 | `deploy artifacts <target>` |
-| 서버그룹 목록 | `deploy server-groups <target>` |
-| 배포 이력 | `deploy histories <target>` |
-| 바이너리 그룹 목록 | `deploy binary-groups <target>` |
-| 바이너리 목록 | `deploy binaries <target> --binary-group <key>` |
+| 아티팩트 목록 | `deploy artifacts` |
+| 서버그룹 목록 | `deploy server-groups --artifact-id <id>` |
+| 배포 이력 | `deploy histories --artifact-id <id>` |
+| 바이너리 그룹 목록 | `deploy binary-groups --artifact-id <id>` |
+| 바이너리 목록 | `deploy binaries --binary-group <key> --artifact-id <id>` |
 
 `deploy binary-groups --json`은 `binaryGroups` wrapper를 언랩한 배열이다.
 `deploy binaries --json`은 `{ totalCount, binaries }` 객체다.
@@ -85,8 +78,8 @@ nhncloud deploy binaries my-service --binary-group <key> --json
 ## 바이너리 전송
 
 ```bash
-nhncloud deploy upload <target> --file ./app.tgz --binary-group <key>
-nhncloud deploy download <target> --binary-group <key> --binary-key <key> -o ./app.tgz
+nhncloud deploy upload --artifact-id <id> --file ./app.tgz --binary-group <key>
+nhncloud deploy download --artifact-id <id> --binary-group <key> --binary-key <key> -o ./app.tgz
 ```
 
 `upload`는 multipart로 로컬 파일을 업로드한다.
@@ -98,15 +91,16 @@ nhncloud deploy download <target> --binary-group <key> --binary-key <key> -o ./a
 ## 체이닝 예시
 
 ```bash
-nhncloud deploy artifacts my-service --json | jq -r '.[0].artifactId'
-nhncloud deploy run my-service --artifact-id <artifactId>
-nhncloud deploy histories my-service --json | jq '.[0] | {deployKey, deployStatus}'
+nhncloud deploy artifacts --json | jq -r '.[0].artifactId'
+nhncloud deploy run --artifact-id <artifactId> --server-group-id <id> --scenario-ids <ids>
+nhncloud deploy histories --artifact-id <id> --json | jq '.[0] | {deployKey, deployStatus}'
 ```
 
 ## 에러 코드
 
 | 상황 | exit code |
 |------|-----------|
-| UAK 누락 또는 config target 없음 | 4 또는 3 |
+| UAK 누락 또는 profile에 deploy appkey 없음 | 4 |
+| 필수 좌표 옵션(`--artifact-id` 등) 누락 | 3 |
 | OAuth 인증 실패 | 2 |
 | Deploy API 오류 또는 봉투 실패 | 1 |
