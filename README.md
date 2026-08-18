@@ -103,6 +103,7 @@ nhncloud deploy artifacts                                     # 배포 아티팩
 nhncloud logncrash search --query '*' --from 1h --to now      # 최근 1시간 로그
 nhncloud apigateway service list                               # API Gateway 서비스
 nhncloud apigateway stage update <service-id> <stage-id> --description "설명" --yes  # API Gateway 스테이지 수정
+nhncloud apigateway stage import-resources <service-id> <stage-id> --yes             # 리소스를 스테이지로 반영
 nhncloud apigateway stage deploy create <service-id> <stage-id> --yes                 # API Gateway 스테이지 배포
 ```
 
