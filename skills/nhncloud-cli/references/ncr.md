@@ -12,16 +12,15 @@ Management API는 공통 UAK 정적 헤더를 사용한다.
 nhncloud configure --uak-id <uak-id> --uak-secret <uak-secret> --ncr-appkey <appkey>
 ```
 
-`--app-key <key>`는 profile의 `ncr.appkey`보다 우선한다.
 기본 region은 `kr1`이고, `kr1`, `kr2`, `kr3`를 지원한다.
 
 ## Registry 조회
 
 ```bash
 nhncloud commands --json | jq '.commands[] | select(.path|startswith("ncr"))'
-nhncloud ncr list --app-key <appkey> --json
-nhncloud ncr list --region kr2 --app-key <appkey> --json
-nhncloud ncr get <registry> --app-key <appkey> --json
+nhncloud ncr list --json
+nhncloud ncr list --region kr2 --json
+nhncloud ncr get <registry> --json
 ```
 
 `ncr list --json`은 `registries` wrapper를 언랩한 registry 배열이다.
@@ -40,8 +39,8 @@ nhncloud ncr tags <registry> <repository> --json
 ## 체이닝 예시
 
 ```bash
-nhncloud ncr list --app-key <appkey> --json | jq -r '.[].name'
-nhncloud ncr get <registry> --app-key <appkey> --json
+nhncloud ncr list --json | jq -r '.[].name'
+nhncloud ncr get <registry> --json
 nhncloud ncr images <registry> --json | jq -r '.[].repository'
 nhncloud ncr images <registry> --json | jq '.[] | {repository, artifact_count}'
 nhncloud ncr tags <registry> <repository> --json | jq -r '.[].tag'
@@ -53,7 +52,6 @@ nhncloud ncr tags <registry> <repository> --json | jq 'sort_by(.push_time) | las
 | 옵션 | 설명 |
 |------|------|
 | `--region <region>` | NCR region. 기본 `kr1` |
-| `--app-key <key>` | NCR appkey |
 | `--profile <name>` | 사용할 profile |
 
 ## 주의사항
