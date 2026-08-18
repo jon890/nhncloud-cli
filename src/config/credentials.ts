@@ -347,13 +347,16 @@ function isLegacyDeployConfig(value: unknown): value is LegacyDeployConfig {
  */
 export async function warnLegacyDeployTargets(): Promise<void> {
   // 경고는 부수 기능이다. 손상된 config.json 때문에 이 hook 이 먼저 죽으면
-  // 좌표 누락(종료 코드 3)이 config 오류로 뒤바뀐다 — 파싱 실패는 조용히 넘기고
-  // 뒤따르는 resolveProfileName 이 같은 오류를 제자리에서 내게 둔다.
+  // 좌표 누락(종료 코드 3)이 config 오류로 뒤바뀐다 — 파싱 실패는 조용히 넘긴다.
+  // 삼키는 것은 readConfigJson 의 파싱 오류 하나뿐이다. 파일 부재는 그 함수가 이미 null 로 돌려준다.
+  // deploy 가 config.json 에서 읽는 값은 defaultProfile 뿐이라 이 정보는 경고에 필요 없고,
+  // --profile 을 주지 않았다면 뒤따르는 resolveProfileName 이 같은 오류를 제자리에서 낸다.
   let parsed: unknown;
   try {
     parsed = await readConfigJson();
-  } catch {
-    return;
+  } catch (err) {
+    if (err instanceof NhnCloudCliError && err.exitCode === EXIT_CONFIG_ERROR) return;
+    throw err;
   }
   if (typeof parsed !== "object" || parsed === null) return;
 

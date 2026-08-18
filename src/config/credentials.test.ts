@@ -104,6 +104,15 @@ describe("warnLegacyDeployTargets", () => {
     expect(chunks.join("")).toMatch(/deploy\.targets 는 더 이상 사용되지 않습니다/);
   });
 
+  it("손상된 config.json 은 조용히 넘긴다 (경고가 좌표 검증을 가로막지 않게)", async () => {
+    await writeFile(configPath, "{ broken", "utf-8");
+    const { chunks } = captureStderr();
+
+    await expect(credentials.warnLegacyDeployTargets()).resolves.toBeUndefined();
+
+    expect(chunks).toEqual([]);
+  });
+
   it("config.json 을 자동으로 고치지 않는다", async () => {
     const original = JSON.stringify({ version: 1, deploy: { targets: { legacyTarget: {} } } });
     await writeFile(configPath, original, "utf-8");

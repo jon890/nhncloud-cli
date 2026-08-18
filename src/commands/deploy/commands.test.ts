@@ -93,22 +93,26 @@ describe("deploy 명령 옵션", () => {
 
 /**
  * 하위 명령을 실제로 실행한다.
- * action 핸들러는 공개 API 로 꺼낼 수 없어 import 한 원본 명령을 그대로 붙인다.
- * `optsWithGlobals` 가 읽는 전역 옵션만 최소로 재현한 부모를 씌우고,
+ * action 핸들러는 공개 API 로 꺼낼 수 없어 import 한 원본 명령을 그대로 붙이고,
+ * `optsWithGlobals` 가 읽는 전역 옵션만 최소로 재현한 부모를 씌운다.
  * 종료는 exitOverride 로 가로채 vitest 프로세스가 죽지 않게 한다.
  *
- * 원본 명령의 exitOverride·configureOutput 설정은 부모를 통해서만 상속받게 두고
- * 여기서 직접 덮지 않는다 — import 한 싱글턴을 변형하면 다른 테스트에 새어 나간다.
+ * 이 함수는 import 한 명령 객체를 변형한다. 피할 수 없다 —
+ * commander 의 `addCommand` 는 복제하지 않고 같은 참조를 담고 `parent` 도 덮는다.
+ * 실측으로 확인했다: `parent.commands[0] === command` 다.
+ * 다만 걸어 두는 설정(exitOverride·출력 억제)이 idempotent 하고 이 파일의 모든 호출이
+ * 같은 값을 걸어서 실제로 새지 않는다. 진짜 격리에는 명령 팩토리 export 가 필요하고
+ * 그것은 8개 명령과 index.ts 를 함께 바꾸는 별도 작업이다.
  */
 async function parseLeaf(command: Command, args: string[], globals: string[] = []): Promise<void> {
   const silent = { writeErr: () => {}, writeOut: () => {} };
+  command.exitOverride().configureOutput(silent);
   const parent = new Command("deploy")
     .exitOverride()
     .configureOutput(silent)
     .option("--json", "JSON 출력")
     .option("--quiet", "식별자만 출력");
   parent.addCommand(command);
-  parent.commands.forEach((child) => child.exitOverride().configureOutput(silent));
 
   await parent.parseAsync([...globals, command.name(), ...args], { from: "user" });
 }
@@ -145,10 +149,18 @@ describe("deploy 좌표 옵션 검증", () => {
   const requiresArtifactId: Array<[string, Command, string[]]> = [
     ["binaries", binariesCommand, ["--binary-group", "1"]],
     ["binary-groups", binaryGroupsCommand, []],
-    ["download", downloadCommand, ["--binary-group", "1", "--binary-key", "1", "-o", "out.bin"]],
+    // -o 를 이미 있는 파일로 둔다 — 좌표 검증이 assertWritable 뒤로 되돌아가면
+    // 덮어쓰기 거부 문구가 먼저 나와 이 케이스가 실패한다 (순서 고정).
+    [
+      "download",
+      downloadCommand,
+      ["--binary-group", "1", "--binary-key", "1", "-o", "package.json"],
+    ],
     ["histories", historiesCommand, []],
     ["server-groups", serverGroupsCommand, []],
-    ["upload", uploadCommand, ["--file", "package.json", "--binary-group", "1"]],
+    // --file 을 없는 경로로 둔다 — 좌표 검증이 파일 가드 뒤로 되돌아가면
+    // "읽을 수 없습니다" 가 먼저 나와 이 케이스가 실패한다 (순서 고정).
+    ["upload", uploadCommand, ["--file", "no-such-file.bin", "--binary-group", "1"]],
   ];
 
   it.each(requiresArtifactId)(
