@@ -8,7 +8,6 @@ import type { Repository } from "../../services/ncr/types.js";
 
 interface ImagesOpts extends OutputOptions {
   region?: string;
-  appKey?: string;
   profile?: string;
 }
 
@@ -16,7 +15,6 @@ export const imagesCommand = new Command("images")
   .description("레지스트리의 이미지(repository) 목록을 조회한다")
   .argument("<registry>", "레지스트리 이름")
   .option("--region <region>", "NCR region (기본: kr1)", "kr1")
-  .option("--app-key <key>", "NCR appKey (profile 의 ncr.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (registry: string, _opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<ImagesOpts>();

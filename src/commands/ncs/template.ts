@@ -13,7 +13,6 @@ import type {
 
 interface TemplateListOpts extends OutputOptions {
   region?: string;
-  appKey?: string;
   profile?: string;
   page?: string;
   size?: string;
@@ -22,7 +21,6 @@ interface TemplateListOpts extends OutputOptions {
 const listCommand = new Command("list")
   .description("NCS 설계도(template) 목록을 조회한다")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .option("--page <page>", "조회할 page 번호")
   .option("--size <size>", "page 당 항목 수 (기본: API 기본값 10)")
@@ -68,7 +66,6 @@ const listCommand = new Command("list")
 
 interface TemplateGetOpts extends OutputOptions {
   region?: string;
-  appKey?: string;
   profile?: string;
 }
 
@@ -76,7 +73,6 @@ const getCommand = new Command("get")
   .description("NCS 설계도(template) 단건을 조회한다")
   .argument("<id>", "template ID")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (id: string, _opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<TemplateGetOpts>();
@@ -119,7 +115,6 @@ const getCommand = new Command("get")
 
 interface TemplateCreateOpts extends OutputOptions {
   region?: string;
-  appKey?: string;
   profile?: string;
   file?: string;
 }
@@ -128,7 +123,6 @@ const createCommand = new Command("create")
   .description("NCS 설계도(template) 를 생성한다 (--file 로 JSON spec 전달)")
   .requiredOption("--file <path>", "template 생성 spec 이 담긴 JSON 파일 경로")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (_opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<TemplateCreateOpts>();
@@ -171,7 +165,6 @@ const createCommand = new Command("create")
 
 interface TemplateDeleteOpts {
   region?: string;
-  appKey?: string;
   profile?: string;
   yes?: boolean;
 }
@@ -181,7 +174,6 @@ const deleteCommand = new Command("delete")
   .argument("<id>", "template ID")
   .option("--yes", "확인 프롬프트 생략 (CI/비대화형 필수)")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (id: string, _opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<TemplateDeleteOpts>();
@@ -214,7 +206,6 @@ const deleteCommand = new Command("delete")
 
 interface TemplateVersionListOpts extends OutputOptions {
   region?: string;
-  appKey?: string;
   profile?: string;
   q?: string;
   sort?: string;
@@ -226,7 +217,6 @@ const versionListCommand = new Command("list")
   .description("NCS 설계도(template) 의 버전 목록을 조회한다")
   .argument("<id>", "template ID")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .option("--q <query>", "검색어")
   .option("--sort <sort>", "정렬 조건")
@@ -281,7 +271,6 @@ const versionGetCommand = new Command("get")
   .argument("<id>", "template ID")
   .argument("<version>", "버전 값")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (id: string, version: string, _opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<TemplateGetOpts>();
@@ -317,7 +306,6 @@ const versionGetCommand = new Command("get")
 
 interface TemplateVersionCreateOpts extends OutputOptions {
   region?: string;
-  appKey?: string;
   profile?: string;
   file?: string;
 }
@@ -327,7 +315,6 @@ const versionCreateCommand = new Command("create")
   .argument("<id>", "template ID")
   .requiredOption("--file <path>", "버전 생성 spec 이 담긴 JSON 파일 경로 (sourceVersion 필드 필수)")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (id: string, _opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<TemplateVersionCreateOpts>();
@@ -363,7 +350,6 @@ const versionCreateCommand = new Command("create")
 
 interface TemplateVersionDeleteOpts {
   region?: string;
-  appKey?: string;
   profile?: string;
   yes?: boolean;
 }
@@ -374,7 +360,6 @@ const versionDeleteCommand = new Command("delete")
   .argument("<version>", "버전 값")
   .option("--yes", "확인 프롬프트 생략 (CI/비대화형 필수)")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (id: string, version: string, _opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<TemplateVersionDeleteOpts>();

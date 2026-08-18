@@ -7,7 +7,6 @@ import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 
 interface TagsOpts extends OutputOptions {
   region?: string;
-  appKey?: string;
   profile?: string;
 }
 
@@ -16,7 +15,6 @@ export const tagsCommand = new Command("tags")
   .argument("<registry>", "레지스트리 이름")
   .argument("<repository>", "이미지(repository) 이름 (짧은 이름 또는 {project}/{repo})")
   .option("--region <region>", "NCR region (기본: kr1)", "kr1")
-  .option("--app-key <key>", "NCR appKey (profile 의 ncr.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (registry: string, repository: string, _opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<TagsOpts>();
