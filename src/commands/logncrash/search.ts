@@ -4,7 +4,11 @@ import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { output, truncate, type OutputOptions } from "../../formatters/table.js";
-import { LogncrashServerError } from "../../services/logncrash/errors.js";
+import {
+  isRateLimitError,
+  LogncrashServerError,
+  withRateLimitHint,
+} from "../../services/logncrash/errors.js";
 import type { CursorSearchResult } from "../../services/logncrash/types.js";
 import { parseIntegerOption, parseNonNegativeIntegerOption } from "../parse-options.js";
 import { resolveLogncrashClient } from "./helpers.js";
@@ -88,6 +92,11 @@ export const searchCommand = new Command("search")
       });
     } catch (err) {
       stopSpinner(false);
+      // rate limit 을 먼저 가른다. 500 과 원인도 대처도 달라 같은 안내로 묶으면
+      // 기간을 좁히라는 유도가 상황을 악화시킨다 (ADR-032).
+      if (isRateLimitError(err) && err instanceof NhnCloudCliError) {
+        throw withRateLimitHint(err);
+      }
       if (err instanceof LogncrashServerError) {
         const requestId = err.requestId === null
           ? ""

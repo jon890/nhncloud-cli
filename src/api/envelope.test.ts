@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { unwrap, unwrapHeader } from "./envelope.js";
+import { NhnEnvelopeError, unwrap, unwrapHeader } from "./envelope.js";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_API_ERROR } from "../utils/exit-codes.js";
 
@@ -66,6 +66,36 @@ describe("unwrapHeader", () => {
       expect.fail("throw 하지 않음");
     } catch (err) {
       expect(err).toBeInstanceOf(NhnCloudCliError);
+      expect((err as NhnCloudCliError).exitCode).toBe(EXIT_API_ERROR);
+    }
+  });
+
+  // ADR-032: 봉투에만 실린 원인 코드를 보존해야 rate limit 을 다른 실패와 가를 수 있다.
+  it.each([
+    [429, "숫자 resultCode"],
+    ["429", "문자열 resultCode"],
+  ])("봉투 실패의 %s 를 보존한다 (%s)", (resultCode: number | string, _label: string) => {
+    const res = {
+      header: { isSuccessful: false, resultCode, resultMessage: "Rate limit exceeded." },
+    };
+    try {
+      unwrapHeader(res);
+      expect.fail("throw 하지 않음");
+    } catch (err) {
+      expect(err).toBeInstanceOf(NhnEnvelopeError);
+      expect((err as NhnEnvelopeError).resultCode).toBe(resultCode);
+    }
+  });
+
+  it("봉투 실패 메시지와 종료 코드는 기존 계약을 유지한다", () => {
+    const res = {
+      header: { isSuccessful: false, resultCode: -401, resultMessage: "fail" },
+    };
+    try {
+      unwrapHeader(res);
+      expect.fail("throw 하지 않음");
+    } catch (err) {
+      expect((err as NhnCloudCliError).message).toBe("API 오류: fail");
       expect((err as NhnCloudCliError).exitCode).toBe(EXIT_API_ERROR);
     }
   });
