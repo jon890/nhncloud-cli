@@ -164,19 +164,12 @@ export function normalizeNcsTimeRange(
 
 /**
  * NCS appKey 를 해석한다.
- * 우선순위: --app-key 옵션 > profile 의 ncs.appkey.
- * 둘 다 없으면 EXIT_CONFIG_ERROR + 설정 안내(2-4 회피 — 빈문자열 fallback 금지).
+ * 없으면 EXIT_CONFIG_ERROR + 설정 안내(2-4 회피 — 빈문자열 fallback 금지).
  *
  * 안내 문구 주의: `configure` 마법사(대화형 ncs 블록 또는 `--ncs-appkey` 비대화형 플래그)로
- * ncs.appkey 를 설정할 수 있다(src/commands/configure.ts). appKey 가 없으면 `configure`
- * (또는 `--ncs-appkey`) 실행 또는 --app-key 직접 지정을 안내한다.
+ * ncs.appkey 를 설정할 수 있다(src/commands/configure.ts).
  */
-export async function resolveNcsAppKey(
-  profileName: string,
-  appKeyOpt?: string,
-): Promise<string> {
-  if (appKeyOpt) return appKeyOpt;
-
+export async function resolveNcsAppKey(profileName: string): Promise<string> {
   // profile 의 ncs 블록에서 appkey 조회.
   // ncs 블록 부재(EXIT_CONFIG_ERROR)만 친절한 안내로 변환하고,
   // profile 자체 부재·credentials.json 파싱 오류 등은 원인을 보존해 rethrow.
@@ -191,8 +184,7 @@ export async function resolveNcsAppKey(
 
   if (!cred?.appkey) {
     throw new NhnCloudCliError(
-      "NCS appKey 가 없습니다. nhncloud configure (또는 --ncs-appkey) 로 설정하거나\n" +
-        "--app-key 로 직접 넘기세요.",
+      "NCS appKey 가 없습니다. nhncloud configure --ncs-appkey <key> 를 실행해 설정하세요.",
       EXIT_CONFIG_ERROR,
     );
   }
@@ -207,12 +199,11 @@ export async function resolveNcsAppKey(
 export async function resolveNcsClient(opts: {
   profile?: string;
   region?: string;
-  appKey?: string;
 }): Promise<{ client: NcsClient; profileName: string }> {
   const profileName = await resolveProfileName(opts.profile);
   const uak = await getUserAccessKey(profileName);
   const accessToken = await getAccessToken(profileName, uak.id, uak.secret);
-  const appKey = await resolveNcsAppKey(profileName, opts.appKey);
+  const appKey = await resolveNcsAppKey(profileName);
   const region = opts.region ?? "kr1";
   return { client: new NcsClient(accessToken, region, appKey), profileName };
 }

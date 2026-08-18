@@ -39,7 +39,6 @@ const WORKLOAD_HEADERS = ["id", "name", "type", "status", "desired", "available"
 
 interface WorkloadListOpts extends OutputOptions {
   region?: string;
-  appKey?: string;
   profile?: string;
   q?: string;
   page?: string;
@@ -49,7 +48,6 @@ interface WorkloadListOpts extends OutputOptions {
 const listCommand = new Command("list")
   .description("NCS workload(런타임 실행) 목록을 조회한다")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .option("--q <query>", "워크로드 이름·템플릿 ID·템플릿 버전으로 필터링")
   .option("--page <page>", "조회할 page 번호")
@@ -98,7 +96,6 @@ const listCommand = new Command("list")
 
 interface WorkloadGetOpts extends OutputOptions {
   region?: string;
-  appKey?: string;
   profile?: string;
 }
 
@@ -106,7 +103,6 @@ const getCommand = new Command("get")
   .description("NCS workload 단건을 조회한다")
   .argument("<id>", "workload ID")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (id: string, _opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<WorkloadGetOpts>();
@@ -151,7 +147,6 @@ const getCommand = new Command("get")
 
 interface WorkloadLogsOpts extends OutputOptions {
   region?: string;
-  appKey?: string;
   profile?: string;
   task?: string;
   container?: string;
@@ -165,7 +160,6 @@ const logsCommand = new Command("logs")
   .description("NCS workload task 의 컨테이너 로그를 조회한다")
   .argument("<id>", "workload ID")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .option("--task <taskId>", "task ID (필수)")
   .option("--container <name>", "컨테이너 이름 (필수)")
@@ -231,7 +225,6 @@ const logsCommand = new Command("logs")
 
 interface WorkloadEventsOpts extends OutputOptions {
   region?: string;
-  appKey?: string;
   profile?: string;
   task?: string;
   type?: string;
@@ -246,7 +239,6 @@ const eventsCommand = new Command("events")
   .description("NCS workload task 의 이벤트를 조회한다")
   .argument("<id>", "workload ID")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .option("--task <taskId>", "task ID (필수)")
   .option("--type <type>", "이벤트 타입 (Normal | Warning)")
@@ -310,7 +302,6 @@ const eventsCommand = new Command("events")
 
 interface WorkloadHistoryListOpts extends OutputOptions {
   region?: string;
-  appKey?: string;
   profile?: string;
   page?: string;
   size?: string;
@@ -322,7 +313,6 @@ const historyGetCommand = new Command("get")
   .argument("<id>", "workload ID")
   .argument("<historyId>", "히스토리 ID")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (id: string, historyId: string, _opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<WorkloadGetOpts>();
@@ -368,7 +358,6 @@ const historyCommand = new Command("history")
   .description("NCS workload 실행 히스토리 목록을 조회한다")
   .argument("<id>", "workload ID")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .option("--page <page>", "조회할 page 번호")
   .option("--size <size>", "page 당 항목 수 (기본: API 기본값 10)")
@@ -422,7 +411,6 @@ const scheduleHistoryCommand = new Command("schedule-history")
   .description("NCS workload 예약 실행 히스토리를 조회한다")
   .argument("<id>", "workload ID")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (id: string, _opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<WorkloadGetOpts>();
@@ -458,7 +446,6 @@ const scheduleHistoryCommand = new Command("schedule-history")
 
 interface WorkloadCreateOpts extends OutputOptions {
   region?: string;
-  appKey?: string;
   profile?: string;
   file?: string;
   wait?: boolean;
@@ -471,7 +458,6 @@ const createCommand = new Command("create")
   .option("--wait", "workload 가 Running 상태가 될 때까지 대기")
   .option("--timeout <sec>", "wait 타임아웃 (초, 기본 300)", "300")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (_opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<WorkloadCreateOpts>();
@@ -519,7 +505,6 @@ const createCommand = new Command("create")
 
 interface WorkloadUpdateOpts extends OutputOptions {
   region?: string;
-  appKey?: string;
   profile?: string;
   file?: string;
 }
@@ -529,7 +514,6 @@ const updateCommand = new Command("update")
   .argument("<id>", "workload ID")
   .requiredOption("--file <path>", "workload 교체 spec 이 담긴 JSON 파일 경로")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (id: string, _opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<WorkloadUpdateOpts>();
@@ -565,7 +549,6 @@ const updateCommand = new Command("update")
 
 interface WorkloadPatchOpts extends OutputOptions {
   region?: string;
-  appKey?: string;
   profile?: string;
   file?: string;
 }
@@ -575,7 +558,6 @@ const patchCommand = new Command("patch")
   .argument("<id>", "workload ID")
   .requiredOption("--file <path>", "JSON Patch 배열(op/path/value)이 담긴 파일 경로")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (id: string, _opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<WorkloadPatchOpts>();
@@ -611,7 +593,6 @@ const patchCommand = new Command("patch")
 
 interface WorkloadControlOpts {
   region?: string;
-  appKey?: string;
   profile?: string;
 }
 
@@ -619,7 +600,6 @@ const pauseCommand = new Command("pause")
   .description("NCS workload 를 일시정지한다")
   .argument("<id>", "workload ID")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (id: string, _opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<WorkloadControlOpts>();
@@ -647,7 +627,6 @@ const resumeCommand = new Command("resume")
   .description("NCS workload 를 재개한다")
   .argument("<id>", "workload ID")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (id: string, _opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<WorkloadControlOpts>();
@@ -679,7 +658,6 @@ const restartCommand = new Command("restart")
   .description("NCS workload task 를 재시작한다")
   .argument("<id>", "workload ID")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .option("--task <taskId>", "task ID (필수)")
   .action(async (id: string, _opts: unknown, cmd: Command) => {
@@ -721,7 +699,6 @@ const deleteCommand = new Command("delete")
   .argument("<id>", "workload ID")
   .option("--yes", "확인 프롬프트 생략 (CI/비대화형 필수)")
   .option("--region <region>", "NCS region (기본: kr1, kr1/kr3 만 지원)", "kr1")
-  .option("--app-key <key>", "NCS appKey (profile 의 ncs.appkey 보다 우선)")
   .option("--profile <name>", "사용할 profile 이름")
   .action(async (id: string, _opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<WorkloadDeleteOpts>();
