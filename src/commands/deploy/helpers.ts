@@ -1,6 +1,12 @@
-import { resolveProfileName, getUserAccessKey } from "../../config/credentials.js";
+import {
+  resolveProfileName,
+  getUserAccessKey,
+  getServiceCredential,
+} from "../../config/credentials.js";
 import { getAccessToken } from "../../api/oauth.js";
 import { DeployClient } from "../../services/deploy/client.js";
+import { NhnCloudCliError } from "../../utils/errors.js";
+import { EXIT_CONFIG_ERROR } from "../../utils/exit-codes.js";
 
 /**
  * profile 해석 → UAK 로드 → access_token 교환 → DeployClient 생성.
@@ -13,4 +19,34 @@ export async function createDeployClient(
   const uak = await getUserAccessKey(profileName);
   const accessToken = await getAccessToken(profileName, uak.id, uak.secret);
   return { client: new DeployClient(accessToken), profileName };
+}
+
+/**
+ * profile 의 deploy.appkey 에서 appKey 를 해석한다.
+ * 없으면 EXIT_CONFIG_ERROR + 설정 안내 (빈문자열 fallback 금지).
+ *
+ * profileName 은 `createDeployClient` 의 반환값을 그대로 넘긴다 —
+ * 여기서 다시 `resolveProfileName` 을 부르면 두 해석이 갈릴 수 있다.
+ */
+export async function resolveDeployAppKey(profileName: string): Promise<string> {
+  // deploy 블록 부재(EXIT_CONFIG_ERROR)만 친절한 안내로 변환하고,
+  // profile 자체 부재·credentials.json 파싱 오류 등은 원인을 보존해 rethrow.
+  let cred: { appkey?: string; secret?: string } | undefined;
+  try {
+    cred = await getServiceCredential("deploy", profileName);
+  } catch (err) {
+    if (!(err instanceof NhnCloudCliError) || err.exitCode !== EXIT_CONFIG_ERROR) {
+      throw err;
+    }
+  }
+
+  if (!cred?.appkey) {
+    throw new NhnCloudCliError(
+      "Deploy appKey 가 없습니다.\n" +
+        "nhncloud configure --deploy-appkey <key> 를 실행해 설정하세요.",
+      EXIT_CONFIG_ERROR,
+    );
+  }
+
+  return cred.appkey;
 }

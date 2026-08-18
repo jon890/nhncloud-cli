@@ -1,42 +1,27 @@
 import { Command } from "commander";
-import { getDeployTarget } from "../../config/credentials.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
-import { NhnCloudCliError } from "../../utils/errors.js";
-import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { output, type OutputOptions } from "../../formatters/table.js";
-import { createDeployClient } from "./helpers.js";
+import { createDeployClient, resolveDeployAppKey } from "./helpers.js";
 
 interface ArtifactsGlobalOpts extends OutputOptions {
-  appKey?: string;
   profile?: string;
 }
 
 export const artifactsCommand = new Command("artifacts")
   .description("아티팩트 목록을 조회한다")
-  .argument("[target]", "config.json 에 정의된 deploy target 이름 (--app-key 로 대체 가능)")
-  .option("--app-key <k>", "appKey 직접 지정 (target 없이 사용 가능)")
+  .argument("[target]", "config.json 에 정의된 deploy target 이름")
   .option("--profile <name>", "사용할 profile 이름")
-  .action(async (targetName: string | undefined, _opts: unknown, cmd: Command) => {
+  // appKey 를 profile 에서만 읽게 되면서 `[target]` 인수는 이 명령에서 쓰이지 않는다.
+  // 인수 표면 제거는 후속 단계(deploy.targets 폐지)가 맡으므로 한 단계 동안은
+  // 받고 버리는 의도된 중간 상태다 — 그래서 `_targetName` 으로 둔다.
+  .action(async (_targetName: string | undefined, _opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<ArtifactsGlobalOpts>();
 
-    // ── 1. appKey 결정 (spinner 시작 전) ──
-    let appKey: string;
-    if (opts.appKey) {
-      appKey = opts.appKey;
-    } else if (targetName) {
-      const target = await getDeployTarget(targetName);
-      appKey = target.appKey;
-    } else {
-      throw new NhnCloudCliError(
-        "target 이름 또는 --app-key 옵션이 필요합니다. 예: deploy artifacts <target> 또는 deploy artifacts --app-key <appKey>",
-        EXIT_PARAM_ERROR,
-      );
-    }
+    // ── 1. 인증 체인 + appKey 해석 (spinner 시작 전) ──
+    const { client, profileName } = await createDeployClient(opts.profile);
+    const appKey = await resolveDeployAppKey(profileName);
 
-    // ── 2. 인증 체인 (spinner 시작 전) ──
-    const { client } = await createDeployClient(opts.profile);
-
-    // ── 3. API 호출 (spinner 내부, try/catch + leak 방지) ──
+    // ── 2. API 호출 (spinner 내부, try/catch + leak 방지) ──
     startSpinner("아티팩트 목록 조회 중...");
 
     let result: Record<string, unknown>;
@@ -49,7 +34,7 @@ export const artifactsCommand = new Command("artifacts")
 
     stopSpinner(true);
 
-    // ── 4. 출력 ──
+    // ── 3. 출력 ──
     const list = Array.isArray(result) ? result : [result];
     output(opts, {
       headers: ["key", "value"],

@@ -2,11 +2,10 @@ import { Command } from "commander";
 import { getDeployTarget } from "../../config/credentials.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { output, type OutputOptions } from "../../formatters/table.js";
-import { createDeployClient } from "./helpers.js";
+import { createDeployClient, resolveDeployAppKey } from "./helpers.js";
 import { parsePositiveIntegerOption } from "../parse-options.js";
 
 interface RunGlobalOpts extends OutputOptions {
-  appKey?: string;
   artifactId?: string;
   serverGroupId?: string;
   scenarioIds?: string;
@@ -21,7 +20,6 @@ interface RunGlobalOpts extends OutputOptions {
 export const runCommand = new Command("run")
   .description("배포를 실행한다")
   .argument("<target>", "config.json 에 정의된 deploy target 이름")
-  .option("--app-key <k>", "target 의 appKey override")
   .option("--artifact-id <id>", "target 의 artifactId override")
   .option("--server-group-id <id>", "target 의 serverGroupId override")
   .option("--scenario-ids <csv>", "target 의 scenarioIds override")
@@ -37,13 +35,13 @@ export const runCommand = new Command("run")
 
     // ── 1. 좌표 로드 + flag override (spinner 시작 전) ──
     const target = await getDeployTarget(targetName);
-    const appKey = opts.appKey ?? target.appKey;
     const artifactId = opts.artifactId ?? target.artifactId;
     const serverGroupId = opts.serverGroupId ?? target.serverGroupId;
     const scenarioIds = opts.scenarioIds ?? target.scenarioIds;
 
-    // ── 2. 인증 체인 (spinner 시작 전) ──
-    const { client } = await createDeployClient(opts.profile);
+    // ── 2. 인증 체인 + appKey 해석 (spinner 시작 전) ──
+    const { client, profileName } = await createDeployClient(opts.profile);
+    const appKey = await resolveDeployAppKey(profileName);
 
     // ── 3. 배포 실행 (spinner 내부, try/catch + leak 방지) ──
     startSpinner("배포 실행 중...");
