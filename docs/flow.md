@@ -711,12 +711,11 @@ nhncloud ncr tags <registry> <repository> [options]  # 특정 이미지의 태�
 | 옵션 | 설명 |
 |------|------|
 | `--region <region>` | NCR region (기본 `kr1`. IaaS region 과 별개 축) |
-| `--app-key <key>` | NCR 서비스 appkey. 미지정 시 profile 의 `ncr.appkey` 사용 |
 | `--profile <name>` | 사용할 profile |
 
 두 가지 비자명한 흐름:
 
-- **appKey 해석 순서**: `--app-key` 옵션 > profile 의 `ncr` 블록(`{ appkey }`). 둘 다 없으면 설정 안내와 함께 `EXIT_CONFIG_ERROR`. 인증 비밀은 공통 UAK secret 을 재사용하므로 ncr 블록에 secret 을 따로 두지 않는다.
+- **appKey 해석**: profile 의 `ncr` 블록(`{ appkey }`)에서만 읽는다([[adr-029]]). 없으면 설정 안내와 함께 `EXIT_CONFIG_ERROR`. 인증 비밀은 공통 UAK secret 을 재사용하므로 ncr 블록에 secret 을 따로 두지 않는다.
 - **이미지/태그 조회 경로**: NCR Management API 에는 이미지·태그 목록 endpoint 가 없어, 레지스트리 데이터플레인 host 의 **Harbor REST `/api/v2.0`** 을 직접 호출한다([[adr-017]]).
   host 는 `ncr get` 의 `registry.uri` 에서 추출한다.
   인증은 UAK `Basic Auth` 로, Management API 의 X-TC 헤더와 다른 모델이다.
@@ -803,7 +802,7 @@ profile 의 UAK 로 OAuth 토큰을 발급(Deploy 와 캐시 공유)하고, regi
 ### 인증 흐름
 
 1. profile 의 UAK(id·secret) 로 OAuth `access_token` 발급 — 캐시 유효하면 재사용([[adr-007]] Deploy 와 공유)
-2. profile 의 `ncs` 블록에서 appkey 로드(또는 `--app-key` override)
+2. profile 의 `ncs` 블록에서 appkey 로드([[adr-029]] — 명령 단위 override 없음)
 3. `x-nhn-authorization: Bearer <token>` 헤더와 경로 `/ncs/v1.0/appkeys/{appKey}/...` 로 NCS API 호출
 
 ### 리소스 관계
@@ -827,7 +826,6 @@ nhncloud ncs malware result <workloadId> <historyId>
 | 옵션 | 적용 | 설명 |
 |------|------|------|
 | `--region <r>` | 전체 | ncs region override (kr1/kr3, 기본 kr1) |
-| `--app-key <key>` | 전체 | profile `ncs.appkey` override |
 | `--profile <name>` | 전체 | profile 선택 |
 | `--file <json>` | template/workload create·update·patch | 공식 API payload 를 담은 JSON 파일 (patch 는 json-patch 배열) |
 | `--wait` | workload create | Running 상태까지 폴링 |

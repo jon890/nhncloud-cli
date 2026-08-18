@@ -134,7 +134,7 @@ src/
       addon.ts              # nhncloud nks addon-type / addon ...
       helpers.ts            # resolveNksClient (Keystone 토큰 공유, [[adr-019]])
     ncr/
-      list.ts               # nhncloud ncr list (레지스트리 목록, --region/--app-key)
+      list.ts               # nhncloud ncr list (레지스트리 목록, --region)
       get.ts                # nhncloud ncr get <registry> (단일 레지스트리 조회)
       images.ts             # nhncloud ncr images <registry> (이미지/repository 목록, Harbor REST, [[adr-017]])
       tags.ts               # nhncloud ncr tags <registry> <repository> (태그 목록, artifact tags flatten, [[adr-017]])
