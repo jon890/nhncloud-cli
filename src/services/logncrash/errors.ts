@@ -6,14 +6,14 @@ import { EXIT_API_ERROR } from "../../utils/exit-codes.js";
 import { sanitizeForTerminal } from "../../utils/terminal.js";
 
 /** 조회 횟수 제한의 봉투 resultCode. 공식 v3 명세가 정의한 값이다 (ADR-032). */
-export const RATE_LIMIT_RESULT_CODE = 429;
+const RATE_LIMIT_RESULT_CODE = 429;
 
 /**
  * 조회 횟수 제한 여부를 봉투 resultCode 로 판정한다 (ADR-032).
  * 서버가 HTTP 200 으로 응답하므로 상태 코드로는 걸러지지 않는다.
  * resultCode 는 서비스마다 number 와 string 이 섞이므로 Number 로 맞춰 비교한다 (ADR-006).
  */
-export function isRateLimitError(err: unknown): boolean {
+export function isRateLimitError(err: unknown): err is NhnEnvelopeError {
   return (
     err instanceof NhnEnvelopeError &&
     Number(err.resultCode) === RATE_LIMIT_RESULT_CODE
@@ -24,6 +24,9 @@ export function isRateLimitError(err: unknown): boolean {
  * 조회 횟수 제한 오류에 대처 방법을 덧붙인다 (ADR-032).
  * search 와 export 가 같은 제한에 걸리므로 문구를 한 곳에 둔다.
  * 회복 속도와 소모량은 측정값이지 서버 계약이 아니라 숫자로 적지 않는다.
+ *
+ * 호출부는 이 함수를 오류 경로마다 부르지 않고 한 곳에서만 부른다.
+ * 반환값이 봉투 오류가 아니게 되는 것에 기대 이중 부착을 막지 않는다 — 그 계약은 눈에 보이지 않는다.
  */
 export function withRateLimitHint(err: NhnCloudCliError): NhnCloudCliError {
   return new NhnCloudCliError(

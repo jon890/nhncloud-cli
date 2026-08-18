@@ -94,7 +94,7 @@ export const searchCommand = new Command("search")
       stopSpinner(false);
       // rate limit 을 먼저 가른다. 500 과 원인도 대처도 달라 같은 안내로 묶으면
       // 기간을 좁히라는 유도가 상황을 악화시킨다 (ADR-032).
-      if (isRateLimitError(err) && err instanceof NhnCloudCliError) {
+      if (isRateLimitError(err)) {
         throw withRateLimitHint(err);
       }
       if (err instanceof LogncrashServerError) {

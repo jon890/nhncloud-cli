@@ -118,8 +118,6 @@ export const exportCommand = new Command("export")
     let hasUnqueriedWindows = false;
     let first = true;
     let bytePosition = 0;
-    // json 배열을 이미 닫았는지 — 부분 파일을 만들 때 `]]` 로 중복해 닫지 않으려고 추적한다.
-    let jsonArrayClosed = false;
     // 이어받을 지점. 로그의 logTime 이 아니라 처리 중인 창의 시작 경계다 (ADR-032).
     // 창은 오래된 쪽부터 처리되고 정렬은 창 안에서만 내림차순이라 두 방향이 어긋난다.
     let resumeFrom = "";
@@ -204,17 +202,16 @@ export const exportCommand = new Command("export")
         }
       }
 
-      if (format === "json") {
-        write("]\n");
-        jsonArrayClosed = true;
-      }
-
       await endAndClose(stream);
+      // 배열 닫기는 stream 이 아니라 닫힌 파일에 직접 붙인다.
+      // stream 에 쓰면 버퍼가 유실될 때 닫았다고 여기면서 실제로는 안 닫힌 파일이 남는다.
+      // 이 줄이 마지막이라 여기까지 오면 실패 경로로 가지 않는다.
+      if (format === "json") await appendFile(tmp, "]\n");
     } catch (err) {
       stopSpinner(false);
       // rate limit 은 500 과 원인도 대처도 달라 같은 안내로 묶지 않는다 (ADR-032).
       // scrollStart 가 던진 것은 분할 catch 를 통과해 여기까지 올라온다.
-      const failure = isRateLimitError(err) && err instanceof NhnCloudCliError
+      const failure = isRateLimitError(err)
         ? withRateLimitHint(err)
         : err;
 
@@ -244,8 +241,8 @@ export const exportCommand = new Command("export")
       const partial = `${opts.output}.partial`;
       try {
         // 닫힌 stream 을 재사용하지 않고 파일에 직접 덧붙인다.
-        // 정상 경로가 배열을 닫은 뒤 endAndClose 에서 실패한 경우 다시 닫으면 `]]` 가 된다.
-        if (format === "json" && !jsonArrayClosed) await appendFile(tmp, "]\n");
+        // 배열 닫기는 정상 경로의 마지막 동작이라, 여기까지 왔으면 아직 닫히지 않았다.
+        if (format === "json") await appendFile(tmp, "]\n");
         await rename(tmp, partial);
       } catch {
         // 보존 실패가 원본 오류를 덮으면 사용자가 진짜 원인을 볼 수 없다.
@@ -256,7 +253,13 @@ export const exportCommand = new Command("export")
       }
 
       process.stderr.write(`안내: 여기까지 받은 ${count}건을 ${partial} 에 남겼습니다.\n`);
-      if (resumeFrom) {
+      // 분할이 없었으면 실패한 창이 곧 요청한 구간 전체다. 그때 이어받기 안내는
+      // 방금 친 명령과 글자까지 같아져 아무것도 알려주지 못한다.
+      if (resumeFrom === fromIso) {
+        process.stderr.write(
+          `안내: 조회한 구간이 하나라 이어받을 지점이 없습니다. 같은 명령을 다시 실행하면 ${count}건도 다시 조회됩니다.\n`,
+        );
+      } else {
         process.stderr.write(
           `안내: 이어받으려면 --from "${resumeFrom}" --to "${toIso}" 로 다시 실행하세요. 경계 구간의 로그가 중복될 수 있습니다.\n`,
         );
@@ -267,6 +270,8 @@ export const exportCommand = new Command("export")
     stopSpinner(true, `${count}건 추출 완료`);
 
     // ── 5. 원자적 교체 (temp → output) ──
+    // 앞선 실패가 남긴 부분 파일을 치운다. 두면 자동화가 낡은 잘린 결과를 현재 것으로 오인한다.
+    await rm(`${opts.output}.partial`, { force: true }).catch(() => {});
     try {
       await rename(tmp, opts.output);
     } catch (err) {
@@ -290,15 +295,14 @@ export const exportCommand = new Command("export")
 
 /**
  * scrollNext 실패 원인을 보존하고 대처 방법을 안내한다.
- * rate limit 은 기간을 좁혀도 풀리지 않아 500 과 다른 안내를 붙인다 (ADR-032).
+ * rate limit 은 기간을 좁혀도 풀리지 않아 여기서 감싸지 않는다 (ADR-032).
+ * 안내는 바깥 catch 한 곳에서만 붙여 문구가 두 번 붙는 경로를 없앤다.
  */
 async function scrollNextWithHint(client: LogncrashClient, scrollKey: string): Promise<ScrollResult> {
   try {
     return await client.scrollNext(scrollKey);
   } catch (err) {
-    if (isRateLimitError(err) && err instanceof NhnCloudCliError) {
-      throw withRateLimitHint(err);
-    }
+    if (isRateLimitError(err)) throw err;
     if (err instanceof LogncrashServerError) throw err;
     if (err instanceof NhnCloudCliError && err.exitCode === EXIT_API_ERROR) {
       throw new NhnCloudCliError(

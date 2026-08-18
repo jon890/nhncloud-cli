@@ -1,8 +1,15 @@
 import { Command } from "commander";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NhnEnvelopeError } from "../../api/envelope.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
@@ -403,14 +410,56 @@ describe("logncrash export v3 scroll", () => {
       expect(scrollStart).toHaveBeenCalledTimes(1);
     });
 
-    it("이어받기 안내는 지점이 정해졌을 때만 낸다", () => {
-      // 정상 경로에서는 첫 창을 shift 한 직후 지점이 정해지므로 도달하지 않는 방어 분기다.
-      // 억지 mock 대신 분기 존재만 고정한다.
-      const source = readFileSync(
-        fileURLToPath(new URL("export.ts", import.meta.url)),
-        "utf-8",
-      );
-      expect(source).toMatch(/if \(resumeFrom\)/);
+    // 분할이 없으면 실패한 창이 곧 요청 구간 전체라 이어받을 지점이 없다.
+    // 그때 --from 안내를 내면 방금 친 명령과 글자까지 같아진다.
+    it("분할이 없으면 이어받기 대신 전량 재조회를 알린다", async () => {
+      scrollStart.mockResolvedValue({
+        scrollKey: "scroll-1",
+        totalItems: 2,
+        data: [{ id: 1 }],
+      });
+      scrollNext.mockRejectedValue(rateLimit());
+      const output = join(directory, "logs.jsonl");
+
+      await expect(programWithExport().parseAsync(args(output))).rejects.toMatchObject({
+        exitCode: EXIT_API_ERROR,
+      });
+
+      const written = stderrText();
+      expect(written).toContain("이어받을 지점이 없습니다");
+      expect(written).not.toContain("이어받으려면 --from");
+    });
+
+    // 힌트를 붙이는 지점이 한 곳이라 문구가 두 번 붙을 수 없다.
+    it("조회 횟수 제한 안내가 한 번만 붙는다", async () => {
+      scrollStart.mockResolvedValue({
+        scrollKey: "scroll-1",
+        totalItems: 2,
+        data: [{ id: 1 }],
+      });
+      scrollNext.mockRejectedValue(rateLimit());
+      const output = join(directory, "logs.jsonl");
+
+      const error: unknown = await programWithExport()
+        .parseAsync(args(output))
+        .then(() => null)
+        .catch((e: unknown) => e);
+
+      const message = (error as Error).message;
+      expect(message.split("조회 횟수 제한에 걸렸습니다").length - 1).toBe(1);
+    });
+
+    // 성공한 실행이 앞선 실패의 잔여를 남기면 자동화가 낡은 결과를 현재 것으로 읽는다.
+    it("성공하면 앞선 실행이 남긴 부분 파일을 치운다", async () => {
+      const output = join(directory, "logs.jsonl");
+      writeFileSync(`${output}.partial`, '{"stale":true}\n');
+
+      scrollStart.mockResolvedValue({ scrollKey: undefined, totalItems: 1, data: [{ id: 1 }] });
+
+      await programWithExport().parseAsync(args(output));
+
+      expect(existsSync(output)).toBe(true);
+      expect(existsSync(`${output}.partial`)).toBe(false);
     });
   });
 });
