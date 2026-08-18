@@ -80,8 +80,8 @@ src/
     doctor.ts               # nhncloud doctor (자격증명·스킬 설치 상태 오프라인 진단)
     logncrash/
       helpers.ts            # profile appkey + 공통 UAK OAuth 토큰으로 v3 client 구성
-      search.ts             # nhncloud logncrash search (커서 기반 페이지 이동)
-      export.ts             # nhncloud logncrash export (v3 scroll 대량 추출 → 파일)
+      search.ts             # nhncloud logncrash search (커서 기반 페이지 이동, adr-032)
+      export.ts             # nhncloud logncrash export (v3 scroll 대량 추출 → 파일, adr-030, adr-032)
       send.ts               # nhncloud logncrash send (--body/--file/stdin, 8MB 한도, adr-014)
     deploy/
       run.ts                # nhncloud deploy run <target>
@@ -194,7 +194,8 @@ dooray-cli 는 단일 `config` 와 `client` 로 충분했지만, NHN Cloud 는 �
 
 - `config/credentials.ts` — profile 해석 후 서비스 자격증명 블록 반환 ([[adr-004]])
 - `api/endpoints.ts` — 서비스명 → 엔드포인트 (gov 분기는 후속, [[adr-005]])
-- `api/envelope.ts` — `{ header, body }` 봉투 검사, `resultCode` 타입 혼재 흡수 ([[adr-006]])
+- `api/envelope.ts` — `{ header, body }` 봉투 검사, `resultCode` 타입 혼재 흡수 ([[adr-006]]).
+  봉투 실패 오류는 `resultCode` 를 보존해 호출부가 rate limit 을 구분할 수 있게 한다 ([[adr-032]])
 - `api/oauth.ts` 와 `cache/token-store.ts` — deploy·ncs·logncrash 검색·apigateway 공용.
   UAK → access_token 교환 후 계정 단위 토큰을 profile 단기 캐시로 공유한다
   ([[adr-007]], [[adr-020]], [[adr-024]], [[adr-027]]).
