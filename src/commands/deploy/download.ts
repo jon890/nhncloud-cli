@@ -1,10 +1,9 @@
 import { Command } from "commander";
 import { statSync, writeFileSync } from "node:fs";
 import chalk from "chalk";
-import { getDeployTarget } from "../../config/credentials.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import type { OutputOptions } from "../../formatters/table.js";
-import { createDeployClient, resolveDeployAppKey } from "./helpers.js";
+import { createDeployClient, requireCoordinate, resolveDeployAppKey } from "./helpers.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 
@@ -52,14 +51,13 @@ function assertWritable(path: string, force: boolean): void {
 
 export const downloadCommand = new Command("download")
   .description("바이너리를 로컬 파일로 다운로드한다")
-  .argument("<target>", "config.json 에 정의된 deploy target 이름")
   .requiredOption("--binary-group <key>", "바이너리 그룹 key (binary-groups 로 확인)")
   .requiredOption("--binary-key <key>", "다운로드할 바이너리 key (binaries 또는 upload 로 확인)")
   .requiredOption("-o, --output <file>", "저장할 파일 경로")
   .option("--force", "대상 파일이 있으면 덮어쓴다")
-  .option("--artifact-id <id>", "target 의 artifactId override")
+  .option("--artifact-id <id>", "대상 아티팩트 ID (artifacts 로 확인)")
   .option("--profile <name>", "사용할 profile 이름")
-  .action(async (targetName: string, _opts: unknown, cmd: Command) => {
+  .action(async (_opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<DownloadGlobalOpts>();
 
     // ── 1. 입력 검증 (spinner 전 — fail-fast) ──
@@ -71,16 +69,13 @@ export const downloadCommand = new Command("download")
     }
     const outPath = opts.output!; // requiredOption 보장
     assertWritable(outPath, opts.force ?? false); // 덮어쓰기 정책 — 네트워크 호출 전 차단
+    const artifactId = requireCoordinate(opts.artifactId, "--artifact-id");
 
-    // ── 2. 좌표 로드 + flag override ──
-    const target = await getDeployTarget(targetName);
-    const artifactId = opts.artifactId ?? target.artifactId;
-
-    // ── 3. 인증 체인 + appKey 해석 (spinner 시작 전) ──
+    // ── 2. 인증 체인 + appKey 해석 (spinner 시작 전) ──
     const { client, profileName } = await createDeployClient(opts.profile);
     const appKey = await resolveDeployAppKey(profileName);
 
-    // ── 4. 다운로드 + 파일 쓰기 (spinner 내부, try/catch + leak 방지) ──
+    // ── 3. 다운로드 + 파일 쓰기 (spinner 내부, try/catch + leak 방지) ──
     startSpinner("바이너리 다운로드 중...");
 
     try {
@@ -92,7 +87,7 @@ export const downloadCommand = new Command("download")
     }
     stopSpinner(true);
 
-    // ── 5. 결과 안내 (데이터=파일이므로 stdout 으로 본문 출력 없음. 경로/크기는 stderr) ──
+    // ── 4. 결과 안내 (데이터=파일이므로 stdout 으로 본문 출력 없음. 경로/크기는 stderr) ──
     if (!opts.quiet) {
       process.stderr.write(chalk.green(`  저장됨: ${outPath}\n`));
     }

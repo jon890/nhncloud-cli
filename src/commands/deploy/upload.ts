@@ -1,10 +1,9 @@
 import { Command } from "commander";
 import { readFileSync, statSync } from "node:fs";
 import { basename } from "node:path";
-import { getDeployTarget } from "../../config/credentials.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { output, type OutputOptions } from "../../formatters/table.js";
-import { createDeployClient, resolveDeployAppKey } from "./helpers.js";
+import { createDeployClient, requireCoordinate, resolveDeployAppKey } from "./helpers.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 
@@ -38,14 +37,13 @@ function parsePositiveInt(value: string | undefined, flag: string): number | und
 
 export const uploadCommand = new Command("upload")
   .description("로컬 파일을 바이너리 그룹에 업로드한다")
-  .argument("<target>", "config.json 에 정의된 deploy target 이름")
   .requiredOption("--file <path>", "업로드할 파일 경로")
   .requiredOption("--binary-group <key>", "업로드 대상 바이너리 그룹 key (binary-groups 로 확인)")
   .option("--application-type <type>", "applicationType (예: server)", "server")
   .option("--description <text>", "바이너리 설명")
-  .option("--artifact-id <id>", "target 의 artifactId override")
+  .option("--artifact-id <id>", "업로드 대상 아티팩트 ID (artifacts 로 확인)")
   .option("--profile <name>", "사용할 profile 이름")
-  .action(async (targetName: string, _opts: unknown, cmd: Command) => {
+  .action(async (_opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<UploadGlobalOpts>();
 
     // ── 1. 입력 검증 (spinner 전, 자격증명 resolve 전 — fail-fast) ──
@@ -79,16 +77,13 @@ export const uploadCommand = new Command("upload")
     }
     const fileBuffer = readFileSync(filePath);
     const fileName = basename(filePath);
+    const artifactId = requireCoordinate(opts.artifactId, "--artifact-id");
 
-    // ── 2. 좌표 로드 + flag override ──
-    const target = await getDeployTarget(targetName);
-    const artifactId = opts.artifactId ?? target.artifactId;
-
-    // ── 3. 인증 체인 + appKey 해석 (spinner 시작 전) ──
+    // ── 2. 인증 체인 + appKey 해석 (spinner 시작 전) ──
     const { client, profileName } = await createDeployClient(opts.profile);
     const appKey = await resolveDeployAppKey(profileName);
 
-    // ── 4. 업로드 (spinner 내부, try/catch + leak 방지) ──
+    // ── 3. 업로드 (spinner 내부, try/catch + leak 방지) ──
     startSpinner("바이너리 업로드 중...");
 
     let result;
@@ -108,7 +103,7 @@ export const uploadCommand = new Command("upload")
     }
     stopSpinner(true);
 
-    // ── 5. 출력 (--quiet 는 binaryKey 만 → download 입력으로 연쇄) ──
+    // ── 4. 출력 (--quiet 는 binaryKey 만 → download 입력으로 연쇄) ──
     output(opts, {
       headers: ["field", "value"],
       rows: [

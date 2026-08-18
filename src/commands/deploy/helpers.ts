@@ -6,7 +6,7 @@ import {
 import { getAccessToken } from "../../api/oauth.js";
 import { DeployClient } from "../../services/deploy/client.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
-import { EXIT_CONFIG_ERROR } from "../../utils/exit-codes.js";
+import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 
 /**
  * profile 해석 → UAK 로드 → access_token 교환 → DeployClient 생성.
@@ -49,4 +49,16 @@ export async function resolveDeployAppKey(profileName: string): Promise<string> 
   }
 
   return cred.appkey;
+}
+
+/**
+ * 필수 좌표 옵션이 비어 있으면 입력 오류로 거부한다 (ADR-033).
+ * spinner 시작·네트워크 호출 *전* 에 호출한다 — 빈 값으로 API 를 부르면
+ * 서버 오류로 나타나 원인을 찾기 어렵다.
+ */
+export function requireCoordinate(value: string | undefined, flag: string): string {
+  if (!value) {
+    throw new NhnCloudCliError(`${flag} 가 필요합니다.`, EXIT_PARAM_ERROR);
+  }
+  return value;
 }

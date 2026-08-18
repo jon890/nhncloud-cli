@@ -9,12 +9,9 @@ interface ArtifactsGlobalOpts extends OutputOptions {
 
 export const artifactsCommand = new Command("artifacts")
   .description("아티팩트 목록을 조회한다")
-  .argument("[target]", "config.json 에 정의된 deploy target 이름")
   .option("--profile <name>", "사용할 profile 이름")
-  // appKey 를 profile 에서만 읽게 되면서 `[target]` 인수는 이 명령에서 쓰이지 않는다.
-  // 인수 표면 제거는 후속 단계(deploy.targets 폐지)가 맡으므로 한 단계 동안은
-  // 받고 버리는 의도된 중간 상태다 — 그래서 `_targetName` 으로 둔다.
-  .action(async (_targetName: string | undefined, _opts: unknown, cmd: Command) => {
+  // 이 명령은 좌표가 필요 없다 — appKey 하나로 조회한다 (ADR-033).
+  .action(async (_opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<ArtifactsGlobalOpts>();
 
     // ── 1. 인증 체인 + appKey 해석 (spinner 시작 전) ──

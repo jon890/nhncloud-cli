@@ -7,17 +7,27 @@ const mocks = vi.hoisted(() => ({
   resolveProfileName: vi.fn(),
   getUserAccessKey: vi.fn(),
   getServiceCredential: vi.fn(),
-  getDeployTarget: vi.fn(),
   getAccessToken: vi.fn(),
+  artifacts: vi.fn(),
+  startSpinner: vi.fn(),
 }));
 
 vi.mock("../../config/credentials.js", () => ({
   resolveProfileName: mocks.resolveProfileName,
   getUserAccessKey: mocks.getUserAccessKey,
   getServiceCredential: mocks.getServiceCredential,
-  getDeployTarget: mocks.getDeployTarget,
 }));
 vi.mock("../../api/oauth.js", () => ({ getAccessToken: mocks.getAccessToken }));
+vi.mock("../../utils/spinner.js", () => ({
+  startSpinner: mocks.startSpinner,
+  stopSpinner: vi.fn(),
+  setQuiet: vi.fn(),
+}));
+vi.mock("../../services/deploy/client.js", () => ({
+  DeployClient: class {
+    artifacts = mocks.artifacts;
+  },
+}));
 
 import { artifactsCommand } from "./artifacts.js";
 import { binariesCommand } from "./binaries.js";
@@ -82,6 +92,98 @@ describe("deploy 명령 옵션", () => {
     expect(() => command.parse(["--app-key", "k"], { from: "user" })).toThrow(
       expect.objectContaining({ code: "commander.unknownOption" }),
     );
+  });
+});
+
+/** 좌표를 옵션으로만 받으므로 deploy 명령에는 위치 인수가 없어야 한다 (ADR-033). */
+function collectArgumentPaths(command: Command, parentPath = ""): string[] {
+  const path = [parentPath, command.name()].filter(Boolean).join(" ");
+  const ownPaths = command.registeredArguments.length > 0 ? [path] : [];
+  return ownPaths.concat(command.commands.flatMap((child) => collectArgumentPaths(child, path)));
+}
+
+/**
+ * 하위 명령을 실제로 실행한다.
+ * action 핸들러는 공개 API 로 꺼낼 수 없어 원본 명령을 그대로 붙이고,
+ * `optsWithGlobals` 가 읽는 전역 옵션만 최소로 재현한 부모를 씌운다.
+ * 종료는 exitOverride 로 가로채 vitest 프로세스가 죽지 않게 한다.
+ */
+async function parseLeaf(command: Command, args: string[], globals: string[] = []): Promise<void> {
+  const silent = { writeErr: () => {}, writeOut: () => {} };
+  command.exitOverride().configureOutput(silent);
+  const parent = new Command("deploy")
+    .exitOverride()
+    .configureOutput(silent)
+    .option("--json", "JSON 출력")
+    .option("--quiet", "식별자만 출력");
+  parent.addCommand(command);
+
+  await parent.parseAsync([...globals, command.name(), ...args], { from: "user" });
+}
+
+describe("deploy 명령 위치 인수", () => {
+  it("8개 명령 모두 위치 인수를 노출하지 않는다", () => {
+    expect(leafCommands.flatMap((command) => collectArgumentPaths(command))).toEqual([]);
+  });
+});
+
+describe("deploy 좌표 옵션 검증", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mocks.resolveProfileName.mockResolvedValue("p");
+    mocks.getUserAccessKey.mockResolvedValue({ id: "<uak-id>", secret: "<uak-secret>" });
+    mocks.getServiceCredential.mockResolvedValue({ appkey: "<appkey>" });
+    mocks.getAccessToken.mockResolvedValue("access-token");
+  });
+
+  const requiresArtifactId: Array<[string, Command, string[]]> = [
+    ["binaries", binariesCommand, ["--binary-group", "1"]],
+    ["binary-groups", binaryGroupsCommand, []],
+    ["download", downloadCommand, ["--binary-group", "1", "--binary-key", "1", "-o", "out.bin"]],
+    ["histories", historiesCommand, []],
+    ["server-groups", serverGroupsCommand, []],
+    ["upload", uploadCommand, ["--file", "package.json", "--binary-group", "1"]],
+  ];
+
+  it.each(requiresArtifactId)(
+    "%s 는 --artifact-id 없이 부르면 EXIT_PARAM_ERROR 로 거부한다",
+    async (_name, command, args) => {
+      await expect(parseLeaf(command, args)).rejects.toThrow(
+        expect.objectContaining({ exitCode: EXIT_PARAM_ERROR }),
+      );
+      await expect(parseLeaf(command, args)).rejects.toThrow(/--artifact-id 가 필요합니다/);
+    },
+  );
+
+  it.each([
+    ["--artifact-id", []],
+    ["--server-group-id", ["--artifact-id", "1"]],
+    ["--scenario-ids", ["--artifact-id", "1", "--server-group-id", "2"]],
+  ])("run 은 %s 가 없으면 EXIT_PARAM_ERROR 로 거부한다", async (flag, args) => {
+    await expect(parseLeaf(runCommand, args)).rejects.toThrow(
+      expect.objectContaining({ exitCode: EXIT_PARAM_ERROR }),
+    );
+    await expect(parseLeaf(runCommand, args)).rejects.toThrow(new RegExp(`${flag} 가 필요합니다`));
+  });
+
+  it("좌표 검증은 spinner 시작과 인증 체인보다 앞선다", async () => {
+    await expect(parseLeaf(historiesCommand, [])).rejects.toThrow(
+      expect.objectContaining({ exitCode: EXIT_PARAM_ERROR }),
+    );
+
+    expect(mocks.startSpinner).not.toHaveBeenCalled();
+    expect(mocks.resolveProfileName).not.toHaveBeenCalled();
+    expect(mocks.getAccessToken).not.toHaveBeenCalled();
+  });
+
+  it("artifacts 는 좌표 없이 동작한다", async () => {
+    mocks.artifacts.mockResolvedValue({ artifactId: "1" });
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+
+    await expect(parseLeaf(artifactsCommand, [], ["--json"])).resolves.toBeUndefined();
+
+    expect(mocks.artifacts).toHaveBeenCalledWith("<appkey>");
+    stdout.mockRestore();
   });
 });
 

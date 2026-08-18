@@ -1,8 +1,7 @@
 import { Command } from "commander";
-import { getDeployTarget } from "../../config/credentials.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { output, type OutputOptions } from "../../formatters/table.js";
-import { createDeployClient, resolveDeployAppKey } from "./helpers.js";
+import { createDeployClient, requireCoordinate, resolveDeployAppKey } from "./helpers.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 
@@ -34,15 +33,14 @@ function parsePositiveInt(value: string | undefined, flag: string): number | und
 
 export const binariesCommand = new Command("binaries")
   .description("특정 바이너리 그룹의 바이너리 목록을 조회한다")
-  .argument("<target>", "config.json 에 정의된 deploy target 이름")
   .requiredOption("--binary-group <key>", "조회할 바이너리 그룹 key (binary-groups 로 확인)")
   .option("--page-num <n>", "페이지 번호 (1 이상)")
   .option("--page-size <n>", "페이지 크기 (1 이상)")
   .option("--sort-key <k>", "정렬 기준 (예: UPLOAD_DATE)")
   .option("--sort-direction <d>", "정렬 방향 (예: DESC)")
-  .option("--artifact-id <id>", "target 의 artifactId override")
+  .option("--artifact-id <id>", "조회할 아티팩트 ID (artifacts 로 확인)")
   .option("--profile <name>", "사용할 profile 이름")
-  .action(async (targetName: string, _opts: unknown, cmd: Command) => {
+  .action(async (_opts: unknown, cmd: Command) => {
     const opts = cmd.optsWithGlobals<BinariesGlobalOpts>();
 
     // ── 1. 입력 검증 (spinner 전, 자격증명 resolve 전 — fail-fast) ──
@@ -53,16 +51,13 @@ export const binariesCommand = new Command("binaries")
     }
     const pageNum = parsePositiveInt(opts.pageNum, "--page-num");
     const pageSize = parsePositiveInt(opts.pageSize, "--page-size");
+    const artifactId = requireCoordinate(opts.artifactId, "--artifact-id");
 
-    // ── 2. 좌표 로드 + flag override ──
-    const target = await getDeployTarget(targetName);
-    const artifactId = opts.artifactId ?? target.artifactId;
-
-    // ── 3. 인증 체인 + appKey 해석 (spinner 시작 전) ──
+    // ── 2. 인증 체인 + appKey 해석 (spinner 시작 전) ──
     const { client, profileName } = await createDeployClient(opts.profile);
     const appKey = await resolveDeployAppKey(profileName);
 
-    // ── 4. API 호출 (spinner 내부, try/catch + leak 방지) ──
+    // ── 3. API 호출 (spinner 내부, try/catch + leak 방지) ──
     startSpinner("바이너리 목록 조회 중...");
 
     let result;
@@ -79,7 +74,7 @@ export const binariesCommand = new Command("binaries")
     }
     stopSpinner(true);
 
-    // ── 5. 출력 (0건도 output() 한 경로로 — 7-2; binarySize 단위는 bytes 헤더 명시) ──
+    // ── 4. 출력 (0건도 output() 한 경로로 — 7-2; binarySize 단위는 bytes 헤더 명시) ──
     output(opts, {
       headers: ["binaryKey", "version", "binaryName", "size(bytes)", "uploadDate", "uploader"],
       // 가드는 binaryKey·binarySize 만 검증 — 나머지 필드는 응답에서 누락 시 "undefined" 가
