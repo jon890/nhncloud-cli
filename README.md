@@ -25,7 +25,9 @@ npm install -g @bifos/nhncloud-cli
 ```
 
 `nhncloud configure` 가 profile 과 서비스별 자격증명을 대화형으로 받는다.
-공통 UAK, Log & Crash appkey, iaas 자격증명, NCR appkey, NCS appkey 순으로 입력한다.
+공통 UAK, Log & Crash appkey, iaas 자격증명, NCR appkey, NCS appkey, Deploy appkey 순으로 입력한다.
+appkey 는 명령 옵션으로 지정할 수 없고 profile 에만 둔다.
+여러 프로젝트를 다루려면 profile 을 나눠 `--profile` 로 전환한다.
 저장 전 연결 테스트를 자동으로 수행한다 (`--no-verify` 로 생략).
 
 ```bash
