@@ -28,3 +28,4 @@
 | 2026-08-13 | planning | 054-3-feat-apigateway-deploy | - | 3 | - | - | 1 | 없음 | 3 | task·branch push |
 | 2026-08-18 | build-with-teams | 054-3-feat-apigateway-deploy | A | 3 | 1 | 1 | 2 | 없음 | 3 | PR 준비 |
 | 2026-08-18 | planning | 063-fix-logncrash-rate-limit | - | 3 | - | - | 1 | 없음 | 1 | task·branch push |
+| 2026-08-18 | build-with-teams | 063-fix-logncrash-rate-limit | B→A(p2) | 3 | 2 | 1 | 1 | 없음 | 0 | PR 준비 |
