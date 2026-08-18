@@ -449,6 +449,24 @@ describe("logncrash export v3 scroll", () => {
       expect(message.split("조회 횟수 제한에 걸렸습니다").length - 1).toBe(1);
     });
 
+    // 교체 전에 지우면 rename 이 실패했을 때 이번 결과와 앞선 부분 결과를 한꺼번에 잃는다.
+    it("교체가 실패하면 앞선 부분 파일을 지우지 않는다", async () => {
+      // --output 자리를 비어 있지 않은 디렉터리로 막으면 rename 이 실패한다.
+      const output = join(directory, "blocked");
+      mkdirSync(output);
+      writeFileSync(join(output, "keep"), "x");
+      writeFileSync(`${output}.partial`, '{"kept":true}\n');
+
+      scrollStart.mockResolvedValue({ scrollKey: undefined, totalItems: 1, data: [{ id: 1 }] });
+
+      await expect(
+        programWithExport().parseAsync(args(output, ["--force"])),
+      ).rejects.toMatchObject({ exitCode: EXIT_PARAM_ERROR });
+
+      // 이번 결과를 잃은 위에 앞선 부분 결과까지 잃으면 안 된다.
+      expect(existsSync(`${output}.partial`)).toBe(true);
+    });
+
     // 성공한 실행이 앞선 실패의 잔여를 남기면 자동화가 낡은 결과를 현재 것으로 읽는다.
     it("성공하면 앞선 실행이 남긴 부분 파일을 치운다", async () => {
       const output = join(directory, "logs.jsonl");

@@ -241,7 +241,7 @@ export const exportCommand = new Command("export")
       const partial = `${opts.output}.partial`;
       try {
         // 닫힌 stream 을 재사용하지 않고 파일에 직접 덧붙인다.
-        // 배열 닫기는 정상 경로의 마지막 동작이라, 여기까지 왔으면 아직 닫히지 않았다.
+        // 배열 닫기는 정상 경로의 마지막 동작이라, 여기까지 왔으면 닫기를 시도했더라도 성공하지 못했다.
         if (format === "json") await appendFile(tmp, "]\n");
         await rename(tmp, partial);
       } catch {
@@ -253,11 +253,11 @@ export const exportCommand = new Command("export")
       }
 
       process.stderr.write(`안내: 여기까지 받은 ${count}건을 ${partial} 에 남겼습니다.\n`);
-      // 분할이 없었으면 실패한 창이 곧 요청한 구간 전체다. 그때 이어받기 안내는
-      // 방금 친 명령과 글자까지 같아져 아무것도 알려주지 못한다.
+      // 실패한 창이 요청 구간의 시작과 같으면 이어받기 안내가 방금 친 명령과 글자까지 같아진다.
+      // 분할이 없었을 때도, 분할 후 첫 창에서 실패했을 때도 그렇다. 두 경우 모두 전량이 다시 조회된다.
       if (resumeFrom === fromIso) {
         process.stderr.write(
-          `안내: 조회한 구간이 하나라 이어받을 지점이 없습니다. 같은 명령을 다시 실행하면 ${count}건도 다시 조회됩니다.\n`,
+          `안내: 이어받을 지점이 없습니다. 같은 명령을 다시 실행하면 ${count}건도 다시 조회됩니다.\n`,
         );
       } else {
         process.stderr.write(
@@ -270,8 +270,6 @@ export const exportCommand = new Command("export")
     stopSpinner(true, `${count}건 추출 완료`);
 
     // ── 5. 원자적 교체 (temp → output) ──
-    // 앞선 실패가 남긴 부분 파일을 치운다. 두면 자동화가 낡은 잘린 결과를 현재 것으로 오인한다.
-    await rm(`${opts.output}.partial`, { force: true }).catch(() => {});
     try {
       await rename(tmp, opts.output);
     } catch (err) {
@@ -279,6 +277,10 @@ export const exportCommand = new Command("export")
       const reason = (err as NodeJS.ErrnoException).code ?? (err instanceof Error ? err.message : String(err));
       throw new NhnCloudCliError(`출력 파일을 쓸 수 없습니다: ${opts.output} (${reason})`, EXIT_PARAM_ERROR);
     }
+
+    // 교체가 끝난 뒤에 앞선 실패의 부분 파일을 치운다. 두면 자동화가 낡은 잘린 결과를 현재 것으로 오인한다.
+    // 교체 전에 지우면 rename 이 실패했을 때 이번 결과와 앞선 부분 결과를 한꺼번에 잃는다.
+    await rm(`${opts.output}.partial`, { force: true }).catch(() => {});
 
     // No-silent-caps: 실제로 상한에 걸려 잘렸을 때만 경고(부분 수집을 cap 으로 오인하지 않도록).
     if (count >= MAX_TOTAL && (total > MAX_TOTAL || hasUnqueriedWindows)) {

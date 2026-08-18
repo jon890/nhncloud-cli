@@ -25,7 +25,7 @@ export function isRateLimitError(err: unknown): err is NhnEnvelopeError {
  * search 와 export 가 같은 제한에 걸리므로 문구를 한 곳에 둔다.
  * 회복 속도와 소모량은 측정값이지 서버 계약이 아니라 숫자로 적지 않는다.
  *
- * 호출부는 이 함수를 오류 경로마다 부르지 않고 한 곳에서만 부른다.
+ * 각 명령은 이 함수를 오류 경로마다 부르지 않고 한 곳에서만 부른다.
  * 반환값이 봉투 오류가 아니게 되는 것에 기대 이중 부착을 막지 않는다 — 그 계약은 눈에 보이지 않는다.
  */
 export function withRateLimitHint(err: NhnCloudCliError): NhnCloudCliError {
