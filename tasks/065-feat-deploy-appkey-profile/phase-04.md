@@ -11,6 +11,8 @@ phase-01~03 이 바꾼 구조를 공개 문서에 반영한다.
 이 저장소는 공개 npm 패키지라 `README.md` 와 `skills/nhncloud-cli/` 가 사용자와 AI 에이전트가 읽는 안내다.
 코드에서 없앤 인수와 옵션이 문서에 남으면 사용자가 그것을 따라 쓰다 실패한다.
 
+`src/index.ts` 의 `deployAgentWorkflow` 도움말은 **phase-03 이 이미 고쳤다.** 여기서 다시 손대지 않는다.
+
 **범위 외**: `docs/` 아래 문서는 planning 이 이미 갱신하고 커밋했다.
 `docs/adr/033`·`docs/adr/008`·`docs/adr/INDEX.md`·`docs/data-schema.md`·`docs/flow.md`·`docs/code-architecture.md` 가 그 대상이다.
 이 파일들을 phase 안에서 고치면 이중 편집이 된다.
@@ -139,9 +141,13 @@ pnpm 이 `ERR_PNPM_IGNORED_BUILDS` 로 실패하면 `./node_modules/.bin/tsup` �
 
 ```bash
 # cwd: <repo root>
+node dist/index.js deploy --help
 node dist/index.js deploy run --help
 node dist/index.js deploy artifacts --help
 ```
+
+`deploy --help` 를 함께 보는 이유는 `deployAgentWorkflow` 예시가 그곳에만 출력되기 때문이다.
+하위 명령 도움말에는 나오지 않아 `deploy run --help` 만 보면 놓친다.
 
 ## 의도 메모 (왜)
 

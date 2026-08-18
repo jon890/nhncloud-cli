@@ -58,10 +58,15 @@ Deploy appKey 가 없습니다. nhncloud configure --deploy-appkey <key> 를 실
 | `upload.ts` | 같음 |
 
 - appkey 는 `await resolveDeployAppKey(profileName)` 로 받는다.
+- **`profileName` 은 `createDeployClient` 의 반환값에서 받는다.** `resolveProfileName` 을 따로 부르지 않는다 — 두 번 해석하면 값이 갈릴 수 있다.
+  그래서 각 명령에서 `createDeployClient` 호출을 appkey 해석보다 앞으로 옮긴다. 둘 다 spinner 앞이라 순서 조건은 그대로 지켜진다.
+  선례는 `src/commands/ncr/helpers.ts` 의 `createHarborClient` 다 — `createNcrClient()` 로 client·profileName 을 먼저 받고 그다음 `resolveAppKey(profileName)` 이다.
 - **좌표는 건드리지 않는다.** `opts.artifactId ?? target.artifactId` 같은 줄은 그대로 둔다.
 - `artifacts.ts` 는 appkey 3분기가 사라지면서 `target` 을 쓰지 않게 된다.
   그래도 이 phase 에서는 `[target]` 인수를 **남긴다** — 제거는 phase-03 이 다룬다.
   받은 인수를 쓰지 않으면 lint 나 tsc 가 잡을 수 있으니, 그 경우 `_targetName` 으로 이름만 바꿔 둔다.
+  appkey 3분기가 사라지면 `getDeployTarget` import 도 죽는다. 같은 커밋에서 지운다 — 남기면 `noUnusedLocals` 나 lint 가 잡는다.
+  이 한 커밋 동안 `artifacts` 는 인수를 받고 조용히 버린다. **의도된 중간 상태라는 것을 코드 주석과 커밋 메시지에 남긴다** — 적지 않으면 code-reviewer 가 결함으로 잡는다.
 
 호출 순서를 지킨다. 자격증명 해석은 spinner 시작 전이다 — 기존 코드가 이미 그 순서다.
 
@@ -93,7 +98,7 @@ Deploy appKey 가 없습니다. nhncloud configure --deploy-appkey <key> 를 실
 | `src/commands/deploy/run.ts` | 수정 — 같음 |
 | `src/commands/deploy/server-groups.ts` | 수정 — 같음 |
 | `src/commands/deploy/upload.ts` | 수정 — 같음 |
-| `src/commands/deploy/*.test.ts` | 수정 — `--app-key` 를 쓰는 테스트 정리 |
+| `src/commands/deploy/commands.test.ts` | **신규** — `src/commands/deploy/` 에는 test 파일이 하나도 없다 |
 
 ## 검증
 
@@ -134,6 +139,10 @@ node dist/index.js commands --json | jq '.commands | length'
 `deploy run --help` 에 `--app-key` 가 없고 `--artifact-id` 는 남아 있는지 확인한다.
 
 테스트는 아래를 덮는다.
+
+테스트 파일은 `src/commands/deploy/commands.test.ts` 로 새로 만든다.
+`ncr`·`ncs`·`apigateway` 의 `commands.test.ts` 와 같은 이름·형태를 쓴다.
+`deploy` 는 `commands.ts` 가 없고 `src/index.ts` 가 그룹을 조립하므로, `ncr` 처럼 leaf command 8개를 직접 import 한다.
 
 - profile 의 `deploy.appkey` 로 appkey 가 해석된다.
 - `deploy` 블록이 없으면 `EXIT_CONFIG_ERROR` 와 `configure --deploy-appkey` 안내가 나온다.

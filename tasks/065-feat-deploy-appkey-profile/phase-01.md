@@ -27,18 +27,32 @@ appkey 는 유출되면 교체해야 하는 값이라 그 위치가 실제 위�
 
 ### 1. `src/commands/configure.ts` — `--deploy-appkey` 를 추가한다
 
-`apigateway` 를 그대로 따른다. 그 서비스가 같은 형태(appkey 만, secret 없음)라 참조로 삼기에 정확하다.
-`grep -n "apigateway" src/commands/configure.ts` 로 손댈 지점을 모두 찾은 뒤 대응하는 `deploy` 코드를 넣는다.
+비대화형 경로는 `apigateway` 를 그대로 따른다. 그 서비스가 같은 형태(appkey 만, secret 없음)라 참조로 삼기에 정확하다.
 
-빠뜨리기 쉬운 다섯 곳이다.
+**손댈 지점은 열거를 믿지 말고 grep 으로 전부 찾는다.** 아래 두 명령의 출력이 실제 대응 지점 전체다.
+
+```bash
+# cwd: <repo root>
+grep -n "apigatewayAppkey" src/commands/configure.ts
+grep -n "apigateway" src/commands/configure.ts
+```
+
+아래가 빠뜨리기 쉬운 일곱 종류다. **숫자를 믿지 말고 위 grep 출력 전체를 대응시킨다** —
+옵션 정의와 `runNonInteractive` 의 `saveAndVerify` 호출 인수까지 세면 실제 지점은 아홉이다.
+뒤의 둘을 빠뜨리면 tsc 는 통과하지만 조용히 오동작한다.
 
 - 옵션 인터페이스의 `apigatewayAppkey?: string;` 옆에 `deployAppkey?: string;`
-- 함수 매개변수 목록의 `apigateway: ServiceCredential | undefined` 옆에 `deploy`
+- `saveAndVerify` 매개변수 목록의 `apigateway: ServiceCredential | undefined` 옆에 `deploy`
 - 저장 분기 `if (apigateway) { await setServiceCredential(profileName, "apigateway", apigateway); }` 와 같은 형태
 - 빈값 검증 — `--deploy-appkey 값은 비어 있을 수 없습니다.`
 - `ServiceCredential` 조립 — `opts.deployAppkey?.trim() ? { appkey: ... } : undefined`
+- **`hasFlag` 판정** — `opts.deployAppkey !== undefined` 를 넣지 않으면 `configure --deploy-appkey <key>` 가 비대화형이 아니라 대화형으로 빠진다.
+- **"중 하나가 필요합니다" 가드** — `if (!uak && !logncrash && !iaas && !ncr && !ncs && !apigateway)` 조건과 그 안내 문구에 `deploy` 를 넣지 않으면 `--deploy-appkey` 단독 호출이 거부된다.
 
 옵션 정의는 다른 appkey 옵션과 같은 자리에 둔다.
+
+`saveAndVerify` 는 위치 인수가 아홉 개다. 열 번째를 `apigateway` 옆에 넣으면 둘 다 `ServiceCredential | undefined` 라 자리를 바꿔 넣어도 tsc 가 통과한다.
+그래서 아래 테스트가 **저장 키 이름까지** 단언해야 이 밀림을 잡는다.
 
 ```
 --deploy-appkey <key>   deploy appkey (비대화형)
@@ -47,7 +61,15 @@ appkey 는 유출되면 교체해야 하는 값이라 그 위치가 실제 위�
 ### 2. 대화형 흐름에 deploy 를 넣는다
 
 대화형은 서비스별 자격증명을 순서대로 묻는다.
-`deploy` 를 그 목록에 넣고 건너뛸 수 있게 한다. 다른 서비스와 같은 방식이다.
+`deploy` 를 그 목록에 넣고 건너뛸 수 있게 한다.
+
+**대화형 참조는 `apigateway` 가 아니라 `ncr`·`ncs` 다.**
+`runInteractive` 는 `saveAndVerify` 의 apigateway 자리에 `undefined` 를 넘긴다 — apigateway 는 비대화형 전용이라 따라 쓸 대화형 코드가 없다.
+`configure.ts` 의 "5. ncr 설정 여부" 와 "6. ncs 설정 여부" 블록을 그대로 따른다.
+`runInteractive` 안의 `saveAndVerify` 호출은 세 곳이다. 세 곳 모두 인수를 맞춘다.
+
+`deploy` 는 대화형에 넣고 `apigateway` 는 그대로 두는 비대칭은 의도다.
+이 plan 의 범위가 `deploy` 라서 그렇고, `apigateway` 를 대화형에 넣는 것은 별도 후속이다.
 
 연결 테스트는 넣지 않는다.
 `apigateway` 가 "저장만 수행하고 연결은 조회 명령에서 검증" 하는 것과 같게 둔다.
@@ -78,11 +100,19 @@ pnpm 이 `ERR_PNPM_IGNORED_BUILDS` 로 실패하면 `./node_modules/.bin/tsc`,
 
 ```bash
 # cwd: <repo root>
-# 옵션이 생겼는지 — 1 이 나와야 한다 (변경 전 0)
+# 옵션·오류 문구·안내 문구가 생겼는지 — 3 이상이어야 한다 (변경 전 0)
+# 참조인 apigateway-appkey 가 3 이므로 같은 수를 기대한다
 grep -c 'deploy-appkey' src/commands/configure.ts || true
 
 # 저장 경로가 생겼는지 — 1 이상이어야 한다
 grep -c 'setServiceCredential(profileName, "deploy"' src/commands/configure.ts || true
+
+# hasFlag 판정에 들어갔는지 — 출력이 있어야 한다
+grep -n 'opts.deployAppkey !== undefined' src/commands/configure.ts || true
+
+# 최소 하나 가드에 들어갔는지 — 출력이 있어야 한다
+# 어순은 자유다. 이 grep 이 비면 gate 문구를 믿지 말고 `configure.ts` 의 실제 조건줄을 눈으로 확인한다
+grep -n '!deploy' src/commands/configure.ts || true
 ```
 
 도움말에 옵션이 노출되는지 확인한다.
@@ -101,9 +131,10 @@ node dist/index.js configure --profile <없는이름> --deploy-appkey "" ; echo 
 
 테스트는 아래를 덮는다.
 
-- `--deploy-appkey <key>` 가 profile 의 `deploy.appkey` 로 저장된다.
+- `--deploy-appkey <key>` 가 profile 의 `deploy.appkey` 로 저장된다. **저장 키 이름(`"deploy"`)까지 단언한다** — `saveAndVerify` 위치 인수가 밀리면 이 단언만 그것을 잡는다.
 - 빈 문자열은 `EXIT_PARAM_ERROR` 로 거부된다.
-- 다른 서비스 자격증명을 함께 준 경우 서로 덮어쓰지 않는다.
+- `--deploy-appkey` 를 단독으로 주면 대화형으로 빠지지 않고 저장까지 간다.
+- 다른 서비스 자격증명을 함께 준 경우 서로 덮어쓰지 않는다. 특히 `--apigateway-appkey` 와 함께 주면 각각 제 블록에 저장된다.
 
 명령 카탈로그는 **170** 이어야 한다. 옵션 추가이지 명령 추가가 아니다.
 
