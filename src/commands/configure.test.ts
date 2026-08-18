@@ -182,6 +182,63 @@ describe("configure logncrash Search v3", () => {
     expect(setIaasCredential).toHaveBeenCalledWith("default", iaas);
   });
 
+  it("--deploy-appkey 단독 호출이 대화형으로 빠지지 않고 deploy 자격증명으로 저장된다", async () => {
+    await programWithConfigure().parseAsync([
+      "node",
+      "nhncloud",
+      "configure",
+      "--profile",
+      "profile-deploy",
+      "--no-verify",
+      "--deploy-appkey",
+      "deploy-appkey",
+    ]);
+
+    // 저장 키 이름까지 단언한다 — saveAndVerify 위치 인수가 밀리면 이 단언이 잡는다.
+    expect(setServiceCredential).toHaveBeenCalledWith("profile-deploy", "deploy", {
+      appkey: "deploy-appkey",
+    });
+  });
+
+  it("--deploy-appkey 빈 문자열은 EXIT_PARAM_ERROR 로 거부된다", async () => {
+    await expect(
+      programWithConfigure().parseAsync([
+        "node",
+        "nhncloud",
+        "configure",
+        "--profile",
+        "profile-deploy",
+        "--no-verify",
+        "--deploy-appkey",
+        "",
+      ]),
+    ).rejects.toMatchObject({ exitCode: EXIT_PARAM_ERROR });
+
+    expect(setServiceCredential).not.toHaveBeenCalled();
+  });
+
+  it("--deploy-appkey 와 --apigateway-appkey 를 함께 주면 각각 제 블록에 저장된다", async () => {
+    await programWithConfigure().parseAsync([
+      "node",
+      "nhncloud",
+      "configure",
+      "--profile",
+      "profile-both",
+      "--no-verify",
+      "--apigateway-appkey",
+      "apigateway-appkey",
+      "--deploy-appkey",
+      "deploy-appkey",
+    ]);
+
+    expect(setServiceCredential).toHaveBeenCalledWith("profile-both", "apigateway", {
+      appkey: "apigateway-appkey",
+    });
+    expect(setServiceCredential).toHaveBeenCalledWith("profile-both", "deploy", {
+      appkey: "deploy-appkey",
+    });
+  });
+
   it("--apigateway-appkey 단독 호출이 apigateway 자격증명으로 저장된다", async () => {
     await programWithConfigure().parseAsync([
       "node",
