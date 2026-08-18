@@ -1,8 +1,10 @@
 import { Command } from "commander";
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { NhnEnvelopeError } from "../../api/envelope.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_API_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { LogncrashServerError } from "../../services/logncrash/errors.js";
@@ -128,7 +130,8 @@ describe("logncrash export v3 scroll", () => {
       message: expect.stringContaining("upstream 503"),
     });
     expect(scrollStart).toHaveBeenCalledTimes(1);
-    expect(readdirSync(directory)).toEqual([]);
+    // 받은 1건은 .partial 로 보존하고 임시 파일은 남기지 않는다.
+    expect(readdirSync(directory)).toEqual(["logs.jsonl.partial"]);
   });
 
   it("첫 500 뒤 절반 창으로 재시도해 전체 범위를 추출한다", async () => {
@@ -246,5 +249,168 @@ describe("logncrash export v3 scroll", () => {
 
     expect(JSON.parse(readFileSync(output, "utf-8"))).toEqual([{ id: 1 }, { id: 2 }]);
     expect(readFileSync(output, "utf-8")).toBe('[{"id":1},{"id":2}]\n');
+  });
+
+  describe("조회 횟수 제한과 부분 결과 보존 (ADR-032)", () => {
+    const rateLimit = (): NhnEnvelopeError =>
+      new NhnEnvelopeError(429, "Rate limit exceeded.");
+
+    function stderrText(): string {
+      return vi
+        .mocked(process.stderr.write)
+        .mock.calls.map(([message]) => String(message))
+        .join("");
+    }
+
+    it("일부를 받은 뒤 실패하면 .partial 에 남기고 --output 은 만들지 않는다", async () => {
+      scrollStart.mockResolvedValue({
+        scrollKey: "scroll-1",
+        totalItems: 2,
+        data: [{ id: 1 }],
+      });
+      scrollNext.mockRejectedValue(rateLimit());
+      const output = join(directory, "logs.jsonl");
+
+      await expect(programWithExport().parseAsync(args(output))).rejects.toMatchObject({
+        exitCode: EXIT_API_ERROR,
+      });
+
+      expect(existsSync(output)).toBe(false);
+      expect(readFileSync(`${output}.partial`, "utf-8")).toBe('{"id":1}\n');
+      expect(readdirSync(directory)).toEqual(["logs.jsonl.partial"]);
+      expect(stderrText()).toContain("받은 1건을");
+    });
+
+    it("--format json 부분 파일도 배열을 닫아 그대로 파싱된다", async () => {
+      scrollStart.mockResolvedValue({
+        scrollKey: "scroll-1",
+        totalItems: 5,
+        data: [{ id: 1 }, { id: 2 }],
+      });
+      scrollNext.mockRejectedValue(rateLimit());
+      const output = join(directory, "logs.json");
+
+      await expect(
+        programWithExport().parseAsync(args(output, ["--format", "json"])),
+      ).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
+
+      expect(JSON.parse(readFileSync(`${output}.partial`, "utf-8"))).toEqual([
+        { id: 1 },
+        { id: 2 },
+      ]);
+    });
+
+    it("분할이 일어난 뒤 실패하면 안내의 --from 이 실패한 창의 시작이다", async () => {
+      scrollStart
+        .mockRejectedValueOnce(new LogncrashServerError("server 500", null))
+        .mockResolvedValueOnce({
+          totalItems: 1,
+          data: [{ id: 1, logTime: "2026-08-03T00:05:00Z" }],
+        })
+        .mockRejectedValueOnce(rateLimit());
+      const output = join(directory, "logs.jsonl");
+
+      await expect(programWithExport().parseAsync(args(output))).rejects.toMatchObject({
+        exitCode: EXIT_API_ERROR,
+      });
+
+      // 창은 오래된 쪽부터 처리되므로 이어받을 지점은 실패한 창(2번째)의 시작이다.
+      expect(stderrText()).toContain(
+        '--from "2026-08-03T00:30:00Z" --to "2026-08-03T01:00:00Z"',
+      );
+      // 이미 받은 구간의 시작도, 파일 마지막 로그의 logTime 도 아니다.
+      expect(stderrText()).not.toContain('--from "2026-08-03T00:00:00Z"');
+      expect(stderrText()).not.toContain("00:05:00Z");
+    });
+
+    // 실패 위에 실패가 겹치는 경로다. 보존이 안 되는 것보다 원인이 가려지는 것이 나쁘다.
+    it("부분 결과 보존이 실패해도 원본 오류를 가리지 않는다", async () => {
+      scrollStart.mockResolvedValue({
+        scrollKey: "scroll-1",
+        totalItems: 2,
+        data: [{ id: 1 }],
+      });
+      scrollNext.mockRejectedValue(rateLimit());
+      const output = join(directory, "logs.jsonl");
+      // .partial 자리를 디렉터리로 막아 rename 을 실패시킨다.
+      mkdirSync(`${output}.partial`);
+
+      const error: unknown = await programWithExport()
+        .parseAsync(args(output))
+        .then(() => null)
+        .catch((e: unknown) => e);
+
+      // 원본 rate limit 오류가 그대로 올라온다.
+      expect(error).toMatchObject({ exitCode: EXIT_API_ERROR });
+      expect((error as Error).message).toContain("조회 횟수 제한");
+
+      const written = vi.mocked(process.stderr.write).mock.calls
+        .map((call) => String(call[0]))
+        .join("");
+      expect(written).toContain("남기지 못했습니다");
+      // 남기지 못했는데 남겼다고 알리면 안 된다.
+      expect(written).not.toContain("에 남겼습니다");
+    });
+
+    it("한 건도 받지 못하고 실패하면 .partial 도 임시 파일도 남지 않는다", async () => {
+      scrollStart.mockRejectedValue(rateLimit());
+      const output = join(directory, "logs.jsonl");
+
+      await expect(programWithExport().parseAsync(args(output))).rejects.toMatchObject({
+        exitCode: EXIT_API_ERROR,
+      });
+
+      expect(readdirSync(directory)).toEqual([]);
+    });
+
+    it("scrollNext 의 조회 횟수 제한은 범위를 좁히라고 안내하지 않는다", async () => {
+      scrollStart.mockResolvedValue({
+        scrollKey: "scroll-1",
+        totalItems: 2,
+        data: [{ id: 1 }],
+      });
+      scrollNext.mockRejectedValue(rateLimit());
+      const output = join(directory, "logs.jsonl");
+
+      const error: unknown = await programWithExport()
+        .parseAsync(args(output))
+        .then(() => null)
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(NhnCloudCliError);
+      expect((error as NhnCloudCliError).message).toContain("시간을 두고 다시 실행하세요");
+      expect((error as NhnCloudCliError).message).not.toContain("범위를 좁혀");
+    });
+
+    it("scrollStart 단계의 조회 횟수 제한도 같은 안내를 받는다", async () => {
+      scrollStart.mockRejectedValue(rateLimit());
+      const output = join(directory, "logs.jsonl");
+
+      await expect(programWithExport().parseAsync(args(output))).rejects.toMatchObject({
+        exitCode: EXIT_API_ERROR,
+        message: expect.stringContaining("시간을 두고 다시 실행하세요"),
+      });
+    });
+
+    it("조회 횟수 제한은 적응형 분할을 유발하지 않는다", async () => {
+      scrollStart.mockRejectedValue(rateLimit());
+      const output = join(directory, "logs.jsonl");
+
+      await expect(programWithExport().parseAsync(args(output))).rejects.toBeInstanceOf(
+        NhnCloudCliError,
+      );
+
+      expect(scrollStart).toHaveBeenCalledTimes(1);
+    });
+
+    it("이어받기 안내는 지점이 정해졌을 때만 낸다", () => {
+      // 정상 경로에서는 첫 창을 shift 한 직후 지점이 정해지므로 도달하지 않는 방어 분기다.
+      // 억지 mock 대신 분기 존재만 고정한다.
+      const source = readFileSync(
+        fileURLToPath(new URL("export.ts", import.meta.url)),
+        "utf-8",
+      );
+      expect(source).toMatch(/if \(resumeFrom\)/);
+    });
   });
 });
