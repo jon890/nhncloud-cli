@@ -30,7 +30,7 @@ description: >-
 |---|---|
 | CLI 설치, `configure`, profile, 출력 모드, 명령 카탈로그, 종료 코드 | [common.md](references/common.md) |
 | 공개 스킬 상태 확인·설치·갱신·제거와 상태별 복구 | [common.md](references/common.md) |
-| Log & Crash Search v3 커서 검색·scroll 대량 추출·collector 전송 | [logncrash.md](references/logncrash.md) |
+| Log & Crash Search v3 커서 검색·scroll 대량 추출·collector 전송<br>반복 조회 자동화의 호출 비용 설계 | [logncrash.md](references/logncrash.md) |
 | Deploy 실행·조회·바이너리 전송 | [deploy.md](references/deploy.md) |
 | Compute, VPC, Block Storage, Floating IP | [iaas.md](references/iaas.md) |
 | Load Balancer와 IP ACL | [loadbalancer.md](references/loadbalancer.md) |
