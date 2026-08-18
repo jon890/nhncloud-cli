@@ -17,6 +17,7 @@ import {
 import {
   requireYes,
   resolveApiGatewayClient,
+  writtenStageResourceOutput,
 } from "./helpers.js";
 
 interface DeployOptions extends OutputOptions {
@@ -133,6 +134,12 @@ const createCommand = addApiGatewayOptions(
   const opts = command.optsWithGlobals<DeployOptions>();
   const parsedServiceId = parseRequiredArgument(serviceId, "service-id");
   const parsedStageId = parseRequiredArgument(stageId, "stage-id");
+  if (opts.description !== undefined && opts.description.trim().length === 0) {
+    throw new NhnCloudCliError(
+      "--description 은 비어 있을 수 없습니다.",
+      EXIT_PARAM_ERROR,
+    );
+  }
   if (opts.description !== undefined && [...opts.description].length > 200) {
     throw new NhnCloudCliError(
       "--description 은 최대 200자까지 지정할 수 있습니다.",
@@ -148,20 +155,25 @@ const createCommand = addApiGatewayOptions(
   let baselineLookupFailed = false;
   let deploy: LatestDeployResult | undefined;
 
-  startSpinner(`API Gateway stage "${displayStageId}" 배포 중...`);
-  try {
-    if (opts.wait) {
-      try {
-        const baseline = await client.getLatestDeploy(parsedServiceId, parsedStageId);
-        baselineDeployId = baseline.deployId;
-      } catch {
-        baselineLookupFailed = true;
-      }
+  if (opts.wait) {
+    try {
+      const baseline = await client.getLatestDeploy(parsedServiceId, parsedStageId);
+      baselineDeployId = baseline.deployId;
+    } catch {
+      baselineLookupFailed = true;
     }
+  }
+  if (baselineLookupFailed) {
+    process.stderr.write("안내: 직전 배포 ID 를 읽지 못해 상태만으로 완료를 판정합니다.\n");
+  }
 
+  startSpinner(`API Gateway stage "${displayStageId}" 배포 중...`);
+  let deployAccepted = false;
+  try {
     await client.createDeploy(parsedServiceId, parsedStageId, {
       deployDescription: opts.description,
     });
+    deployAccepted = true;
 
     if (opts.wait) {
       deploy = await client.waitForDeploy(parsedServiceId, parsedStageId, {
@@ -170,20 +182,21 @@ const createCommand = addApiGatewayOptions(
       });
       if (deploy.deployStatus !== DEPLOY_STATUS_COMPLETE) {
         throw new NhnCloudCliError(
-          `API Gateway stage 배포 실패: deployId=${sanitizeForTerminal(deploy.deployId)}, deployStatus=${sanitizeForTerminal(deploy.deployStatus)}`,
+          `API Gateway stage 배포 실패: deployId=${deploy.deployId}, deployStatus=${deploy.deployStatus}`,
           EXIT_API_ERROR,
         );
       }
     }
   } catch (error) {
     stopSpinner(false);
+    if (deployAccepted) {
+      process.stderr.write(
+        "주의: 배포 요청은 이미 접수됐습니다. 재실행하지 말고 apigateway stage deploy latest 로 결과를 확인하세요.\n",
+      );
+    }
     throw error;
   }
   stopSpinner(true);
-
-  if (baselineLookupFailed) {
-    process.stderr.write("안내: 직전 배포 ID 를 읽지 못해 상태만으로 완료를 판정합니다.\n");
-  }
 
   if (!opts.wait) {
     if (opts.json) {
@@ -253,18 +266,7 @@ const rollbackCommand = addApiGatewayOptions(
   }
   stopSpinner(true);
 
-  output(opts, {
-    headers: ["stageResourceId", "path", "methodType", "methodName", "plugins"],
-    rows: resources.map((resource) => [
-      sanitizeForTerminal(resource.stageResourceId),
-      sanitizeForTerminal(resource.path),
-      resource.methodType == null ? "-" : sanitizeForTerminal(resource.methodType),
-      resource.methodName == null ? "-" : sanitizeForTerminal(resource.methodName),
-      String(resource.stageResourcePluginList?.length ?? 0),
-    ]),
-    raw: resources,
-    ids: resources.map((resource) => sanitizeForTerminal(resource.stageResourceId)),
-  });
+  output(opts, writtenStageResourceOutput(resources));
   process.stderr.write(
     "안내: 되돌리기는 스테이지 설정만 바꿉니다. 서비스에 적용하려면 apigateway stage deploy create 를 실행하세요.\n",
   );

@@ -6,7 +6,10 @@ import {
   resolveProfileName,
 } from "../../config/credentials.js";
 import { ApiGatewayClient } from "../../services/apigateway/client.js";
-import type { Resource } from "../../services/apigateway/types.js";
+import type {
+  Resource,
+  WrittenStageResource,
+} from "../../services/apigateway/types.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { sanitizeForTerminal } from "../../utils/terminal.js";
@@ -88,6 +91,23 @@ export function collectAffectedPaths(resources: Resource[], targetPath: string):
   return resources.filter(
     (resource) => resource.path === targetPath || resource.path.startsWith(childPrefix),
   );
+}
+
+export function writtenStageResourceOutput(
+  resources: WrittenStageResource[],
+): { headers: string[]; rows: string[][]; raw: unknown; ids: string[] } {
+  return {
+    headers: ["stageResourceId", "path", "methodType", "methodName", "plugins"],
+    rows: resources.map((resource) => [
+      sanitizeForTerminal(resource.stageResourceId),
+      sanitizeForTerminal(resource.path),
+      resource.methodType == null ? "-" : sanitizeForTerminal(resource.methodType),
+      resource.methodName == null ? "-" : sanitizeForTerminal(resource.methodName),
+      String(resource.stageResourcePluginList?.length ?? 0),
+    ]),
+    raw: resources,
+    ids: resources.map((resource) => sanitizeForTerminal(resource.stageResourceId)),
+  };
 }
 
 /** profile 의 apigateway.appkey에서 appKey를 해석한다. */

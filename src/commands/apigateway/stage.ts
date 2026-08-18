@@ -17,6 +17,7 @@ import { deployCommand } from "./deploy.js";
 import {
   requireYes,
   resolveApiGatewayClient,
+  writtenStageResourceOutput,
 } from "./helpers.js";
 
 interface StageOptions extends OutputOptions {
@@ -275,18 +276,7 @@ const importResourcesCommand = addApiGatewayOptions(
   }
   stopSpinner(true);
 
-  output(opts, {
-    headers: ["stageResourceId", "path", "methodType", "methodName", "plugins"],
-    rows: resources.map((resource) => [
-      sanitizeForTerminal(resource.stageResourceId),
-      sanitizeForTerminal(resource.path),
-      resource.methodType == null ? "-" : sanitizeForTerminal(resource.methodType),
-      resource.methodName == null ? "-" : sanitizeForTerminal(resource.methodName),
-      String(resource.stageResourcePluginList?.length ?? 0),
-    ]),
-    raw: resources,
-    ids: resources.map((resource) => sanitizeForTerminal(resource.stageResourceId)),
-  });
+  output(opts, writtenStageResourceOutput(resources));
   process.stderr.write(
     "안내: 반영은 스테이지 설정만 바꿉니다. 서비스에 적용하려면 apigateway stage deploy create 를 실행하세요.\n",
   );

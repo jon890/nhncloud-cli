@@ -154,6 +154,26 @@ describe("deploy create", () => {
     expect(createDeploy).not.toHaveBeenCalled();
   });
 
+  it("--description이 빈 문자열이면 API 호출 전에 거부한다", async () => {
+    await expect(programWith(deployCommand).parseAsync([
+      "node",
+      "nhncloud",
+      "deploy",
+      "create",
+      "service-1",
+      "stage-1",
+      "--description",
+      "",
+      "--yes",
+    ])).rejects.toMatchObject({
+      exitCode: EXIT_PARAM_ERROR,
+      message: expect.stringContaining("비어"),
+    });
+
+    expect(resolveApiGatewayClient).not.toHaveBeenCalled();
+    expect(createDeploy).not.toHaveBeenCalled();
+  });
+
   it("COMPLETE 배포를 0으로 끝내고 기준 ID와 timeout을 대기에 전달한다", async () => {
     await programWith(deployCommand).parseAsync([
       "node",
@@ -208,24 +228,78 @@ describe("deploy create", () => {
     expect(output).not.toHaveBeenCalled();
   });
 
+  it("배포 접수 후 대기가 실패하면 재실행 방지 안내를 출력한다", async () => {
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    waitForDeploy.mockRejectedValue(new Error("poll failed"));
+
+    try {
+      await expect(programWith(deployCommand).parseAsync([
+        "node",
+        "nhncloud",
+        "deploy",
+        "create",
+        "service-1",
+        "stage-1",
+        "--yes",
+      ])).rejects.toThrow("poll failed");
+
+      expect(stderr).toHaveBeenCalledWith(expect.stringContaining("배포 요청은 이미 접수됐습니다"));
+    } finally {
+      stderr.mockRestore();
+    }
+  });
+
+  it("배포 요청 자체가 실패하면 접수 안내를 출력하지 않는다", async () => {
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    createDeploy.mockRejectedValue(new Error("request failed"));
+
+    try {
+      await expect(programWith(deployCommand).parseAsync([
+        "node",
+        "nhncloud",
+        "deploy",
+        "create",
+        "service-1",
+        "stage-1",
+        "--yes",
+      ])).rejects.toThrow("request failed");
+
+      expect(stderr).not.toHaveBeenCalledWith(expect.stringContaining("배포 요청은 이미 접수됐습니다"));
+    } finally {
+      stderr.mockRestore();
+    }
+  });
+
   it("직전 배포 조회가 실패해도 baselineDeployId null로 배포한다", async () => {
     getLatestDeploy.mockRejectedValue(new Error("temporary 5xx"));
 
-    await programWith(deployCommand).parseAsync([
-      "node",
-      "nhncloud",
-      "deploy",
-      "create",
-      "service-1",
-      "stage-1",
-      "--yes",
-    ]);
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
 
-    expect(createDeploy).toHaveBeenCalledOnce();
-    expect(waitForDeploy).toHaveBeenCalledWith("service-1", "stage-1", {
-      timeoutMs: 300_000,
-      baselineDeployId: null,
-    });
+    try {
+      await programWith(deployCommand).parseAsync([
+        "node",
+        "nhncloud",
+        "deploy",
+        "create",
+        "service-1",
+        "stage-1",
+        "--yes",
+      ]);
+
+      expect(createDeploy).toHaveBeenCalledOnce();
+      expect(waitForDeploy).toHaveBeenCalledWith("service-1", "stage-1", {
+        timeoutMs: 300_000,
+        baselineDeployId: null,
+      });
+      expect(stderr).toHaveBeenCalledWith(
+        "안내: 직전 배포 ID 를 읽지 못해 상태만으로 완료를 판정합니다.\n",
+      );
+      expect(stderr.mock.invocationCallOrder[0]).toBeLessThan(
+        vi.mocked(startSpinner).mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER,
+      );
+    } finally {
+      stderr.mockRestore();
+    }
   });
 
   it("--quiet 대기 경로는 deployId 한 줄만 stdout에 쓴다", async () => {

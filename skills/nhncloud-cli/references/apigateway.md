@@ -47,7 +47,9 @@ nhncloud apigateway service list --region kr1 --json
 - `resource list`: `resourceId`
 - `stage list`: `stageId`
 - `stage resources`: `stageResourceId`
+- `stage import-resources`·`stage deploy rollback`: `stageResourceId`
 - `stage deploy list`·`stage deploy latest`: `deployId`
+- `stage deploy create`: 대기 경로는 `deployId`, `--no-wait`는 출력 없음
 
 `resource parameters`와 `resource responses`는 식별자 출력이 없어 `--quiet`에서 아무것도 출력하지 않는다.
 `stage swagger`는 `--output`을 생략하면 Swagger JSON을 stdout에 출력하고, 지정하면 파일을 새로 만든 뒤 경로를 출력한다.
@@ -114,6 +116,7 @@ nhncloud apigateway stage deploy rollback <service-id> <stage-id> <deploy-id> --
 
 `deploy rollback`은 선택한 배포 이력으로 스테이지 설정만 되돌린다.
 되돌린 설정을 트래픽에 적용하려면 `deploy create`를 다시 실행해야 한다.
+명령은 실행 후 `주의: 되돌리기는 현재 스테이지 설정을 모두 지웁니다.`라고 경고한다.
 
 ## JSON 구조
 

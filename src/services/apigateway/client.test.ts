@@ -745,6 +745,20 @@ describe("ApiGatewayClient.rollbackDeploy", () => {
     expect(vi.mocked(ky.post).mock.calls[0]?.[1]).not.toHaveProperty("json");
   });
 
+  it("롤백 응답 필수 필드가 빠지면 EXIT_API_ERROR 로 거부한다", async () => {
+    vi.mocked(ky.post).mockReturnValue(
+      mockKyResponse({
+        header: successfulHeader,
+        stageResourceList: [{ stageResourceId: "stage-resource-1" }],
+      }),
+    );
+
+    const client = new ApiGatewayClient("token", "kr1", "appkey");
+    await expect(
+      client.rollbackDeploy("service-1", "stage-1", "deploy-1"),
+    ).rejects.toMatchObject({ exitCode: EXIT_API_ERROR });
+  });
+
   it("HTTP 200의 isSuccessful=false를 EXIT_API_ERROR로 거부한다", async () => {
     vi.mocked(ky.post).mockReturnValue(
       mockKyResponse({
