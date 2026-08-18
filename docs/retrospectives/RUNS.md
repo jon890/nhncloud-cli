@@ -31,3 +31,4 @@
 | 2026-08-18 | build-with-teams | 063-fix-logncrash-rate-limit | B→A(p2) | 3 | 2 | 1 | 1 | 없음 | 0 | PR 준비 |
 | 2026-08-18 | planning | 064-fix-ncr-ncs-appkey-profile-only / 065-feat-deploy-appkey-profile | - | 3+4 | - | - | 1 | 없음 | 4 | task·branch push |
 | 2026-08-18 | build-with-teams | 064-fix-ncr-ncs-appkey-profile-only | A | 3 | 1 | 0 | 1 | 없음 | 1 | PR #96 |
+| 2026-08-18 | build-with-teams | 065-feat-deploy-appkey-profile | A | 4 | 2 | 2 | 2 | 없음 | 2 | PR 준비 |
