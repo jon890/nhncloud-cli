@@ -27,6 +27,7 @@ AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트�
 
 - `nhncloud configure` — 대화형/flag 자격증명 설정 마법사 (UAK 와 서비스별 키, 연결 테스트)
 - `nhncloud logncrash search` — Log & Crash Search v3 커서 기반 로그 검색 ([[adr-024]])
+- `nhncloud logncrash export` — scroll 대량 추출과 조회 상태별 결과 파일 보존 ([[adr-030]], [[adr-032]], [[adr-034]])
 - `nhncloud deploy` — 배포 실행과 조회 (자주 쓰는 핵심 명령군)
   - `run` — 배포 실행 (OAuth 토큰 교환, 동기/`--async`)
   - `artifacts` / `server-groups` / `histories` — 조회
@@ -68,4 +69,5 @@ AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트�
 ## 성공 지표
 
 - `nhncloud logncrash search --query ... --from ... --to ... --json` 이 v3 API에서 실제 로그를 반환하고, 다음 페이지가 있으면 `nextCursor`를 포함한다.
+- `nhncloud logncrash export`가 조회를 마친 결과를 최종 파일 교체 실패 때문에 삭제하지 않는다.
 - profile 미설정 시 친절한 설정 안내로 종료한다 (exit code 명확).

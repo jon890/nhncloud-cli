@@ -81,7 +81,7 @@ src/
     logncrash/
       helpers.ts            # profile appkey + 공통 UAK OAuth 토큰으로 v3 client 구성
       search.ts             # nhncloud logncrash search (커서 기반 페이지 이동, adr-032)
-      export.ts             # nhncloud logncrash export (v3 scroll 대량 추출 → 파일, adr-030, adr-032)
+      export.ts             # nhncloud logncrash export (v3 scroll 대량 추출과 완료 상태별 파일 보존, adr-030, adr-032, adr-034)
       send.ts               # nhncloud logncrash send (--body/--file/stdin, 8MB 한도, adr-014)
     deploy/
       run.ts                # nhncloud deploy run (좌표 옵션 셋 필수, adr-033)
