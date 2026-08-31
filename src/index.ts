@@ -1,4 +1,4 @@
-import { Command } from "commander";
+import { Command, CommanderError } from "commander";
 import chalk from "chalk";
 import { setQuiet } from "./utils/spinner.js";
 import { warnLegacyDeployTargets } from "./config/credentials.js";
@@ -6,6 +6,7 @@ import { NhnCloudCliError } from "./utils/errors.js";
 import { sanitizeMultilineForTerminal } from "./utils/terminal.js";
 import { setRequestTimeoutMs } from "./api/timeout.js";
 import { parseIntegerOption } from "./commands/parse-options.js";
+import { configureCommanderExitCodes } from "./commands/commander-errors.js";
 import { configureCommand } from "./commands/configure.js";
 import { skillsCommand } from "./commands/skills.js";
 import { doctorCommand } from "./commands/doctor.js";
@@ -325,7 +326,13 @@ program.addCommand(skillsCommand);
 program.addCommand(doctorCommand);
 program.addCommand(createCommandsCommand(program));
 
+configureCommanderExitCodes(program);
+
 program.parseAsync().catch((err: unknown) => {
+  if (err instanceof CommanderError) {
+    process.exit(err.exitCode);
+  }
+
   // 오류 메시지에는 서버 응답과 파일 내용이 그대로 실린다. 출력 관문 한 곳에서 정제해
   // 호출부마다 감싸지 않아도 ANSI escape 가 터미널에 닿지 않게 한다.
   const message = sanitizeMultilineForTerminal(
