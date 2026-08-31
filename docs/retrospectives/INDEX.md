@@ -10,3 +10,4 @@
 | [0004](0004-decision-doc-updated-without-sweeping-references.md) | 결정 문서만 갱신하고 그 결정을 서술하는 다른 문서를 훑지 않았다 | 064-fix-ncr-ncs-appkey-profile-only | 해결 |
 | [0005](0005-named-teammate-reply-never-arrived.md) | 이름 지정 팀원의 회신이 team-lead 에 도착하지 않았다 | 065-feat-deploy-appkey-profile | 우회 |
 | [0006](0006-decision-doc-grep-missed-prd.md) | 폐지 서술 훑기에서 prd.md 가 grep 범위에 없었다 | 065-feat-deploy-appkey-profile | 해결 |
+| [0007](0007-execution-profile-schema-conflict.md) | 실행 등급 필드를 두 스키마로 중복 작성했다 | 066-fix-logncrash-complete-export-preservation | 해결 |

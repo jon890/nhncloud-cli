@@ -2,7 +2,7 @@
   "name": "066-fix-logncrash-complete-export-preservation",
   "description": "이슈 #95 — logncrash export가 조회를 마친 뒤 로컬 파일 처리에 실패해도 전체 데이터를 상태별 고유 복구 파일로 보존한다 (ADR-034)",
   "created_at": "2026-08-31T05:15:56Z",
-  "updated_at": "2026-08-31T05:15:56Z",
+  "updated_at": "2026-08-31T05:28:38Z",
   "status": "pending",
   "current_phase": 0,
   "total_phases": 2,
@@ -22,7 +22,7 @@
         "Glob",
         "Grep"
       ],
-      "model": "opus"
+      "execution_profile": "deep"
     },
     {
       "number": 2,
@@ -37,7 +37,7 @@
         "Glob",
         "Grep"
       ],
-      "model": "sonnet"
+      "execution_profile": "standard"
     }
   ]
 }
