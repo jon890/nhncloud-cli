@@ -64,7 +64,8 @@ nhncloud skills install
 nhncloud skills status
 ```
 
-전역 설치 없이 `npx --yes @bifos/nhncloud-cli@latest skills install` 로도 설치된다 — 관리 저장소에 복사되므로 임시 패키지 경로가 사라져도 남는다.
+전역 설치 없이 `npx --yes @bifos/nhncloud-cli@latest skills install` 로도 설치된다.
+관리 저장소에 복사되므로 임시 패키지 경로가 사라져도 남는다.
 CLI 를 새 버전으로 올린 뒤에는 `nhncloud skills update` 를 실행해야 스킬도 갱신된다.
 
 상태는 `current`, `missing`, `outdated`, `broken`, `unmanaged`, `modified`, `corrupt` 중 하나이고, 출력에 딸린 복구 명령을 따르면 된다.
@@ -104,6 +105,7 @@ nhncloud ncr list                                             # 컨테이너 레
 nhncloud nks cluster list                                     # Kubernetes 클러스터
 nhncloud deploy artifacts                                     # 배포 아티팩트
 nhncloud logncrash search --query '*' --from 1h --to now      # 최근 1시간 로그
+nhncloud logncrash export --query '<lucene>' --from 1h --to now --output logs.jsonl  # 대량 로그 파일 저장
 nhncloud apigateway service list                               # API Gateway 서비스
 nhncloud apigateway stage update <service-id> <stage-id> --description "설명" --yes  # API Gateway 스테이지 수정
 nhncloud apigateway stage import-resources <service-id> <stage-id> --yes             # 리소스를 스테이지로 반영
@@ -179,7 +181,8 @@ src/
 ```
 
 의존 방향은 `commands/` → `services/` → `api/` 이고, `utils/` 와 `formatters/` 는 그 아래에서 공유한다.
-`services/` 가 `commands/` 를 import 하지 않는다 — 역류는 금지다.
+`services/` 가 `commands/` 를 import 하지 않는다.
+역류는 금지다.
 
 | 문서 | 담는 것 |
 | --- | --- |
@@ -187,7 +190,7 @@ src/
 | [docs/flow.md](docs/flow.md) | 사용자 흐름 |
 | [docs/code-architecture.md](docs/code-architecture.md) | 디렉터리 트리, 레이어, 경계 |
 | [docs/data-schema.md](docs/data-schema.md) | 자격증명과 캐시 스키마 |
-| [docs/adr/INDEX.md](docs/adr/INDEX.md) | 기술 의사결정 기록 (33건) |
+| [docs/adr/INDEX.md](docs/adr/INDEX.md) | 기술 의사결정 기록 (34건) |
 | [docs/pitfalls/INDEX.md](docs/pitfalls/INDEX.md) | 반복해서 발견된 회피 패턴 (108건) |
 
 ## 기여하기

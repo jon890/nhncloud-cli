@@ -1,6 +1,6 @@
-# User Flow — nhncloud-cli
+# nhncloud-cli 사용자 흐름
 
-## 최초 설정 — `nhncloud configure`
+## 최초 설정: `nhncloud configure`
 
 대화형 마법사로 자격증명을 설정한다 ([[adr-009]]).
 
@@ -17,7 +17,7 @@ nhncloud configure --profile playground
 4. 연결 테스트 (UAK → OAuth 발급, logncrash → 최소 검색, ncr·ncs → kr1 목록 조회).
 5. 기존 값과 머지 저장 (`credentials.json` 0600, all-or-nothing).
 
-### 비대화형 (flag — CI·자동화)
+### CI·자동화용 비대화형 flag
 
 flag 가 하나라도 있으면 비대화형으로 동작한다.
 
@@ -293,15 +293,23 @@ rate limit 도 예외다. 봉투로 구분되므로 범위를 좁히라는 안�
 
 - `--output <file>` 필수. 기본 JSON Lines (한 줄당 한 로그), `--format json` 이면 JSON 배열. 기존 파일은 기본 거부 — `--force` 로만 덮어쓴다 (deploy download 와 동일 정책).
 - 진행 상황(수집/전체 건수)은 spinner(stderr), 데이터는 파일에만 쓴다. 페이지 수신 즉시 temp 파일에 스트리밍 append (전량 메모리 적재 회피) 후 원자적으로 교체한다.
-  성공하지 않은 실행이 `--output` 을 만드는 일은 없다. 실패한 temp 는 `<output>.partial` 로 옮긴다([[adr-032]]).
+  최종 교체가 끝나기 전에는 성공으로 표시하지 않는다.
 - 시간 범위 제한은 search 와 동일 (90일 이내·31일 이하).
 - 요청 기간에서 서버가 500 을 반환하면 기간을 절반으로 줄여 다시 시도한다([[adr-030]]).
   성공한 창 크기를 나머지 구간에 재사용하고, 최소 창 10분에서도 실패하면 오류로 끝낸다.
 - rate limit 을 만나면 분할하지 않고 즉시 멈춘다.
   분할은 호출 수를 늘려 제한을 앞당길 뿐이다([[adr-032]]).
-- 실패로 끝나면 `--output` 은 만들지 않는다.
+- 조회 중 실패하면 `--output` 을 만들지 않는다.
   대신 그때까지 받은 결과를 `<output>.partial` 에 남기고 위치와 이어받는 방법을 stderr 로 알린다([[adr-032]]).
   `--format json` 이면 부분 파일도 배열을 닫아 그대로 파싱된다.
+- 모든 데이터를 받은 뒤 JSON 배열 닫기에 실패하면 실행별 고유한 `<output>.<id>.unfinalized` 파일을 남긴다.
+  이 파일은 API 재조회 없이 복구할 수 있지만 배열 닫기를 확인해야 한다.
+- 형식까지 완성한 뒤 `--output` 교체에 실패하면 실행별 고유한 `<output>.<id>.complete` 파일을 남긴다.
+  그대로 사용할 수 있는 전체 결과이며 API를 다시 호출하지 않는다([[adr-034]]).
+- `.complete`와 `.unfinalized`는 앞선 파일을 덮어쓰지 않고, 이후 실행이 성공해도 자동 삭제하지 않는다.
+  사용자가 확인한 뒤 직접 정리한다.
+- 완료 뒤 로컬 파일 처리에 실패하면 원인과 복구 경로를 stderr에 알리고 `EXIT_PARAM_ERROR`로 끝낸다.
+  복구 파일 이동도 실패하면 임시 파일을 삭제하지 않고 그 경로를 알린다.
 
 ## logncrash send 흐름
 
@@ -514,7 +522,7 @@ nhncloud instance keypair delete <name> [opts]  # 키페어 삭제
   조회가 아니라 동작이라 출력은 성공 메시지(stderr)뿐이고 stdout 은 비운다 (delete 와 동일).
   상태 전이 확인은 후속 `instance get <id>` 로 한다.
 
-### resize (타입 변경 — 2단계)
+### resize 타입 변경 2단계
 
 - `instance resize <id> --flavor <flavorId>` 는 같은 `serverAction` 경로로 `{ "resize": { "flavorRef": "..." } }` 를 보낸다 (응답 202 무본문, fire-and-return).
 - OpenStack Nova v2 표준상 resize 는 **2단계**다 ([[adr-010]]). resize 호출 → 서버가 `VERIFY_RESIZE` 로 전이 → 사용자가 확정/롤백을 별도 호출해야 `ACTIVE` 가 된다.
@@ -544,7 +552,8 @@ VPC 목록은 `instance create --network <uuid>` 에 넣을 **VPC id** 를 고�
 
 ### 인증 흐름
 
-instance 와 동일하다 — `iaas` 블록과 Keystone `X-Auth-Token` 을 재사용한다(새 토큰 발급이 없다).
+instance와 동일하게 `iaas` 블록과 Keystone `X-Auth-Token`을 재사용한다.
+새 토큰은 발급하지 않는다.
 endpoint 만 network host(`<region>-api-network-infrastructure...`, tenant segment 없음)로 다르다.
 
 ### 명령 시그니처
@@ -601,7 +610,9 @@ nhncloud volume create --size <GB> [options]   # 볼륨 발급 (쓰기 — --nam
 
 ## floatingip (공인 IP) 흐름
 
-Floating IP 명령군이다. network(VPC) 와 같은 catalog type `network` 라 [[adr-013]] 의 `networkEndpoint`(host·`/v2.0` 경로, tenant segment 없음)를 그대로 재사용한다 — 새 host·새 endpoint·새 ADR 이 없다.
+Floating IP 명령군이다.
+network(VPC)와 같은 catalog type `network`라 [[adr-013]]의 `networkEndpoint`(host·`/v2.0` 경로, tenant segment 없음)를 그대로 재사용한다.
+새 host·새 endpoint·새 ADR은 없다.
 
 ```
 nhncloud floatingip list [options]               # Floating IP 목록 (id·공인 IP·status·port_id·fixed_ip_address)
@@ -702,7 +713,9 @@ ALLOW 그룹은 외부 주소뿐 아니라 Load Balancer가 속한 VPC 사설 �
 
 ## ncr (NHN Container Registry) 흐름
 
-레지스트리 조회 명령군. NCR Management API 는 공통 UAK 를 정적 헤더(`X-TC-AUTHENTICATION-ID/SECRET`)로 받고 region 별 host 를 쓴다([[adr-016]]) — deploy 의 OAuth 토큰 교환이 없다.
+레지스트리 조회 명령군이다.
+NCR Management API는 공통 UAK를 정적 헤더(`X-TC-AUTHENTICATION-ID/SECRET`)로 받고 region별 host를 쓴다([[adr-016]]).
+deploy의 OAuth 토큰 교환은 없다.
 
 ```
 nhncloud ncr list [options]                          # 레지스트리 목록 (name·repo_count·uri)

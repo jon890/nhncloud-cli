@@ -1,4 +1,4 @@
-# AGENTS.md — nhncloud-cli
+# nhncloud-cli 저장소 지침
 
 `CLAUDE.md`는 이 파일을 가리키는 심볼릭 링크다.
 공통 지침은 `AGENTS.md`만 수정하고 링크를 유지한다.
@@ -33,6 +33,8 @@ NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 TypeScript 와 Commande
 - 공통 엔드포인트·응답 봉투·HTTP 오류 처리는 `src/api/`, 자격증명과 profile 해석은 `src/config/`의 기존 경계를 재사용한다.
 - 사용자 오류는 `NhnCloudCliError(message, exitCode)`와 `src/utils/exit-codes.ts`의 종료 코드를 사용한다.
 - 데이터는 stdout, 진행 상황·경고·오류는 stderr로 분리한다.
+- 파일 export는 API 수집 완료 여부와 파일 형식 완결 여부를 구분한다.
+  전체 결과를 최종 경로 교체 실패 때문에 삭제하지 않으며 Log & Crash 세부 정책은 ADR-034를 따른다.
 - 자동화 가능한 명령은 대화형 입력을 기다리지 않게 설계한다.
 - 위험한 변경은 API 호출 전에 `--yes`를 검증하고, `--json`·`--quiet` 출력과 종료 코드를 결정적으로 유지한다.
 - profile 우선순위는 `--profile` > `NHNCLOUD_PROFILE` > `config.defaultProfile` > `default`다.
