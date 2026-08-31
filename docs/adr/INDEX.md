@@ -1,6 +1,7 @@
-# ADR Index — nhncloud-cli 기술 결정 기록
+# nhncloud-cli 기술 결정 기록
 
-ADR-NNN 내용은 `docs/adr/NNN-*.md` 로 찾는다(번호 glob — slug 몰라도 매칭).
+ADR-NNN 내용은 `docs/adr/NNN-*.md` 로 찾는다.
+번호 glob이라 slug를 몰라도 일치하는 파일을 찾을 수 있다.
 아래 목록 링크 또는 번호로 직접 파일을 읽는다.
 전체 통독 대신 필요한 ADR 만 읽는다(ADR-018).
 

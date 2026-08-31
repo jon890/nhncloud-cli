@@ -1,4 +1,4 @@
-# Code Architecture — nhncloud-cli
+# nhncloud-cli 코드 구조
 
 ## 기술 스택
 
@@ -186,7 +186,8 @@ commands → services/<svc>/client → api/envelope + api/endpoints + config/cre
                                   ↘ utils, formatters
 ```
 
-역류 금지 — `services` 가 `commands` 를 import 하지 않는다.
+역류는 금지한다.
+`services`가 `commands`를 import 하지 않는다.
 
 ## 인증·엔드포인트 추상화 (dooray 대비 신규 계층)
 

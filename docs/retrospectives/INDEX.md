@@ -11,3 +11,5 @@
 | [0005](0005-named-teammate-reply-never-arrived.md) | 이름 지정 팀원의 회신이 team-lead 에 도착하지 않았다 | 065-feat-deploy-appkey-profile | 우회 |
 | [0006](0006-decision-doc-grep-missed-prd.md) | 폐지 서술 훑기에서 prd.md 가 grep 범위에 없었다 | 065-feat-deploy-appkey-profile | 해결 |
 | [0007](0007-execution-profile-schema-conflict.md) | 실행 등급 필드를 두 스키마로 중복 작성했다 | 066-fix-logncrash-complete-export-preservation | 해결 |
+| [0008](0008-recovery-guide-failure-scope-ambiguous.md) | 복구 가이드가 실패 시점을 구분하지 않았다 | 066-fix-logncrash-complete-export-preservation | 해결 |
+| [0009](0009-changed-docs-inherited-baseline-failures.md) | 변경 문서가 기존 검사 실패를 그대로 물려받았다 | 066-fix-logncrash-complete-export-preservation | 해결 |

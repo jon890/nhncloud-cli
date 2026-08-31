@@ -1,4 +1,4 @@
-# AGENTS.md — nhncloud-cli
+# nhncloud-cli 저장소 지침
 
 `CLAUDE.md`는 이 파일을 가리키는 심볼릭 링크다.
 공통 지침은 `AGENTS.md`만 수정하고 링크를 유지한다.

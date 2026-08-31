@@ -1,4 +1,4 @@
-# PRD — nhncloud-cli
+# nhncloud-cli 제품 요구사항
 
 ## 한 줄 정의
 
