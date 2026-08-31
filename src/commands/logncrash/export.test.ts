@@ -8,6 +8,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
+import { appendFile as appendFileAsync, rename as renameAsync } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,9 +16,13 @@ import { NhnEnvelopeError } from "../../api/envelope.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_API_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { LogncrashServerError } from "../../services/logncrash/errors.js";
-import { startSpinner } from "../../utils/spinner.js";
+import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { resolveLogncrashClient } from "./helpers.js";
-import { exportCommand } from "./export.js";
+import {
+  createExportCommand,
+  finalizeExportFile,
+  type ExportFileOps,
+} from "./export.js";
 
 vi.mock("./helpers.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./helpers.js")>();
@@ -33,8 +38,8 @@ const scrollNext = vi.fn();
 const client = { scrollStart, scrollNext };
 let directory: string;
 
-function programWithExport(): Command {
-  return new Command("nhncloud").exitOverride().addCommand(exportCommand);
+function programWithExport(finalizeOps?: ExportFileOps): Command {
+  return new Command("nhncloud").exitOverride().addCommand(createExportCommand(finalizeOps));
 }
 
 function args(output: string, extra: string[] = []): string[] {
@@ -67,6 +72,182 @@ describe("logncrash export v3 scroll", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     rmSync(directory, { recursive: true, force: true });
+  });
+
+  describe("finalizeExportFile", () => {
+    it("JSON 배열 닫기 실패 시 원본 바이트를 고유 .unfinalized로 보존한다", async () => {
+      const output = join(directory, "logs.json");
+      const tmp = `${output}.run-new.tmp`;
+      const cause = new Error("append failed");
+      writeFileSync(tmp, '[{"id":1}');
+      writeFileSync(`${output}.run-old.complete`, '[{"id":0}]\n');
+      writeFileSync(`${output}.run-older.unfinalized`, '[{"id":-1}');
+      const ops: ExportFileOps = {
+        appendFile: vi.fn().mockRejectedValue(cause),
+        rename: renameAsync,
+      };
+
+      const result = await finalizeExportFile(tmp, output, "run-new", "json", ops);
+
+      expect(result).toEqual({
+        ok: false,
+        state: "unfinalized",
+        cause,
+        recoveryPath: `${output}.run-new.unfinalized`,
+        preserved: true,
+      });
+      expect(readFileSync(`${output}.run-new.unfinalized`, "utf-8")).toBe('[{"id":1}');
+      expect(existsSync(tmp)).toBe(false);
+      expect(existsSync(`${output}.run-old.complete`)).toBe(true);
+      expect(existsSync(`${output}.run-older.unfinalized`)).toBe(true);
+      expect(existsSync(`${output}.partial`)).toBe(false);
+    });
+
+    it("최종 교체 실패 시 파싱 가능한 고유 .complete로 보존한다", async () => {
+      const output = join(directory, "logs.json");
+      const tmp = `${output}.run-new.tmp`;
+      const cause = new Error("replace failed");
+      writeFileSync(tmp, '[{"id":1}');
+      const ops: ExportFileOps = {
+        appendFile: appendFileAsync,
+        rename: vi.fn(async (from: string, to: string) => {
+          if (to === output) throw cause;
+          await renameAsync(from, to);
+        }),
+      };
+
+      const result = await finalizeExportFile(tmp, output, "run-new", "json", ops);
+
+      expect(result).toEqual({
+        ok: false,
+        state: "complete",
+        cause,
+        recoveryPath: `${output}.run-new.complete`,
+        preserved: true,
+      });
+      expect(JSON.parse(readFileSync(`${output}.run-new.complete`, "utf-8"))).toEqual([{ id: 1 }]);
+      expect(existsSync(tmp)).toBe(false);
+    });
+
+    it("복구 이동도 실패하면 원래 원인을 보존하고 temp를 삭제하지 않는다", async () => {
+      const output = join(directory, "logs.json");
+      const tmp = `${output}.run-new.tmp`;
+      const cause = new Error("append failed");
+      writeFileSync(tmp, '[{"id":1}');
+      const ops: ExportFileOps = {
+        appendFile: vi.fn().mockRejectedValue(cause),
+        rename: vi.fn().mockRejectedValue(new Error("recovery failed")),
+      };
+
+      const result = await finalizeExportFile(tmp, output, "run-new", "json", ops);
+
+      expect(result).toEqual({
+        ok: false,
+        state: "unfinalized",
+        cause,
+        recoveryPath: `${output}.run-new.unfinalized`,
+        preserved: false,
+      });
+      expect(readFileSync(tmp, "utf-8")).toBe('[{"id":1}');
+    });
+  });
+
+  describe("조회 완료 뒤 로컬 파일 실패 (ADR-034)", () => {
+    function stderrText(): string {
+      return vi
+        .mocked(process.stderr.write)
+        .mock.calls.map(([message]) => String(message))
+        .join("");
+    }
+
+    function expectNoSuccessSpinner(): void {
+      expect(vi.mocked(stopSpinner).mock.calls.some(([success]) => success === true)).toBe(false);
+      expect(stopSpinner).toHaveBeenCalledWith(false);
+      expect(vi.mocked(stopSpinner).mock.invocationCallOrder[0]).toBeLessThan(
+        vi.mocked(process.stderr.write).mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER,
+      );
+    }
+
+    it("JSON 배열 닫기 실패는 .unfinalized를 남기고 재조회를 안내하지 않는다", async () => {
+      scrollStart.mockResolvedValue({ totalItems: 1, data: [{ id: 1 }] });
+      const output = join(directory, "logs.json");
+      const cause = new Error("append failed");
+      const ops: ExportFileOps = {
+        appendFile: vi.fn().mockRejectedValue(cause),
+        rename: renameAsync,
+      };
+
+      await expect(
+        programWithExport(ops).parseAsync(args(output, ["--format", "json"])),
+      ).rejects.toMatchObject({
+        exitCode: EXIT_PARAM_ERROR,
+        message: expect.stringContaining("append failed"),
+      });
+
+      const files = readdirSync(directory);
+      const recovery = files.find((file) => file.endsWith(".unfinalized"));
+      expect(recovery).toBeDefined();
+      expect(readFileSync(join(directory, recovery ?? ""), "utf-8")).toBe('[{"id":1}');
+      expect(files.some((file) => file.endsWith(".tmp"))).toBe(false);
+      expect(files).not.toContain("logs.json.partial");
+      expect(stderrText()).toContain("API 재조회가 필요 없는");
+      expect(stderrText()).toContain(join(directory, recovery ?? ""));
+      expect(stderrText()).not.toContain("이어받");
+      expectNoSuccessSpinner();
+    });
+
+    it("최종 교체 실패는 파싱 가능한 .complete와 정확한 복구 안내를 남긴다", async () => {
+      scrollStart.mockResolvedValue({ totalItems: 1, data: [{ id: 1 }] });
+      const output = join(directory, "logs.json");
+      const cause = new Error("replace failed");
+      const ops: ExportFileOps = {
+        appendFile: appendFileAsync,
+        rename: vi.fn(async (from: string, to: string) => {
+          if (to === output) throw cause;
+          await renameAsync(from, to);
+        }),
+      };
+
+      await expect(
+        programWithExport(ops).parseAsync(args(output, ["--format", "json"])),
+      ).rejects.toMatchObject({
+        exitCode: EXIT_PARAM_ERROR,
+        message: expect.stringContaining("replace failed"),
+      });
+
+      const files = readdirSync(directory);
+      const recovery = files.find((file) => file.endsWith(".complete"));
+      expect(recovery).toBeDefined();
+      expect(JSON.parse(readFileSync(join(directory, recovery ?? ""), "utf-8"))).toEqual([{ id: 1 }]);
+      expect(files.some((file) => file.endsWith(".tmp"))).toBe(false);
+      expect(stderrText()).toContain("그대로 사용할 수 있습니다");
+      expect(stderrText()).toContain(join(directory, recovery ?? ""));
+      expect(stderrText()).not.toContain("이어받");
+      expectNoSuccessSpinner();
+    });
+
+    it("복구 이동도 실패하면 temp 경로와 원래 오류를 알린다", async () => {
+      scrollStart.mockResolvedValue({ totalItems: 1, data: [{ id: 1 }] });
+      const output = join(directory, "logs.json");
+      const cause = new Error("append failed");
+      const ops: ExportFileOps = {
+        appendFile: vi.fn().mockRejectedValue(cause),
+        rename: vi.fn().mockRejectedValue(new Error("recovery failed")),
+      };
+
+      await expect(
+        programWithExport(ops).parseAsync(args(output, ["--format", "json"])),
+      ).rejects.toMatchObject({
+        exitCode: EXIT_PARAM_ERROR,
+        message: expect.stringContaining("append failed"),
+      });
+
+      const temp = readdirSync(directory).find((file) => file.endsWith(".tmp"));
+      expect(temp).toBeDefined();
+      expect(stderrText()).toContain("삭제하지 않았습니다");
+      expect(stderrText()).toContain(join(directory, temp ?? ""));
+      expectNoSuccessSpinner();
+    });
   });
 
   it("--size 생략 시 경고 없이 scroll 시작 body에 query/from/to만 전달한다", async () => {
@@ -467,17 +648,30 @@ describe("logncrash export v3 scroll", () => {
       expect(existsSync(`${output}.partial`)).toBe(true);
     });
 
-    // 성공한 실행이 앞선 실패의 잔여를 남기면 자동화가 낡은 결과를 현재 것으로 읽는다.
-    it("성공하면 앞선 실행이 남긴 부분 파일을 치운다", async () => {
+    // 성공한 실행은 낡은 부분 결과만 치우고, 사용자가 확인해야 할 복구 파일은 보존한다.
+    it("성공하면 .partial만 치우고 앞선 .complete와 .unfinalized는 보존한다", async () => {
       const output = join(directory, "logs.jsonl");
       writeFileSync(`${output}.partial`, '{"stale":true}\n');
+      writeFileSync(`${output}.run-old.complete`, '{"complete":true}\n');
+      writeFileSync(`${output}.run-older.unfinalized`, '[{"unfinalized":true}');
 
       scrollStart.mockResolvedValue({ scrollKey: undefined, totalItems: 1, data: [{ id: 1 }] });
+      const renameForSuccess = vi.fn(renameAsync);
 
-      await programWithExport().parseAsync(args(output));
+      await programWithExport({
+        appendFile: appendFileAsync,
+        rename: renameForSuccess,
+      }).parseAsync(args(output));
 
       expect(existsSync(output)).toBe(true);
       expect(existsSync(`${output}.partial`)).toBe(false);
+      expect(existsSync(`${output}.run-old.complete`)).toBe(true);
+      expect(existsSync(`${output}.run-older.unfinalized`)).toBe(true);
+      const successSpinnerCall = vi.mocked(stopSpinner).mock.calls.findIndex(([success]) => success === true);
+      expect(successSpinnerCall).toBeGreaterThanOrEqual(0);
+      expect(renameForSuccess.mock.invocationCallOrder[0]).toBeLessThan(
+        vi.mocked(stopSpinner).mock.invocationCallOrder[successSpinnerCall] ?? 0,
+      );
     });
   });
 });
