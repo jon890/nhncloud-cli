@@ -1,204 +1,82 @@
-# planning 오버레이 — nhncloud-cli
+# planning 오버레이: nhncloud-cli
 
-공용 코어(`~/.claude/skills/planning`)에 nhncloud-cli 특화를 주입한다.
-코어의 8단계 skeleton 을 이 레포의 도메인(TypeScript CLI)·docs 컨벤션·검증·실행기 스키마에 맞춰 채운다.
+공용 `planning` 스킬에 이 저장소의 TypeScript CLI 규칙만 보탠다.
+공통 절차와 질문 규칙은 스킬이, 상시 코드 규칙과 검증 명령은 `AGENTS.md`가 소유한다.
 
-## 도메인: CLI (TypeScript / Commander.js)
+## 단계별 도메인 점검
 
-- **3단계 (호출 시나리오)**: 명령 인자·플래그 조합, 서비스별 인증 모델(UAK/OAuth/Keystone), `--json` 출력 여부를 구체화한다.
-  - 엣지 케이스: 정상 / 에러(봉투 `resultCode` 서비스별 차이) / 빈 목록 / 인증 만료 점검
-- **4단계 (인터페이스)**: 명령 시그니처, 옵션 이름, `stdout`(데이터) / `stderr`(에러·안내) 출력 분리를 설계한다.
-- **5단계 (API)**: 기존 서비스 클라이언트(`src/api/*.ts`) 메서드 재사용 가능 여부를 확인한다.
-  - 새 endpoint 면 봉투 정규화(ADR-006)·토큰 캐시 재사용(ADR-007/010/020) 적용 여부 점검
-- **6단계 (코드 구조)**: 레이어는 `api/` → `cache/` → `commands/` → `formatters/`.
-  - 새 서비스 도입 시 인증 모델(UAK 단독 / OAuth 토큰 교환 / Keystone)이 기존 표 중 무엇과 같은 패턴인지 확인
+- 호출 흐름에서는 인수와 옵션, `--json`·`--quiet`, stdout·stderr, 대화형 진입 여부를 정한다.
+- API 설계에서는 기존 `src/services/`, `src/api/`, `src/config/` 경계를 먼저 재사용한다.
+- 새 endpoint와 필드 타입은 NHN Cloud 공식 문서로 확인한다. 문서만으로 확정할 수 없으면 실호출 검증을 별도 조건으로 남긴다.
+- 쓰기 명령은 `--yes`, 부분 실패, 재시도와 중복 실행의 영향을 명시한다.
+- 서비스 인증과 응답 봉투는 `docs/adr/INDEX.md`에서 관련 ADR을 찾아 확인한다.
 
-### CLI 레포 전 규모 4단계 압축
+규모가 작으면 공용 8단계를 `1+2`, `3+4`, `5+6`, `7+8`로 묶을 수 있다.
+문서 영향 판정과 task 검증은 생략하지 않는다.
 
-전 규모에서 8단계를 4단계로 압축 가능 — 단 압축된 각 단계 내부에서 모호함 제거는 동일하게 수행한다.
+## 문서 영향 판정
 
-| 압축 단계 | 원 단계 |
+변경 전에 다음 단일 소스를 대조하고 실제 영향이 있는 파일만 고친다.
+
+| 변경 | 반드시 대조할 단일 소스 |
 |---|---|
-| (1+2) | 구현 가능성, 기술 스택 |
-| (3+4) | 호출 시나리오, 인터페이스 |
-| (5+6) | API, 코드 구조 |
-| (7+8) | docs 영향, task 생성 |
+| 명령·인수·옵션 | `nhncloud commands --json`, `README.md`, `skills/nhncloud-cli/references/` |
+| 제품 범위·사용자 흐름 | `docs/prd.md`, `docs/flow.md` |
+| 디렉터리 책임·의존 방향 | `docs/code-architecture.md` |
+| 자격증명·설정·캐시 | `docs/data-schema.md` |
+| 직관에 반하는 장기 결정 | `docs/adr/INDEX.md`에서 고른 ADR |
+| 계획·실행·검토 반복 함정 | `docs/pitfalls/INDEX.md`에서 고른 패턴 |
+| 내부 스킬·역할 정의 | `.agents/skills/`, `.claude/agents/`, `.codex/agents/` |
 
-## docs 컨벤션
+설계 문서는 task보다 먼저 갱신한다.
+사용자 가이드 변경은 구현과 같은 PR에 두되, 명령 카탈로그와 실제 help를 근거로 작성한다.
+명령 목록, 인증 표와 구현 세부를 `AGENTS.md`에 복제하지 않는다.
 
-핵심 docs — `docs/prd.md` / `docs/flow.md` / `docs/adr/`(ADR 1개 = 파일 1개, 목록은 `docs/adr/INDEX.md`) / `docs/data-schema.md` / `docs/code-architecture.md`.
-ADR 번호 확인은 `ls docs/adr/{N}-*.md`.
-`AGENTS.md`(`CLAUDE.md` 는 symlink)는 코드 작업 가이드, 서비스별 인증 모델 표, ADR 참조를 담는다.
-`README.md`, `skills/nhncloud-cli/SKILL.md`, `skills/nhncloud-cli/references/*.md` 는 외부 facing 사용자 가이드(공개 npm 패키지)다.
+## ADR 작성 기준
 
-### 변경 유형별 docs 영향 표 (필수 — 누락 0 화)
+다음 질문에 모두 아니오일 때만 ADR을 만든다.
 
-신규 작업 시 해당 행을 찾아 **표시된 모든 docs 를 손댄다**. "(해당 시)" 같은 모호한 어휘 금지 — 표시되어 있으면 변경, 표시 없으면 미손.
-복수 변경 유형에 해당하면 합집합으로 손댄다.
+1. 코드, 설정이나 디렉터리 구조만 보면 같은 결론을 얻을 수 있는가?
+2. 선택 이유가 한두 문장으로 끝나는 일반 관례인가?
+3. 되돌리기 쉽고 다른 구현에 장기 제약을 만들지 않는가?
 
-| 변경 유형 | AGENTS.md | docs/adr/ | code-architecture.md | prd.md | flow.md | data-schema.md | README.md | skills/nhncloud-cli/SKILL.md 와 references/*.md |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| 신규 CLI 명령 (소) | 주의사항 1줄, "N개 명령" 카운트 | — | 디렉터리 트리, 필요 시 utils 추가 | MVP 범위 한 줄 | 사용자 흐름 섹션, 새 옵션 시 옵션 표 행 | (캐시 도입 시) | 사용 예 섹션, intro "지원 명령" 문구 | 빠른 참조 표, 자동화 시나리오, 프론트매터 description |
-| 공개 skill 구조 / 내부 agent workflow 변경 | 스킬 폴더 구분, 검증 grep 갱신 | — | 스킬 구조 요약 갱신 | — | 자동화 흐름 변경 시 갱신 | — | 사용자-facing discovery 변경 시 갱신 | router 와 references 구조 갱신, `.agents/skills/`·`.claude/agents/`·`.codex/agents/`의 stale 참조 grep |
-| 신규 ADR 동반 변경 | 주의사항, ADR 참조 표 행 | ADR 본문, 상단 ADR Index 등재, 선행 ADR 이 이 작업을 "후속 예정"으로 가리켰으면 정정 | 해당 영역 ADR-NNN 역참조 한 줄 | (사용자 facing 시) | (사용자 흐름 변경 시) | (스키마 결정 시) | 사용 예 (해당 명령) | 시나리오 (해당 명령) |
-| 캐시 schema / TTL 변경 | 캐시 규약 행 | ADR 갱신 (ADR-004/007/010) | utils/cache 섹션 | — | — | 캐시 디렉터리, 스키마 본문 | — | — |
-| 새 API 호출 패턴 (재시도/리다이렉트 등) | — | 정책 결정 ADR (예: ADR-015, ADR-019) | api/ 섹션, ADR-NNN 역참조 | — | — | — | — | — |
-| 기존 resolver 입력 형식 확대 | 주의사항 resolver 설명 1줄 갱신 | — | resolver 주석 1줄 갱신 | — | 사용 예 (자동 분기 시나리오) | — | 사용 예 (해당 명령) | 빠른 참조 표, 관련 시나리오 |
-| 기존 type 의 필드 시그니처 변경 | 주의사항의 관련 동작 1줄 (영향 있을 때) | (ADR 가치 있을 때) | resolver/cache 줄에 동작 변경 1줄 | — | — | interface 정의 정정 (필수), TTL/예시 동기화 | 사용 예 (영향 명령) | 시나리오 (영향 시) |
-| 자격증명/인증 모델 위치 변경 | 인증 모델 표 갱신 (서비스별 비밀·헤더) | 결정 ADR (예: ADR-004) | config/ 섹션 (해당 시) | — | 인증 흐름 섹션 정정 (필수) | 스키마 위치 정정 (필수) | 설정 안내 (해당 시) | 저장 구조 예시 (해당 시) |
-| 의존성 추가 / 빌드 설정 | 빌드 명령 (해당 시) | ADR 작성 전 점검 후 ADR | 기술 스택 표 | — | — | — | — | — |
+ADR 제목은 `# ADR-NNN: 제목`으로 시작한다.
+결정, 맥락, 기각한 대안과 트레이드오프를 담고 구현 목록과 긴 코드 예시는 넣지 않는다.
+새 ADR은 `docs/adr/INDEX.md`에 연결하고, 기존 결정을 일부 뒤집으면 양쪽 ADR에 대체 범위를 남긴다.
 
-**소유권 분리**: planning 결정 docs(`docs/adr/`·`code-architecture.md`·`AGENTS.md`·`data-schema.md`·`flow.md`·`prd.md`)는 **task 생성 전 즉시 반영하고 commit** 한다.
-`README.md`·`skills/nhncloud-cli/SKILL.md`·`skills/nhncloud-cli/references/*.md`(사용자 가이드)는 **phase 안에서 갱신한다**.
-어느 phase 인지는 정하지 않는다 — 한 phase 에 몰아도 되고 관련 구현 phase 에 붙여도 된다.
-planning 결정 docs 를 phase 안에서 고치면 critic REVISE 또는 docs-verifier VIOLATION 사유다.
+## 반복 함정 승격
 
-두 축을 가르는 기준은 시점이 아니라 소유권이다. 같은 문서를 planning 과 phase 가 함께 고치면 이중 편집이 되고, 어느 쪽이 최종인지 알 수 없어진다.
+task 작성 뒤 `docs/pitfalls/INDEX.md`의 trigger와 라우터로 관련 파일만 골라 대조한다.
+새 패턴은 재현 가능하고 일반화되며 구체적인 검출 방법이 있을 때만 패턴당 한 파일로 추가한다.
+일회성 사건, 특정 plan 메모와 실행 통계는 PR 또는 결과 보고에만 남긴다.
 
-### ADR 작성 전 점검 (필수 자문)
+## task 경로와 스키마
 
-아래 3개에 **모두 NO** 여야 ADR 로 기록한다. 하나라도 YES 면 대안 채널(`AGENTS.md` 규칙 / 코드 주석 / 커밋 메시지 / 다른 docs)로 내려보낸다.
+task 경로는 `tasks/{NNN}-{task-name}/`이다.
+현재 task, 원격 브랜치, 열린 PR과 Git 이력의 `tasks/NNN-*` 경로를 확인한 뒤 가장 큰 3자리 번호의 다음 값을 쓴다.
+삭제된 과거 task 번호는 `git log --all --name-only --format= -- tasks/`로 복원해 다시 쓰지 않는다.
+독립 작업은 새 번호를, 같은 도메인의 연속 확장은 `{NNN}-2-...` 형태를 쓴다.
 
-1. `package.json`·lockfile·`tsup.config`·`src/api/types.ts`·디렉터리 트리 중 어느 하나를 보면 같은 정보를 얻는가?
-2. "왜 X 를 선택했다"를 1~2 문장 이상으로 설명하기 어려운가?
-3. 다른 프로젝트에서도 일반적으로 하는 선택인가?
+`index.json`은 공용 `task-create.md`의 스키마를 그대로 따른다.
 
-**유지 적격**(3개 모두 NO):
+- task: `name`, `description`, `status`, `created_at`, `total_phases`, `current_phases`, `phases`
+- phase: `number`, `title`, `file`, `execution_profile`
 
-- 라이브러리 고유 함정(ky retry 정책 등)
-- 실험 결과(cold·warm 벤치마크)
-- 대안 기각 근거
-- 정책·규칙
-- 비용·성능 트레이드오프
+`execution_profile`은 `fast`, `standard`, `deep` 중 하나다.
+실행 surface가 이 값을 설치된 model과 role에 매핑하므로 provider별 `model`이나 `allowedTools`를 task에 저장하지 않는다.
 
-**ADR 구조**: `## ADR-NNN: {제목}` → **결정** → **맥락** → **대안 기각** → (선택) **트레이드오프**/**적용 범위**.
+`total_phases`는 배열 길이와 같아야 하고, phase 번호는 1부터 연속이어야 하며 각 파일이 실제로 존재해야 한다.
+생성 직후 공용 `verify-task.sh`와 `task-create.md`의 사람 판단 항목을 적용한다.
 
-**금지**: 코드 블록 10줄 이상(1~3줄 식별자 예시만 허용) / 파일 경로 3개 이상 나열 / "변경 항목 1/2/3/4" 작업 내역 / `AGENTS.md` 스택 규칙 반복.
+## 브랜치와 핸드오프
 
-### 문서 책임 표 (단일 소스와 역참조)
-
-신규 내용 작성 전 "이 정보의 단일 소스는 어디인가" 확인한다. 다른 문서에는 **링크 또는 한 줄 참조**만 남긴다.
-
-| 내용 유형 | 단일 소스 | 역참조 / 링크해야 할 곳 |
-|---|---|---|
-| 명령 동작 / 옵션 / 주의사항 | `AGENTS.md` 주의사항 표 | `README.md`(사용 예만), `skills/nhncloud-cli/SKILL.md` router 와 `references/*.md`(자동화 시나리오) |
-| 디렉터리 구조 / 레이어 | `docs/code-architecture.md` | `AGENTS.md`(요약 한 블록) |
-| 기술 결정 근거 (왜) | `docs/adr/`(해당 ADR 파일) | `AGENTS.md` ADR 참조 표, `docs/code-architecture.md` 해당 영역 ADR-NNN 한 줄 |
-| 캐시 / 파일 레이아웃 | `docs/adr/`(해당 ADR 파일) | `AGENTS.md` 캐시 규약 행 |
-| API 호출 패턴 / 엔드포인트 함정 | `docs/adr/`(해당 ADR 파일) | `docs/code-architecture.md` api/ 섹션 |
-| DB / 데이터 스키마 | `docs/data-schema.md` | `docs/adr/`(스키마 결정 ADR 파일) |
-| 사용자 흐름 / 시나리오 | `docs/flow.md` | `docs/prd.md`(기능 → 흐름 매핑) |
-
-**역참조 규칙 (필수)**: 새 ADR 추가 시, 해당 영역의 `docs/code-architecture.md` 또는 `AGENTS.md` ADR 참조 표 **둘 중 한 곳**에 ADR-NNN 한 줄 추가.
+- 브랜치: `{category}/{NNN}-{task-name}`
+- PR 제목: `type(scope): description`
+- planning은 설계 문서와 task를 plan 브랜치에 커밋하고 push한다.
+- 구현은 `/build-with-teams tasks/{NNN}-{task-name}`으로 넘긴다.
+- phase 구현과 커밋은 `build-with-teams`가 소유한다.
 
 ## 검증
 
-- **critic/code-review 회피 패턴**: task 파일 제출 전 아래 경로를 self-check 한다.
-  - `docs/pitfalls/plan/` — critic 의 plan 평가 회피
-  - `docs/pitfalls/team/` — team 협업 회피
-  - `docs/pitfalls/code-review/` — code-reviewer 의 코드 검사 회피
-  - self-check 는 `docs/pitfalls/INDEX.md` 라우터로 변경 유형에 맞는 카테고리 파일을 선택
-- **docs-verifier 흡수 원칙**: `nhncloud-cli-docs-verifier`(`.claude/agents/nhncloud-cli-docs-verifier.md` / `.codex/agents/nhncloud-cli-docs-verifier.toml`)의 반복 지적은
-  별도 회고 docs 를 신설하지 않는다.
-  - 위 "변경 유형별 docs 영향 표"에 행 추가/보강으로 흡수한다.
-  - `nhncloud-cli-docs-verifier` agent 본문(4절)이 이 표를 거울처럼 참조한다 — 별도 체크리스트를 두지 않는다.
-    표 수정 시 agent 본문도 자연스럽게 커버되는지 확인한다.
-  - 새 반복 지적 발생 시 절차는 `.agents/skills/_shared/retros/docs-verifier-retro.md` 참조.
-- **개인 식별 정보 / 사내 식별자 노출 금지 (public OSS — 필수)**: 이 repo 는 GitHub·npm(`@bifos/nhncloud-cli`) 양쪽 모두 public 이다.
-  `README.md`/`skills/`/`docs/`/`AGENTS.md`/`CLAUDE.md`/이슈 본문/`src/`(테스트 fixture·에러 메시지 예시 포함) 어디에도
-  실제 UAK·appkey·tenantId·사내 도메인·사내 이메일·실명을 노출하지 않는다.
-  상세 대체표는 `AGENTS.md` "개인 식별 정보 / 사내 식별자 노출 금지" 섹션 참조.
-
-```bash
-# cwd: <repo root>
-# 1) 공개 도메인 화이트리스트 밖의 URL/이메일 도메인 (사내 도메인 가능성)
-grep -rnoE "(https?://|@)[A-Za-z0-9.-]+\.(com|co\.kr|net)" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ 2>/dev/null \
-  | grep -vE "nhncloud\.com|nhncloudservice\.com|github\.com|npmjs\.com|example\.com|openai\.com|anthropic\.com"
-# 0건이어야 함
-
-# 2) 실제 비밀 형태 (placeholder <...> 제외)
-grep -rnE "(secret|password|appkey)['\"]?[[:space:]]*[:=][[:space:]]*['\"][A-Za-z0-9]{16,}" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ 2>/dev/null
-# 0건이어야 함
-```
-
-- 코어 `verify-task.sh` 5 패턴에 추가로 위 두 grep 도 task 제출 전 self-check 대상.
-
-## plan 네이밍
-
-**형식**: `tasks/{NNN}-{task-name}/` — 코어 기본값(`plan{N}-{slug}`)과 다르다. `plan` 접두어를 붙이지 않는다.
-
-- `NNN` = 3자리 zero-padded 순차 번호. Issue 연결은 폴더명이 아니라 `index.json`의 `description` 필드에 남긴다.
-- `task-name` = 케밥 케이스 간결 요약. `index.json`의 `name` 필드는 폴더명과 **동일**하게 설정.
-
-### 번호 충돌 방지 (필수)
-
-```bash
-# cwd: <repo root>
-ls tasks/ | grep -E "^[0-9]{3}-" | sort
-gh pr list --state open --json number,headRefName,title --jq '.[] | "\(.headRefName) \(.title)"'
-```
-
-다음 가용 번호(가장 큰 번호에 1 을 더한 값) 사용. 번호 없는 레거시 폴더는 count 에서 제외(소급 rename 금지).
-
-### 서브넘버 규칙
-
-동일 도메인 확장/동일 패턴 복제 후속 작업은 같은 번호에 서브넘버를 붙인다
-(예: `036-feat-ncs-foundation-read` → `036-2-feat-ncs-write-control` → `036-3-feat-ncs-create-malware`).
-서로 다른 도메인/독립 실행 가능이면 별도 번호.
-
-### index.json 스키마 (레포 특화)
-
-아래 필드가 필수다. 코어 예시(`related_docs`/`depends_on`)와 다른 점:
-
-- task 레벨 — `updated_at`/`current_phase`/`error_message`/`blocked_reason` 필수
-- phase 레벨 — `allowedTools` 필수 (`model` 은 선택)
-
-```jsonc
-{
-  "name": "{NNN}-{task-name}",          // 디렉터리명과 일치
-  "description": "무엇을 구현하는 task인지 한 줄 설명",
-  "created_at": "2026-07-14T00:00:00Z",  // ISO 8601
-  "updated_at": "2026-07-14T00:00:00Z",  // 실행 중 갱신
-  "status": "pending",                   // pending | running | completed | failed | blocked
-  "current_phase": 0,                    // 0 = 미시작
-  "total_phases": 3,                     // phases 배열 길이와 일치
-  "error_message": null,
-  "blocked_reason": null,
-  "phases": [
-    {
-      "number": 1,                       // 1부터 순차 증가
-      "title": "phase 제목",
-      "file": "phase-01.md",
-      "status": "pending",
-      "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
-      "model": "sonnet"                  // (선택) haiku | sonnet | opus
-    }
-  ]
-}
-```
-
-검증 체크리스트:
-
-- `total_phases` == `phases` 배열 길이
-- 모든 phase 에 `number`·`title`·`file`·`status`·`allowedTools` 존재
-- `number` 가 1부터 순차 증가
-- 각 `file` 이 실제 존재
-
-### 사용자 가이드와 커밋 책임
-
-사용자 가이드 갱신 phase는 코드 산출물 의존성에 맞춰 정한다.
-마지막 두 phase로 고정하지 않으며, 위 docs 영향 표가 가리키는 파일을 누락하지 않는다.
-
-phase는 구현과 검증까지만 소유한다.
-phase 단위 커밋과 최종 push는 `build-with-teams`의 team-lead가 수행한다.
-
-## branch / 커밋 / 핸드오프
-
-- **docs-first**: docs 갱신 커밋(`docs(scope): ...`) → push → task 파일 커밋 → push → task 실행. `AGENTS.md` "planning / 구현 워크플로우" 절 참조.
-- **branch prefix**: `{category}/{NNN}-{task-name}` 형태.
-  - 관측된 category — `feat`(신규 기능·확장), `fix`(버그 수정), `refactor`(구조 개선)
-  - task 폴더명 접두(`feat-`/`fix-`/`refactor-`/`maintenance-`/`debug-` 등)와 branch category 가 항상 1:1은 아니다
-    - 과거 `maintenance-` 접두 폴더도 `feat/` branch 로 진행된 사례가 있다
-  - 신규 task 는 폴더명 접두와 branch category 를 일치시키는 쪽을 기본으로 하되, 예외가 필요하면 이유를 커밋 로그에 남긴다
-- **PR 제목 형식**: `type(scope): description` (예: `chore(task): add 040 volume list /volumes/detail 전환`).
-- **핸드오프**: `/build-with-teams` 로 안내한다 (`tasks/{NNN}-{task-name}` 디렉터리를 인자로 받는다) — Agent Teams 가시적 협업 (team-lead·critic·executor·docs-verifier).
+task 제출 전 `AGENTS.md`의 빌드·검증과 공개 저장소 정보 보호 검사를 실행한다.
+문서나 내부 스킬을 바꿨으면 삭제한 경로, 낡은 절 제목과 하드코딩한 카운트가 남았는지 `rg`로 확인한다.

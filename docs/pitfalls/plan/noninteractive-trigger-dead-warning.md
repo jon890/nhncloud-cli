@@ -10,19 +10,19 @@ related: []
 
 **증상**: `nonInteractive` 진입 조건에 새 옵션을 추가 (`|| hasTagChange` 등).
   그러나 interactive `else` 블록에 기존에 있던 `if (hasOption) { stderr "...단독 사용 안 됨..." }` 경고를 그대로 둠.
-  새 옵션이 trigger 에 포함됐으므로 else 분기에서는 절대 true 가 안 됨 → **dead code + 메시지가 사실과 반대** (단독 호출이 이번 기능의 핵심인데 "단독 호출 안 됨" 안내 출력 가능성 0이지만 의도 충돌).
+  새 옵션이 trigger에 포함됐으므로 else 분기에서는 절대 true가 안 됨 → **dead code이며 메시지가 사실과 반대** (단독 호출이 이번 기능의 핵심인데 "단독 호출 안 됨" 안내 출력 가능성 0이지만 의도 충돌).
 
 **Good**: nonInteractive trigger 에 새 옵션 추가하는 phase 면 같은 phase 본문에 "interactive else 블록 안의 동일 옵션 경고 (`if (hasX)`) 제거" 를 명시. 또는 의도 주석으로 대체 ("trigger 에 포함되므로 도달 불가").
 
 ```bash
-# 1) 진입 조건(this repo: src/commands/configure.ts:427 의 hasFlag)에 어떤 옵션이 들어 있는지 확인
+# 1) src/commands/configure.ts의 hasFlag에 어떤 옵션이 들어 있는지 확인
 grep -n -A 12 "const hasFlag =" src/commands/configure.ts
-# 2) 같은 옵션이 interactive 경로에서 if 로도 검사되는지 확인 — 있으면 그 분기는 도달 불가
+# 2) 같은 옵션이 interactive 경로에서 if로도 검사되면 그 분기는 도달 불가
 grep -n "opts\.<옵션명>" src/commands/configure.ts
 ```
 
 진입 조건과 interactive 분기 양쪽에 같은 옵션이 있으면 한쪽이 dead 다.
 
-**Why**: PR #68 (plan033) docs-verifier VIOLATION — `nonInteractive = ... || hasTagChange` 확장 후 interactive else 안에 `if (hasTagChange) stderr "단독 호출 안 됨"` 그대로 둠.
-  도달 불가 + 메시지 정반대.
+**Why**: PR #68 (plan033) docs-verifier VIOLATION에서 `nonInteractive = ... || hasTagChange` 확장 후 interactive else 안에 `if (hasTagChange) stderr "단독 호출 안 됨"`을 그대로 뒀다.
+  도달할 수 없고 메시지도 정반대다.
   cc/parent 같이 trigger 미포함 옵션의 경고 패턴을 그대로 적용할 때 발생.

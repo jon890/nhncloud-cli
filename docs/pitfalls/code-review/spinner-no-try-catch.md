@@ -29,7 +29,7 @@ try {
 **기존 spinner 블록에 새 헬퍼 호출 추가 / 위치 이동 시 (재발 패턴)**: spinner 블록 내부에 새 헬퍼 호출을 추가하거나 spinner 전에 있던 호출을 spinner 후로 이동하는 경우, 그 새 위치도 동일하게 try/catch 보호가 필요하다. spinner 전에 있을 때는 안전했던 호출 (예: 파일 부재를 throw 하는 payload 읽기) 이 spinner 후 위치로 이동하면 leak 경로가 생긴다.
 
 ```ts
-// src/commands/ncs/template.ts:137 은 payload 읽기와 client 생성을 일부러 spinner 앞에 둔다.
+// src/commands/ncs/template.ts는 payload 읽기와 client 생성을 일부러 spinner 앞에 둔다.
 // 이 순서를 바꿔 spinner 뒤로 옮기면 try/catch 보호가 새로 필요해진다.
 const payload = readJsonPayload(opts.file);        // spinner 전 — throw 해도 leak 없음
 const { client } = await resolveNcsClient(opts);   // spinner 전
@@ -58,7 +58,7 @@ if (opts.wait) {
 }
 ```
 
-**Why**: PR #6 (plan004) 🟡 — create `--wait` 가 첫 spinner stop 없이 두 번째 spinner 시작 → 고아 spinner 2개. `--wait`·폴링 같은 다단계 진행 표시 명령마다 재발 가능.
+**Why**: PR #6 (plan004) 🟡에서 create `--wait`가 첫 spinner stop 없이 두 번째 spinner를 시작해 고아 spinner가 생겼다. `--wait`·폴링 같은 다단계 진행 표시 명령마다 재발 가능.
 
 **spinner 구간 안에서 stderr 로 경고 쓰기 (재발 패턴)**: spinner 가 도는 동안 `process.stderr.write` 로 경고를 내면 ora 프레임과 같은 stream 이라 텍스트가 애니메이션 문자와 섞인다 (`src/utils/spinner.ts` 의 `stream: process.stderr`). 저장소 선례는 예외 없이 경고를 spinner **밖**에 둔다 (`floatingip/delete.ts`, `deploy/download.ts` 는 `stopSpinner` 뒤).
 
@@ -76,4 +76,4 @@ stopSpinner(true);
 
 **Self-check**: spinner 를 새로 넣는 diff 라면, 그 구간 안으로 들어간 `process.stderr.write` 가 있는지 본다. `awk '/startSpinner/,/stopSpinner\(true\)/' {파일} | grep -c 'process.stderr.write'` 가 0 이어야 한다.
 
-**Why**: PR #86 — code-review 지적을 반영해 spinner 를 추가하면서, 원래 spinner 밖에 있던 경고 두 개가 구간 안으로 들어갔다. **테스트가 spinner 를 mock 하므로 ora 가 실제로 그리지 않아 이 회귀는 테스트로 잡히지 않는다.** stderr write 와 `startSpinner` 의 호출 순서를 비교하는 테스트를 따로 넣어야 고정된다.
+**Why**: PR #86에서 code-review 지적을 반영해 spinner를 추가하면서, 원래 spinner 밖에 있던 경고 두 개가 구간 안으로 들어갔다. **테스트가 spinner를 mock하므로 ora가 실제로 그리지 않아 이 회귀는 테스트로 잡히지 않는다.** stderr write와 `startSpinner`의 호출 순서를 비교하는 테스트를 따로 넣어야 고정된다.

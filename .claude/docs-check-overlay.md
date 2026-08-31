@@ -1,30 +1,20 @@
-# docs-check 오버레이 — nhncloud-cli
+# docs-check 오버레이: nhncloud-cli
 
-공용 코어(`~/.claude/skills/docs-check`)에 nhncloud-cli 특화를 주입한다.
-코어가 뼈대, 여기는 이 레포에서만 다른 값만 채운다 — 코어·`AGENTS.md`(`CLAUDE.md` 심링크)와 중복 기재하지 않는다.
+공용 `docs-check` 스킬에 이 저장소의 문서 범위와 검증 위임만 보탠다.
 
-## docs 구조와 대상 파일
+## 감사 대상
 
-- `docs/prd.md` / `docs/flow.md` / `docs/adr/`(ADR 1개 = 파일 1개, `docs/adr/INDEX.md` 라우터) / `docs/data-schema.md` / `docs/code-architecture.md`
-- `AGENTS.md`(`CLAUDE.md` 심링크) — 코드 규칙, ADR 참조 표, 서비스별 인증 모델 표
-- `skills/nhncloud-cli/SKILL.md` 와 `skills/nhncloud-cli/references/*.md` — 공개 사용자 가이드(npm 배포 대상, dogfooding 필수)
-- `docs/pitfalls/INDEX.md` 와 `docs/pitfalls/*/*.md` — 계획·team 실행·code-review 회피 패턴 (단일 소스)
-- `.agents/skills/*/SKILL.md` 와 `.agents/skills/_shared/retros/*.md` — 내부 개발 워크플로우 스킬
+- 제품과 설계: `docs/prd.md`, `docs/flow.md`, `docs/code-architecture.md`, `docs/data-schema.md`, `docs/adr/`
+- 사용자 가이드: `README.md`, `skills/nhncloud-cli/SKILL.md`, `skills/nhncloud-cli/references/`
+- 반복 함정: `docs/pitfalls/INDEX.md`, `docs/pitfalls/*/*.md`
+- 하네스: `AGENTS.md`, `.claude/*.md`, `.agents/skills/*/SKILL.md`, `.claude/agents/`, `.codex/agents/`, `.github/workflows/code-review-prompt.txt`
 
-```bash
-# cwd: <repo root>
-ls docs/*.md docs/adr/*.md docs/pitfalls/INDEX.md docs/pitfalls/*/*.md \
-   skills/nhncloud-cli/SKILL.md skills/nhncloud-cli/references/*.md \
-   .agents/skills/*/SKILL.md .agents/skills/_shared/retros/*.md
-```
+명령과 옵션 설명은 `node dist/index.js commands --json`과 실제 help를 기준으로 대조한다.
+ADR 목록과 링크 무결성을 확인하고, 문서 개수와 명령 개수 같은 변동값은 산문에 고정하지 않는다.
+공개 정보 검사는 `AGENTS.md`의 명령을 그대로 사용한다.
 
-## 부패 검사 grep (레포 특화)
+## 의미 검증 위임
 
-- ADR Index sync·bloat 검사의 `<ADR_DIR>` = `docs/adr/`
-- 개인 식별 정보 사전 점검 — `AGENTS.md` "개인 식별 정보 / 사내 식별자 노출 금지" 절의 grep 2개(공개 도메인 화이트리스트 밖 도메인, 비밀 형태 문자열)를 그대로 실행. 이 repo 는 GitHub·npm 양쪽 public 이라 필수.
-- 공개 skill dogfooding — 새/삭제/변경된 명령·옵션이 `skills/nhncloud-cli/SKILL.md` 와 `references/*.md` 에 반영됐는지 확인. 변경 유형별 해당 여부는 `.claude/planning-overlay.md` "docs 영향 표" 참조.
-
-## 검증 위임 (단일 소스)
-
-의미 6축(A~E) 판정은 `nhncloud-cli-docs-verifier` 에이전트(`.claude/agents/nhncloud-cli-docs-verifier.md` / `.codex/agents/nhncloud-cli-docs-verifier.toml`)에 위임한다.
-grep 명령·도메인 지식은 그 agent 본문이 단일 소스 — 여기서 반복하지 않는다.
+부패, 과대화, 추론성, 중복, 자명성과 가독성 판정은 `nhncloud-cli-docs-verifier`에 위임한다.
+Claude Code 정의는 `.claude/agents/nhncloud-cli-docs-verifier.md`, Codex 정의는 `.codex/agents/nhncloud-cli-docs-verifier.toml`이다.
+에이전트는 수정하지 않고 근거와 판정만 반환한다.

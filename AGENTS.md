@@ -11,7 +11,7 @@ NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 TypeScript 와 Commande
 
 ## 단일 소스
 
-- 실제 명령 경로·인수·옵션은 Commander 트리에서 생성하는 `nhncloud commands --json`을 기준으로 삼으며, 현재 명령 카탈로그는 170개다.
+- 실제 명령 경로·인수·옵션은 Commander 트리에서 생성하는 `nhncloud commands --json`을 기준으로 삼는다.
 - 제품 요구사항과 흐름은 `docs/prd.md`와 `docs/flow.md`에서 관리한다.
 - 코드 경계와 디렉터리 책임은 `docs/code-architecture.md`에서 관리한다.
 - 자격증명과 설정 스키마는 `docs/data-schema.md`에서 관리한다.
@@ -33,7 +33,7 @@ NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 TypeScript 와 Commande
 - 공통 엔드포인트·응답 봉투·HTTP 오류 처리는 `src/api/`, 자격증명과 profile 해석은 `src/config/`의 기존 경계를 재사용한다.
 - 사용자 오류는 `NhnCloudCliError(message, exitCode)`와 `src/utils/exit-codes.ts`의 종료 코드를 사용한다.
 - 데이터는 stdout, 진행 상황·경고·오류는 stderr로 분리한다.
-- 파일 export는 API 수집 완료 여부와 파일 형식 완결 여부를 구분한다.
+- 파일 export는 API 수집 완료와 파일 형식 완결을 구분한다.
   전체 결과를 최종 경로 교체 실패 때문에 삭제하지 않으며 Log & Crash 세부 정책은 ADR-034를 따른다.
 - 자동화 가능한 명령은 대화형 입력을 기다리지 않게 설계한다.
 - 위험한 변경은 API 호출 전에 `--yes`를 검증하고, `--json`·`--quiet` 출력과 종료 코드를 결정적으로 유지한다.
@@ -52,6 +52,9 @@ node dist/index.js commands --json
 git diff --check
 ```
 
+worktree에서 `pnpm install`이 esbuild 실행을 차단하면 설치를 반복하지 않는다.
+이미 설치된 `node_modules/.bin/tsup`, `tsc`, `vitest`를 직접 실행해 같은 검증을 수행한다.
+
 - 변경 동작을 고정하는 대상 테스트를 먼저 실행하고, 완료 전 타입 검사·전체 테스트·빌드를 실행한다.
 - 명령이나 옵션을 바꾸면 생성된 명령 카탈로그와 `README.md`, `skills/nhncloud-cli/references/`를 함께 대조한다.
 - 출력 계약을 바꾸면 기본 출력·`--json`·`--quiet`·stdout/stderr·종료 코드를 모두 검증한다.
@@ -64,7 +67,7 @@ git diff --check
 - `skills uninstall`은 관리 저장소 또는 인식 가능한 기존 패키지·저장소를 가리키는 활성 링크만 제거한다. 관리 저장소 자체와 실제 디렉터리, 알 수 없는 유효 링크·깨진 링크는 보존하고 제거를 거부한다.
 - `.agents/skills/`는 내부 개발 워크플로우의 단일 원본이며 `.claude/skills` 심볼릭 링크를 유지한다.
 - `docs/pitfalls/`는 계획·팀 실행·코드 검토에서 반복해서 발견된 회피 패턴의 단일 원본이다. `INDEX.md`에서 변경 유형에 맞는 항목만 골라 읽는다.
-- `.agents/skills/_shared/retros/`에는 회피 패턴 자체가 아니라 이를 수집·반영하는 역할별 절차만 둔다.
+- 새 반복 함정은 재현 가능하고 일반화되며 검출 방법이 있을 때만 `docs/pitfalls/`에 패턴당 한 파일로 남긴다. 원시 회고와 실행 통계는 저장소 문서로 누적하지 않는다.
 - 새 기능은 `planning`으로 설계 문서와 task를 먼저 만들고, 승인된 계획은 `build-with-teams`로 구현한다.
 - 설계 문서는 task보다 먼저 커밋한다.
 - 문서·스킬·외부 공개 프로젝트 설명은 한국어로 작성한다.
@@ -87,10 +90,10 @@ git diff --check
 커밋, 이슈 작성, 릴리스 전에 다음 검사가 모두 0건인지 확인한다.
 
 ```bash
-grep -rnoE "(https?://|@)[A-Za-z0-9.-]+\.(com|co\.kr|net)" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ 2>/dev/null \
+grep -rnoE "(https?://|@)[A-Za-z0-9.-]+\.(com|co\.kr|net)" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ tasks/ .agents/ .claude/ .codex/ .github/ 2>/dev/null \
   | grep -vE "nhncloud\.com|nhncloudservice\.com|github\.com|npmjs\.com|example\.com|openai\.com|anthropic\.com"
 
-grep -rnE "(secret|password|appkey)['\"]?[[:space:]]*[:=][[:space:]]*['\"][A-Za-z0-9]{16,}" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ 2>/dev/null
+grep -rnE "(secret|password|appkey)['\"]?[[:space:]]*[:=][[:space:]]*['\"][A-Za-z0-9]{16,}" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ tasks/ .agents/ .claude/ .codex/ .github/ 2>/dev/null
 ```
 
 내부용 실제 값을 넣어야 한다면 사용자의 명시적 동의가 있어야 한다.

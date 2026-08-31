@@ -1,4 +1,0 @@
-interface:
-  display_name: "코드베이스 유지보수"
-  short_description: "주기적 코드베이스 건강검진과 리팩토링 후보 작업화"
-  default_prompt: "주간 코드베이스 점검을 실행하고 리팩토링 후보를 제안해줘."
