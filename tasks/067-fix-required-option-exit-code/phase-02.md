@@ -91,10 +91,10 @@ for mode in default json quiet; do
 
   set +e
   node dist/index.js "${mode_flag[@]}" volume create >"$VERIFY_DIR/$mode.out" 2>"$VERIFY_DIR/$mode.err"
-  status=$?
+  mode_status=$?
   set -e
 
-  test "$status" -eq 3
+  test "$mode_status" -eq 3
   test ! -s "$VERIFY_DIR/$mode.out"
   test "$(grep -c "required option" "$VERIFY_DIR/$mode.err")" -eq 1
   ! grep -q '^오류:' "$VERIFY_DIR/$mode.err"
