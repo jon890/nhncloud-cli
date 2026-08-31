@@ -1,24 +1,28 @@
 ---
 id: new-command-docs-required-skip
 category: plan
-title: 신규 명령 task 가 영향 표 필수 사용자 가이드 docs 를 "범위 외" 로 스킵
-triggers: [신규 명령, docs, AGENTS.md]
+title: 새 명령의 공개 사용 표면 갱신을 범위에서 빠뜨림
+triggers: [신규 명령, README, 공개 스킬]
 tool_catchable: false
-source: [PR1, PR10, PR11, PR13]
-related: []
+source: [PR1, PR10]
+related: [integrated-command-partial-surface]
 ---
 
-**증상**: 신규 CLI 명령 task 의 마지막 (사용자 가이드) phase 가 `skills/nhncloud-cli/SKILL.md` 또는 `skills/nhncloud-cli/references/*.md` 만 작성하고 `README.md` 사용 예 섹션을 "PoC 범위 외" 로 명시 스킵.
-  planning SKILL 8단계 A항 "변경 유형별 docs 영향 표" 의 "신규 CLI 명령" 행은 README.md 사용 예 + AGENTS.md "N개 명령 카운트" + 공개 skill router/reference 반영을 **필수** (조건부 아님) 로 표시 → docs-verifier UPDATE_NEEDED.
+**증상**: 새 명령을 구현하고 생성 명령 카탈로그에는 나타나지만 `README.md`의 사용 흐름이나 공개 `skills/nhncloud-cli/references/`는 이전 상태로 남는다. 내부 지침에 명령 개수를 복제하는 방식은 숫자만 다시 낡게 만든다.
 
-**Good**: 신규 명령 task 의 phase 작성 시 영향 표 해당 행이 필수로 표시한 docs 를 모두 phase 작업 목록에 포함. "PoC 라서 생략" 판단으로 표의 필수 항목을 빼지 않는다 (표가 단일 소스).
-  AGENTS.md 는 결정 doc 이라 phase 안에서 못 고치므로, team-lead 가 phase 루프 밖 별도 commit 으로 "N개 명령 카운트" 보완.
+**Good**: Commander 트리에서 생성한 `nhncloud commands --json`과 실제 help를 명령 표면의 단일 소스로 삼는다. 사용자가 새 명령을 발견하거나 실행하는 방식이 바뀌면 `README.md`와 해당 공개 스킬 reference를 함께 대조하고, 자연어 라우팅 범위가 바뀔 때만 `SKILL.md` description과 router를 고친다. `AGENTS.md`에는 명령 목록이나 개수를 추가하지 않는다.
 
-**Self-check**: 신규 명령 phase 가 영향 표의 README/SKILL/CLAUDE 필수 항목을 모두 다루는가? "범위 외" 로 표의 필수 항목을 뺀 곳이 없는가?
+**검출**:
 
-**Why**: PR #1 (plan001) — phase-06 이 "README.md 는 PoC 범위 외" 로 명시 스킵했으나 영향 표는 README 사용 예를 필수로 요구 → docs-verifier UPDATE_NEEDED. 신규 명령마다 재발 가능.
+```bash
+node dist/index.js commands --json > /tmp/nhncloud-commands.json
+rg -n '<new-command>|<new-service>' README.md skills/nhncloud-cli/
+```
 
-**메타 문구 누락 보강 (PR #10·#11 연속 관측)**: 사용 예 섹션은 갱신하면서 **README intro "지원 명령" 문구 + `skills/nhncloud-cli/SKILL.md` 프론트매터 description + router 표 + 관련 `skills/nhncloud-cli/references/*.md` 본문 명령 목록** 을 빠뜨리는 누락이 008·009 연속으로 docs-verifier UPDATE_NEEDED 를 유발했다. 이 셋은 명령 본문 추가와 떨어진 "한 줄 요약"이라 잊기 쉽다.
-  - **backlog 일괄 생성 task 의 함정**: 008·009 처럼 docs sweep 으로 미리 만든 phase 파일은 **회고 이전에 작성**되어, 회고로 planning 영향 표를 보강해도(008 PR #10 에서 intro/description 을 표에 추가) 그 phase-02 작업 목록에는 반영돼 있지 않다. executor 는 영향 표를 능동 대조하지 않고 phase 작업 목록을 따르므로 또 놓친다.
-  - **대응**: backlog task 를 build-with-teams 로 돌릴 때 team-lead 가 executor 스폰 프롬프트에 "새 명령 추가 시 README intro 지원 명령 문구 + SKILL 프론트매터 description + 본문 명령 목록도 갱신" 을 명시한다 (영향 표 보강만으로는 backlog phase 에 소급 안 됨).
-  - **SKILL.md 는 두 곳 (PR #11·#13 연속 재발)**: 프론트매터 `description`(line 3, 파일 최상단 메타) 과 본문 명령 목록·매핑 표는 **별개 위치**다. executor 가 "SKILL 갱신" 을 받으면 눈에 띄는 본문(사용 예·매핑 표)만 고치고 프론트매터 description 을 빠뜨리는 사고가 반복된다(009 PR #11, 011 PR #13 둘 다 docs-verifier 가 프론트매터 description 만 UPDATE_NEEDED). 스폰 프롬프트에서 "프론트매터 description(line 3) **과** 본문 명령 목록 **둘 다**" 로 분리해 명시한다. 프론트매터 description 은 AI 에이전트의 스킬 선택 트리거라 누락 시 새 명령이 자연어 매칭에서 빠진다.
+카탈로그와 실제 help에 나온 명령이 사용자 가이드의 관련 흐름에 반영됐는지 사람이 대조한다.
+
+**Self-check**: 생성 카탈로그와 help를 확인했는가? README와 공개 reference 중 실제 영향이 있는 곳을 갱신했는가? 명령 개수를 다른 문서에 복제하지 않았는가?
+
+**Why**: 여러 신규 명령 PR에서 구현과 reference 일부만 갱신하고 README 요약이나 스킬 라우팅을 놓쳤다. 반대로 명령 개수를 `AGENTS.md`에 적는 대응은 새로운 부패 지점을 만들었으므로 현재 단일 소스 정책에서 제외한다.
+
+관련: [[integrated-command-partial-surface]]

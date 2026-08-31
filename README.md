@@ -112,7 +112,7 @@ nhncloud apigateway stage import-resources <service-id> <stage-id> --yes        
 nhncloud apigateway stage deploy create <service-id> <stage-id> --yes                 # API Gateway 스테이지 배포
 ```
 
-전체 명령과 옵션은 `--help` 로 본다. 현재 170개다.
+전체 명령과 옵션은 `--help` 로 본다.
 
 ```bash
 nhncloud --help
@@ -180,9 +180,8 @@ src/
   utils/         에러, 스피너, 종료 코드
 ```
 
-의존 방향은 `commands/` → `services/` → `api/` 이고, `utils/` 와 `formatters/` 는 그 아래에서 공유한다.
-`services/` 가 `commands/` 를 import 하지 않는다.
-역류는 금지다.
+`commands/`는 `services/`, `api/`, `config/`의 기능을 조합한다.
+`services/`가 `commands/`를 import하지 않는 경계와 상세 의존 방향은 `docs/code-architecture.md`를 기준으로 삼는다.
 
 | 문서 | 담는 것 |
 | --- | --- |
@@ -190,8 +189,8 @@ src/
 | [docs/flow.md](docs/flow.md) | 사용자 흐름 |
 | [docs/code-architecture.md](docs/code-architecture.md) | 디렉터리 트리, 레이어, 경계 |
 | [docs/data-schema.md](docs/data-schema.md) | 자격증명과 캐시 스키마 |
-| [docs/adr/INDEX.md](docs/adr/INDEX.md) | 기술 의사결정 기록 (34건) |
-| [docs/pitfalls/INDEX.md](docs/pitfalls/INDEX.md) | 반복해서 발견된 회피 패턴 (108건) |
+| [docs/adr/INDEX.md](docs/adr/INDEX.md) | 기술 의사결정 기록 |
+| [docs/pitfalls/INDEX.md](docs/pitfalls/INDEX.md) | 반복해서 발견된 회피 패턴 |
 
 ## 기여하기
 
@@ -228,7 +227,7 @@ HTTP 호출은 `ky` 만 쓰고, 사용자 오류는 `NhnCloudCliError` 와 `src/
 데이터는 stdout, 진행 상황·경고·오류는 stderr 로 분리한다.
 
 NHN Cloud API 가 문서와 다르거나 직관에 반하면 [docs/adr/](docs/adr/) 에 기록한다.
-엔드포인트 버전 이중 prefix 나 200 응답 속 `isSuccessful: false` 처럼, 모르고 접근하면 다시 막히는 것들이 이미 27건 쌓여 있다.
+엔드포인트 버전 이중 prefix 나 200 응답 속 `isSuccessful: false`처럼 직관에 반하는 동작은 관련 ADR과 반복 함정 문서에서 확인한다.
 
 ### PR 을 낼 때
 

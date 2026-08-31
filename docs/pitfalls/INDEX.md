@@ -1,9 +1,9 @@
-# Pitfalls — 사고/실수 회피 패턴 (파일-per-패턴 wiki)
+# Pitfalls: 사고/실수 회피 패턴 (파일-per-패턴 wiki)
 
 skills 가 공유하는 회피 패턴 모음. **모놀리식 문서가 아니라 패턴 1개 = 파일 1개**다.
 한 파일을 통째로 읽지 말고, 이 INDEX 로 **이 작업의 변경 유형에 해당하는 파일만** 골라 읽는다.
 
-## 소비 방식 (중요 — 전부 읽지 않는다)
+## 소비 방식 (중요: 전부 읽지 않는다)
 
 1. 이 INDEX 의 **라우터 표**에서 지금 작업의 변경 유형 행을 찾는다.
 2. 그 행이 가리키는 pattern 파일만 읽고 self-check 한다.
@@ -21,21 +21,22 @@ skills 가 공유하는 회피 패턴 모음. **모놀리식 문서가 아니라
 
 새 패턴은 **아래 4조건을 모두 통과할 때만** 파일로 추가한다. 1회성 지적은 PR reply 로 끝낸다.
 
-1. **재발성** — 2회 이상 재발했거나, 다른 코드에서도 발생할 구조적 가능성이 있다.
-2. **심각도** — 데이터 손상·문서 전체 실패·보안 등 영향이 크다 (경미한 1회성은 제외).
-3. **도구로 못 잡음** — `pnpm tsc --noEmit` / `pnpm test` (vitest) 가 이미 잡는 것은 추가하지 않는다 (도구가 단일 소스).
-4. **추상화 가능** — 커널이 특정 인시던트(plan/PR) 너머로 일반화된다. 인시던트 종속 예시는 재사용 코드 예시로 교체.
+1. **재발성**: 2회 이상 재발했거나, 다른 코드에서도 발생할 구조적 가능성이 있다.
+2. **심각도**: 데이터 손상·문서 전체 실패·보안 등 영향이 크다 (경미한 1회성은 제외).
+3. **도구로 못 잡음**: `pnpm tsc --noEmit` / `pnpm test` (vitest) 가 이미 잡는 것은 추가하지 않는다 (도구가 단일 소스).
+4. **추상화 가능**: 커널이 특정 인시던트(plan/PR) 너머로 일반화된다. 인시던트 종속 예시는 재사용 코드 예시로 교체.
 
-**주기적 prune·automate 패스 (의무)**: 회고 누적이 ADD 로만 기울지 않도록, 회고 10회마다 또는 분기마다 1회:
+**주기적 prune·automate 패스**: 분기마다 한 번 다음을 점검한다.
 
-- **prune** — 가리키는 코드가 사라진 stale 파일 삭제 (`git rm`), 같은 커널 중복 파일 MERGE.
-- **automate** — 도구로 승격 가능한 패턴은 `pnpm tsc` / vitest / ast-grep 으로 옮기고 파일 삭제.
+- **prune**: 가리키는 코드가 사라진 stale 파일 삭제 (`git rm`), 같은 커널 중복 파일 MERGE.
+- **automate**: 도구로 승격 가능한 패턴은 `pnpm tsc` / vitest / ast-grep 으로 옮기고 파일 삭제.
 
-회고 절차의 단일 소스는 `.agents/skills/_shared/retros/{critic,code-reviewer,docs-verifier}-retro.md`. 각 retro 가 이 카테고리·planning 영향 표를 데이터 단일 소스로 가리킨다.
+원시 회고와 실행 통계는 별도 문서로 누적하지 않는다.
+승격 조건을 통과한 패턴만 이 디렉터리에 패턴당 한 파일로 남긴다.
 
 ## 파일 형식
 
-각 패턴 파일은 frontmatter + 본문(증상 / Good / 검출 / Self-check / Why).
+각 패턴 파일은 frontmatter와 본문(증상 / Good / 검출 / Self-check / Why)으로 구성한다.
 
 ```yaml
 ---
@@ -44,7 +45,7 @@ category: plan | team | code-review
 title: <한 줄 요약>
 triggers: [<변경 유형 키워드>, ...]   # 라우터가 이 값으로 매칭
 tool_catchable: <true|false>          # true 면 Why 에 그래도 유지하는 이유
-source: [PR40, plan004, ...]          # 출처 PR#/plan### — 본문 Why 에서 backfill, 미상은 []
+source: [PR40, plan004, ...]          # 출처 PR#/plan###: 본문 Why 에서 backfill, 미상은 []
 related: [<다른 패턴 slug>, ...]      # 백링크
 ---
 ```
@@ -54,24 +55,24 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 **링크 규칙**:
 
 - 패턴 간 cross-ref(관련 패턴)는 본문 끝에 `관련: [[slug]], [[slug]]` 로 적는다.
-  `[[slug]]` 는 brain·메모리 관례의 백링크 — **자동 로드하지 않는** 탐색·grep 토큰이다.
-- `@경로` (import) 는 쓰지 않는다 — 그 파일 내용을 통째로 자동 포함시켜 선택적 로드 목적을 깨뜨린다.
+  `[[slug]]` 는 brain·메모리 관례의 백링크: **자동 로드하지 않는** 탐색·grep 토큰이다.
+- `@경로` (import) 는 쓰지 않는다: 그 파일 내용을 통째로 자동 포함시켜 선택적 로드 목적을 깨뜨린다.
 - INDEX 의 카테고리 목록만 마크다운 링크(`[text](path)`) 로 둔다 (GitHub 클릭 네비게이션 허브).
 - `related:` frontmatter 는 같은 slug 를 기계 필드로 유지한다 (본문 `[[ ]]` 와 중복 OK).
 
 ## nhncloud-cli 컨텍스트
 
 - 빌드 검증: `pnpm tsc --noEmit && pnpm run build && pnpm test`
-- 스택: TypeScript + Commander.js + ky + tsup (CJS 번들) + vitest
+- 스택: TypeScript, Commander.js, ky, tsup(CJS 번들), vitest
 - 메인 브랜치: `main`
-- 워크플로: 브랜치명 = `feat/<NNN>-<slug>` (`<NNN>` = task 번호)
-- tsc/vitest 가 잡는다: exitCode 타입 오류 등 정적 타입 오류, vitest 가 커버하는 로직 — "도구로 못 잡음" 조건에서 제외
+- 워크플로: 브랜치명 = `{category}/<NNN>-<slug>`이며 세부 규칙은 `.claude/planning-overlay.md`를 따른다.
+- tsc/vitest 가 잡는다: exitCode 타입 오류 등 정적 타입 오류, vitest 가 커버하는 로직: "도구로 못 잡음" 조건에서 제외
 
-## 라우터 — 관련 패턴 고르는 법
+## 라우터: 관련 패턴 고르는 법
 
 전부 읽지 않는다. 두 가지 방법으로 이 작업에 해당하는 파일만 고른다.
 
-1. **trigger grep** (1차) — 각 파일 frontmatter 의 `triggers:` 에 변경 유형 키워드가 있다. 작업 키워드로 좁힌다:
+1. **trigger grep** (1차): 각 파일 frontmatter 의 `triggers:` 에 변경 유형 키워드가 있다. 작업 키워드로 좁힌다:
 
    ```bash
    # 예: spinner 순서를 바꾸는 코드 작성
@@ -88,6 +89,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 | 에러 처리 일관성 (exitCode·catch) | code-review | [exitcode-param-error-in-api-path](code-review/exitcode-param-error-in-api-path.md), [exitcode-missing](code-review/exitcode-missing.md), [credential-loader-reinvented-swallow](code-review/credential-loader-reinvented-swallow.md) |
 | 타입 안전성 (Map.get()! / 이중 단언 / optional 응답 필드) | code-review | [map-get-nonnull-assertion](code-review/map-get-nonnull-assertion.md), [double-assertion-unknown](code-review/double-assertion-unknown.md), [double-assertion-union-type](code-review/double-assertion-union-type.md), [optional-response-field-guard](code-review/optional-response-field-guard.md), [shared-guard-foreign-schema](code-review/shared-guard-foreign-schema.md) |
 | API/HTTP 패턴 (redirect·throwHttpErrors) | code-review | [redirect-manual-status-missing](code-review/redirect-manual-status-missing.md), [numeric-response-string-number-mixed](code-review/numeric-response-string-number-mixed.md) |
+| 방어 가드와 회귀 테스트 | code-review | [guard-without-failing-test](code-review/guard-without-failing-test.md) |
 | 봉투 검사 (200-고정 API·isSuccessful) | code-review | [write-method-envelope-unchecked](code-review/write-method-envelope-unchecked.md), [new-endpoint-envelope-assumed](plan/new-endpoint-envelope-assumed.md) |
 | exitCode 누락·mismatch | code-review | [exitcode-missing](code-review/exitcode-missing.md), [mock-reject-value-mismatch](code-review/mock-reject-value-mismatch.md), [exit-code-literal-no-constant](code-review/exit-code-literal-no-constant.md) |
 | path-traversal (fileName basename) | code-review | [path-traversal-filename](code-review/path-traversal-filename.md) |
@@ -96,6 +98,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 | 공용 helper 배치·중복 (DRY) | code-review | [shared-helper-in-command-file](code-review/shared-helper-in-command-file.md), [duplicate-map-block-no-helper](code-review/duplicate-map-block-no-helper.md), [noninteractive-interactive-duplication](code-review/noninteractive-interactive-duplication.md) |
 | ADR·이슈 본문에 외부 상태를 근거로 쓸 때 | plan | [stale-context-as-doc-evidence](plan/stale-context-as-doc-evidence.md), [external-state-gate-missing](plan/external-state-gate-missing.md) |
 | 기존 동작을 반대로 뒤집는 변경 (실패 경로·보존 정책) | plan | [goal-reversed-logic-reuse](plan/goal-reversed-logic-reuse.md), [stale-code-in-reuse-claim](plan/stale-code-in-reuse-claim.md) |
+| 결정·옵션·인수 폐지 후 문서 표면 정리 | plan | [decision-surface-sweep-incomplete](plan/decision-surface-sweep-incomplete.md), [path-migration-agents-missing](plan/path-migration-agents-missing.md) |
 | 되돌릴 수 없는 쓰기 명령 (배포·삭제·전송) | plan | [safety-note-without-user-facing-text](plan/safety-note-without-user-facing-text.md), [write-command-executor-live-call](plan/write-command-executor-live-call.md) |
 | plan 작성 (phase 항목·검증 명령·완료 조건) | plan | [numeric-estimation](plan/numeric-estimation.md), [manual-verification-criterion](plan/manual-verification-criterion.md), [last-phase-completed-marking](plan/last-phase-completed-marking.md) |
 | 팀원 스폰·메시지 (build-with-teams) | team | [sendmessage-reply-missing](team/sendmessage-reply-missing.md), [member-premature-execution](team/member-premature-execution.md), [executor-premature-execution](plan/executor-premature-execution.md) |
@@ -105,11 +108,12 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 
 ## 카테고리별 패턴 목록
 
-### [plan/](plan/) (45)
+### [plan/](plan/)
 
 - [cache-bypass-in-verify-helper](plan/cache-bypass-in-verify-helper.md)
 - [carve-out-conflicting-prohibition](plan/carve-out-conflicting-prohibition.md)
 - [decision-docs-in-phase](plan/decision-docs-in-phase.md)
+- [decision-surface-sweep-incomplete](plan/decision-surface-sweep-incomplete.md)
 - [endpoint-version-double-prefix](plan/endpoint-version-double-prefix.md)
 - [execution-context-ambiguous](plan/execution-context-ambiguous.md)
 - [executor-premature-execution](plan/executor-premature-execution.md)
@@ -135,7 +139,6 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [on-disk-schema-multiple-options](plan/on-disk-schema-multiple-options.md)
 - [option-parse-before-side-effects](plan/option-parse-before-side-effects.md)
 - [path-migration-agents-missing](plan/path-migration-agents-missing.md)
-- [plan-and-build-commit-conflict](plan/plan-and-build-commit-conflict.md)
 - [prev-plan-interaction-missing](plan/prev-plan-interaction-missing.md)
 - [prose-migration-lossless-checklist](plan/prose-migration-lossless-checklist.md)
 - [punt-orphan-deliverable](plan/punt-orphan-deliverable.md)
@@ -153,7 +156,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [type-optional-cascade-grep-missing](plan/type-optional-cascade-grep-missing.md)
 - [write-command-executor-live-call](plan/write-command-executor-live-call.md)
 
-### [team/](team/) (10)
+### [team/](team/)
 
 - [branch-check-before-commit](team/branch-check-before-commit.md)
 - [critic-stale-reread](team/critic-stale-reread.md)
@@ -166,7 +169,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [sendmessage-reply-missing](team/sendmessage-reply-missing.md)
 - [task-index-phase-count-mismatch](team/task-index-phase-count-mismatch.md)
 
-### [code-review/](code-review/) (53)
+### [code-review/](code-review/)
 
 - [adjacent-command-pattern-missing](code-review/adjacent-command-pattern-missing.md)
 - [ambiguous-option-positional-silent-fallback](code-review/ambiguous-option-positional-silent-fallback.md)
@@ -189,6 +192,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [exitcode-param-error-in-api-path](code-review/exitcode-param-error-in-api-path.md)
 - [external-string-unsanitized](code-review/external-string-unsanitized.md)
 - [file-input-no-stat-guard](code-review/file-input-no-stat-guard.md)
+- [guard-without-failing-test](code-review/guard-without-failing-test.md)
 - [interactive-warning-mismatch](code-review/interactive-warning-mismatch.md)
 - [io-throw-bundled-untestable](code-review/io-throw-bundled-untestable.md)
 - [jsdoc-double-block-stale](code-review/jsdoc-double-block-stale.md)

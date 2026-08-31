@@ -13,10 +13,10 @@ related: []
   다음 사용처에서 type 불만족 (`NameRecord extends { name: string }` 위반 등) 으로 TS2345/TS2339.
 
 **Good**: 두 가지 방법:
-- **type predicate** (선호 — 안전): `.filter((x): x is X & { field: string } => typeof x.field === "string" && x.field.length > 0)` — TypeScript 가 narrowing 인지
-- **`as string` 단언** (간단): `arr.map((x) => ({ name: x.field as string }))` + 단언 안전성 주석 (`// filter 로 string 보장`)
+- **type predicate** (선호, 안전): `.filter((x): x is X & { field: string } => typeof x.field === "string" && x.field.length > 0)`. TypeScript가 narrowing으로 인식한다.
+- **`as string` 단언** (간단): `arr.map((x) => ({ name: x.field as string }))`과 단언 안전성 주석 (`// filter 로 string 보장`)
 
-아래 예시는 `ServiceCredential.appkey?: string`(`src/config/types.ts:7`)로 실제 재현한 것이다.
+아래 예시는 `src/config/types.ts`의 `ServiceCredential.appkey?: string`으로 실제 재현한 것이다.
 
 ```ts
 type AppkeyRecord = { appkey: string };
@@ -32,12 +32,12 @@ const withKey = creds.filter(
 );
 return withKey.map((c) => ({ appkey: c.appkey }));   // OK
 
-// GOOD B — 단언 + 주석
+// GOOD B — 단언과 주석
 return withKey.map((c) => ({ appkey: c.appkey as string }));   // filter 로 string 보장
 ```
 
-**검출**: type optional 완화 후 `filter` + `map` 체인이 plan 에 등장하면 narrowing 패턴 확인. 단언 사용 시 주석 필수.
+**검출**: type optional 완화 후 `filter`와 `map` 체인이 plan에 등장하면 narrowing 패턴 확인. 단언 사용 시 주석 필수.
 
-**Why**: PR #67 (plan032) critic Major #3 — filter 뒤 map 에서 TS2345/TS2339 가 났고 executor 가 단언 추가로 회피했다.
+**Why**: PR #67 (plan032) critic Major #3에서 filter 뒤 map에 TS2345/TS2339가 났고 executor가 단언 추가로 회피했다.
   type predicate 가 더 안전하지만 단언과 주석으로도 넘어갈 수 있어, plan 이 어느 쪽인지 못 박지 않으면 실행마다 갈린다.
-  현재 저장소는 `src/services/ncs/client.ts:186` 의 `filter(isNcsTemplateSummary)` 처럼 type predicate 를 쓴다. 새 응답 필드에 filter 를 붙일 때마다 반복 가능.
+  현재 저장소는 `src/services/ncs/client.ts`의 `filter(isNcsTemplateSummary)`처럼 type predicate를 쓴다. 새 응답 필드에 filter를 붙일 때마다 반복 가능.
