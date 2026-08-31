@@ -5,7 +5,7 @@ date: 2026-08-31
 phase: critic
 status: 해결
 category: 프로세스
-promotion: 검토 중
+promotion: 승격 안 함
 ---
 
 # 실행 등급 필드를 두 스키마로 중복 작성했다
@@ -40,4 +40,4 @@ task 생성 검증은 phase 개수와 파일 존재뿐 아니라 실행 등급 �
 
 ## 후속
 
-PR 생성 전 critic 회고 절차에서 반복 가능성과 자동 검사 승격 여부를 판정한다.
+`executor_routing_gate.py`가 같은 스키마 충돌을 이미 결정적으로 차단하므로 새 반복 함정으로 승격하지 않는다.
