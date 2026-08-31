@@ -80,6 +80,8 @@ skill ──> config와 독립된 사용자 데이터 경계
 검증과 자격증명 해석 전에 spinner나 외부 요청을 시작하지 않는다.
 자동화 가능한 명령은 대화형 입력을 기다리지 않는다.
 Log & Crash export는 API 수집 상태와 로컬 파일 완결 상태를 분리하고, 완료 결과를 최종 경로 교체 실패 때문에 삭제하지 않는다(ADR-034).
+명령 트리를 모두 만든 뒤 `src/commands/commander-errors.ts`가 Commander 오류를 가로챈다.
+필수 옵션 누락만 `EXIT_PARAM_ERROR`로 바꾸고, 이미 stderr에 출력한 오류는 최상위 처리부가 다시 출력하지 않는다(ADR-035).
 
 ## 공개 스킬 관리
 
