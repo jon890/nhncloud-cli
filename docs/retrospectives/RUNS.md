@@ -34,3 +34,4 @@
 | 2026-08-18 | build-with-teams | 065-feat-deploy-appkey-profile | A | 4 | 2 | 2 | 2 | 없음 | 2 | PR 준비 |
 | 2026-08-31 | planning | 066-fix-logncrash-complete-export-preservation | - | 2 | - | - | - | 없음 | 4 | task·branch push |
 | 2026-08-31 | build-with-teams | 066-fix-logncrash-complete-export-preservation | A | 2 | 1 | 1 | 1 | 없음 | 0 | PR #101 |
+| 2026-08-31 | review-fix | PR 101 | - | - | - | 0 | - | 없음 | 0 | 병합 준비 |
