@@ -18,7 +18,10 @@ import {
   withRateLimitHint,
 } from "../../services/logncrash/errors.js";
 import type { ScrollResult } from "../../services/logncrash/types.js";
-import { resolveLogncrashClient } from "./helpers.js";
+import {
+  preflightLogncrashSearchToken,
+  resolveLogncrashClient,
+} from "./helpers.js";
 
 interface ExportGlobalOpts {
   query?: string;
@@ -185,6 +188,7 @@ export function createExportCommand(finalizeOps?: ExportFileOps): Command {
           };
 
           try {
+            await preflightLogncrashSearchToken(client);
             let res: ScrollResult = await client.scrollStart({
               query: opts.query,
               from: window.from,
@@ -382,6 +386,7 @@ function errorReason(error: unknown): string {
  * 안내는 바깥 catch 한 곳에서만 붙여 문구가 두 번 붙는 경로를 없앤다.
  */
 async function scrollNextWithHint(client: LogncrashClient, scrollKey: string): Promise<ScrollResult> {
+  await preflightLogncrashSearchToken(client);
   try {
     return await client.scrollNext(scrollKey);
   } catch (err) {

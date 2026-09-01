@@ -17,8 +17,59 @@ function respondWith(body: unknown): void {
   } as never);
 }
 
+function respondToGet(body: unknown): void {
+  vi.mocked(ky.get).mockReturnValue({
+    json: async () => ({ header: successHeader, body }),
+  } as never);
+}
+
 describe("LogncrashClient Search v3", () => {
   beforeEach(() => vi.resetAllMocks());
+
+  it("available-token을 v3 GET·Bearer로 조회하고 음수 정수를 보존한다", async () => {
+    respondToGet({ availableToken: -2_302 });
+
+    const client = new LogncrashClient("app/key", "access-token");
+    await expect(client.availableToken()).resolves.toEqual({ availableToken: -2_302 });
+
+    expect(ky.get).toHaveBeenCalledWith(
+      "https://api-lncs-search.nhncloudservice.com/v3/app%2Fkey/logs/available-token",
+      {
+        headers: { "X-NHN-Authorization": "Bearer access-token" },
+        retry: 0,
+        timeout: 30_000,
+      },
+    );
+  });
+
+  it.each([
+    ["누락", {}],
+    ["문자열", { availableToken: "10" }],
+    ["소수", { availableToken: 1.5 }],
+    ["NaN", { availableToken: Number.NaN }],
+    ["무한대", { availableToken: Number.POSITIVE_INFINITY }],
+  ])("availableToken %s 응답은 EXIT_API_ERROR로 거부한다", async (_name, body) => {
+    respondToGet(body);
+
+    await expect(
+      new LogncrashClient("appkey", "access-token").availableToken(),
+    ).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+      message: expect.stringContaining("availableToken 정수 필드"),
+    });
+  });
+
+  it("available-token 봉투 실패는 EXIT_API_ERROR로 보존한다", async () => {
+    vi.mocked(ky.get).mockReturnValue({
+      json: async () => ({
+        header: { isSuccessful: false, resultCode: 429, resultMessage: "rate limit" },
+      }),
+    } as never);
+
+    await expect(
+      new LogncrashClient("appkey", "access-token").availableToken(),
+    ).rejects.toMatchObject({ exitCode: EXIT_API_ERROR, resultCode: 429 });
+  });
 
   it("cursor 첫 요청에 v3 URL·Bearer·선택 pageSize와 고정 sort를 보낸다", async () => {
     respondWith({ totalItems: 2, pageNumber: 0, pageSize: 10, data: [] });
@@ -132,6 +183,7 @@ describe("LogncrashClient Search v3", () => {
   });
 
   it.each([
+    ["availableToken", (client: LogncrashClient) => client.availableToken()],
     ["cursorSearch", (client: LogncrashClient) => client.cursorSearch({ query: "*", from: "a", to: "b" })],
     ["scrollStart", (client: LogncrashClient) => client.scrollStart({ query: "*", from: "a", to: "b" })],
     ["scrollNext", (client: LogncrashClient) => client.scrollNext("scroll-key")],
@@ -140,6 +192,7 @@ describe("LogncrashClient Search v3", () => {
       exitCode: EXIT_CONFIG_ERROR,
     });
     expect(ky.post).not.toHaveBeenCalled();
+    expect(ky.get).not.toHaveBeenCalled();
   });
 });
 

@@ -5,6 +5,10 @@ import {
   resolveProfileName,
 } from "../../config/credentials.js";
 import { LogncrashClient } from "../../services/logncrash/client.js";
+import {
+  assertAvailableSearchToken,
+  availableTokenStatus,
+} from "../../services/logncrash/token.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_CONFIG_ERROR } from "../../utils/exit-codes.js";
 
@@ -25,4 +29,9 @@ export async function resolveLogncrashClient(profile?: string): Promise<Logncras
   const uak = await getUserAccessKey(profileName);
   const accessToken = await getAccessToken(profileName, uak.id, uak.secret);
   return new LogncrashClient(credential.appkey, accessToken);
+}
+
+export async function preflightLogncrashSearchToken(client: LogncrashClient): Promise<void> {
+  const result = await client.availableToken();
+  assertAvailableSearchToken(availableTokenStatus(result.availableToken));
 }

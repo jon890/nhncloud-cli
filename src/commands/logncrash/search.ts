@@ -11,7 +11,10 @@ import {
 } from "../../services/logncrash/errors.js";
 import type { CursorSearchResult } from "../../services/logncrash/types.js";
 import { parseIntegerOption, parseNonNegativeIntegerOption } from "../parse-options.js";
-import { resolveLogncrashClient } from "./helpers.js";
+import {
+  preflightLogncrashSearchToken,
+  resolveLogncrashClient,
+} from "./helpers.js";
 
 interface SearchGlobalOpts extends OutputOptions {
   query?: string;
@@ -83,6 +86,7 @@ export const searchCommand = new Command("search")
 
     let result: CursorSearchResult;
     try {
+      await preflightLogncrashSearchToken(client);
       result = await client.cursorSearch({
         query: opts.query,
         from: fromIso,

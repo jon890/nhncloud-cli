@@ -23,7 +23,8 @@ vi.mock("../../utils/spinner.js", () => ({
 }));
 
 const cursorSearch = vi.fn();
-const client = { cursorSearch };
+const availableToken = vi.fn();
+const client = { availableToken, cursorSearch };
 
 function programWithSearch(): Command {
   return new Command("nhncloud")
@@ -51,12 +52,42 @@ describe("logncrash search v3 cursor", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(resolveLogncrashClient).mockResolvedValue(client as never);
+    availableToken.mockResolvedValue({ availableToken: 1 });
     cursorSearch.mockResolvedValue({
       totalItems: 1,
       pageNumber: 0,
       pageSize: 10,
       data: [{ logTime: "2026-08-03T00:30:00Z", logType: "NORMAL", logBody: "hello" }],
     });
+  });
+
+  it("조회 토큰을 cursor 검색 직전에 확인한다", async () => {
+    await programWithSearch().parseAsync(baseArgs());
+
+    expect(availableToken).toHaveBeenCalledTimes(1);
+    expect(availableToken.mock.invocationCallOrder[0]).toBeLessThan(
+      cursorSearch.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER,
+    );
+  });
+
+  it.each([0, -10])("조회 토큰이 %s이면 cursor 검색을 보내지 않는다", async (remaining) => {
+    availableToken.mockResolvedValue({ availableToken: remaining });
+
+    await expect(programWithSearch().parseAsync(baseArgs())).rejects.toMatchObject({
+      exitCode: EXIT_API_ERROR,
+      message: expect.stringMatching(/검색 요청을 보내지 않았습니다.*1\.6 token\/s.*자동으로 기다리지/s),
+    });
+
+    expect(cursorSearch).not.toHaveBeenCalled();
+  });
+
+  it("조회 토큰 확인 실패를 보존하고 cursor 검색을 보내지 않는다", async () => {
+    const error = new NhnCloudCliError("토큰 조회 실패", EXIT_API_ERROR);
+    availableToken.mockRejectedValue(error);
+
+    await expect(programWithSearch().parseAsync(baseArgs())).rejects.toBe(error);
+
+    expect(cursorSearch).not.toHaveBeenCalled();
   });
 
   it.each([

@@ -1,7 +1,7 @@
 {
   "name": "069-logncrash-available-token",
   "description": "이슈 #100: Log & Crash 조회 토큰을 노출하고 잔량이 0 이하인 검색을 추정 대기 시간과 함께 차단한다",
-  "status": "pending",
+  "status": "completed",
   "created_at": "2026-09-01",
   "total_phases": 1,
   "current_phases": 1,
