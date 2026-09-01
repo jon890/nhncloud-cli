@@ -157,7 +157,7 @@ git diff --check
 test "$(node dist/index.js commands --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const c=JSON.parse(s).commands;process.stdout.write(String(c.length))})')" -eq 171
 test "$(node dist/index.js commands --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const c=JSON.parse(s).commands.filter(x=>x.path==="logncrash available-token");process.stdout.write(String(c.length))})')" -eq 1
 rg -n "available-token|estimatedWaitSeconds|1\.6" README.md docs skills/nhncloud-cli/references/logncrash.md src tasks/069-logncrash-available-token
-! rg -n "available-token.*포함하지|available-token.*노출하지|회복은 초당 1개|호출당 약 1,000|시간을 두고 다시 실행하세요" docs README.md skills/nhncloud-cli src
+! rg -n "available-token.*포함하지|available-token.*노출하지|회복은 초당 1개|호출당 약 1,000|서버가 남은 시간을 알려주지 않아" docs README.md skills/nhncloud-cli
 ```
 
 네 검사는 모두 종료 코드 0이어야 한다.
