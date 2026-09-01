@@ -175,7 +175,7 @@ rg -n "available-token|estimatedWaitSeconds|1\.6" README.md docs skills/nhncloud
 ! rg -n "식별자만|핵심 식별자만|식별자 출력을 문서화" README.md skills/nhncloud-cli/SKILL.md skills/nhncloud-cli/references/common.md
 ```
 
-네 검사는 모두 종료 코드 0이어야 한다.
+위 검사는 모두 종료 코드 0이어야 한다.
 
 마지막으로 `tasks/069-logncrash-available-token/index.json`의 `status`를 `completed`로 바꾸고,
 `current_phases`를 `1`로 유지한다.
