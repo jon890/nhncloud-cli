@@ -10,7 +10,9 @@ NCR, NCS, API Gateway와 Deploy에 복제된 appkey 조회와 필수값 검증�
 서비스 블록이나 appkey가 없을 때는 기존 서비스별 설정 안내와 종료 코드 4를 유지한다.
 자격증명 파일 손상과 존재하지 않는 profile은 공통 resolver가 가리지 않고 원래 오류를 전달한다.
 
-**범위 외**: 명령·인수·옵션, HTTP 요청, 인증 순서, 자격증명 JSON 스키마, 기존 오류 문구, 종료 코드, stdout·stderr와 spinner 동작은 바꾸지 않는다.
+**범위 외**: 명령·인수·옵션, HTTP 요청, 인증 순서, 자격증명 JSON 스키마, 종료 코드, stdout·stderr와 spinner 동작은 바꾸지 않는다.
+서비스 블록이나 appkey 누락에 쓰는 기존 네 서비스의 안내 문자열은 유지한다.
+파일 손상과 profile 부재는 원래 문구가 표시되도록 오류 선택 경계를 바꾼다.
 Log & Crash의 appkey 조회는 서비스별 secret 처리와 호출 흐름이 달라 이번 공통화에 포함하지 않는다.
 `docs/flow.md`, `docs/code-architecture.md`, `docs/data-schema.md`는 planning의 문서 우선 커밋 `18ebfab`에서 갱신됐다.
 이 phase에서는 관리 문서를 다시 편집하지 않는다.

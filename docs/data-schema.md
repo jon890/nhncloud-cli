@@ -145,7 +145,8 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, 서비�
 
 자격증명 파일 손상과 존재하지 않는 profile은 원인을 보존한
 `NhnCloudCliError(EXIT_CONFIG_ERROR)`로 종료한다.
-서비스 블록이나 필수 appkey가 없으면 같은 종료 코드와 함께 해당 서비스의 `configure` 명령을 안내한다.
+NCR, NCS, API Gateway와 Deploy의 서비스 블록이나 필수 appkey가 없으면
+같은 종료 코드와 함께 해당 서비스의 `configure` 명령을 안내한다.
 
 ## 캐시 범위
 
