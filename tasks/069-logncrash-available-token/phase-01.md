@@ -95,7 +95,7 @@ preflight의 429 봉투 오류에는 실제 검색 429 안내를 붙이지 않�
 
 `src/index.ts`에서 `availableTokenCommand`를 `logncrash` 그룹에 등록한다.
 Log & Crash 에이전트 흐름은 조회 토큰 확인을 첫 단계로 보여 준 뒤 search와 export를 안내한다.
-공통 `--quiet` 설명은 식별자에 한정하지 않고, 명령이 문서화한 핵심 값 한 줄을 출력하는 계약으로 맞춘다.
+공통 `--quiet` 설명은 `src/index.ts`, `README.md`, 공개 `SKILL.md`와 common reference에서 식별자에 한정하지 않고, 명령이 문서화한 핵심 값 한 줄을 출력하는 계약으로 맞춘다.
 명령 순서는 `available-token`, `search`, `send`, `export`로 둔다.
 
 빌드 뒤 `node dist/index.js commands --json`에서 `logncrash available-token`이 정확히 한 번 나오고,
@@ -139,6 +139,7 @@ Log & Crash 에이전트 흐름은 조회 토큰 확인을 첫 단계로 보여 
 | `src/commands/logncrash/export.test.ts` | 수정: 분할·페이지·부분 파일과 preflight 결합 회귀 |
 | `src/index.ts` | 수정: 명령 등록과 Log & Crash 에이전트 흐름 |
 | `README.md` | 수정: `--quiet` 공통 출력 계약 정합성 |
+| `skills/nhncloud-cli/SKILL.md` | 수정: 에이전트용 `--quiet` 공통 출력 계약 정합성 |
 | `skills/nhncloud-cli/references/common.md` | 수정: `--quiet` 공통 출력 계약 정합성 |
 | `skills/nhncloud-cli/references/logncrash.md` | 수정: 조회 토큰 명령의 인증 요구사항 정합성 |
 | `docs/adr/030-logncrash-search-range-adaptive-split.md` | 수정: 이후 ADR의 부분 결과 보존 계약 반영 |
@@ -169,7 +170,9 @@ test "$(node dist/index.js commands --json | node -e 'let s="";process.stdin.on(
 test "$(node dist/index.js commands --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const c=JSON.parse(s).commands.filter(x=>x.path==="logncrash available-token");process.stdout.write(String(c.length))})')" -eq 1
 rg -n "available-token|estimatedWaitSeconds|1\.6" README.md docs skills/nhncloud-cli/references/logncrash.md src tasks/069-logncrash-available-token
 ! rg -n "available-token.*포함하지|available-token.*노출하지|회복은 초당 1개|호출당 약 1,000|서버가 남은 시간을 알려주지 않아" docs README.md skills/nhncloud-cli
-! rg -n "검색 기간을 좁혀도 풀리지 않습니다|식별자만|핵심 식별자만|식별자 출력을 문서화" src README.md skills/nhncloud-cli docs
+! rg -n "검색 기간을 좁혀도 풀리지 않습니다" src/services/logncrash README.md skills/nhncloud-cli/references/logncrash.md docs/adr
+! rg -n "identifier output" src/index.ts
+! rg -n "식별자만|핵심 식별자만|식별자 출력을 문서화" README.md skills/nhncloud-cli/SKILL.md skills/nhncloud-cli/references/common.md
 ```
 
 네 검사는 모두 종료 코드 0이어야 한다.
