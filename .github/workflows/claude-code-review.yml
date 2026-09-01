@@ -69,7 +69,7 @@ jobs:
           REPO="${{ github.repository }}"
           PR_NUMBER="${{ env.PR_NUMBER }}"
 
-          gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+          gh api --paginate "repos/$REPO/issues/$PR_NUMBER/comments?per_page=100" \
             --jq '.[] | select(.user.login == "claude[bot]") | .id' \
             | while read -r comment_id; do
               if [ -n "$comment_id" ]; then
@@ -78,7 +78,7 @@ jobs:
               fi
             done
 
-          gh api "repos/$REPO/pulls/$PR_NUMBER/comments" \
+          gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/comments?per_page=100" \
             --jq '.[] | select(.user.login == "claude[bot]") | .id' \
             | while read -r comment_id; do
               if [ -n "$comment_id" ]; then
@@ -88,7 +88,7 @@ jobs:
             done
 
           # 제출된 COMMENT 리뷰는 REST 로 삭제할 수 없고 dismiss 도 APPROVED 와 CHANGES_REQUESTED 에만 되므로 접는다.
-          gh api "repos/$REPO/pulls/$PR_NUMBER/reviews" \
+          gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/reviews?per_page=100" \
             --jq '.[] | select(.user.login == "claude[bot]") | .node_id' \
             | while read -r review_node_id; do
               if [ -n "$review_node_id" ]; then
@@ -127,7 +127,7 @@ jobs:
           REPO="${{ github.repository }}"
           PR_NUMBER="${{ env.PR_NUMBER }}"
 
-          ids=$(gh api "repos/$REPO/pulls/$PR_NUMBER/comments" --jq '
+          ids=$(gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/comments?per_page=100" --jq '
             .[]
             | select(.user.login == "claude[bot]")
             | select(
