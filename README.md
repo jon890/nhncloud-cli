@@ -104,6 +104,7 @@ nhncloud loadbalancer list                                    # 로드밸런서
 nhncloud ncr list                                             # 컨테이너 레지스트리
 nhncloud nks cluster list                                     # Kubernetes 클러스터
 nhncloud deploy artifacts                                     # 배포 아티팩트
+nhncloud logncrash available-token                            # 남은 조회 토큰과 추정 대기 시간
 nhncloud logncrash search --query '*' --from 1h --to now      # 최근 1시간 로그
 nhncloud logncrash export --query '<lucene>' --from 1h --to now --output logs.jsonl  # 대량 로그 파일 저장
 nhncloud apigateway service list                               # API Gateway 서비스
@@ -144,6 +145,7 @@ nhncloud commands --json | jq '.commands[] | select(.path=="nks cluster list")'
 
 ```bash
 nhncloud instance get <instance-id> --json | jq -r '.status'
+nhncloud logncrash available-token --json | jq -r '.availableToken'
 nhncloud logncrash search --query '*' --from 1h --to now --json | jq -r '.data[].logBody'
 ```
 
