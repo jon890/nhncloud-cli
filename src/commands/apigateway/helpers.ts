@@ -1,7 +1,6 @@
 import { readFile, stat } from "node:fs/promises";
 import { getAccessToken } from "../../api/oauth.js";
 import {
-  getServiceCredential,
   getUserAccessKey,
   resolveProfileName,
 } from "../../config/credentials.js";
@@ -10,8 +9,9 @@ import type {
   Resource,
   WrittenStageResource,
 } from "../../services/apigateway/types.js";
+import { resolveServiceAppKey } from "../service-appkey.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
-import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
+import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { sanitizeForTerminal } from "../../utils/terminal.js";
 import type { output } from "../../formatters/table.js";
 import { MAX_JSON_INPUT_BYTES } from "../../utils/limits.js";
@@ -114,22 +114,11 @@ export function writtenStageResourceOutput(
 
 /** profile 의 apigateway.appkey에서 appKey를 해석한다. */
 export async function resolveApiGatewayAppKey(profileName: string): Promise<string> {
-  let credential: { appkey?: string } | undefined;
-  try {
-    credential = await getServiceCredential("apigateway", profileName);
-  } catch (err) {
-    if (!(err instanceof NhnCloudCliError) || err.exitCode !== EXIT_CONFIG_ERROR) {
-      throw err;
-    }
-  }
-
-  if (!credential?.appkey) {
-    throw new NhnCloudCliError(
-      "API Gateway appKey가 없습니다. nhncloud configure --apigateway-appkey <key>로 설정하세요.",
-      EXIT_CONFIG_ERROR,
-    );
-  }
-  return credential.appkey;
+  return resolveServiceAppKey(
+    "apigateway",
+    profileName,
+    "API Gateway appKey가 없습니다. nhncloud configure --apigateway-appkey <key>로 설정하세요.",
+  );
 }
 
 /** profile → 공통 UAK → OAuth token → appKey → API Gateway client 순서로 해석한다. */

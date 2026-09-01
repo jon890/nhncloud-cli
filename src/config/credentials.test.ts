@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { EXIT_CONFIG_ERROR } from "../utils/exit-codes.js";
 
 const home = vi.hoisted(() => ({ dir: "" }));
 vi.mock("node:os", async (orig) => {
@@ -12,11 +13,13 @@ vi.mock("node:os", async (orig) => {
 // SUT 는 정적 import 금지 — home.dir set 후 동적 로드해야 CONFIG_PATH 가 temp dir 로 굳는다.
 let credentials: typeof import("./credentials.js");
 let configPath: string;
+let credentialsPath: string;
 
 beforeAll(async () => {
   home.dir = await mkdtemp(path.join(tmpdir(), "ncc-config-"));
   await mkdir(path.join(home.dir, ".nhncloud"), { recursive: true });
   configPath = path.join(home.dir, ".nhncloud", "config.json");
+  credentialsPath = path.join(home.dir, ".nhncloud", "credentials.json");
   credentials = await import("./credentials.js");
 });
 afterAll(async () => {
@@ -25,10 +28,15 @@ afterAll(async () => {
 afterEach(async () => {
   vi.restoreAllMocks();
   await rm(configPath, { force: true });
+  await rm(credentialsPath, { force: true });
 });
 
 async function writeConfig(value: unknown): Promise<void> {
   await writeFile(configPath, JSON.stringify(value), "utf-8");
+}
+
+async function writeCredentials(value: unknown): Promise<void> {
+  await writeFile(credentialsPath, JSON.stringify(value), "utf-8");
 }
 
 /** stderr 를 가로채 경고 출력만 모은다. */
@@ -40,6 +48,65 @@ function captureStderr(): { chunks: string[] } {
   });
   return { chunks };
 }
+
+describe("getOptionalServiceCredential", () => {
+  it("서비스 블록이 있으면 값을 반환한다", async () => {
+    await writeCredentials({
+      version: 1,
+      profiles: {
+        default: {
+          ncr: { appkey: "<appkey>" },
+        },
+      },
+    });
+
+    await expect(credentials.getOptionalServiceCredential("ncr", "default")).resolves.toEqual({
+      appkey: "<appkey>",
+    });
+  });
+
+  it("profile은 있고 서비스 블록만 없으면 undefined를 반환한다", async () => {
+    await writeCredentials({ version: 1, profiles: { default: {} } });
+
+    await expect(
+      credentials.getOptionalServiceCredential("ncr", "default"),
+    ).resolves.toBeUndefined();
+  });
+
+  it("profile이 없으면 기존 profile 오류와 EXIT_CONFIG_ERROR를 보존한다", async () => {
+    await writeCredentials({ version: 1, profiles: { default: {} } });
+
+    await expect(
+      credentials.getOptionalServiceCredential("ncr", "missing"),
+    ).rejects.toMatchObject({
+      exitCode: EXIT_CONFIG_ERROR,
+      message: expect.stringContaining('profile "missing" 을 찾을 수 없습니다.'),
+    });
+  });
+
+  it("손상된 credentials.json은 기존 파싱 오류와 EXIT_CONFIG_ERROR를 보존한다", async () => {
+    await writeFile(credentialsPath, "{ broken", "utf-8");
+
+    await expect(
+      credentials.getOptionalServiceCredential("ncr", "default"),
+    ).rejects.toMatchObject({
+      exitCode: EXIT_CONFIG_ERROR,
+      message: expect.stringContaining("자격증명 파일 파싱 오류"),
+    });
+  });
+
+  it("getServiceCredential의 서비스 블록 누락 오류 문구는 유지된다", async () => {
+    await writeCredentials({ version: 1, profiles: { default: {} } });
+
+    await expect(credentials.getServiceCredential("ncr", "default")).rejects.toMatchObject({
+      exitCode: EXIT_CONFIG_ERROR,
+      message:
+        'profile "default" 에 "ncr" 자격증명이 없습니다.\n' +
+        `${credentialsPath} 에서 profiles.default.ncr 블록을 추가하세요.\n` +
+        '예시: { "appkey": "<appkey>" }',
+    });
+  });
+});
 
 describe("warnLegacyDeployTargets", () => {
   it("deploy.targets 에 항목이 있으면 stderr 로 경고하고 계속 진행한다", async () => {

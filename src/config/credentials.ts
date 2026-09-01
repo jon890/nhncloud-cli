@@ -174,6 +174,28 @@ export async function getServiceCredential(
   service: string,
   profileName: string,
 ): Promise<ServiceCredential> {
+  const cred = await getOptionalServiceCredential(service, profileName);
+  if (!cred) {
+    throw new NhnCloudCliError(
+      `profile "${profileName}" 에 "${service}" 자격증명이 없습니다.\n` +
+        `${CREDENTIALS_PATH} 에서 profiles.${profileName}.${service} 블록을 추가하세요.\n` +
+        `예시: { "appkey": "<appkey>" }`,
+      EXIT_CONFIG_ERROR,
+    );
+  }
+
+  return cred;
+}
+
+/**
+ * 지정 profile 의 서비스 자격증명 블록을 반환한다.
+ * profile 은 있지만 해당 블록만 없으면 undefined 를 반환한다.
+ * 파일 오류와 profile 부재 오류는 기존 조회 경계 그대로 던진다.
+ */
+export async function getOptionalServiceCredential(
+  service: string,
+  profileName: string,
+): Promise<ServiceCredential | undefined> {
   if (service === "userAccessKey" || service === "iaas") {
     throw new NhnCloudCliError(
       `"${service}" 는 서비스 자격증명이 아닙니다 — 전용 getter 를 사용하세요.`,
@@ -192,17 +214,7 @@ export async function getServiceCredential(
     );
   }
 
-  const cred = profile[service] as ServiceCredential | undefined;
-  if (!cred) {
-    throw new NhnCloudCliError(
-      `profile "${profileName}" 에 "${service}" 자격증명이 없습니다.\n` +
-        `${CREDENTIALS_PATH} 에서 profiles.${profileName}.${service} 블록을 추가하세요.\n` +
-        `예시: { "appkey": "<appkey>" }`,
-      EXIT_CONFIG_ERROR,
-    );
-  }
-
-  return cred;
+  return profile[service] as ServiceCredential | undefined;
 }
 
 /**
