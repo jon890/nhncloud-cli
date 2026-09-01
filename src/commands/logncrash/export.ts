@@ -18,7 +18,10 @@ import {
   withRateLimitHint,
 } from "../../services/logncrash/errors.js";
 import type { ScrollResult } from "../../services/logncrash/types.js";
-import { resolveLogncrashClient } from "./helpers.js";
+import {
+  preflightLogncrashSearchToken,
+  resolveLogncrashClient,
+} from "./helpers.js";
 
 interface ExportGlobalOpts {
   query?: string;
@@ -142,6 +145,7 @@ export function createExportCommand(finalizeOps?: ExportFileOps): Command {
       // 이어받을 지점. 로그의 logTime 이 아니라 처리 중인 창의 시작 경계다 (ADR-032).
       // 창은 오래된 쪽부터 처리되고 정렬은 창 안에서만 내림차순이라 두 방향이 어긋난다.
       let resumeFrom = "";
+      let failureOrigin: "preflight" | "search" = "preflight";
       const write = (chunk: string): void => {
         stream.write(chunk);
         bytePosition += Buffer.byteLength(chunk, "utf-8");
@@ -185,6 +189,9 @@ export function createExportCommand(finalizeOps?: ExportFileOps): Command {
           };
 
           try {
+            failureOrigin = "preflight";
+            await preflightLogncrashSearchToken(client);
+            failureOrigin = "search";
             let res: ScrollResult = await client.scrollStart({
               query: opts.query,
               from: window.from,
@@ -195,6 +202,9 @@ export function createExportCommand(finalizeOps?: ExportFileOps): Command {
             spinner.text = progressText();
 
             while (res.data.length > 0 && res.scrollKey && count < Math.min(total, MAX_TOTAL)) {
+              failureOrigin = "preflight";
+              await preflightLogncrashSearchToken(client);
+              failureOrigin = "search";
               res = await scrollNextWithHint(client, res.scrollKey);
               writePage(res.data);
               spinner.text = progressText();
@@ -205,7 +215,7 @@ export function createExportCommand(finalizeOps?: ExportFileOps): Command {
               break;
             }
           } catch (err) {
-            if (!(err instanceof LogncrashServerError)) throw err;
+            if (failureOrigin !== "search" || !(err instanceof LogncrashServerError)) throw err;
 
             // pending write 를 모두 flush 한 뒤에만 실패한 창의 시작 위치로 되돌린다.
             await endAndClose(stream);
@@ -228,7 +238,7 @@ export function createExportCommand(finalizeOps?: ExportFileOps): Command {
         stopSpinner(false);
         // rate limit 은 500 과 원인도 대처도 달라 같은 안내로 묶지 않는다 (ADR-032).
         // scrollStart 가 던진 것은 분할 catch 를 통과해 여기까지 올라온다.
-        const failure = isRateLimitError(err)
+        const failure = failureOrigin === "search" && isRateLimitError(err)
           ? withRateLimitHint(err)
           : err;
 
@@ -378,7 +388,7 @@ function errorReason(error: unknown): string {
 
 /**
  * scrollNext 실패 원인을 보존하고 대처 방법을 안내한다.
- * rate limit 은 기간을 좁혀도 풀리지 않아 여기서 감싸지 않는다 (ADR-032).
+ * rate limit 은 바깥 catch 한 곳에서 안내를 붙이므로 여기서 감싸지 않는다 (ADR-032).
  * 안내는 바깥 catch 한 곳에서만 붙여 문구가 두 번 붙는 경로를 없앤다.
  */
 async function scrollNextWithHint(client: LogncrashClient, scrollKey: string): Promise<ScrollResult> {

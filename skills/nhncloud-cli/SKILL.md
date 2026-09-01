@@ -20,7 +20,7 @@ description: >-
 5. 결과는 stdout의 구조화 데이터로 판정하고 stderr는 진행 상황과 진단에 사용한다.
 6. 실패하면 [troubleshooting.md](references/troubleshooting.md)에서 종료 코드와 인증 모델을 확인한다.
 
-`--quiet`는 해당 명령이 식별자 출력을 문서화한 경우에만 사용한다.
+`--quiet`는 해당 명령이 핵심 값 한 줄 출력을 문서화한 경우에만 사용한다.
 명령 문법이나 응답 형태를 추측하지 않는다.
 비밀값과 실제 사용자 리소스 ID는 문서·이슈·보고서에 남기지 않고 placeholder로 바꾼다.
 

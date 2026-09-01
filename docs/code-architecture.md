@@ -83,6 +83,8 @@ skill ──> config와 독립된 사용자 데이터 경계
 `config`는 파일과 profile 오류를 보존하면서 서비스 블록 부재를 구분해 반환하고,
 공통 명령 경계는 블록이나 appkey가 없을 때만 서비스별 설정 안내로 바꾼다.
 Log & Crash export는 API 수집 상태와 로컬 파일 완결 상태를 분리하고, 완료 결과를 최종 경로 교체 실패 때문에 삭제하지 않는다(ADR-034).
+Log & Crash service client는 공식 `available-token` 응답의 정수 필드를 검증한다.
+명령 계층은 검색과 scroll 요청 직전에 이 값을 확인하고, 0 이하이면 검색 호출을 차단한다(ADR-036).
 명령 트리를 모두 만든 뒤 `src/commands/commander-errors.ts`가 Commander 오류를 가로챈다.
 필수 옵션 누락만 `EXIT_PARAM_ERROR`로 바꾸고, 이미 stderr에 출력한 오류는 최상위 처리부가 다시 출력하지 않는다(ADR-035).
 

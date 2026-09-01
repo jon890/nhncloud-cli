@@ -23,14 +23,14 @@ export function isRateLimitError(err: unknown): err is NhnEnvelopeError {
 /**
  * 조회 횟수 제한 오류에 대처 방법을 덧붙인다 (ADR-032).
  * search 와 export 가 같은 제한에 걸리므로 문구를 한 곳에 둔다.
- * 회복 속도와 소모량은 측정값이지 서버 계약이 아니라 숫자로 적지 않는다.
+ * 회복 속도와 소모량은 측정값이지 서버 계약이 아니므로 단정하지 않는다.
  *
  * 각 명령은 이 함수를 오류 경로마다 부르지 않고 한 곳에서만 부른다.
  * 반환값이 봉투 오류가 아니게 되는 것에 기대 이중 부착을 막지 않는다 — 그 계약은 눈에 보이지 않는다.
  */
 export function withRateLimitHint(err: NhnCloudCliError): NhnCloudCliError {
   return new NhnCloudCliError(
-    `${err.message}\n조회 횟수 제한에 걸렸습니다. 시간을 두고 다시 실행하세요. 검색 기간을 좁혀도 풀리지 않습니다.`,
+    `${err.message}\n조회 횟수 제한에 걸렸습니다. 자동으로 다시 시도하지 않습니다. 검색 기간만 좁혀 해결을 보장할 수 없습니다. nhncloud logncrash available-token으로 잔량과 추정 대기 시간을 다시 확인하세요.`,
     err.exitCode,
   );
 }

@@ -13,6 +13,7 @@ import { doctorCommand } from "./commands/doctor.js";
 import { searchCommand } from "./commands/logncrash/search.js";
 import { sendCommand } from "./commands/logncrash/send.js";
 import { exportCommand } from "./commands/logncrash/export.js";
+import { availableTokenCommand } from "./commands/logncrash/available-token.js";
 import { runCommand } from "./commands/deploy/run.js";
 import { artifactsCommand } from "./commands/deploy/artifacts.js";
 import { serverGroupsCommand } from "./commands/deploy/server-groups.js";
@@ -69,7 +70,7 @@ import {
 const rootAgentHints = `
 Agent hints:
   - Prefer --json for structured output.
-  - Use --quiet only when the command documents an identifier output.
+  - Use --quiet only when the command documents a one-line core value.
   - Use --profile <name> to avoid relying on default profile.
   - For IaaS/NKS commands, use --region <region> when region matters.
   - Run "nhncloud commands --json" to inspect command paths and options.
@@ -77,8 +78,9 @@ Agent hints:
 
 const logncrashAgentWorkflow = `
 Agent workflow:
-  1. nhncloud logncrash search --query '*' --from 1h --to now --json
-  2. nhncloud logncrash export --query '<lucene>' --from 1h --to now --output logs.jsonl
+  1. nhncloud logncrash available-token --json
+  2. nhncloud logncrash search --query '*' --from 1h --to now --json
+  3. nhncloud logncrash export --query '<lucene>' --from 1h --to now --output logs.jsonl
 `;
 
 const deployAgentWorkflow = `
@@ -189,6 +191,7 @@ program.addCommand(configureCommand);
 const logncrashCommand = new Command("logncrash")
   .description("Log & Crash 관련 명령")
   .addHelpText("after", logncrashAgentWorkflow);
+logncrashCommand.addCommand(availableTokenCommand);
 logncrashCommand.addCommand(searchCommand);
 logncrashCommand.addCommand(sendCommand);
 logncrashCommand.addCommand(exportCommand);

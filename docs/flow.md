@@ -54,7 +54,7 @@ nhncloud instance create --help
 
 | 영역 | 일반 흐름 | 상세 사용자 가이드 |
 |---|---|---|
-| Log & Crash | 검색, 대량 export, 로그 전송 | [logncrash.md](../skills/nhncloud-cli/references/logncrash.md) |
+| Log & Crash | 조회 토큰 확인, 검색, 대량 export, 로그 전송 | [logncrash.md](../skills/nhncloud-cli/references/logncrash.md) |
 | Deploy | 좌표 탐색, 배포 실행, 바이너리 전송 | [deploy.md](../skills/nhncloud-cli/references/deploy.md) |
 | Instance·Network·Volume·Floating IP | 리소스 탐색 뒤 조회·생성·변경 | [iaas.md](../skills/nhncloud-cli/references/iaas.md) |
 | Load Balancer | 대상 탐색, IP ACL 변경과 부분 실패 복구 | [loadbalancer.md](../skills/nhncloud-cli/references/loadbalancer.md) |
@@ -70,6 +70,11 @@ nhncloud instance create --help
 빈 결과는 성공이며 데이터 출력으로 표현한다.
 
 Log & Crash 검색은 상대시간과 절대시간을 UTC 범위로 정규화한다.
+검색과 export는 각 검색 요청 직전에 조회 토큰 잔량을 확인한다.
+잔량이 0 이하면 검색 요청을 보내지 않고 API 오류로 끝내며, 관측한 회복 속도로 양수가 될 때까지의 추정 대기 시간을 안내한다.
+잔량 조회가 실패해도 검색 요청을 보내지 않고 원래 오류를 전달한다.
+양수 잔량은 다음 요청의 비용까지 충분하다는 보장이 아니며, 동시 소비로 실제 요청이 429를 반환할 수 있다.
+CLI는 자동으로 기다리거나 다시 시도하지 않고, export가 중간에 멈추면 받은 결과를 보존한다(ADR-032, ADR-036).
 대량 export는 API 제한에 맞게 기간과 페이지를 나누며, 실패한 다음 요청을 성공으로 숨기지 않는다.
 조회 중 실패한 결과는 `.partial`, 조회를 마쳤지만 JSON 배열을 닫지 못한 결과는 `.unfinalized`, 형식까지 완성했지만 최종 경로로 교체하지 못한 결과는 `.complete`로 보존한다.
 복구 파일은 실행별 고유 경로를 쓰며 뒤의 성공 실행이 자동으로 삭제하지 않는다(ADR-032, ADR-034).

@@ -35,7 +35,8 @@ vi.mock("../../utils/spinner.js", () => ({
 
 const scrollStart = vi.fn();
 const scrollNext = vi.fn();
-const client = { scrollStart, scrollNext };
+const availableToken = vi.fn();
+const client = { availableToken, scrollStart, scrollNext };
 let directory: string;
 
 function programWithExport(finalizeOps?: ExportFileOps): Command {
@@ -64,6 +65,7 @@ describe("logncrash export v3 scroll", () => {
     vi.clearAllMocks();
     directory = mkdtempSync(join(tmpdir(), "logncrash-export-test-"));
     vi.mocked(resolveLogncrashClient).mockResolvedValue(client as never);
+    availableToken.mockResolvedValue({ availableToken: 1 });
     scrollStart.mockResolvedValue({ totalItems: 0, pageSize: 10, data: [] });
     scrollNext.mockResolvedValue({ totalItems: 0, data: [] });
     vi.spyOn(process.stderr, "write").mockImplementation((() => true) as never);
@@ -149,6 +151,117 @@ describe("logncrash export v3 scroll", () => {
         preserved: false,
       });
       expect(readFileSync(tmp, "utf-8")).toBe('[{"id":1}');
+    });
+  });
+
+  describe("조회 토큰 preflight", () => {
+    it("scroll 시작과 각 다음 페이지 직전에 잔량을 확인한다", async () => {
+      scrollStart.mockResolvedValue({
+        scrollKey: "scroll-1",
+        totalItems: 2,
+        data: [{ id: 1 }],
+      });
+      scrollNext.mockResolvedValue({ totalItems: 2, data: [{ id: 2 }] });
+      const output = join(directory, "logs.jsonl");
+
+      await programWithExport().parseAsync(args(output));
+
+      expect(availableToken).toHaveBeenCalledTimes(2);
+      expect(availableToken.mock.invocationCallOrder[0]).toBeLessThan(
+        scrollStart.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER,
+      );
+      expect(availableToken.mock.invocationCallOrder[1]).toBeLessThan(
+        scrollNext.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER,
+      );
+    });
+
+    it.each([0, -10])("첫 잔량이 %s이면 검색과 파일 생성을 남기지 않는다", async (remaining) => {
+      availableToken.mockResolvedValue({ availableToken: remaining });
+      const output = join(directory, "logs.jsonl");
+
+      await expect(programWithExport().parseAsync(args(output))).rejects.toMatchObject({
+        exitCode: EXIT_API_ERROR,
+        message: expect.stringContaining("검색 요청을 보내지 않았습니다"),
+      });
+
+      expect(scrollStart).not.toHaveBeenCalled();
+      expect(existsSync(output)).toBe(false);
+      expect(readdirSync(directory)).toEqual([]);
+    });
+
+    it("중간 잔량 차단은 받은 결과를 partial로 보존한다", async () => {
+      availableToken
+        .mockResolvedValueOnce({ availableToken: 1 })
+        .mockResolvedValueOnce({ availableToken: 0 });
+      scrollStart.mockResolvedValue({
+        scrollKey: "scroll-1",
+        totalItems: 2,
+        data: [{ id: 1 }],
+      });
+      const output = join(directory, "logs.jsonl");
+
+      await expect(programWithExport().parseAsync(args(output))).rejects.toMatchObject({
+        exitCode: EXIT_API_ERROR,
+        message: expect.stringContaining("검색 요청을 보내지 않았습니다"),
+      });
+
+      expect(scrollNext).not.toHaveBeenCalled();
+      expect(readFileSync(`${output}.partial`, "utf-8")).toBe('{"id":1}\n');
+      expect(existsSync(output)).toBe(false);
+    });
+
+    it("잔량 조회 오류를 보존하고 검색을 보내지 않는다", async () => {
+      const error = new NhnCloudCliError("토큰 조회 실패", EXIT_API_ERROR);
+      availableToken.mockRejectedValue(error);
+      const output = join(directory, "logs.jsonl");
+
+      await expect(programWithExport().parseAsync(args(output))).rejects.toBe(error);
+
+      expect(scrollStart).not.toHaveBeenCalled();
+      expect(readdirSync(directory)).toEqual([]);
+    });
+
+    it("첫 preflight의 429 봉투 오류에는 검색 rate limit 안내를 붙이지 않는다", async () => {
+      const error = new NhnEnvelopeError(429, "available-token failed");
+      availableToken.mockRejectedValue(error);
+      const output = join(directory, "logs.jsonl");
+
+      await expect(programWithExport().parseAsync(args(output))).rejects.toBe(error);
+
+      expect(error.message).not.toContain("조회 횟수 제한에 걸렸습니다");
+      expect(scrollStart).not.toHaveBeenCalled();
+      expect(readdirSync(directory)).toEqual([]);
+    });
+
+    it("첫 preflight의 500 오류에는 적응형 분할을 적용하지 않는다", async () => {
+      const error = new LogncrashServerError("available-token failed", "request-id");
+      availableToken.mockRejectedValue(error);
+      const output = join(directory, "logs.jsonl");
+
+      await expect(programWithExport().parseAsync(args(output))).rejects.toBe(error);
+
+      expect(availableToken).toHaveBeenCalledTimes(1);
+      expect(scrollStart).not.toHaveBeenCalled();
+      expect(readdirSync(directory)).toEqual([]);
+    });
+
+    it("중간 preflight의 429 봉투 오류를 보존하고 받은 결과만 partial로 남긴다", async () => {
+      const error = new NhnEnvelopeError(429, "available-token failed");
+      availableToken
+        .mockResolvedValueOnce({ availableToken: 1 })
+        .mockRejectedValueOnce(error);
+      scrollStart.mockResolvedValue({
+        scrollKey: "scroll-1",
+        totalItems: 2,
+        data: [{ id: 1 }],
+      });
+      const output = join(directory, "logs.jsonl");
+
+      await expect(programWithExport().parseAsync(args(output))).rejects.toBe(error);
+
+      expect(error.message).not.toContain("조회 횟수 제한에 걸렸습니다");
+      expect(scrollNext).not.toHaveBeenCalled();
+      expect(readFileSync(`${output}.partial`, "utf-8")).toBe('{"id":1}\n');
     });
   });
 
@@ -336,6 +449,7 @@ describe("logncrash export v3 scroll", () => {
       { query: "*", from: "2026-08-03T00:00:00Z", to: "2026-08-03T00:30:00Z" },
       { query: "*", from: "2026-08-03T00:30:00Z", to: "2026-08-03T01:00:00Z" },
     ]);
+    expect(availableToken).toHaveBeenCalledTimes(3);
     expect(readFileSync(output, "utf-8")).toBe('{"id":1}\n{"id":2}\n');
   });
 
@@ -551,7 +665,7 @@ describe("logncrash export v3 scroll", () => {
       expect(readdirSync(directory)).toEqual([]);
     });
 
-    it("scrollNext 의 조회 횟수 제한은 범위를 좁히라고 안내하지 않는다", async () => {
+    it("scrollNext 의 조회 횟수 제한은 available-token 재확인을 안내한다", async () => {
       scrollStart.mockResolvedValue({
         scrollKey: "scroll-1",
         totalItems: 2,
@@ -566,7 +680,7 @@ describe("logncrash export v3 scroll", () => {
         .catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(NhnCloudCliError);
-      expect((error as NhnCloudCliError).message).toContain("시간을 두고 다시 실행하세요");
+      expect((error as NhnCloudCliError).message).toContain("nhncloud logncrash available-token");
       expect((error as NhnCloudCliError).message).not.toContain("범위를 좁혀");
     });
 
@@ -576,7 +690,7 @@ describe("logncrash export v3 scroll", () => {
 
       await expect(programWithExport().parseAsync(args(output))).rejects.toMatchObject({
         exitCode: EXIT_API_ERROR,
-        message: expect.stringContaining("시간을 두고 다시 실행하세요"),
+        message: expect.stringContaining("nhncloud logncrash available-token"),
       });
     });
 

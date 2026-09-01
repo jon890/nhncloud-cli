@@ -14,6 +14,17 @@ export interface CursorSearchResult {
   nextCursor?: string;
 }
 
+/** v3 available-token 응답 body. 음수는 유효한 잔량이다. */
+export interface AvailableTokenResult {
+  availableToken: number;
+}
+
+export function isAvailableTokenResult(value: unknown): value is AvailableTokenResult {
+  if (typeof value !== "object" || value === null) return false;
+  const availableToken = (value as Record<string, unknown>)["availableToken"];
+  return typeof availableToken === "number" && Number.isSafeInteger(availableToken);
+}
+
 /** v3 scroll 시작 요청 body. */
 export interface ScrollStartParams {
   query: string;

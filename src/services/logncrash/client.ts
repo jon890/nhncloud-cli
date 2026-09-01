@@ -4,14 +4,16 @@ import { unwrap, unwrapHeader, type NhnEnvelope } from "../../api/envelope.js";
 import { toNhnCloudCliError } from "../../api/httpError.js";
 import { DEFAULT_TIMEOUT_MS } from "../../api/timeout.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
-import { EXIT_CONFIG_ERROR } from "../../utils/exit-codes.js";
+import { EXIT_API_ERROR, EXIT_CONFIG_ERROR } from "../../utils/exit-codes.js";
 import type {
+  AvailableTokenResult,
   CursorSearchParams,
   CursorSearchResult,
   LogSendParams,
   ScrollStartParams,
   ScrollResult,
 } from "./types.js";
+import { isAvailableTokenResult } from "./types.js";
 import { toLogncrashError } from "./errors.js";
 
 export class LogncrashClient {
@@ -22,6 +24,32 @@ export class LogncrashClient {
   constructor(appkey: string, accessToken?: string) {
     this.appkey = appkey;
     this.accessToken = accessToken;
+  }
+
+  async availableToken(): Promise<AvailableTokenResult> {
+    const headers = this.readHeaders();
+    const endpoint = endpointFor("logncrash");
+    const url = `${endpoint}/v3/${encodeURIComponent(this.appkey)}/logs/available-token`;
+
+    try {
+      const res = await ky
+        .get(url, {
+          headers,
+          retry: 0,
+          timeout: DEFAULT_TIMEOUT_MS,
+        })
+        .json<NhnEnvelope<unknown>>();
+      const body = unwrap(res);
+      if (!isAvailableTokenResult(body)) {
+        throw new NhnCloudCliError(
+          "logncrash available-token 응답 형식이 올바르지 않습니다 — availableToken 정수 필드가 없습니다.",
+          EXIT_API_ERROR,
+        );
+      }
+      return body;
+    } catch (err) {
+      throw await toLogncrashError(err);
+    }
   }
 
   async cursorSearch(params: CursorSearchParams): Promise<CursorSearchResult> {
