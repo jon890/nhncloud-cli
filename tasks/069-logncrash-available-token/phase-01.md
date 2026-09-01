@@ -10,6 +10,7 @@
 `search`와 `export`의 각 검색 요청 직전에 조회 토큰을 확인하고, 잔량이 0 이하면 검색 호출을 보내지 않은 채 추정 대기 시간을 안내한다.
 
 **범위 외**: 자동 대기와 자동 재시도, 검색 호출 비용 예측, 새 설정·캐시·의존성, 500 적응형 기간 분할, 429 봉투 판별과 부분 결과 보존 정책은 바꾸지 않는다.
+기존 429 안내 문구는 조회 토큰 확인 명령과 맞게 고치되 오류 판별, 종료 코드와 파일 보존 동작은 유지한다.
 관측한 1.6 token/s는 서버 계약으로 단정하지 않고 추정 안내에만 사용한다.
 양수 잔량은 검색 비용이 충분하다는 뜻으로 해석하지 않는다.
 관리 문서와 공개 가이드는 planning 문서 커밋 `c0463d0`에서 먼저 갱신됐다.
@@ -79,20 +80,22 @@ export function assertAvailableSearchToken(status: AvailableTokenStatus): void
 `availableTokenStatus()`와 `assertAvailableSearchToken()`을 적용하는 공통 비동기 helper를 추가한다.
 잔량 조회 오류를 잡거나 다른 오류로 바꾸지 않아 fail-closed로 원래 오류를 보존한다.
 
-`src/commands/logncrash/search.ts`는 spinner의 기존 try/catch 안에서 `cursorSearch()` 직전에 공통 helper를 호출한다.
+`src/commands/logncrash/search.ts`는 `cursorSearch()` 직전에 공통 helper를 호출한다.
 0 이하이거나 잔량 조회가 실패하면 `cursorSearch()`를 호출하지 않는다.
-실제 `cursorSearch()`가 반환한 429와 500의 기존 안내는 유지한다.
+preflight 오류는 spinner를 닫은 뒤 원본 그대로 전달하고, 실제 `cursorSearch()`가 반환한 429와 500만 기존 오류 분류를 적용한다.
 
 `src/commands/logncrash/export.ts`는 모든 `scrollStart()`와 `scrollNext()` 직전에 공통 helper를 호출한다.
 첫 요청, 500 뒤 분할 재시도, 다음 창과 다음 페이지가 모두 대상이다.
 preflight가 첫 호출 전에 실패하면 빈 temp 파일을 정리하고 부분 파일을 만들지 않는다.
 일부 결과 뒤 실패하면 기존 `<output>.partial` 보존과 이어받기 안내를 유지한다.
 500이면 기존 checkpoint 되돌리기와 적응형 분할을 유지하고, 실제 429면 기존처럼 분할하지 않는다.
+preflight의 429 봉투 오류에는 실제 검색 429 안내를 붙이지 않는다.
 
 ### 4. Commander 트리와 에이전트 help에 새 명령을 등록한다
 
 `src/index.ts`에서 `availableTokenCommand`를 `logncrash` 그룹에 등록한다.
 Log & Crash 에이전트 흐름은 조회 토큰 확인을 첫 단계로 보여 준 뒤 search와 export를 안내한다.
+공통 `--quiet` 설명은 식별자에 한정하지 않고, 명령이 문서화한 핵심 값 한 줄을 출력하는 계약으로 맞춘다.
 명령 순서는 `available-token`, `search`, `send`, `export`로 둔다.
 
 빌드 뒤 `node dist/index.js commands --json`에서 `logncrash available-token`이 정확히 한 번 나오고,
@@ -107,8 +110,9 @@ Log & Crash 에이전트 흐름은 조회 토큰 확인을 첫 단계로 보여 
 - `src/services/logncrash/client.test.ts`: GET 경로, encoded appkey, Bearer 헤더, retry와 timeout, 정상 음수 정수, 잘못된 필드 타입, 봉투 실패, access token 부재를 검증한다.
 - `src/services/logncrash/token.test.ts`: 양수·0·음수의 정확한 반올림, 1.6 token/s 추정 표기, 종료 코드 1과 자동 대기 부재를 검증한다.
 - `src/commands/logncrash/available-token.test.ts`: 기본, JSON, quiet 출력과 profile 전달, 음수 성공, API 오류에서 spinner 종료를 검증한다.
-- `src/commands/logncrash/search.test.ts`: preflight가 검색보다 먼저 실행되고 0 이하와 조회 오류에서 검색을 호출하지 않으며, 양수와 기존 429·500 흐름은 유지되는지 검증한다.
-- `src/commands/logncrash/export.test.ts`: 모든 시작·계속 요청의 preflight 순서, 첫 차단 시 파일 없음, 중간 차단 시 부분 파일, 500 분할과 429 보존을 검증한다.
+- `src/commands/logncrash/search.test.ts`: preflight가 검색보다 먼저 실행되고 0 이하와 조회 오류에서 검색을 호출하지 않으며, preflight의 429 봉투 오류가 원본 그대로 전달되는지 검증한다. 실제 검색 429와 500 흐름도 유지해야 한다.
+- `src/commands/logncrash/export.test.ts`: 모든 시작·계속 요청의 preflight 순서, 첫 차단 시 파일 없음, 중간 차단 시 부분 파일, 500 분할과 실제 검색 429 보존을 검증한다. preflight의 429 봉투 오류에는 실제 검색 안내가 붙지 않아야 한다.
+- `src/services/logncrash/errors.test.ts`: 실제 검색 429 안내가 기간 축소만으로 해결을 보장하지 않고 `available-token` 재확인을 안내하는지 검증한다.
 
 기존 mock client에는 `availableToken`을 명시적으로 추가한다.
 테스트가 preflight를 우연히 건너뛰도록 기본값 없는 느슨한 이중 단언을 추가하지 않는다.
@@ -124,6 +128,8 @@ Log & Crash 에이전트 흐름은 조회 토큰 확인을 첫 단계로 보여 
 | `src/services/logncrash/client.test.ts` | 수정: endpoint, 인증, 응답 가드 회귀 |
 | `src/services/logncrash/token.ts` | 추가: 추정 시간과 0 이하 차단 계약 |
 | `src/services/logncrash/token.test.ts` | 추가: 계산과 오류 메시지 단위 테스트 |
+| `src/services/logncrash/errors.ts` | 수정: 실제 검색 429의 비절대적 대처 안내 |
+| `src/services/logncrash/errors.test.ts` | 수정: 실제 검색 429 안내 회귀 |
 | `src/commands/logncrash/helpers.ts` | 수정: search와 export 공통 preflight helper |
 | `src/commands/logncrash/available-token.ts` | 추가: 조회 토큰 출력 명령 |
 | `src/commands/logncrash/available-token.test.ts` | 추가: 세 출력 모드와 오류 흐름 |
@@ -132,13 +138,18 @@ Log & Crash 에이전트 흐름은 조회 토큰 확인을 첫 단계로 보여 
 | `src/commands/logncrash/export.ts` | 수정: 각 scroll 요청 직전 preflight |
 | `src/commands/logncrash/export.test.ts` | 수정: 분할·페이지·부분 파일과 preflight 결합 회귀 |
 | `src/index.ts` | 수정: 명령 등록과 Log & Crash 에이전트 흐름 |
+| `README.md` | 수정: `--quiet` 공통 출력 계약 정합성 |
+| `skills/nhncloud-cli/references/common.md` | 수정: `--quiet` 공통 출력 계약 정합성 |
+| `skills/nhncloud-cli/references/logncrash.md` | 수정: 조회 토큰 명령의 인증 요구사항 정합성 |
+| `docs/adr/030-logncrash-search-range-adaptive-split.md` | 수정: 이후 ADR의 부분 결과 보존 계약 반영 |
+| `docs/adr/036-logncrash-available-token-preflight.md` | 수정: 이전 ADR과 대체 관계 명시 |
 | `tasks/069-logncrash-available-token/index.json` | 수정: 검증 완료 뒤 task 상태를 `completed`로 변경 |
 
 ## 검증
 
 ```bash
 # cwd: <레포 루트>
-node_modules/.bin/vitest run src/services/logncrash/client.test.ts src/services/logncrash/token.test.ts src/commands/logncrash/available-token.test.ts src/commands/logncrash/search.test.ts src/commands/logncrash/export.test.ts
+node_modules/.bin/vitest run src/services/logncrash/client.test.ts src/services/logncrash/token.test.ts src/services/logncrash/errors.test.ts src/commands/logncrash/available-token.test.ts src/commands/logncrash/search.test.ts src/commands/logncrash/export.test.ts
 node_modules/.bin/tsc --noEmit
 node_modules/.bin/vitest run --passWithNoTests
 node_modules/.bin/tsup --config tsup.config.ts
@@ -158,6 +169,7 @@ test "$(node dist/index.js commands --json | node -e 'let s="";process.stdin.on(
 test "$(node dist/index.js commands --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const c=JSON.parse(s).commands.filter(x=>x.path==="logncrash available-token");process.stdout.write(String(c.length))})')" -eq 1
 rg -n "available-token|estimatedWaitSeconds|1\.6" README.md docs skills/nhncloud-cli/references/logncrash.md src tasks/069-logncrash-available-token
 ! rg -n "available-token.*포함하지|available-token.*노출하지|회복은 초당 1개|호출당 약 1,000|서버가 남은 시간을 알려주지 않아" docs README.md skills/nhncloud-cli
+! rg -n "검색 기간을 좁혀도 풀리지 않습니다|식별자만|핵심 식별자만|식별자 출력을 문서화" src README.md skills/nhncloud-cli docs
 ```
 
 네 검사는 모두 종료 코드 0이어야 한다.
