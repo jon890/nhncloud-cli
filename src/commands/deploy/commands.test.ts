@@ -11,7 +11,7 @@ import {
 const mocks = vi.hoisted(() => ({
   resolveProfileName: vi.fn(),
   getUserAccessKey: vi.fn(),
-  getServiceCredential: vi.fn(),
+  getOptionalServiceCredential: vi.fn(),
   getAccessToken: vi.fn(),
   artifacts: vi.fn(),
   startSpinner: vi.fn(),
@@ -20,7 +20,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../../config/credentials.js", () => ({
   resolveProfileName: mocks.resolveProfileName,
   getUserAccessKey: mocks.getUserAccessKey,
-  getServiceCredential: mocks.getServiceCredential,
+  getOptionalServiceCredential: mocks.getOptionalServiceCredential,
 }));
 vi.mock("../../api/oauth.js", () => ({ getAccessToken: mocks.getAccessToken }));
 vi.mock("../../utils/spinner.js", () => ({
@@ -142,7 +142,7 @@ describe("deploy 좌표 옵션 검증", () => {
     vi.resetAllMocks();
     mocks.resolveProfileName.mockResolvedValue("p");
     mocks.getUserAccessKey.mockResolvedValue({ id: "<uak-id>", secret: "<uak-secret>" });
-    mocks.getServiceCredential.mockResolvedValue({ appkey: "<appkey>" });
+    mocks.getOptionalServiceCredential.mockResolvedValue({ appkey: "<appkey>" });
     mocks.getAccessToken.mockResolvedValue("access-token");
   });
 
@@ -211,14 +211,14 @@ describe("resolveDeployAppKey", () => {
   });
 
   it("profile 의 deploy.appkey 를 반환한다", async () => {
-    mocks.getServiceCredential.mockResolvedValue({ appkey: "<appkey>" });
+    mocks.getOptionalServiceCredential.mockResolvedValue({ appkey: "<appkey>" });
 
     await expect(resolveDeployAppKey("resolved-profile")).resolves.toBe("<appkey>");
-    expect(mocks.getServiceCredential).toHaveBeenCalledWith("deploy", "resolved-profile");
+    expect(mocks.getOptionalServiceCredential).toHaveBeenCalledWith("deploy", "resolved-profile");
   });
 
   it.each([undefined, ""])("appkey 가 %j 이면 EXIT_CONFIG_ERROR 와 설정 안내", async (appkey) => {
-    mocks.getServiceCredential.mockResolvedValue({ appkey });
+    mocks.getOptionalServiceCredential.mockResolvedValue({ appkey });
 
     await expect(resolveDeployAppKey("resolved-profile")).rejects.toThrow(
       expect.objectContaining({ exitCode: EXIT_CONFIG_ERROR }),
@@ -229,23 +229,21 @@ describe("resolveDeployAppKey", () => {
   });
 
   it("deploy 블록 부재(EXIT_CONFIG_ERROR)는 설정 안내로 바꾼다", async () => {
-    mocks.getServiceCredential.mockRejectedValue(
-      new NhnCloudCliError('profile "p" 에 "deploy" 자격증명이 없습니다.', EXIT_CONFIG_ERROR),
-    );
+    mocks.getOptionalServiceCredential.mockResolvedValue(undefined);
 
     await expect(resolveDeployAppKey("p")).rejects.toThrow(/configure --deploy-appkey/);
   });
 
   it("EXIT_CONFIG_ERROR 가 아닌 오류는 원인을 보존해 rethrow 한다", async () => {
     const cause = new NhnCloudCliError("자격증명 파일 파싱 실패", EXIT_PARAM_ERROR);
-    mocks.getServiceCredential.mockRejectedValue(cause);
+    mocks.getOptionalServiceCredential.mockRejectedValue(cause);
 
     await expect(resolveDeployAppKey("p")).rejects.toBe(cause);
   });
 
   it("NhnCloudCliError 가 아닌 오류도 그대로 rethrow 한다", async () => {
     const cause = new SyntaxError("Unexpected token in JSON");
-    mocks.getServiceCredential.mockRejectedValue(cause);
+    mocks.getOptionalServiceCredential.mockRejectedValue(cause);
 
     await expect(resolveDeployAppKey("p")).rejects.toBe(cause);
   });

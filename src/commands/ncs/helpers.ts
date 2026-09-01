@@ -1,9 +1,10 @@
 import { readFileSync, statSync } from "node:fs";
-import { resolveProfileName, getUserAccessKey, getServiceCredential } from "../../config/credentials.js";
+import { resolveProfileName, getUserAccessKey } from "../../config/credentials.js";
 import { getAccessToken } from "../../api/oauth.js";
 import { NcsClient } from "../../services/ncs/client.js";
+import { resolveServiceAppKey } from "../service-appkey.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
-import { EXIT_CONFIG_ERROR, EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
+import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { MAX_JSON_INPUT_BYTES } from "../../utils/limits.js";
 const NCS_RFC3339_PATTERN =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(Z|([+-])(\d{2}):(\d{2}))$/;
@@ -170,26 +171,11 @@ export function normalizeNcsTimeRange(
  * ncs.appkey 를 설정할 수 있다(src/commands/configure.ts).
  */
 export async function resolveNcsAppKey(profileName: string): Promise<string> {
-  // profile 의 ncs 블록에서 appkey 조회.
-  // ncs 블록 부재(EXIT_CONFIG_ERROR)만 친절한 안내로 변환하고,
-  // profile 자체 부재·credentials.json 파싱 오류 등은 원인을 보존해 rethrow.
-  let cred: { appkey?: string; secret?: string } | undefined;
-  try {
-    cred = await getServiceCredential("ncs", profileName);
-  } catch (err) {
-    if (!(err instanceof NhnCloudCliError) || err.exitCode !== EXIT_CONFIG_ERROR) {
-      throw err;
-    }
-  }
-
-  if (!cred?.appkey) {
-    throw new NhnCloudCliError(
+  return resolveServiceAppKey(
+    "ncs",
+    profileName,
       "NCS appKey 가 없습니다. nhncloud configure --ncs-appkey <key> 를 실행해 설정하세요.",
-      EXIT_CONFIG_ERROR,
-    );
-  }
-
-  return cred.appkey;
+  );
 }
 
 /**
