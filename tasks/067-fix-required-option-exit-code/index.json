@@ -1,0 +1,43 @@
+{
+  "name": "067-fix-required-option-exit-code",
+  "description": "이슈 #98 — Commander requiredOption의 필수 옵션 누락을 공통 입력 오류인 종료 코드 3으로 정규화한다 (ADR-035)",
+  "created_at": "2026-08-31T22:55:50Z",
+  "updated_at": "2026-08-31T23:15:25Z",
+  "status": "completed",
+  "current_phase": 2,
+  "total_phases": 2,
+  "error_message": null,
+  "blocked_reason": null,
+  "phases": [
+    {
+      "number": 1,
+      "title": "Commander 필수 옵션 종료 코드 정규화",
+      "file": "phase-01.md",
+      "status": "completed",
+      "allowedTools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep"
+      ],
+      "execution_profile": "deep"
+    },
+    {
+      "number": 2,
+      "title": "Deploy 가이드 정합성과 전체 검증",
+      "file": "phase-02.md",
+      "status": "completed",
+      "allowedTools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep"
+      ],
+      "execution_profile": "standard"
+    }
+  ]
+}

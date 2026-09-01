@@ -72,4 +72,5 @@ AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트�
 
 - `nhncloud logncrash search --query ... --from ... --to ... --json` 이 v3 API에서 실제 로그를 반환하고, 다음 페이지가 있으면 `nextCursor`를 포함한다.
 - `nhncloud logncrash export`가 조회를 마친 결과를 최종 파일 교체 실패 때문에 삭제하지 않는다.
+- 필수 옵션을 빠뜨리면 검증 방식과 관계없이 입력 오류인 종료 코드 3으로 끝난다([[adr-035]]).
 - profile 미설정 시 친절한 설정 안내로 종료한다 (exit code 명확).

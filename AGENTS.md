@@ -32,6 +32,8 @@ NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 TypeScript 와 Commande
 - 서비스 API와 타입은 `src/services/<service>/`, Commander 명령은 `src/commands/<service>/`에 둔다.
 - 공통 엔드포인트·응답 봉투·HTTP 오류 처리는 `src/api/`, 자격증명과 profile 해석은 `src/config/`의 기존 경계를 재사용한다.
 - 사용자 오류는 `NhnCloudCliError(message, exitCode)`와 `src/utils/exit-codes.ts`의 종료 코드를 사용한다.
+- Commander의 필수 옵션 누락은 `EXIT_PARAM_ERROR`로 정규화한다.
+  각 명령을 수동 검증으로 바꾸지 않고 `src/commands/commander-errors.ts`에서 명령 트리 전체에 적용한다.
 - 데이터는 stdout, 진행 상황·경고·오류는 stderr로 분리한다.
 - 파일 export는 API 수집 완료와 파일 형식 완결을 구분한다.
   전체 결과를 최종 경로 교체 실패 때문에 삭제하지 않으며 Log & Crash 세부 정책은 ADR-034를 따른다.
