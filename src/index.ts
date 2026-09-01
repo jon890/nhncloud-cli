@@ -70,7 +70,7 @@ import {
 const rootAgentHints = `
 Agent hints:
   - Prefer --json for structured output.
-  - Use --quiet only when the command documents an identifier output.
+  - Use --quiet only when the command documents a one-line core value.
   - Use --profile <name> to avoid relying on default profile.
   - For IaaS/NKS commands, use --region <region> when region matters.
   - Run "nhncloud commands --json" to inspect command paths and options.

@@ -2,7 +2,7 @@
 
 `logncrash` 명령군은 Log & Crash Search v3 조회 토큰 확인, 커서 검색, scroll export, collector 전송을 다룬다.
 
-검색과 export에는 profile의 logncrash appkey와 공통 UAK가 필요하다.
+조회 토큰 확인, 검색과 export에는 profile의 logncrash appkey와 공통 UAK가 필요하다.
 CLI가 UAK를 OAuth 토큰으로 교환해 Bearer 인증을 적용한다.
 `send`는 별도 collector 계약이므로 Search v3 전환의 영향을 받지 않는다.
 

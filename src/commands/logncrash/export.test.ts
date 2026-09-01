@@ -220,6 +220,37 @@ describe("logncrash export v3 scroll", () => {
       expect(scrollStart).not.toHaveBeenCalled();
       expect(readdirSync(directory)).toEqual([]);
     });
+
+    it("첫 preflight의 429 봉투 오류에는 검색 rate limit 안내를 붙이지 않는다", async () => {
+      const error = new NhnEnvelopeError(429, "available-token failed");
+      availableToken.mockRejectedValue(error);
+      const output = join(directory, "logs.jsonl");
+
+      await expect(programWithExport().parseAsync(args(output))).rejects.toBe(error);
+
+      expect(error.message).not.toContain("조회 횟수 제한에 걸렸습니다");
+      expect(scrollStart).not.toHaveBeenCalled();
+      expect(readdirSync(directory)).toEqual([]);
+    });
+
+    it("중간 preflight의 429 봉투 오류를 보존하고 받은 결과만 partial로 남긴다", async () => {
+      const error = new NhnEnvelopeError(429, "available-token failed");
+      availableToken
+        .mockResolvedValueOnce({ availableToken: 1 })
+        .mockRejectedValueOnce(error);
+      scrollStart.mockResolvedValue({
+        scrollKey: "scroll-1",
+        totalItems: 2,
+        data: [{ id: 1 }],
+      });
+      const output = join(directory, "logs.jsonl");
+
+      await expect(programWithExport().parseAsync(args(output))).rejects.toBe(error);
+
+      expect(error.message).not.toContain("조회 횟수 제한에 걸렸습니다");
+      expect(scrollNext).not.toHaveBeenCalled();
+      expect(readFileSync(`${output}.partial`, "utf-8")).toBe('{"id":1}\n');
+    });
   });
 
   describe("조회 완료 뒤 로컬 파일 실패 (ADR-034)", () => {
@@ -622,7 +653,7 @@ describe("logncrash export v3 scroll", () => {
       expect(readdirSync(directory)).toEqual([]);
     });
 
-    it("scrollNext 의 조회 횟수 제한은 범위를 좁히라고 안내하지 않는다", async () => {
+    it("scrollNext 의 조회 횟수 제한은 available-token 재확인을 안내한다", async () => {
       scrollStart.mockResolvedValue({
         scrollKey: "scroll-1",
         totalItems: 2,
@@ -637,7 +668,7 @@ describe("logncrash export v3 scroll", () => {
         .catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(NhnCloudCliError);
-      expect((error as NhnCloudCliError).message).toContain("시간을 두고 다시 실행하세요");
+      expect((error as NhnCloudCliError).message).toContain("nhncloud logncrash available-token");
       expect((error as NhnCloudCliError).message).not.toContain("범위를 좁혀");
     });
 
@@ -647,7 +678,7 @@ describe("logncrash export v3 scroll", () => {
 
       await expect(programWithExport().parseAsync(args(output))).rejects.toMatchObject({
         exitCode: EXIT_API_ERROR,
-        message: expect.stringContaining("시간을 두고 다시 실행하세요"),
+        message: expect.stringContaining("nhncloud logncrash available-token"),
       });
     });
 

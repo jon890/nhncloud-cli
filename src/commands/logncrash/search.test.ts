@@ -90,6 +90,16 @@ describe("logncrash search v3 cursor", () => {
     expect(cursorSearch).not.toHaveBeenCalled();
   });
 
+  it("조회 토큰 확인의 429 봉투 오류에는 검색 rate limit 안내를 붙이지 않는다", async () => {
+    const error = new NhnEnvelopeError(429, "available-token failed");
+    availableToken.mockRejectedValue(error);
+
+    await expect(programWithSearch().parseAsync(baseArgs())).rejects.toBe(error);
+
+    expect(error.message).not.toContain("조회 횟수 제한에 걸렸습니다");
+    expect(cursorSearch).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["--page 1", ["--page", "1"]],
     ["빈 cursor", ["--cursor", ""]],
@@ -190,15 +200,15 @@ describe("logncrash search v3 cursor", () => {
     await expect(programWithSearch().parseAsync(baseArgs())).rejects.toBe(error);
   });
 
-  // ADR-032: rate limit 은 기간을 좁혀도 풀리지 않는다. 500 안내를 붙이면 반대 방향이다.
-  it("rate limit 에는 기간을 좁히라고 안내하지 않고 시간을 두라고 알린다", async () => {
+  // ADR-032: 실제 검색 rate limit에는 500 안내 대신 잔량 재확인 방법을 붙인다.
+  it("실제 검색 rate limit에는 available-token 재확인을 안내한다", async () => {
     cursorSearch.mockRejectedValue(
       new NhnEnvelopeError(429, "Rate limit exceeded. Please try again later."),
     );
 
     await expect(programWithSearch().parseAsync(baseArgs())).rejects.toMatchObject({
       exitCode: EXIT_API_ERROR,
-      message: expect.stringContaining("시간을 두고 다시 실행하세요"),
+      message: expect.stringContaining("nhncloud logncrash available-token"),
     });
     await expect(programWithSearch().parseAsync(baseArgs())).rejects.toMatchObject({
       message: expect.not.stringContaining("검색 기간이 넓어"),

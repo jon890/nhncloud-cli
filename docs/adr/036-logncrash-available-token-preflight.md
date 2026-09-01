@@ -6,6 +6,10 @@
   - 잔량 조회 자체가 실패하면 검색 요청을 보내지 않고 원래 오류를 전달한다.
   - 자동으로 기다리거나 다시 시도하지 않는다.
     실제 요청이 429를 반환하면 [[adr-032]]의 즉시 실패와 부분 결과 보존을 유지한다.
+- **대체 관계**:
+  - [[adr-024]]에서 v3 `available-token`을 전환 범위에서 제외한 결정을 대체한다. Symbol API 제외 범위는 유지한다.
+  - [[adr-030]]에서 조회 토큰을 명령으로 노출하지 않은 결정을 대체한다. 잔량으로 500 원인을 판정하지 않는 결정은 유지한다.
+  - [[adr-032]]에서 잔량 조회에 의존하지 않고 수치 기반 회복 안내를 제공하지 않은 결정을 대체한다. 자동 재시도 배제와 429 부분 결과 보존은 유지한다.
 - **맥락**: [Search v3 공개 명세](https://api-lncs-search.alpha-nhncloudservice.com/v3/lncs-api-gateway/openapi-public.yaml)는
   `GET /v3/{appkey}/logs/available-token`과 정수 `availableToken` 응답을 정의한다.
   [공식 API 가이드](https://docs.nhncloud.com/ko/Data%20&%20Analytics/Log%20&%20Crash%20Search/ko/api-guide/)는

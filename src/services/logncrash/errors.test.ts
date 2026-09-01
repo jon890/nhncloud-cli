@@ -86,9 +86,9 @@ describe("withRateLimitHint", () => {
     );
 
     expect(result.message).toContain("API 오류: Rate limit exceeded.");
-    expect(result.message).toContain("시간을 두고 다시 실행하세요");
-    // 기간을 좁히라는 유도는 이 오류에서 상황을 악화시킨다.
-    expect(result.message).toContain("검색 기간을 좁혀도 풀리지 않습니다");
+    expect(result.message).toContain("자동으로 다시 시도하지 않습니다");
+    expect(result.message).toContain("검색 기간만 좁혀 해결을 보장할 수 없습니다");
+    expect(result.message).toContain("nhncloud logncrash available-token");
   });
 
   it("원본의 종료 코드를 그대로 보존한다", () => {

@@ -133,7 +133,7 @@ nhncloud commands --json | jq '.commands[] | select(.path=="nks cluster list")'
 | --- | --- | --- |
 | (없음) | 사람이 읽는 표 | 터미널 |
 | `--json` | JSON | 파싱, 명령 연결 |
-| `--quiet` | 식별자만 | 스크립트 |
+| `--quiet` | 명령이 문서화한 핵심 값 한 줄 | 스크립트 |
 
 전역 옵션이라 모든 명령에 붙일 수 있다. `--no-color` 와 `--request-timeout <sec>` 도 같은 자리에서 쓴다.
 요청 타임아웃은 초 단위이며 기본값은 30초, 허용 범위는 1~3600초다.

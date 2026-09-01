@@ -84,9 +84,15 @@ export const searchCommand = new Command("search")
     // ── 5. API 호출 (spinner 내부, try/catch + leak 방지) ──
     startSpinner("로그 검색 중...");
 
-    let result: CursorSearchResult;
     try {
       await preflightLogncrashSearchToken(client);
+    } catch (err) {
+      stopSpinner(false);
+      throw err;
+    }
+
+    let result: CursorSearchResult;
+    try {
       result = await client.cursorSearch({
         query: opts.query,
         from: fromIso,
