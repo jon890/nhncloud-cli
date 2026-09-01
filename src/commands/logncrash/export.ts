@@ -215,7 +215,7 @@ export function createExportCommand(finalizeOps?: ExportFileOps): Command {
               break;
             }
           } catch (err) {
-            if (!(err instanceof LogncrashServerError)) throw err;
+            if (failureOrigin !== "search" || !(err instanceof LogncrashServerError)) throw err;
 
             // pending write 를 모두 flush 한 뒤에만 실패한 창의 시작 위치로 되돌린다.
             await endAndClose(stream);

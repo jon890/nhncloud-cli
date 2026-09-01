@@ -233,6 +233,18 @@ describe("logncrash export v3 scroll", () => {
       expect(readdirSync(directory)).toEqual([]);
     });
 
+    it("첫 preflight의 500 오류에는 적응형 분할을 적용하지 않는다", async () => {
+      const error = new LogncrashServerError("available-token failed", "request-id");
+      availableToken.mockRejectedValue(error);
+      const output = join(directory, "logs.jsonl");
+
+      await expect(programWithExport().parseAsync(args(output))).rejects.toBe(error);
+
+      expect(availableToken).toHaveBeenCalledTimes(1);
+      expect(scrollStart).not.toHaveBeenCalled();
+      expect(readdirSync(directory)).toEqual([]);
+    });
+
     it("중간 preflight의 429 봉투 오류를 보존하고 받은 결과만 partial로 남긴다", async () => {
       const error = new NhnEnvelopeError(429, "available-token failed");
       availableToken
