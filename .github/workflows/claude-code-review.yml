@@ -62,14 +62,14 @@ jobs:
             --method POST \
             --field content=eyes || true
 
-      - name: 이전 Claude 봇 댓글 삭제
+      - name: 이전 Claude 봇 리뷰와 댓글 정리
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           REPO="${{ github.repository }}"
           PR_NUMBER="${{ env.PR_NUMBER }}"
 
-          gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+          gh api --paginate "repos/$REPO/issues/$PR_NUMBER/comments?per_page=100" \
             --jq '.[] | select(.user.login == "claude[bot]") | .id' \
             | while read -r comment_id; do
               if [ -n "$comment_id" ]; then
@@ -78,12 +78,24 @@ jobs:
               fi
             done
 
-          gh api "repos/$REPO/pulls/$PR_NUMBER/comments" \
+          gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/comments?per_page=100" \
             --jq '.[] | select(.user.login == "claude[bot]") | .id' \
             | while read -r comment_id; do
               if [ -n "$comment_id" ]; then
                 echo "오래된 Claude 인라인 댓글 삭제 중: $comment_id"
                 gh api "repos/$REPO/pulls/comments/$comment_id" --method DELETE || true
+              fi
+            done
+
+          # 제출된 COMMENT 리뷰는 REST 로 삭제할 수 없고 dismiss 도 APPROVED 와 CHANGES_REQUESTED 에만 되므로 접는다.
+          gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/reviews?per_page=100" \
+            --jq '.[] | select(.user.login == "claude[bot]") | .node_id' \
+            | while read -r review_node_id; do
+              if [ -n "$review_node_id" ]; then
+                echo "오래된 Claude 리뷰 본문 접는 중: $review_node_id"
+                gh api graphql \
+                  -f query='mutation($id: ID!) { minimizeComment(input: {subjectId: $id, classifier: OUTDATED}) { minimizedComment { isMinimized } } }' \
+                  -F id="$review_node_id" || true
               fi
             done
 
@@ -115,7 +127,7 @@ jobs:
           REPO="${{ github.repository }}"
           PR_NUMBER="${{ env.PR_NUMBER }}"
 
-          ids=$(gh api "repos/$REPO/pulls/$PR_NUMBER/comments" --jq '
+          ids=$(gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/comments?per_page=100" --jq '
             .[]
             | select(.user.login == "claude[bot]")
             | select(
