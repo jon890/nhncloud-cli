@@ -62,6 +62,7 @@ nhncloud instance create --help
 | NKS | 지원 버전과 리소스를 조회한 뒤 변경 | [nks.md](../skills/nhncloud-cli/references/nks.md) |
 | NCS | template을 기준으로 workload를 만들고 관찰 | [ncs.md](../skills/nhncloud-cli/references/ncs.md) |
 | API Gateway | service·stage·resource 탐색 뒤 설정·배포 | [apigateway.md](../skills/nhncloud-cli/references/apigateway.md) |
+| Secure Key Manager | 키 저장소와 키 탐색 뒤 기밀 데이터 조회, 암복호화, 서명과 검증 | [skm.md](../skills/nhncloud-cli/references/skm.md) |
 
 ## 조회와 페이지 이동
 
@@ -132,6 +133,40 @@ image와 tag 조회는 registry 응답의 host를 검증한 뒤 Harbor REST에 U
 배포 생성 응답만으로 완료를 단정하지 않고 배포 상태를 조회한다.
 rollback도 새 상태 전이를 만들 수 있으므로 완료와 실패를 같은 방식으로 확인한다.
 
+### Secure Key Manager
+
+공통 UAK를 OAuth access token으로 교환하고 profile의 `skm.appkey`를 경로에 쓴다. 망은 profile `environment`로 고른다.
+`skm keystore list`와 `skm key list`로 키 저장소 ID와 키 ID를 찾은 뒤, 저장된 키를 쓰는 명령(기밀 데이터 조회, 암복호화, 서명과 검증, 키 원문 조회)에 키 ID를 넘긴다.
+키 목록은 응답에 전체 개수가 없어, 받은 개수가 요청한 페이지 크기보다 적을 때까지 다음 페이지를 요청해 모은다.
+
+저장된 키를 쓰는 명령은 키 저장소의 클라이언트 인증을 통과해야 한다.
+
+- IPv4 인증은 서버가 본 요청 출발지 IP로 판정하므로 CLI가 따로 보내는 값이 없다.
+- MAC 인증은 `--mac-address`로 준 콜론 구분 값을 소문자로 바꿔 헤더로 보낸다. 형식이 틀리면 자격증명을 읽기 전에 종료 코드 3으로 끝난다.
+- 인증서 인증만 켠 키 저장소는 지원하지 않는다. 인증 실패는 서버의 `resultMessage`를 담은 API 오류로 끝난다.
+- `skm confirm`은 서버가 본 클라이언트 IP, MAC 헤더와 인증서 사용 여부를 보여 준다. 인증 실패 원인을 좁힐 때 먼저 실행한다.
+
+암호화·서명할 데이터는 `--plaintext`, `--file`, 표준 입력 순으로 읽고 받은 바이트를 그대로 보낸다. 끝 줄바꿈과 앞의 UTF-8 BOM도 지우지 않는다.
+암호문과 서명값은 base64 문자열이라 앞뒤 공백을 지운다.
+입력 크기 한도(암호화 32KB, 일반 서명 245바이트, 표준 스킴 서명 64KB)는 자격증명을 읽기 전에 검사한다.
+
+비밀값을 받으려고 부른 명령(기밀 데이터 조회, 복호화, 키 원문 조회, local key 생성)은 값을 숨기지 않는다. `--quiet`과 `--json`은 원문을, 사람이 읽는 기본 출력은 제어 문자만 `?`로 바꾼 값을 출력한다.
+인증서 인증 정보 조회는 모든 출력 형식에서 `password`를 `***`로 가린다([[adr-039]]).
+서명 검증 결과가 `false`면 결과를 stdout에 출력하고 stderr에 실패를 알린 뒤 종료 코드 1로 끝난다.
+
+#### Secure Key Manager 쓰기
+
+키 저장소를 만들고(`skm keystore create`), 인증 정보를 등록하고(`skm keystore auth add`), 키를 만드는(`skm key create`) 순서로 쓴다([[adr-040]]).
+
+- 키 생성과 인증 정보 명령은 `<keystore-id>`를 받는다. CLI가 키 저장소 상세 조회로 이름을 얻어 요청에 넣는다. 조회가 실패하면 쓰기 요청을 보내지 않는다.
+- 기밀 데이터 값과 인증서 비밀번호는 `--value`·`--password`, 파일, 표준 입력 순으로 읽는다. 셸 기록에 남지 않게 파일이나 표준 입력을 권장한다. 기밀 데이터 값은 받은 그대로 보내고, 인증서 비밀번호만 끝의 줄바꿈 하나(`\n` 또는 `\r\n`)를 지운다. 기밀 데이터 수정 응답의 값은 출력하지 않는다.
+- 키 저장소 수정은 현재 값을 읽어 주지 않은 항목을 채운 뒤 전체를 보낸다. 조회 응답에 `authMode`가 없어 `--auth-mode`는 필수다. `--description`에 빈 값을 주면 현재 설명을 유지하므로 설명을 지우는 경로는 없다. 인증 사용 여부가 모두 꺼지는 요청은 API 호출 전에 거부한다.
+- 대칭키·비대칭키 생성은 자동 회전 주기 0을 보낸다.
+- 삭제는 두 단계다. `delete`는 7일 뒤 삭제를 예약하고, `purge`는 예약된 대상만 즉시 지운다. 키 저장소 `delete`는 비활성화다.
+  모든 삭제 명령은 `--yes`가 없으면 자격증명을 읽기 전에 종료 코드 3으로 끝난다.
+- 인증 정보를 지우거나 키 저장소의 인증 설정을 바꾸면 이 CLI를 실행한 위치가 키를 쓰지 못하게 될 수 있다. 바꾸기 전에 `skm confirm`으로 현재 클라이언트 IP·MAC을 확인한다.
+- 쓰기 요청이 실패하면 서버의 `resultMessage`를 담은 오류로 끝나고 재시도하지 않는다. 생성 명령을 다시 실행하면 같은 이름의 리소스를 다시 만들려고 하며 결과는 서버 규칙을 따른다.
+
 ## 공개 스킬 수명주기
 
 `nhncloud skills status`는 활성 링크, 관리 저장소 매니페스트와 콘텐츠 해시를 비교한다.
@@ -143,7 +178,7 @@ uninstall은 인식 가능한 활성 링크만 제거하고 실제 디렉터리�
 
 - 설정 오류, 인수 오류, 인증 오류와 API 오류는 서로 다른 종료 코드로 구분한다.
 - 자격증명 파일 손상과 존재하지 않는 profile 오류는 원인을 그대로 표시한다.
-  NCR, NCS, API Gateway와 Deploy의 서비스 자격증명 블록이나 필수 appkey만 없을 때
+  NCR, NCS, API Gateway, Secure Key Manager와 Deploy의 서비스 자격증명 블록이나 필수 appkey만 없을 때
   해당 서비스의 `configure` 명령을 안내한다.
 - JSON 모드에서도 경고와 오류를 stdout에 섞지 않는다.
 - API 문서와 실제 응답이 다르면 타입을 추측해 넓히지 않고 실측 근거를 남긴다.
