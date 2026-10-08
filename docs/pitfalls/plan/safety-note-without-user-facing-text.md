@@ -4,7 +4,7 @@ category: plan
 title: 되돌릴 수 없는 작업의 실패 경로에 안전 근거만 적고 사용자에게 낼 문구를 지시하지 않음
 triggers: [쓰기 명령, 실패 경로, 안내 문구, 대기, 타임아웃]
 tool_catchable: false
-source: [PR91, plan054-3]
+source: [PR92]
 related: [write-command-executor-live-call]
 ---
 
@@ -37,7 +37,7 @@ grep -rln "requireYes" src/commands/ | xargs grep -Ln "process.stderr.write"
 그 문구가 나오는 경우와 나오지 않는 경우를 테스트로 고정했는가?
 그 문구를 공개 문서에 옮기라고 지시했는가?
 
-**Why**: PR #91 (plan054-3) — `apigateway stage deploy create` 가 배포 접수 뒤 대기 타임아웃으로 끝나면
+**Why**: PR #92 — `apigateway stage deploy create` 가 배포 접수 뒤 대기 타임아웃으로 끝나면
 명령은 실패로 보고하는데 배포는 서버에 남아 있었다. phase 본문에 "대기가 끊겨도 배포는 취소되지 않는다" 고
 적혀 있었으나 그것은 폴링 오류를 전파해도 되는 이유였지 사용자에게 알리라는 지시가 아니었다.
 같은 phase 가 `import-resources` 와 `rollback` 의 안내는 문구까지 못박았다.
