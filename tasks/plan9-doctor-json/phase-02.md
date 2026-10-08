@@ -96,7 +96,7 @@ export const doctorCommand = createDoctorCommand();
 - `json` 이면 `printJson(report)`(`src/formatters/table.ts`).
 - `quiet` 이면 stdout 에 `ready\n` 또는 `not-ready\n` 한 줄.
 - 둘 다 아니면 텍스트 출력. 기존 절 구성(제목, 「자격증명」, 「Claude Code 스킬」, 요약 줄)을 유지하고 다음을 보탠다.
-  - 자격증명: `state` 별 문구. `missing` 은 기존 「미설정」 안내, `invalid` 와 `unreadable` 은 경로와 `reason`. `ok` 면 profile 목록(`이름 (gov)` 처럼 공공망 표기, `invalid` 는 경고 표기). `permissions` 가 `too-open` 이면 `chmod 600 <path>` 안내.
+  - 자격증명: `state` 별 문구. `missing` 은 기존 「미설정」 안내, `invalid` 와 `unreadable` 은 경로와 `reason`. `ok` 이고 profile 이 없으면 기존 `profile 없음` 안내를 유지한다. profile 이 있으면 목록(`이름 (gov)` 처럼 공공망 표기, `invalid` 는 경고 표기). `permissions` 가 `too-open` 이면 `chmod 600 <path>` 안내.
   - 설정 파일: `invalid`, `unreadable` 일 때만 경로와 `reason` 을 보인다. 기본 profile 은 `config.defaultProfile` 이나 「미지정 (default 사용)」.
   - 대상 profile: `profile.name` 과 존재 여부. `name` 이 `null` 이면 「config.json 을 먼저 고치세요」.
   - 스킬: 기존 상태별 문구를 유지하고 `error` 면 경고와 `reason`.

@@ -63,14 +63,14 @@ export interface DoctorConnectionDependencies {
   3. 일반망이면 대상별로 다음을 한다.
      - `userAccessKey`: `getUserAccessKey` 가 `NhnCloudCliError` 를 던지면 `skipped` 와 `not-configured`. 아니면 `verifyUserAccessKey`.
      - `iaas`: `getIaasCredential` 이 `NhnCloudCliError` 를 던지면 `not-configured`. 아니면 `verifyIaas`.
-     - `logncrash`, `ncr`, `ncs`: `getOptionalServiceCredential(service, name)` 가 `undefined` 거나 `appkey` 가 빈 값이면 `not-configured`. appkey 는 있는데 UAK 를 읽지 못하면 `uak-missing`. `logncrash`, `ncs` 는 OAuth 토큰을 UAK 로 받으므로 `userAccessKey` 결과가 `ok` 가 아니면 `skipped` 와 `uak-failed`(`ncr` 은 정적 UAK 서명이라 해당하지 않는다). 모두 통과하면 해당 verify 함수.
-  4. 3번 단계의 getter 가 `NhnCloudCliError` 외의 예외를 포함해 무엇을 던지든(inspect 이후 파일이 바뀐 경우), 그 대상은 `skipped` 와 `profile-unavailable` 로 바꾸고 종료 코드 0 을 유지한다. verify 함수의 예외는 위 `failed`/`error` 규칙을 따른다.
+     - `logncrash`, `ncr`, `ncs`: `getOptionalServiceCredential(service, name)` 가 `undefined` 거나 `appkey` 가 빈 값이면 `not-configured`. appkey 는 있는데 `userAccessKey` 단계의 결과가 `skipped` 의 `not-configured` 나 `profile-unavailable` 이면 `uak-missing`(대상마다 `getUserAccessKey` 를 다시 부르지 않고 `userAccessKey` 단계에서 읽은 UAK 를 재사용한다). `logncrash`, `ncs` 는 OAuth 토큰을 UAK 로 받으므로 `userAccessKey` 결과가 `ok` 가 아니면 `skipped` 와 `uak-failed`(`ncr` 은 정적 UAK 서명이라 해당하지 않는다). 모두 통과하면 해당 verify 함수.
+  4. 3번에 규칙이 없는 getter 예외(`getUserAccessKey`, `getIaasCredential` 이 `NhnCloudCliError` 가 아닌 예외를 던지거나, `getOptionalServiceCredential` 이 `NhnCloudCliError` 를 포함해 무엇이든 던지는 경우. inspect 이후 파일이 바뀐 경우)는 그 대상을 `skipped` 와 `profile-unavailable` 로 처리하고 종료 코드 0 을 유지한다. verify 함수의 예외는 위 `failed`/`error` 규칙을 따른다.
      - verify 결과가 `true` 면 `{ status: "ok" }`, `false` 면 `{ status: "failed", reason: "auth" }`, throw 하면 `{ status: "failed", reason: "error", exitCode }`.
 - `ready` 계산은 phase 02 규칙 그대로다. `targets` 에 `failed` 가 있으면 `false`.
 - 명령에 `.option("--check-connection", "대상 profile 의 자격증명으로 실제 연결을 확인한다 (외부 API 호출)")` 를 더한다. 이름은 root 예약 플래그와 겹치지 않는다.
 - description 을 `"자격증명·설정·스킬 상태를 진단한다(기본 오프라인, --check-connection 으로 연결 확인)"` 로 바꾼다.
 - 텍스트 모드에 「연결 확인」 절을 더한다. `checked` 가 false 면 이 절을 출력하지 않는다. 대상별로 `ok` 는 성공, `failed`/`auth` 는 인증 실패와 확인할 값, `failed`/`error` 는 오류와 종료 코드, `skipped` 는 건너뛴 사유를 한 줄씩 보인다. `ncr`, `ncs` 성공 줄에는 `(kr1)` 을 붙인다.
-- 연결 확인 중 안내가 필요하면 텍스트 모드에서만 stderr 에 쓴다. stdout 에는 보고서만 쓴다.
+- 연결 확인 중 진행 안내를 출력하지 않는다. stdout 에는 보고서만 쓴다.
 - 기본 의존성은 `src/config/credentials.ts` 와 `src/commands/configure-verify.ts` 의 실제 함수다.
 
 ### 2. 이 phase 를 검증하는 `src/commands/doctor.test.ts`
@@ -80,12 +80,13 @@ phase 02 의 fake 의존성에 `connection` fake 를 더한다. 실제 네트워
 - `--check-connection` 없이 실행하면 연결 의존성의 어떤 함수도 불리지 않고 `connection` 이 `{ checked: false }` 다.
 - 일반망 `default` profile 에 UAK, iaas, logncrash appkey 가 있고 ncr, ncs 블록이 없을 때: verify 가 모두 `true` 면 `userAccessKey`, `iaas`, `logncrash` 는 `ok`, `ncr`, `ncs` 는 `skipped` 와 `not-configured`, `ready: true`.
 - `verifyUserAccessKey` 가 `false` 면 `userAccessKey` 가 `failed` 와 `auth`, `ready: false`.
-- `verifyIaas` 가 `new NhnCloudCliError("x", EXIT_API_ERROR)` 를 throw 하면 `iaas` 가 `failed`, `error`, `exitCode: 1` 이고 그 뒤 `logncrash` 도 확인된다(verify 호출 순서를 단언). 보고서 JSON 에 오류 메시지 `"x"` 가 없다.
+- `verifyIaas` 가 `new NhnCloudCliError("x", EXIT_API_ERROR)` 를 throw 하면 `iaas` 가 `failed`, `error`, `exitCode: 1` 이고(`EXIT_API_ERROR` 는 기본값과 같으므로 아래 두 경우를 별도로 둔다) 그 뒤 `logncrash` 도 확인된다(verify 호출 순서를 단언). 보고서 JSON 에 오류 메시지 `"x"` 가 없다.
 - `getUserAccessKey` 가 `NhnCloudCliError` 를 던지고 ncr appkey 가 있으면 `ncr` 이 `uak-missing`, `verifyNcr` 는 불리지 않는다.
 - 대상 profile 요약의 `environment` 가 `"gov"` 면 다섯 대상 모두 `gov-unsupported` 이고 getter 와 verify 가 하나도 불리지 않는다.
 - `credentials.state: "missing"` 이면 다섯 대상 모두 `profile-unavailable`.
 - `verifyUserAccessKey` 가 `false` 면 `logncrash`, `ncs` 는 `skipped` 와 `uak-failed` 이고 `verifyLogncrash`, `verifyNcs` 는 불리지 않으며, `ncr` 은 그대로 확인된다.
 - `getIaasCredential` 이 `Error("x")`(NhnCloudCliError 아님)를 던지면 `iaas` 가 `skipped` 와 `profile-unavailable` 이고 명령은 종료 코드 0 으로 끝나며 나머지 대상은 계속 확인된다.
+- `verifyIaas` 가 `new Error("ECONNREFUSED")`(NhnCloudCliError 아님)를 throw 하면 `failed`, `error`, `exitCode: 1`. `EXIT_CONFIG_ERROR` 를 가진 `NhnCloudCliError` 를 throw 하면 `exitCode` 가 그 코드 그대로다.
 - 위 모든 경우 `process.exitCode` 가 바뀌지 않는다.
 - 텍스트 모드: 실패와 건너뜀이 섞인 입력에서 「연결 확인」 절이 출력되고, fixture 의 UAK secret, iaas password, appkey 문자열이 stdout 과 stderr 어디에도 없다.
 
@@ -126,4 +127,6 @@ git diff --check
 | `src/commands/doctor.test.ts` | 수정 |
 | `README.md` | 수정 |
 | `skills/nhncloud-cli/references/troubleshooting.md` | 수정 |
-| `skills/nhncloud-cli/references/common.md` | 수정 |
+| `skills/nhncloud-cli/references/common.md` | 대조. 차이가 있을 때만 수정 |
+| `docs/flow.md` | 대조. 차이가 있을 때만 수정 |
+| `docs/adr/042-doctor-offline-default-and-exit-code.md` | 대조. 차이가 있을 때만 수정 |
