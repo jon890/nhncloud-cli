@@ -47,6 +47,7 @@ error: unknown option '--instance-id'
 
 첫 판정에 맞는 인수가 있으면 그것을 안내한다.
 없으면 둘째와 셋째 판정에 맞는 인수를 모으고, 정확히 하나일 때만 안내한다.
+셋째 판정은 그 명령의 다른 인수 이름과 같은 단계를 쓰지 않는다. `ncs template version get <id> <version>` 의 `--version-id` 가 템플릿 ID 를 가리키지 않게 하기 위해서다.
 어느 판정에도 맞지 않거나 후보가 둘 이상이면 Commander 오류 줄만 남긴다.
 짧은 옵션(`-x`)과 옵션 이름 오타는 다루지 않는다.
 오타는 Commander가 `(Did you mean ...)`으로 이미 제안한다.
