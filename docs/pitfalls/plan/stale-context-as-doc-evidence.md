@@ -5,7 +5,7 @@ title: 세션 요약의 외부 상태를 재확인 없이 문서 근거로 인�
 triggers: [외부 상태, 세션 요약, ADR 근거, 게시 여부]
 tool_catchable: false
 source: [PR86]
-related: [external-state-gate-missing, stale-code-in-reuse-claim]
+related: [external-state-gate-missing]
 ---
 
 **증상**: 이전 세션 요약이나 대화 앞부분에 있던 외부 상태값(npm 게시 여부, 배포 상태, PR 상태, 릴리스 버전)을

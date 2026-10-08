@@ -5,7 +5,7 @@ title: 목표가 뒤집힌 자리에서 기존 로직을 그대로 재사용하�
 triggers: [목표 반전, 기존 로직 재사용, 실패 경로, 파일 보존, 정렬 순서]
 tool_catchable: false
 source: [plan063]
-related: [stale-code-in-reuse-claim, file-scope-inaccurate]
+related: []
 ---
 
 **증상**: 기존 동작을 **반대로** 바꾸는 변경인데, 계획이 그 자리의 기존 로직을 "그대로 쓰라" 고 지시한다.
@@ -37,5 +37,3 @@ grep -n "기존 .*로직\|그대로 쓴다\|그대로 유지한다\|재사용한
 **Why**: plan063 에서 이 패턴이 데이터 손실 두 건으로 이어질 뻔했다.
 하나는 critic 이 계획 단계에서, 하나는 executor 가 구현 중 테스트 실패로 잡았다.
 계획을 쓴 쪽은 둘 다 놓쳤다 — 자기가 세운 전제는 다시 읽어도 전제로 보인다.
-
-관련: [[stale-code-in-reuse-claim]], [[file-scope-inaccurate]]

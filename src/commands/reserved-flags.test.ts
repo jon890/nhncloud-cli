@@ -15,6 +15,11 @@ import { describe, expect, it } from "vitest";
  * root 의 `.version("0.13.0")` 에 가로채여 CLI 버전만 출력하고 exit 0 으로 끝났다.
  * 오류 메시지가 없어 조용히 실패했다.
  *
+ * 충돌은 옵션 이름을 바꿔서 피한다.
+ * `enablePositionalOptions()` 는 충돌을 없애지만 `instance list --json` 같은 전역 옵션 후치 사용을 전부 깨뜨린다.
+ * root `.version()` 의 플래그를 `-V, --cli-version` 으로 바꾸면 `nhncloud --version` 자체가 사라진다.
+ * 이슈 #76 에서 세 방식을 모두 측정했고, 옵션 이름을 바꾸는 방식만 다른 동작을 깨뜨리지 않았다.
+ *
  * root 에 옵션을 추가하면 이 목록도 함께 갱신한다.
  */
 const RESERVED_ROOT_FLAGS = [
