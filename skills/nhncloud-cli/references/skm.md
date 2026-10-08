@@ -29,6 +29,7 @@ CLI는 IPv4 인증과 MAC 인증을 지원한다. 인증서 인증 정보 등록
 ```bash
 nhncloud skm keystore list
 nhncloud skm key list <keystore-id>
+nhncloud skm key list <keystore-id> --status active   # active|inactive 로 거른다
 nhncloud skm secret get <key-id> --quiet
 ```
 
@@ -61,6 +62,7 @@ printf '%s' "$SECRET" | nhncloud skm key create <keystore-id> --type secret --na
 ```
 
 - 키 저장소는 `<keystore-id>`로 지정하고, CLI가 키 저장소 이름을 조회해 요청에 넣는다.
+- 기밀 데이터 값(`key create --type secret`, `secret update`)은 `--value`, `--file`, 표준 입력 중 하나로 넘긴다. `--value`로 넘긴 값은 셸 히스토리와 프로세스 목록에 남으므로 비밀값은 `--file`이나 표준 입력으로 넘긴다.
 - `keystore update`는 주지 않은 값을 현재 값으로 채운다. 조회 응답에 인증 결합 방식이 없으므로 `--auth-mode`는 매번 필수다. `--description`에 공백만 주면 현재 설명을 유지하며 설명을 지우는 경로는 없다.
 - `delete`는 7일 뒤 삭제되고 콘솔에서 취소할 수 있다. `purge`는 삭제가 예약된 대상만 즉시 지우며 되돌릴 수 없다. 모든 삭제 명령에 `--yes`가 필요하다.
 - 인증 정보를 지우거나 인증 설정을 바꾸기 전에 `nhncloud skm confirm`으로 현재 IP·MAC을 확인한다. 실행 위치가 키를 쓰지 못하게 될 수 있다.
