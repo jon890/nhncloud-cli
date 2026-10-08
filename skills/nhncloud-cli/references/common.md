@@ -1,18 +1,10 @@
 # Common Reference
 
-CLI와 공개 스킬 설치, configure, profile, 출력 모드, 에러 코드를 다룬다.
+공개 스킬 관리, configure, profile, 출력 모드, 에러 코드를 다룬다.
 서비스별 세부 명령은 각 reference를 읽는다.
-
-## 설치
-
-```bash
-npm install -g @bifos/nhncloud-cli
-```
 
 ## Claude Code 공개 스킬 관리
 
-전역 설치한 CLI나 `npx`로 패키지의 공개 스킬을 관리 저장소에 설치할 수 있다.
-관리 저장소는 실행 중인 npm 패키지 경로와 분리되므로 `npx`의 임시 패키지 경로가 사라져도 활성 스킬은 유지된다.
 
 ```bash
 # 전역 설치한 CLI에서 설치
@@ -167,8 +159,7 @@ HTTP 요청 상한과는 다른 설정이므로 서로 대체하지 않는다.
 
 ## Command catalog
 
-`nhncloud commands`는 Commander tree에서 command path, argument, option, description을 출력한다.
-외부 API를 호출하지 않는 read-only metadata 명령이다.
+`nhncloud commands`는 command path, argument, option, description을 출력한다. 외부 API를 호출하지 않는다.
 
 ```bash
 nhncloud commands

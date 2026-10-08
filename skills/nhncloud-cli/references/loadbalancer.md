@@ -142,9 +142,8 @@ nhncloud loadbalancer ipacl target remove <target-id> \
 
 ## stdout과 stderr
 
-- 테이블, JSON, UUID, 정상 빈 결과는 stdout에 출력한다.
-- 진행 상황, 운영 경고, 오류는 stderr에 출력한다.
-- 파이프라인에서는 stdout만 다음 명령에 전달하고 stderr는 진단 로그로 분리한다.
+stdout과 stderr 분리 규칙은 [SKILL.md](../SKILL.md)를 따른다.
+
 - 부분 실패에서도 JSON 또는 UUID를 stdout에 먼저 출력한 뒤 stderr에 복구 안내를 출력한다.
 
 ## 부분 실패 복구

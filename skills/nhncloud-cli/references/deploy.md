@@ -4,7 +4,6 @@
 
 `~/.nhncloud/credentials.json`에 profile 공통 `userAccessKey`가 필요하다.
 appkey는 `nhncloud configure --deploy-appkey <key>`로 profile에 설정한다.
-`nhncloud configure` 사용을 권장한다.
 공공망에서는 profile에 `"environment": "gov"`를 명시하고 `--profile`로 선택한다.
 
 배포 좌표(아티팩트·서버그룹·시나리오 등)는 config에 두지 않는다.

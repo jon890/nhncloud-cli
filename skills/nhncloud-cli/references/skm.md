@@ -1,15 +1,11 @@
 # Secure Key Manager 명령 안내
 
-`skm` 명령군은 키 저장소·키·인증 정보를 조회하고 만들고 지우며, 기밀 데이터 조회·수정, 대칭키 암복호화, 비대칭키 서명·검증, 키 원문 조회를 지원한다.
-키 저장소의 인증 정보 등록과 키 생성·삭제도 같은 명령군에서 한다.
+`skm` 명령군은 Secure Key Manager의 키 저장소, 키, 인증 정보, 기밀 데이터를 다룬다.
 
 ## 인증과 설정
 
 공통 UAK와 SKM `appKey`가 필요하다.
 `nhncloud configure --skm-appkey <appkey>`로 profile의 `skm.appkey`를 설정한다.
-
-API 요청은 공통 UAK로 발급한 Bearer 토큰을 `X-NHN-Authorization` 헤더에 담는다.
-표준 `Authorization` 헤더가 아니므로 직접 API를 호출할 때 혼동하지 않는다.
 
 공공망은 profile의 `"environment": "gov"`로 고른다.
 

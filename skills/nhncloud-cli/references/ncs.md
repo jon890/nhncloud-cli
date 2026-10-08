@@ -88,7 +88,7 @@ nhncloud ncs workload logs <workload-id> \
 ```
 
 CLI는 입력을 API 호출 전에 `YYYY-MM-DDTHH:mm:ssZ` 형식으로 정규화하고 소수 초를 제거한다.
-두 옵션을 모두 생략하면 API 기본 범위를 사용한다.
+`--from`과 `--to`를 모두 생략하면 API 기본 범위를 사용한다.
 한쪽만 지정하면 지정한 필드만 API에 전달한다.
 
 존재하지 않는 날짜, 시간대 없는 절대시간, 지원하지 않는 상대시간 단위, `from > to`는 종료 코드 3으로 거부한다.
@@ -118,7 +118,7 @@ nhncloud ncs workload delete <workload-id> --yes
 
 생성은 비동기다.
 `--wait`를 주면 `Running` 상태가 될 때까지 폴링하고, `--timeout <sec>`(기본 300)으로 대기 시간을 조절한다.
-변경은 `update`(PUT, 전체 교체)와 `patch`(PATCH, JSON Patch 배열 부분 변경) 두 가지다.
+변경은 `update`(PUT, 전체 교체)와 `patch`(PATCH, JSON Patch 배열 부분 변경)다.
 
 ```bash
 nhncloud ncs workload create --file ./workload-create.json --json
