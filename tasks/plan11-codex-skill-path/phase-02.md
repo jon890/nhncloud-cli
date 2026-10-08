@@ -42,10 +42,11 @@ export async function uninstallSkill(context, operations = defaultOperations): P
 
 1. `SKILL_AGENTS` 순서로 `inspectAgentSkill` 을 부른다. `missing` 이 아닌 경로 가운데 `!managed || !linkTarget` 인 것이 있으면 `managerError(\`관리되지 않은 스킬 항목이므로 어느 경로도 제거하지 않았습니다: ${destination}\`)` 를 던진다. 이 검사는 어떤 `rename` 보다 먼저 한다.
 2. 부모 디렉터리의 `realpath` 와 basename 으로 같은 실제 경로인 대상을 하나로 합친다(phase 01 의 `switchActiveLinks` 와 같은 규칙). 부모가 없으면 그 경로는 `missing` 이라 대상이 아니다.
-3. 대상마다 지금의 이동과 검증(`.${SKILL_NAME}.uninstall-${randomUUID()}` 로 `operations.rename`, `lstat`, `readlink` 로 대상 재확인)을 순서대로 한다. 이 단계가 한 경로에서 실패하면 그 경로는 `restoreUninstallCandidate` 로 복원하고, 앞에서 이동한 경로의 `candidate` 도 `optionalLstat(destination)` 으로 자리가 비었는지 확인한 뒤(`restoreUninstallCandidate` 와 같은 검사) 원래 `destination` 으로 `operations.rename` 해 되돌리고 실패한다. 이동 중 `ENOENT` 는 그 경로를 `absent` 로 본다.
+3. 대상마다 지금의 이동과 검증(`.${SKILL_NAME}.uninstall-${randomUUID()}` 로 `operations.rename`, `lstat`, `readlink` 로 대상 재확인)을 순서대로 한다. 이 단계가 한 경로에서 실패하면 그 경로와 앞에서 이동한 경로의 `candidate` 를 모두 아래 `tryRestoreCandidate` 로 되돌린 뒤 메시지 하나로 실패한다. 되돌릴 다른 경로가 없는 첫 경로의 실패는 기존 `restoreUninstallCandidate` 의 메시지를 그대로 쓴다. 앞 경로까지 되돌린 경우의 최종 메시지는 4번의 두 메시지 형식(`스킬 제거에 실패해 …` / `… 일부 경로를 되돌리지 못했습니다`)을 쓴다.
+   - `restoreUninstallCandidate`(`Promise<never>`, 성공해도 throw)의 `optionalLstat` 검사와 `rename` 을 throw 하지 않는 헬퍼 `tryRestoreCandidate(candidate, destination, operations): Promise<{ restored: boolean; error?: unknown; preserved?: string }>` 로 분리하고, `restoreUninstallCandidate` 는 이 헬퍼를 불러 기존 메시지로 throw 하도록 바꾼다. 여러 경로의 롤백은 이 헬퍼로 모두 시도한 뒤 메시지 하나를 낸다. 이동 중 `ENOENT` 는 그 경로를 `absent` 로 본다.
 4. 이동·검증 단계에서 대상마다 `readlink` 원래 값(`rawTarget`)을 기록해 둔다. 모든 대상의 이동과 검증이 끝난 뒤에만 `candidate` 들을 `SKILL_AGENTS` 순서로 `operations.rm(candidate, { force: true })` 한다. 하나가 실패하면 다음을 한다.
-   - 아직 지우지 않은 `candidate`(실패한 것 포함)는 `restoreUninstallCandidate` 로 원래 위치로 되돌린다.
-   - 이미 지운 경로는 새 임시 링크(`.${SKILL_NAME}.link-${randomUUID()}`, 같은 부모)에 기록해 둔 `rawTarget` 으로 `symlink` 한 뒤 `operations.rename(그 링크, destination)` 으로 되살린다. 되살리기 전에 `optionalLstat(destination)` 으로 그 자리가 비었는지 본다(`restoreUninstallCandidate` 와 같은 검사).
+   - 아직 지우지 않은 `candidate`(실패한 것 포함)는 `tryRestoreCandidate` 로 원래 위치로 되돌린다.
+   - 이미 지운 경로는 새 임시 링크(`.${SKILL_NAME}.link-${randomUUID()}`, 같은 부모)에 기록해 둔 `rawTarget` 으로 `symlink` 한 뒤 `operations.rename(그 링크, destination)` 으로 되살린다. 되살리기 전에 `optionalLstat(destination)` 으로 그 자리가 비었는지 본다(`tryRestoreCandidate` 와 같은 검사). 되살리려고 만든 임시 링크는 성공이든 실패든 `finally` 에서 `rm({ force: true })` 한다.
    - 모두 성공하면 `managerError(\`스킬 제거에 실패해 지운 경로를 이전 상태로 되돌렸습니다: ${restored.join(", ")}\`, originalError)`. 하나라도 되돌리지 못하면 나머지를 계속 되돌린 뒤 `managerError(\`스킬 제거에 실패했고 일부 경로를 되돌리지 못했습니다: ${failed.join(", ")}; 제거 오류: ${toReason(originalError)}\`, firstRestoreError)`.
    - `SkillManagerOperations` 에 `rm: typeof rm` 을 더하고 `defaultOperations` 에 `fs/promises` 의 `rm` 을 넣는다. `uninstallSkill` 과 `rm` 을 주입할 필요가 있는 이 단계는 `operations.rm` 으로 부른다. 기존 테스트의 `{ async rename() {} }` 리터럴이 컴파일되도록 `rm` 은 optional(`rm?`)로 두고, 쓰는 쪽은 `(operations.rm ?? defaultOperations.rm)` 으로 부른다.
 5. 경로별 `action` 은 지운 경로가 `removed`, 처음부터 없거나 이동 시 `ENOENT` 인 경로가 `absent` 다. 합친 대상의 두 에이전트는 같은 `action` 을 받는다. 최상위 `action` 은 하나라도 `removed` 면 `removed`.
@@ -101,7 +102,7 @@ export async function uninstallSkill(context, operations = defaultOperations): P
 - `skills/nhncloud-cli/references/common.md` 「Claude Code 공개 스킬 관리」 절: 먼저 현재 내용을 읽는다. 상태 표의 「한 경로라도 …」 의미 열, 합친 상태 설명, `agents.*` 문장은 이미 반영돼 있으니 다시 더하지 않는다. 제목을 「Claude Code·Codex 공개 스킬 관리」 로 바꾸고 아래 가운데 아직 없는 것만 더한다.
   - 설치 경로는 Claude Code 의 `~/.claude/skills/nhncloud-cli` 와 Codex 의 `~/.agents/skills/nhncloud-cli` 이고 두 경로는 같은 관리 저장소를 가리킨다. Codex 설치 여부와 관계없이 두 경로를 만들고, 필요하면 `~/.agents/skills` 디렉터리도 만든다.
   - 기존에 Claude Code 에만 설치했다면 `nhncloud skills install` 이나 `update` 를 다시 실행해 Codex 경로를 연결한다.
-  - `status` 의 상태는 두 경로를 합친 값이며, 상태 표의 순서(`corrupt` 부터 `current` 까지)로 먼저 해당하는 값이다. 두 경로가 모두 `current` 일 때만 `current` 다. 상태 표의 의미 열을 「한 경로라도 …」 기준으로 고친다.
+  - `status` 의 상태는 두 경로를 합친 값이며, 상태 표의 순서(`corrupt` 부터 `current` 까지)로 먼저 해당하는 값이다. 두 경로가 모두 `current` 일 때만 `current` 다(상태 표의 의미 열은 반영됨).
   - 표 아래에 `destination`, `linkTarget`, `managed` 는 Claude Code 경로 값이며 경로별 상세는 `agents.*` 에 있다고 적는다.
   - 한 경로라도 `unmanaged`, `modified`, `corrupt` 면 `--force` 없이는 어느 경로도 바꾸지 않는다. 한 경로의 전환이 실패하면 이미 바꾼 경로를 되돌린다.
   - `uninstall` 문장을 두 경로로 바꾸고, 한 경로라도 사용자 항목이면 어느 링크도 지우지 않는다고 적는다.
