@@ -226,7 +226,7 @@ async function checkConnection(
     "value" in uakRead ? await runVerify(() => deps.verifyUserAccessKey(uakRead.value)) : uakRead.skipped;
 
   const iaasRead = await readRequired(() => deps.getIaasCredential(profileName));
-  const iaas = "value" in iaasRead ? await runVerify(() => deps.verifyIaas(iaasRead.value)) : iaasRead.skipped;
+  const iaasResult = "value" in iaasRead ? await runVerify(() => deps.verifyIaas(iaasRead.value)) : iaasRead.skipped;
 
   const checkAppkeyService = async (
     service: "logncrash" | "ncr" | "ncs",
@@ -244,7 +244,7 @@ async function checkConnection(
   const ncr = await checkAppkeyService("ncr", deps.verifyNcr, false);
   const ncs = await checkAppkeyService("ncs", deps.verifyNcs, true);
 
-  return { userAccessKey, iaas, logncrash, ncr, ncs };
+  return { userAccessKey, iaas: iaasResult, logncrash, ncr, ncs };
 }
 
 export async function buildDoctorReport(

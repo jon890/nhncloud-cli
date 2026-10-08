@@ -135,7 +135,7 @@ nhncloud doctor --json | jq -e '.ready'   # 준비되지 않았으면 jq 가 1 �
 | 필드 | 값 |
 |---|---|
 | `schemaVersion` | `1` |
-| `ready` | 자격증명 파일이 `ok`, 대상 profile 이 있고 자격증명 블록이 하나 이상 있으며 `environment`가 올바르고, 연결 확인을 했다면 `failed`가 없을 때 `true` |
+| `ready` | 자격증명 파일이 `ok`, 대상 profile 이 있고 자격증명 블록이 하나 이상 있으며 `environment`가 올바르고, 연결 확인을 했다면 `failed`가 없을 때 `true`. `config.state`는 반영하지 않으므로 `config.json` 손상은 `config.state`로 따로 본다 |
 | `credentials` | `credentials.json` 진단. 아래 표 |
 | `config` | `config.json` 진단. 아래 표 |
 | `profile` | `{ "name": string \| null, "exists": boolean }`. `name`은 profile 해석 순서로 정한 대상이며, `config.json` 이 JSON 이 아니라 해석하지 못하면 `null` |
