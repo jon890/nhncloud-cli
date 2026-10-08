@@ -127,6 +127,5 @@ git diff --check
 | `src/commands/doctor.test.ts` | 수정 |
 | `README.md` | 수정 |
 | `skills/nhncloud-cli/references/troubleshooting.md` | 수정 |
-| `skills/nhncloud-cli/references/common.md` | 대조. 차이가 있을 때만 수정 |
-| `docs/flow.md` | 대조. 차이가 있을 때만 수정 |
-| `docs/adr/042-doctor-offline-default-and-exit-code.md` | 대조. 차이가 있을 때만 수정 |
+
+구현이 문서와 다를 때만 `skills/nhncloud-cli/references/common.md`, `docs/flow.md`, `docs/adr/042-doctor-offline-default-and-exit-code.md` 를 같은 커밋에서 고친다. 이 세 파일은 대조 대상이라 위 표에 넣지 않는다.
