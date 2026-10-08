@@ -101,7 +101,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 | 기존 동작을 반대로 뒤집는 변경 (실패 경로·보존 정책) | plan | [goal-reversed-logic-reuse](plan/goal-reversed-logic-reuse.md), [stale-code-in-reuse-claim](plan/stale-code-in-reuse-claim.md) |
 | 결정·옵션·인수 폐지 후 문서 표면 정리 | plan | [decision-surface-sweep-incomplete](plan/decision-surface-sweep-incomplete.md), [path-migration-agents-missing](plan/path-migration-agents-missing.md) |
 | 되돌릴 수 없는 쓰기 명령 (배포·삭제·전송) | plan | [safety-note-without-user-facing-text](plan/safety-note-without-user-facing-text.md), [write-command-executor-live-call](plan/write-command-executor-live-call.md) |
-| plan 작성 (phase 항목·검증 명령·완료 조건) | plan | [numeric-estimation](plan/numeric-estimation.md), [manual-verification-criterion](plan/manual-verification-criterion.md), [last-phase-completed-marking](plan/last-phase-completed-marking.md) |
+| plan 작성 (phase 항목·검증 명령·완료 조건) | plan | [numeric-estimation](plan/numeric-estimation.md), [manual-verification-criterion](plan/manual-verification-criterion.md) |
 | 팀원 스폰·메시지 (build-with-teams) | team | [sendmessage-reply-missing](team/sendmessage-reply-missing.md), [member-premature-execution](team/member-premature-execution.md), [executor-premature-execution](plan/executor-premature-execution.md) |
 | worktree·cwd 격리 | team | [executor-cwd-isolation](team/executor-cwd-isolation.md), [execution-context-ambiguous](plan/execution-context-ambiguous.md), [cwd-tracking-dual-status](team/cwd-tracking-dual-status.md) |
 
@@ -128,7 +128,6 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [import-identifier-collision](plan/import-identifier-collision.md)
 - [input-validation-policy-asymmetry](plan/input-validation-policy-asymmetry.md)
 - [integrated-command-partial-surface](plan/integrated-command-partial-surface.md)
-- [last-phase-completed-marking](plan/last-phase-completed-marking.md)
 - [list-endpoint-pagination-missing](plan/list-endpoint-pagination-missing.md)
 - [list-output-column-docs-mismatch](plan/list-output-column-docs-mismatch.md)
 - [macos-bsd-sed-word-boundary](plan/macos-bsd-sed-word-boundary.md)
