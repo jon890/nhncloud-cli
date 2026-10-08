@@ -13,7 +13,13 @@ import {
 import type { IaasCredential, ServiceCredential, UserAccessKey } from "../config/types.js";
 import { printJson } from "../formatters/table.js";
 import { createSkillManagerContext, type SkillManagerContext } from "../skill/context.js";
-import { inspectAgentSkill, type SkillStatus } from "../skill/manager.js";
+import {
+  inspectAgentSkill,
+  SKILL_AGENT_NAMES,
+  SKILL_AGENTS,
+  type SkillAgent,
+  type SkillStatus,
+} from "../skill/manager.js";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_API_ERROR } from "../utils/exit-codes.js";
 import { sanitizeForTerminal } from "../utils/terminal.js";
@@ -26,7 +32,6 @@ import {
 } from "./configure-verify.js";
 import { skillRecoveryCommand } from "./skills-output.js";
 
-const SKILL_NAME = "nhncloud-cli";
 const SKILL_ERROR_REASON = "공개 스킬 상태를 판정하지 못했습니다";
 
 export type DoctorConnectionTarget = "userAccessKey" | "iaas" | "logncrash" | "ncr" | "ncs";
@@ -63,7 +68,7 @@ export interface DoctorReport {
   config: ConfigFileInspection;
   profile: { name: string | null; exists: boolean };
   connection: DoctorConnection;
-  skills: { agents: { claude: DoctorSkillAgentStatus } };
+  skills: { agents: Record<SkillAgent, DoctorSkillAgentStatus> };
 }
 
 export interface DoctorConnectionDependencies {
@@ -82,7 +87,7 @@ export interface DoctorDependencies {
   inspectConfig: () => Promise<ConfigFileInspection>;
   resolveProfile: (cliProfile?: string) => Promise<string>;
   createSkillContext: () => SkillManagerContext;
-  inspectSkill: (context: SkillManagerContext) => Promise<SkillStatus>;
+  inspectSkill: (context: SkillManagerContext, agent: SkillAgent) => Promise<SkillStatus>;
   connection: DoctorConnectionDependencies;
 }
 
@@ -91,7 +96,7 @@ const defaultDependencies: DoctorDependencies = {
   inspectConfig: inspectConfigFile,
   resolveProfile: resolveProfileName,
   createSkillContext: createSkillManagerContext,
-  inspectSkill: (c) => inspectAgentSkill(c, "claude"),
+  inspectSkill: inspectAgentSkill,
   connection: {
     getUserAccessKey,
     getIaasCredential,
@@ -128,9 +133,12 @@ async function resolveTargetProfile(
  * 스킬 판정 오류는 보고서 필드로 바꾼다.
  * 오류 메시지는 경로나 파일 내용을 담을 수 있어 고정 문구와 오류 코드만 남긴다.
  */
-async function inspectClaudeSkill(dependencies: DoctorDependencies): Promise<DoctorSkillAgentStatus> {
+async function inspectAgentSkillForDoctor(
+  dependencies: DoctorDependencies,
+  agent: SkillAgent,
+): Promise<DoctorSkillAgentStatus> {
   try {
-    const status = await dependencies.inspectSkill(dependencies.createSkillContext());
+    const status = await dependencies.inspectSkill(dependencies.createSkillContext(), agent);
     return { ...status, recoveryCommand: skillRecoveryCommand(status.status) ?? null };
   } catch (err) {
     const code =
@@ -265,7 +273,8 @@ export async function buildDoctorReport(
         targets: await checkConnection(profileName, credentials, profileSummary, dependencies.connection),
       }
     : { checked: false };
-  const claude = await inspectClaudeSkill(dependencies);
+  const claude = await inspectAgentSkillForDoctor(dependencies, "claude");
+  const codex = await inspectAgentSkillForDoctor(dependencies, "codex");
 
   const ready =
     profileSummary !== undefined &&
@@ -280,7 +289,7 @@ export async function buildDoctorReport(
     config,
     profile: { name: profileName, exists: profileSummary !== undefined },
     connection,
-    skills: { agents: { claude } },
+    skills: { agents: { claude, codex } },
   };
 }
 
@@ -356,18 +365,23 @@ function printProfileSection(profile: DoctorReport["profile"]): void {
   }
 }
 
-function printSkillSection(skill: DoctorSkillAgentStatus): void {
-  line(chalk.bold("\nClaude Code 스킬"));
+function printSkillLine(agent: SkillAgent, skill: DoctorSkillAgentStatus): void {
+  const name = SKILL_AGENT_NAMES[agent];
   if (skill.status === "error") {
-    line(`  ${SKILL_NAME}: ${chalk.yellow("⚠ error")} — ${sanitizeForTerminal(skill.reason)}`);
+    line(`  ${name}: ${chalk.yellow("⚠ error")} — ${sanitizeForTerminal(skill.reason)}`);
   } else if (skill.status === "current") {
     const version = sanitizeForTerminal(skill.installedVersion ?? skill.currentVersion);
-    line(`  ${SKILL_NAME}: ${chalk.green(`✓ current (${version})`)}`);
+    line(`  ${name}: ${chalk.green(`✓ current (${version})`)}`);
   } else if (skill.status === "missing") {
-    line(`  ${SKILL_NAME}: ${chalk.gray(`미설치 — ${skill.recoveryCommand}`)}`);
+    line(`  ${name}: ${chalk.gray(`미설치 — ${skill.recoveryCommand}`)}`);
   } else {
-    line(`  ${SKILL_NAME}: ${chalk.yellow(`⚠ ${skill.status}`)} — ${skill.recoveryCommand}`);
+    line(`  ${name}: ${chalk.yellow(`⚠ ${skill.status}`)} — ${skill.recoveryCommand}`);
   }
+}
+
+function printSkillSection(agents: Record<SkillAgent, DoctorSkillAgentStatus>): void {
+  line(chalk.bold("\n공개 스킬"));
+  for (const agent of SKILL_AGENTS) printSkillLine(agent, agents[agent]);
 }
 
 const SKIP_REASONS: Partial<Record<NonNullable<DoctorConnectionResult["reason"]>, string>> = {
@@ -404,7 +418,7 @@ function printText(report: DoctorReport): void {
   printConfigSection(report.config);
   printProfileSection(report.profile);
   printConnectionSection(report.connection);
-  printSkillSection(report.skills.agents.claude);
+  printSkillSection(report.skills.agents);
 
   line();
   if (report.ready) {

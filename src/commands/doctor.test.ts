@@ -33,6 +33,11 @@ const missingSkill: SkillStatus = {
   managed: false,
 };
 
+const missingCodexSkill: SkillStatus = {
+  ...missingSkill,
+  destination: "/home/tester/.agents/skills/nhncloud-cli",
+};
+
 const currentSkill: SkillStatus = {
   ...missingSkill,
   status: "current",
@@ -127,7 +132,7 @@ beforeEach(() => {
     inspectConfig: vi.fn(async () => missingConfig),
     resolveProfile: vi.fn(async (cliProfile?: string) => cliProfile ?? "default"),
     createSkillContext: vi.fn(() => context),
-    inspectSkill: vi.fn(async () => missingSkill),
+    inspectSkill: vi.fn(async (_context, agent) => (agent === "claude" ? missingSkill : missingCodexSkill)),
     connection: fakeConnection(),
   };
   exitCodeBefore = process.exitCode;
@@ -154,7 +159,10 @@ describe("doctor --json", () => {
       profile: { name: "default", exists: false },
       connection: { checked: false },
       skills: {
-        agents: { claude: { ...missingSkill, recoveryCommand: "nhncloud skills install" } },
+        agents: {
+          claude: { ...missingSkill, recoveryCommand: "nhncloud skills install" },
+          codex: { ...missingCodexSkill, recoveryCommand: "nhncloud skills install" },
+        },
       },
     });
   });
@@ -175,6 +183,7 @@ describe("doctor --json", () => {
     expect(report.ready).toBe(true);
     expect(report.profile).toEqual({ name: "default", exists: true });
     expect(report.skills.agents.claude).toEqual({ ...currentSkill, recoveryCommand: null });
+    expect(report.skills.agents.codex).toEqual({ ...currentSkill, recoveryCommand: null });
   });
 
   it("profile 해석이 NhnCloudCliError 로 실패하면 name 이 null 이고 정상 종료한다", async () => {
@@ -208,6 +217,10 @@ describe("doctor --json", () => {
       status: "error",
       reason: "공개 스킬 상태를 판정하지 못했습니다",
     });
+    expect(report.skills.agents.codex).toEqual({
+      status: "error",
+      reason: "공개 스킬 상태를 판정하지 못했습니다",
+    });
     expect(report.credentials).toEqual(okCredentials);
     expect(report.profile).toEqual({ name: "default", exists: true });
     expect(report.ready).toBe(true);
@@ -221,6 +234,7 @@ describe("doctor --json", () => {
     const report = await runJson("doctor", "--json");
 
     expect(report.skills.agents.claude.status).toBe("error");
+    expect(report.skills.agents.codex.status).toBe("error");
   });
 
   it("스킬 오류의 code 만 reason 에 붙이고 메시지는 넣지 않는다", async () => {
@@ -229,11 +243,46 @@ describe("doctor --json", () => {
     });
 
     const report = await runJson("doctor", "--json");
-    const claude = report.skills.agents.claude;
+    const { claude, codex } = report.skills.agents;
 
     expect(claude).toEqual({ status: "error", reason: "공개 스킬 상태를 판정하지 못했습니다: EACCES" });
+    expect(codex).toEqual({ status: "error", reason: "공개 스킬 상태를 판정하지 못했습니다: EACCES" });
     expect(JSON.stringify(report)).not.toContain("fake-secret");
     expect(JSON.stringify(report)).not.toContain("open failed");
+  });
+
+  it("두 에이전트를 각각 판정한다", async () => {
+    await runJson("doctor", "--json");
+
+    expect(dependencies.inspectSkill).toHaveBeenCalledWith(context, "claude");
+    expect(dependencies.inspectSkill).toHaveBeenCalledWith(context, "codex");
+  });
+
+  it("Codex 판정만 실패하면 그 에이전트만 error 가 된다", async () => {
+    dependencies.inspectSkill = vi.fn(async (_context, agent) => {
+      if (agent === "codex") throw Object.assign(new Error("denied"), { code: "EACCES" });
+      return missingSkill;
+    });
+
+    const report = await runJson("doctor", "--json");
+
+    expect(report.skills.agents.codex).toEqual({
+      status: "error",
+      reason: "공개 스킬 상태를 판정하지 못했습니다: EACCES",
+    });
+    expect(report.skills.agents.claude).toEqual({ ...missingSkill, recoveryCommand: "nhncloud skills install" });
+  });
+
+  it("Codex 가 missing 이어도 ready 는 영향을 받지 않는다", async () => {
+    dependencies.inspectCredentials = vi.fn(async () => okCredentials);
+    dependencies.inspectSkill = vi.fn(async (_context, agent) =>
+      agent === "claude" ? currentSkill : missingCodexSkill,
+    );
+
+    const report = await runJson("doctor", "--json");
+
+    expect(report.ready).toBe(true);
+    expect(report.skills.agents.codex.status).toBe("missing");
   });
 
   it("profile 의 environment 가 invalid 면 ready 가 아니다", async () => {
@@ -288,6 +337,18 @@ describe("doctor 텍스트 출력", () => {
     expect(text).toContain(CREDENTIALS_FILE);
     expect(text).toContain("JSON 형식이 아닙니다");
     expect(text).toContain("설정이 필요합니다");
+  });
+
+  it("두 에이전트의 스킬 상태를 한 줄씩 보인다", async () => {
+    dependencies.inspectSkill = vi.fn(async (_context, agent) =>
+      agent === "claude" ? currentSkill : missingCodexSkill,
+    );
+
+    const text = await run("doctor");
+    const codexLine = text.split("\n").find((l) => l.includes("Codex:"));
+
+    expect(text).toContain("Claude Code: ✓ current (1.2.3)");
+    expect(codexLine).toContain("nhncloud skills install");
   });
 
   it("profile 이름의 제어 문자를 터미널에 그대로 내지 않는다", async () => {

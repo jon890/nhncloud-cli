@@ -156,7 +156,7 @@ nhncloud doctor --json | jq -e '.ready'   # 준비되지 않았으면 jq 가 1 �
 | `config` | `config.json` 진단. 아래 표 |
 | `profile` | `{ "name": string \| null, "exists": boolean }`. `name`은 profile 해석 순서로 정한 대상이며, `config.json` 이 JSON 이 아니라 해석하지 못하면 `null` |
 | `connection` | 연결 확인 결과. 아래 표 |
-| `skills` | `{ "agents": { "claude": ... } }`. 에이전트별 공개 스킬 상태 |
+| `skills` | `{ "agents": { "claude": ..., "codex": ... } }`. 에이전트별 공개 스킬 상태 |
 
 `credentials`와 `config`:
 
@@ -193,10 +193,12 @@ nhncloud doctor --json | jq -e '.ready'   # 준비되지 않았으면 jq 가 1 �
 연결 확인은 대상을 순차로 확인하며 요청마다 `--request-timeout`(기본 30초) 상한이 적용된다.
 `logncrash` 확인은 최근 1분 범위의 검색 요청을 하나 보내므로 Log & Crash 조회 토큰을 쓴다.
 
-`skills.agents.claude`는 에이전트 경로 하나의 `SkillStatus`(`schemaVersion` 1)에 `recoveryCommand`(복구 명령, `current`이면 `null`)를 더한 것이다.
+`skills.agents.claude`와 `skills.agents.codex`는 각각 Claude Code(`~/.claude/skills/nhncloud-cli`)와 Codex(`~/.agents/skills/nhncloud-cli`) 경로 하나의 `SkillStatus`(`schemaVersion` 1)에 `recoveryCommand`(복구 명령, `current`이면 `null`)를 더한 것이다.
 상태를 판정하지 못하면 `{ "status": "error", "reason": string }`이다.
+한 경로의 판정이 실패해도 그 에이전트만 `error`가 되고 다른 에이전트의 상태는 그대로다.
 `reason`에는 원문 오류 메시지를 넣지 않고 고정 문구만 쓴다. 오류에 문자열 errno 코드(`EACCES` 등)가 있으면 그 코드만 붙인다.
 에이전트가 늘면 `agents`에 키가 추가되며 기존 키의 모양은 바뀌지 않는다.
+doctor 가 경로마다 다른 복구 명령을 보여도 어느 명령이든 두 경로를 함께 고친다.
 
 ## Profile 우선순위
 
