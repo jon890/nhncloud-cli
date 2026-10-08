@@ -119,7 +119,8 @@ IaaS 서비스는 profile의 Keystone 자격증명과 region을 해석하고 토
 
 공통 UAK를 OAuth access token으로 교환하고 profile의 서비스 appkey를 경로에 사용한다.
 배포 좌표는 명령 옵션으로 받으며 profile에 저장하지 않는다.
-Log & Crash 검색, NCS와 API Gateway도 같은 계정 토큰 캐시를 재사용하지만 서비스별 헤더와 응답 봉투는 client가 책임진다.
+같은 계정 토큰 캐시를 공유하는 서비스 목록은 [data-schema.md](data-schema.md)의 「토큰 캐시」 절을 따른다.
+서비스별 헤더와 응답 봉투는 client가 책임진다.
 
 ### NCR
 

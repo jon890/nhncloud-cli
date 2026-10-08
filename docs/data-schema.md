@@ -141,10 +141,11 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, 서비�
 
 - user-access-token: OAuth `access_token` 을 만료시각과 함께 저장한다 ([[adr-007]]).
   deploy·ncs·logncrash 검색·apigateway·skm이 같은 계정 토큰이라 이 캐시를 공유한다
-  ([[adr-020]], [[adr-024]], [[adr-027]], [[adr-039]]).
+  ([[adr-020]], [[adr-024]], [[adr-027]], [[adr-039]]). 공유 서비스 목록은 이 절이 소유한다.
+  OAuth host는 망별로 `src/api/oauth.ts`가 소유한다.
 - iaas: Keystone token 과 region 별 정적 host 맵으로 구성한 compute·image·network·blockStorage·nks endpoint 캐시 ([[adr-005]], [[adr-010]], [[adr-013]], [[adr-019]])
 - `credentialHash`: 발급 자격 배열을 `JSON.stringify`한 값의 SHA-256 지문이다. OAuth는 `[environment, uakId, uakSecret]`, IaaS는 `[environment, tenantId, username, password]`를 사용한다. 현재 자격이나 망 선택이 다르면 캐시를 무효화하고 다시 발급한다([[adr-021]], [[adr-037]]).
-- 만료 전 재사용, 만료 시 재발급한다. logncrash 검색도 같은 user-access-token 캐시를 쓴다.
+- 만료 전 재사용, 만료 시 재발급한다.
 
 ## profile 해석 순서
 
