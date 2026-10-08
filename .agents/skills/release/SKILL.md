@@ -46,7 +46,7 @@ git status --porcelain
 
 - `git status --porcelain` 에 출력이 있으면 커밋할지 사용자에게 확인한다.
 - 이어서 `node .agents/skills/release/scripts/preflight.mjs` 를 실행한다. `AGENTS.md` 의 검증 명령과 `node scripts/check-pii.mjs` 공개 정보 검사를 포함한다.
-- 공개 정보 검사에 걸리면 위치를 보이고 그 절의 placeholder 로 바꾼 보완 커밋을 만든 뒤 다시 실행한다.
+- 공개 정보 검사에 걸리면 위치를 보이고 `AGENTS.md` 「공개 저장소 정보 보호」 절의 placeholder 로 바꾼 보완 커밋을 만든 뒤 다시 실행한다.
 - 사용자가 내부 값 사용에 명시적으로 동의하지 않으면 릴리스를 멈춘다.
 
 ## 2. 변경 분석
@@ -101,11 +101,17 @@ git push origin "$TAG"
 태그를 push 한 뒤 태그 워크플로를 기다린다. `gh release create` 는 태그 run 이 success 일 때만 실행한다.
 
 ```bash
-RUN_ID=$(gh run list --workflow release.yml --branch "$TAG" --limit 1 --json databaseId -q '.[0].databaseId')
+RUN_ID=
+for _ in $(seq 12); do
+  RUN_ID=$(gh run list --workflow release.yml --branch "$TAG" --limit 1 --json databaseId -q '.[0].databaseId // empty')
+  [ -n "$RUN_ID" ] && break
+  sleep 10
+done
+[ -n "$RUN_ID" ] || { echo "STOP: 태그 run 이 2분 안에 시작되지 않았다"; exit 1; }
 gh run watch "$RUN_ID" --exit-status
 ```
 
-- run 목록에 아직 run 이 없으면 10초 간격으로 다시 조회한다. 최대 2분(12회)이고, 그래도 없으면 사용자에게 보고한다.
+- run 이 아직 없으면 10초 간격으로 최대 2분(12회) 다시 조회하고, 그래도 없으면 사용자에게 보고한다.
 - run 이 실패하면 npm 게시 단계로 가지 않고 사용자에게 보고한다. 이미 push 한 태그는 그대로 두고(force 로 갱신하지 않는다) 원인을 고친 뒤 새 패치 버전으로 다시 릴리스한다.
 
 Release 노트는 2단계 결과로 `$NOTES` 파일에 한국어로 쓴다.

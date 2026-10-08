@@ -29,7 +29,7 @@ export function extractTargets(diffText) {
   const byFile = new Map();
   let current = "";
   for (const line of diffText.split("\n")) {
-    if (line.startsWith("+++")) {
+    if (line.startsWith("+++ ")) {
       current = line.slice(4);
       continue;
     }
