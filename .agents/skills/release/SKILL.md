@@ -89,13 +89,12 @@ grep -n "$KEYWORD" README.md skills/nhncloud-cli/SKILL.md skills/nhncloud-cli/re
 
 ## 5. 버전 범프
 
-`package.json` 의 `version` 과 `src/index.ts` 의 `.version("x.y.z")` 두 곳을 `$VERSION` 으로 바꾼다.
-CLI 버전 문자열이 `src/index.ts` 에 하드코딩돼 있어 두 곳을 함께 바꿔야 한다.
+`package.json` 의 `version` 만 `$VERSION` 으로 바꾼다. CLI 버전은 빌드 때 그 값에서 주입된다.
 
 ```bash
 pnpm run build
 [ "$(git branch --show-current)" = "main" ] || { echo "STOP: main 이 아니다"; exit 1; }
-git add package.json src/index.ts
+git add package.json
 git commit -m "chore: bump version to $TAG"
 git push origin main
 ```
