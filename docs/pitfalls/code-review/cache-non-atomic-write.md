@@ -30,6 +30,6 @@ grep -rnE "writeFile\(" src/cache/   # 캐시 쓰기에 temp+rename 없이 직�
 # 같은 함수에 rename 호출이 동반되는지 확인
 ```
 
-**Self-check**: `src/cache/` 의 모든 쓰기가 temp 파일 + `rename` 패턴인가? 비밀 파일이면 `mode: 0o600` 도 동반.
+**Self-check**: `src/cache/` 의 모든 쓰기가 temp 파일과 `rename` 패턴인가? 비밀 파일이면 `mode: 0o600` 도 동반.
 
 **Why**: PR #2 code-reviewer FIX_NEEDED — deploy 토큰 캐시(`token-store.ts`)가 `writeFile` 직접 호출. build-with-teams 검사 항목 #10 이 명시하는데도 executor 가 첫 구현에서 누락 → 구체 grep 으로 사전 차단.

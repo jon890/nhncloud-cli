@@ -8,7 +8,7 @@ source: [PR3]
 related: []
 ---
 
-**증상**: `exit-codes.ts` 에 `EXIT_PARAM_ERROR = 3` 상수가 이미 있는데 한 파일만 `throw new NhnCloudCliError("...", 3 /* EXIT_PARAM_ERROR */)` 처럼 리터럴 + 주석.
+**증상**: `exit-codes.ts` 에 `EXIT_PARAM_ERROR = 3` 상수가 이미 있는데 한 파일만 `throw new NhnCloudCliError("...", 3 /* EXIT_PARAM_ERROR */)` 처럼 리터럴과 주석.
 나머지 파일은 상수 import 사용 — 신규 파일만 예외 상태로 일관성 깨짐.
 
 **Good**: 정의된 상수를 import 해서 쓴다. 주석으로 상수명을 다는 것은 "상수가 있다는 걸 알면서 안 쓴" 신호.

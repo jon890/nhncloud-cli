@@ -62,7 +62,7 @@ if (opts.wait) {
 
 **spinner 구간 안에서 stderr 로 경고 쓰기 (재발 패턴)**: spinner 가 도는 동안 `process.stderr.write` 로 경고를 내면 ora 프레임과 같은 stream 이라 텍스트가 애니메이션 문자와 섞인다 (`src/utils/spinner.ts` 의 `stream: process.stderr`). 저장소 선례는 예외 없이 경고를 spinner **밖**에 둔다 (`floatingip/delete.ts`, `deploy/download.ts` 는 `stopSpinner` 뒤).
 
-경고가 어디에 속하는지는 **그 판정에 API 응답이 필요한가**로 가른다.
+경고가 어디에 속하는지는 **그 판정에 API 응답이 필요한가**로 나눈다.
 
 ```ts
 // 입력만 보고 판정하는 경고 → spinner 앞
