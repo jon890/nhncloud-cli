@@ -8,7 +8,7 @@
 [NHN Cloud](https://www.nhncloud.com) 를 터미널과 AI 에이전트에서 쓸 수 있게 해 주는 비공식 CLI 예요.
 NHN 이 만든 공식 제품이 아니에요.
 
-인스턴스, 네트워크, 로드밸런서, Kubernetes, 로그 검색, 배포, 키 관리를 명령 한 줄로 다루고, 결과를 `--json` 으로 내보내요.
+인스턴스, 네트워크, 로드밸런서, Kubernetes, 컨테이너 레지스트리와 컨테이너 서비스, 로그 검색, 배포, API Gateway, 키 관리를 명령 한 줄로 다루고, 결과를 `--json` 으로 내보내요.
 Claude Code 에 스킬로 설치하면 "인스턴스 목록 보여줘" 같은 말을 그대로 알아듣고 처리해요.
 
 ```bash
@@ -53,8 +53,8 @@ nhncloud configure
 
 인스턴스, 네트워크 같은 IaaS 명령을 쓴다면 두 값을 특히 조심해 주세요.
 
-- `--iaas-password` 는 콘솔 로그인 비밀번호가 아니라 IAM 의 **API 비밀번호**예요. IAM 사용자 상세 페이지의 "API 비밀번호 설정"에서 따로 발급해요.
-- `--iaas-username` 은 계정 이메일이나 IAM 계정 ID 예요. tenantId 와 비슷하게 생긴 UUID 형태의 "API 사용자 ID"가 아니에요.
+- "API 비밀번호"(`--iaas-password`)는 콘솔 로그인 비밀번호가 아니라 IAM 의 **API 비밀번호**예요. IAM 사용자 상세 페이지의 "API 비밀번호 설정"에서 따로 발급해요.
+- "IAM username"(`--iaas-username`)은 계정 이메일이나 IAM 계정 ID 예요. tenantId 와 비슷하게 생긴 UUID 형태의 "API 사용자 ID"가 아니에요.
 
 나머지 입력 항목은 [IaaS 가이드](skills/nhncloud-cli/references/iaas.md)에 있어요.
 공공기관용 NHN Cloud 설정은 [공통 가이드](skills/nhncloud-cli/references/common.md)에 있어요.
