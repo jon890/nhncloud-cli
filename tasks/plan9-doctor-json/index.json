@@ -1,0 +1,13 @@
+{
+  "name": "plan9-doctor-json",
+  "description": "doctor --json 보고서와 선택적 --check-connection 연결 확인 — 자동화와 이슈 첨부가 고정 필드를 읽고 접속 여부를 configure 없이 확인하게 한다 (#122)",
+  "status": "pending",
+  "created_at": "2026-10-08",
+  "total_phases": 3,
+  "current_phase": 1,
+  "phases": [
+    { "number": 1, "file": "phase-01.md", "execution_profile": "standard" },
+    { "number": 2, "file": "phase-02.md", "execution_profile": "standard" },
+    { "number": 3, "file": "phase-03.md", "execution_profile": "deep" }
+  ]
+}
