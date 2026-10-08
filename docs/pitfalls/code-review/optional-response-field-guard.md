@@ -32,13 +32,13 @@ grep -rn "?: " src/services/ | grep types.ts
 grep -rn "function is.*(val: unknown)" src/services/
 ```
 
-새 optional 응답 필드를 type 에 추가했으면 해당 service client 의 `isX()` guard 에 생략 허용 + 타입 검증이 있는지 대조한다.
+새 optional 응답 필드를 type 에 추가했으면 해당 service client 의 `isX()` guard 에 생략 허용과 타입 검증이 있는지 대조한다.
 
 **Self-check**: 외부 응답에서 오는 optional 필드인가?
 그 필드가 type 에만 있고 guard 에 없지는 않은가?
 비정상 타입 응답을 `EXIT_API_ERROR` 로 거부하는 test 가 있는가?
 
 **Why**: PR #43 — `Volume.availability_zone?: string` 을 추가했지만 `isVolume` 은 해당 필드를 검증하지 않아 숫자 응답도 통과했다.
-code-reviewer 가 `availability_zone: 123` 회귀를 지적했고, guard + test 로 수정했다.
+code-reviewer 가 `availability_zone: 123` 회귀를 지적했고, guard 와 test 로 수정했다.
 
 관련: [[nullable-field-string-only-guard]], [[optional-field-as-cast-return]]
