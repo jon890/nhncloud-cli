@@ -1,18 +1,10 @@
 # Common Reference
 
-CLI와 공개 스킬 설치, configure, profile, 출력 모드, 에러 코드를 다룬다.
+공개 스킬 관리, configure, profile, 출력 모드, 에러 코드를 다룬다.
 서비스별 세부 명령은 각 reference를 읽는다.
-
-## 설치
-
-```bash
-npm install -g @bifos/nhncloud-cli
-```
 
 ## Claude Code 공개 스킬 관리
 
-전역 설치한 CLI나 `npx`로 패키지의 공개 스킬을 관리 저장소에 설치할 수 있다.
-관리 저장소는 실행 중인 npm 패키지 경로와 분리되므로 `npx`의 임시 패키지 경로가 사라져도 활성 스킬은 유지된다.
 
 ```bash
 # 전역 설치한 CLI에서 설치
@@ -75,7 +67,7 @@ nhncloud skills uninstall --quiet
 
 공공망 profile에는 `~/.nhncloud/credentials.json`의 해당 profile 블록에 `"environment": "gov"`를 명시한다.
 기존 profile은 이 필드를 생략하면 일반망을 사용한다.
-현재 공공망 endpoint 선택 대상은 OAuth, Deploy, NCR, IaaS이며 공공망에서 주소가 확인되지 않은 API는 호출하지 않는다.
+공공망에서 주소가 확인되지 않은 API는 호출하지 않는다.
 `configure`의 연결 테스트는 일반망 주소를 사용한다. 공공망 자격증명은 `--no-verify`로 저장하고, profile에 `environment`를 추가한 뒤 조회 명령으로 확인한다.
 
 ```bash
@@ -167,16 +159,13 @@ HTTP 요청 상한과는 다른 설정이므로 서로 대체하지 않는다.
 
 ## Command catalog
 
-`nhncloud commands`는 Commander tree에서 command path, argument, option, description을 출력한다.
-외부 API를 호출하지 않는 read-only metadata 명령이다.
+`nhncloud commands`는 command path, argument, option, description을 출력한다. 외부 API를 호출하지 않는다.
 
 ```bash
 nhncloud commands
 nhncloud commands --json
 nhncloud commands --json | jq '.commands[] | select(.path=="nks cluster list")'
 ```
-
-AI 에이전트는 먼저 `commands --json`으로 실제 command path와 option 이름을 확인하고, 그다음 서비스 reference를 읽는다.
 
 ## 되돌릴 수 없는 명령
 
@@ -186,6 +175,6 @@ AI 에이전트는 먼저 `commands --json`으로 실제 command path와 option 
 |---|---|
 | TTY 여부와 관계없이 `--yes` 필수 | `apigateway stage update`, `apigateway stage import-resources`, `apigateway stage deploy create`, `apigateway stage deploy rollback`, `apigateway resource set-path-plugin`, `apigateway resource set-method-plugin` (`--dry-run` 제외), `loadbalancer ipacl delete`, `loadbalancer ipacl target add`, `loadbalancer ipacl target remove`, `loadbalancer set-ipacl`, `loadbalancer clear-ipacl`, `network security-group delete`, `network security-group rule delete`, `instance security-group add`, `instance security-group remove`, `skm key delete`, `skm key purge`, `skm keystore delete`, `skm keystore auth delete`, `skm keystore auth purge` |
 | 비대화형 환경에서는 `--yes` 필수, TTY에서는 확인 질문 | `instance delete`, `floatingip delete`, `nks cluster delete`, `nks cluster addon remove`, `nks nodegroup delete`, `ncs template delete`, `ncs template version delete`, `ncs workload delete` |
-| 확인 질문과 `--yes` 없음 | `instance keypair delete`, `deploy run`, `nks cluster resize --nodes-to-remove`, `nks nodegroup upgrade`, `ncs workload update` (PUT 전체 교체), `instance volume detach`, `instance resize`, `instance stop`, `instance reboot`, `nks nodegroup update-flavor`, `nks cluster set-ipacl`, `nks cluster set-control-plane-log`, `nks cluster update-sgw`, `ncs workload patch` (JSON Patch `remove` 포함 가능) |
+| 확인 질문과 `--yes` 없음 | `instance keypair delete`, `deploy run`, `nks cluster resize --nodes-to-remove`, `nks nodegroup upgrade`, `ncs workload update` (PUT 전체 교체), `instance volume detach`, `instance resize`, `instance stop`, `instance reboot`, `nks nodegroup update-flavor`, `nks cluster set-ipacl`, `nks cluster set-control-plane-log`, `nks cluster update-sgw`, `ncs workload patch` (JSON Patch `remove` 포함 가능), `nks nodegroup stop-node` (지정 노드 중지), `ncs workload pause` (workload 일시정지), `ncs workload restart` (task 재시작), `instance resize-confirm` (새 flavor로 고정, 이후 `resize-revert` 불가), `skm secret update` (기밀 데이터 값 교체), `skm keystore update` (실행 위치가 키를 쓰지 못하게 될 수 있으므로 먼저 `skm confirm`) |
 
 `nks cluster resize`는 `--nodes-to-remove`를 생략해도 확인 없이 실행되며, 감축 대상 노드를 API가 선택할 수 있다는 경고를 출력한다.

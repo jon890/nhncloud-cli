@@ -1,15 +1,11 @@
 # Secure Key Manager 명령 안내
 
-`skm` 명령군은 키 저장소·키·인증 정보를 조회하고 만들고 지우며, 기밀 데이터 조회·수정, 대칭키 암복호화, 비대칭키 서명·검증, 키 원문 조회를 지원한다.
-키 저장소의 인증 정보 등록과 키 생성·삭제도 같은 명령군에서 한다.
+`skm` 명령군은 Secure Key Manager의 키 저장소, 키, 인증 정보, 기밀 데이터를 다룬다.
 
 ## 인증과 설정
 
 공통 UAK와 SKM `appKey`가 필요하다.
 `nhncloud configure --skm-appkey <appkey>`로 profile의 `skm.appkey`를 설정한다.
-
-API 요청은 공통 UAK로 발급한 Bearer 토큰을 `X-NHN-Authorization` 헤더에 담는다.
-표준 `Authorization` 헤더가 아니므로 직접 API를 호출할 때 혼동하지 않는다.
 
 공공망은 profile의 `"environment": "gov"`로 고른다.
 
@@ -38,9 +34,10 @@ nhncloud skm secret get <key-id> --quiet
 
 `--quiet`가 출력하는 값은 다음과 같다.
 
-- `keystore list`: `keyStoreId`
-- `key list`: `keyId`
+- `keystore list`·`keystore get`: `keyStoreId`
+- `key list`·`key get`: `keyId`
 - `secret get`: 기밀 데이터
+- `symmetric-key get`: 대칭키 원문
 - `symmetric-key encrypt`: 암호문
 - `symmetric-key decrypt`: 평문
 - `asymmetric-key sign`: 서명값
@@ -50,6 +47,7 @@ nhncloud skm secret get <key-id> --quiet
 - `key create`·`secret update`·`key delete|purge`: `keyId`
 - `keystore create|update|delete`: `keyStoreId`
 - `keystore auth add|delete|purge`: 입력한 IPv4·MAC 값(소문자로 정규화) 또는 인증서 이름
+- `keystore auth get`: 조회한 인증 정보의 값 또는 인증서 이름
 
 ## 쓰기 명령
 
@@ -100,6 +98,8 @@ nhncloud skm secret get <key-id> --json | jq -j '.secret' > secret.txt
 ```
 인증서 인증 상세의 `password`는 `***`로 가린다.
 `secret update`는 바꾼 값을 출력하지 않는다.
+`symmetric-key get`은 대칭키 원문을 stdout에 낸다.
+`key get`, `keystore get`, `keystore auth get`은 메타데이터만 출력하고 키 원문과 인증서 비밀번호는 내지 않는다.
 비밀값 명령의 stdout을 로그나 이슈, 채팅에 붙이지 않는다.
 
 ## 서명 검증 종료 코드

@@ -21,6 +21,8 @@
 | `src/formatters/` | table, JSON과 quiet 출력 |
 | `src/skill/` | 공개 스킬 매니페스트, 상태 판정과 설치 수명주기 |
 | `src/utils/` | 종료 코드, 오류, spinner, 입력 크기와 시간 처리 |
+| `src/version.ts` | 빌드 때 `package.json`에서 주입한 CLI 버전 |
+| `scripts/` | 커밋·CI·릴리스 전에 도는 검사 스크립트(공개 정보 검사, 패키지 산출물 검증) |
 
 명령의 실제 경로, 인수와 옵션 목록은 코드에서 생성하는 `nhncloud commands --json`이 소유한다.
 이 문서에는 파일별 명령 목록을 복제하지 않는다.
@@ -82,13 +84,15 @@ skill ──> config와 독립된 사용자 데이터 경계
 자동화 가능한 명령은 대화형 입력을 기다리지 않는다.
 여러 서비스가 공유하는 appkey 필수값 검증은 `commands`의 공통 경계에서 처리한다.
 이름 또는 UUID로 리소스를 고르는 규칙은 `src/commands/resource-resolver.ts`가 소유하고 Load Balancer와 보안그룹 명령이 함께 쓴다.
-Network 쓰기 요청의 400·409 응답은 `src/services/network/errors.ts`가 서버의 `NeutronError.message`를 덧붙여 사용자 오류로 바꾼다.
+HTTP 오류 응답의 본문은 `src/api/httpError.ts`의 `readHttpErrorBody`로 읽고, 본문 해석은 각 서비스가 맡는다.
+Network 쓰기 요청의 400·409 응답은 `src/services/network/errors.ts`가 `NeutronError.message`를 덧붙이고, Log & Crash 500 응답은 `src/services/logncrash/errors.ts`가 `requestId`를 보존하며, Secure Key Manager 응답은 `src/services/skm/client.ts`가 `header.resultMessage`로 메시지를 바꾼다.
 `config`는 파일과 profile 오류를 보존하면서 서비스 블록 부재를 구분해 반환하고,
 공통 명령 경계는 블록이나 appkey가 없을 때만 서비스별 설정 안내로 바꾼다.
 Log & Crash export는 API 수집 상태와 로컬 파일 완결 상태를 분리하고, 완료 결과를 최종 경로 교체 실패 때문에 삭제하지 않는다(ADR-034).
 Log & Crash service client는 공식 `available-token` 응답의 정수 필드를 검증한다.
 명령 계층은 검색과 scroll 요청 직전에 이 값을 확인하고, 0 이하이면 검색 호출을 차단한다(ADR-036).
 명령 트리를 모두 만든 뒤 `src/commands/commander-errors.ts`가 Commander 오류를 가로챈다.
+같은 시점에 `src/commands/help.ts`가 모든 하위 명령 도움말에 루트 전역 옵션(`--json`, `--quiet` 등)을 `Global Options:` 절로 보여 준다.
 필수 옵션 누락만 `EXIT_PARAM_ERROR`로 바꾸고, 이미 stderr에 출력한 오류는 최상위 처리부가 다시 출력하지 않는다(ADR-035).
 
 ## 공개 스킬 관리
@@ -109,3 +113,7 @@ HTTP 테스트는 `ky`를 mock하고 실제 응답 형태에 맞는 fixture를 �
 
 완료 검증 명령은 `AGENTS.md`가 소유한다.
 tsup와 vitest가 타입 검사를 대신하지 않으므로 `tsc --noEmit`을 별도로 실행한다.
+
+CLI 버전은 `package.json`의 `version` 하나가 소유한다. `tsup.config.ts`가 빌드 때 `__NHNCLOUD_CLI_VERSION__`으로 주입하고, 주입되지 않은 테스트와 개발 실행에서는 `0.0.0-dev`를 쓴다.
+`scripts/*.test.mjs`도 vitest가 실행한다.
+`scripts/verify-package.mjs`는 빌드 산출물의 버전과 패키지에 담기는 공개 스킬 파일을 검사하고, CI가 `scripts/check-pii.mjs`와 함께 실행한다.

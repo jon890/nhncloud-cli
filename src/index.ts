@@ -7,6 +7,8 @@ import { sanitizeMultilineForTerminal } from "./utils/terminal.js";
 import { setRequestTimeoutMs } from "./api/timeout.js";
 import { parseIntegerOption } from "./commands/parse-options.js";
 import { configureCommanderExitCodes } from "./commands/commander-errors.js";
+import { configureGlobalOptionsHelp } from "./commands/help.js";
+import { CLI_VERSION } from "./version.js";
 import { configureCommand } from "./commands/configure.js";
 import { skillsCommand } from "./commands/skills.js";
 import { doctorCommand } from "./commands/doctor.js";
@@ -70,7 +72,6 @@ import { asymmetricKeyCommand as skmAsymmetricKeyCommand } from "./commands/skm/
 import { listCommand as loadBalancerListCommand } from "./commands/loadbalancer/list.js";
 import { getCommand as loadBalancerGetCommand } from "./commands/loadbalancer/get.js";
 import { ipaclCommand as loadBalancerIpAclCommand } from "./commands/loadbalancer/ipacl.js";
-import { configureLoadBalancerHelp } from "./commands/loadbalancer/help.js";
 import {
   clearIpAclCommand as loadBalancerClearIpAclCommand,
   setIpAclCommand as loadBalancerSetIpAclCommand,
@@ -162,7 +163,7 @@ const program = new Command();
 program
   .name("nhncloud")
   .description("NHN Cloud CLI — AI agent & terminal friendly")
-  .version("0.18.0")
+  .version(CLI_VERSION)
   .option("--json", "JSON 형식으로 출력")
   .option("--quiet", "최소 출력 (자동화용)")
   .option("--no-color", "색상 비활성화")
@@ -294,7 +295,6 @@ loadbalancerCommand.addCommand(loadBalancerGetCommand);
 loadbalancerCommand.addCommand(loadBalancerIpAclCommand);
 loadbalancerCommand.addCommand(loadBalancerSetIpAclCommand);
 loadbalancerCommand.addCommand(loadBalancerClearIpAclCommand);
-configureLoadBalancerHelp(loadbalancerCommand);
 
 program.addCommand(loadbalancerCommand);
 
@@ -356,6 +356,7 @@ program.addCommand(doctorCommand);
 program.addCommand(createCommandsCommand(program));
 
 configureCommanderExitCodes(program);
+configureGlobalOptionsHelp(program);
 
 program.parseAsync().catch((err: unknown) => {
   if (err instanceof CommanderError) {

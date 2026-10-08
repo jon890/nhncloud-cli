@@ -1,15 +1,11 @@
 # API Gateway 조회·변경 안내
 
-`apigateway` 명령군은 API Gateway 서비스, 리소스, 스테이지, 배포 이력을 조회하고 스테이지의 Swagger를 내보낸다.
-스테이지의 백엔드 URL·설명 수정과 리소스 경로·메서드 플러그인 설정도 지원한다.
+`apigateway` 명령군은 API Gateway 서비스, 리소스, 스테이지, 배포 이력을 다룬다.
 
 ## 인증과 설정
 
 공통 UAK와 API Gateway `appKey`가 필요하다.
 `nhncloud configure --apigateway-appkey <appkey>`로 `profile`의 `apigateway.appkey`를 설정한다.
-
-API 요청은 공통 UAK로 발급한 Bearer 토큰을 `X-NHN-Authorization` 헤더에 담는다.
-표준 `Authorization` 헤더가 아니므로 직접 API를 호출할 때 혼동하지 않는다.
 
 지원 `region`은 `kr1`, `kr2`, `kr3`이며 기본값은 `kr1`이다.
 
@@ -80,7 +76,7 @@ nhncloud apigateway service list --region kr1 --json
 
 ## 반영·배포·롤백
 
-리소스 변경이 트래픽에 적용되려면 서비스 리소스를 스테이지로 반영한 뒤 스테이지를 배포하는 두 단계를 거친다.
+리소스 변경이 트래픽에 적용되려면 서비스 리소스를 스테이지로 반영한 뒤 스테이지를 배포하는 순서를 거친다.
 반영·배포·롤백 명령은 모두 API 호출 전에 `--yes`가 필요하다.
 
 ```text
