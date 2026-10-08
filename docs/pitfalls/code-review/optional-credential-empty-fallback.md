@@ -11,7 +11,7 @@ related: []
 **증상**: `ServiceCredential.secret?` 처럼 optional 인 자격증명 필드를 client 에 넘길 때 `cred.secret ?? ""` 로 빈문자열 fallback.
 secret 미설정 시 빈 인증 헤더 (`X-LNCS-SECRET: `) 로 API 호출 → 401 → 사용자는 "API 호출 실패 (401)" 만 보고 *설정이 빠진 것* 인지 *키가 틀린 것* 인지 모름.
 
-**Good**: client 생성 전에 필수 인증 필드 존재를 검증하고 없으면 `EXIT_CONFIG_ERROR` + 설정 안내 메시지.
+**Good**: client 생성 전에 필수 인증 필드 존재를 검증하고 없으면 `EXIT_CONFIG_ERROR`와 설정 안내 메시지.
 
 ```ts
 // BAD — 빈문자열 fallback → 401 로만 드러남

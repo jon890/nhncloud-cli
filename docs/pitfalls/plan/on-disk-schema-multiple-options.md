@@ -17,4 +17,4 @@ related: []
 
 **Self-check**: type/스키마 phase 가 디스크 직렬화 구조에 "또는" 으로 복수 옵션을 남겼는가? data-schema.md 와 정확히 일치하는 단일 구조로 단정했는가?
 
-**Why**: PR #3 critic MAJOR — phase-01 이 flat union 과 nested `services:` 를 둘 다 허용. data-schema.md 는 flat sibling 단일 소스라 nested 선택 시 불일치 + 읽기 경로 파손. 스키마 변경 phase 마다 재발 가능.
+**Why**: PR #3 critic MAJOR — phase-01 이 flat union 과 nested `services:` 를 둘 다 허용. data-schema.md 는 flat sibling 단일 소스라 nested 선택 시 불일치와 읽기 경로 파손. 스키마 변경 phase 마다 재발 가능.

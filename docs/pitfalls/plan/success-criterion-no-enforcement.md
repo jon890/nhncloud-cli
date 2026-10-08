@@ -13,7 +13,7 @@ related: []
 - **변별력 없는 docs grep**: `grep -c 'image'` 처럼 **기존 텍스트로도 통과**하는 토큰을 검증에 써서, 신규 행을 안 넣어도 green (false-pass). PR #10·#11 의 docs drift 학습이 정확히 이 구멍으로 다시 샜다.
 
 **Good**:
-- 실측 필요 task 는 성공 기준에 forcing function 을 넣는다 — 실측 후 제거되는 `⚠️ 추정값` 주석 잔존 0 검사, 또는 실측 결과(HTTP status 등) 기록 + 실패 시 `PHASE_BLOCKED`.
+- 실측 필요 task 는 성공 기준에 forcing function 을 넣는다 — 실측 후 제거되는 `⚠️ 추정값` 주석 잔존 0 검사, 또는 실측 결과(HTTP status 등) 기록과 실패 시 `PHASE_BLOCKED`.
 - docs 검증 grep 은 **신규 고유 토큰**(`instance images`·`listImages` 등 그 변경으로만 생기는 문자열)으로 한다. 기존 코드/문서에 이미 있는 부분문자열(`image`·`--image`) 금지. 편집 전 baseline 이 0 인지 확인.
 
 **검출**:

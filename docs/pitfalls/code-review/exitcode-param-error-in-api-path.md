@@ -8,7 +8,7 @@ source: []
 related: []
 ---
 
-**증상**: resolver / command 에서 `catch (err)` 후 `err instanceof NhnCloudCliError && err.exitCode === EXIT_PARAM_ERROR` 같은 분기로 "특정 에러만 변환 + 나머지 re-throw" 를 시도. 하지만 `toNhnCloudCliError` (src/api/httpError.ts) 는 HTTP 에러에 `EXIT_AUTH_ERROR` (401/403) 또는 `EXIT_API_ERROR` (그 외, 404 포함) 만 부여. `EXIT_PARAM_ERROR` (3) 는 CLI 자체 입력 검증 경로에서만 발생 — API 호출 경로의 catch 에서는 절대 매칭 안 됨. 결과: 분기 조건이 항상 false → "특정 에러 변환" 코드가 dead path 가 되고, 사용자는 의도된 친절 메시지 대신 raw 에러를 봄.
+**증상**: resolver / command 에서 `catch (err)` 후 `err instanceof NhnCloudCliError && err.exitCode === EXIT_PARAM_ERROR` 같은 분기로 "특정 에러만 변환하고 나머지 re-throw" 를 시도. 하지만 `toNhnCloudCliError` (src/api/httpError.ts) 는 HTTP 에러에 `EXIT_AUTH_ERROR` (401/403) 또는 `EXIT_API_ERROR` (그 외, 404 포함) 만 부여. `EXIT_PARAM_ERROR` (3) 는 CLI 자체 입력 검증 경로에서만 발생 — API 호출 경로의 catch 에서는 절대 매칭 안 됨. 결과: 분기 조건이 항상 false → "특정 에러 변환" 코드가 dead path 가 되고, 사용자는 의도된 친절 메시지 대신 raw 에러를 봄.
 
 **Good**: catch 안에서 HTTP 에러를 분류하려면 `EXIT_API_ERROR` (404 포함 4xx/5xx) 와 `EXIT_AUTH_ERROR` (401/403) 중에서 선택. status code 까지 구분하려면 `err.message` 의 `(404)` 패턴이나 별도 metadata 가 필요 — 단순 exitCode 비교로는 404 / 5xx / timeout 을 구별 못함을 인지하고 설계.
 
@@ -30,7 +30,7 @@ try { await client.getLoadBalancer(loadBalancerId); } catch (err) {
 }
 ```
 
-**검출**: catch 안의 exitCode 검사 패턴 + `EXIT_PARAM_ERROR` 사용 여부.
+**검출**: catch 안의 exitCode 검사 패턴과 `EXIT_PARAM_ERROR` 사용 여부.
 ```bash
 grep -rnE "exitCode\s*===\s*EXIT_PARAM_ERROR" src/commands/ src/services/ src/api/
 # 결과 있으면 → API 경로의 catch 인지 확인. API 경로면 → EXIT_API_ERROR 로 교체

@@ -71,7 +71,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 
 전부 읽지 않는다. 두 가지 방법으로 이 작업에 해당하는 파일만 고른다.
 
-1. **trigger grep** (1차): 각 파일 frontmatter 의 `triggers:` 에 변경 유형 키워드가 있다. 작업 키워드로 좁힌다:
+1. **trigger grep** (1차): 각 파일 frontmatter 의 `triggers:` 에 변경 유형 키워드가 있다. 작업 키워드로 줄인다:
 
    ```bash
    # 예: spinner 순서를 바꾸는 코드 작성
