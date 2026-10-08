@@ -29,6 +29,9 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
 
+      - name: Check for exposed identifiers
+        run: node scripts/check-pii.mjs
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 

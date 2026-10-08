@@ -46,7 +46,8 @@
     "dev": "tsup --watch",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
-    "verify:package": "node scripts/verify-package.mjs"
+    "verify:package": "node scripts/verify-package.mjs",
+    "check:pii": "node scripts/check-pii.mjs"
   },
   "license": "MIT",
   "dependencies": {
