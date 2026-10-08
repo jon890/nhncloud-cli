@@ -16,7 +16,7 @@ import { listCommand } from "./list.js";
 import { getCommand } from "./get.js";
 import { ipaclCommand } from "./ipacl.js";
 import { clearIpAclCommand, setIpAclCommand } from "./binding.js";
-import { configureLoadBalancerHelp } from "./help.js";
+import { configureGlobalOptionsHelp } from "../help.js";
 
 vi.mock("./helpers.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./helpers.js")>();
@@ -194,7 +194,7 @@ describe("loadbalancer 조회 commands", () => {
       .option("--json", "JSON 형식으로 출력")
       .option("--quiet", "최소 출력 (자동화용)")
       .addCommand(loadbalancerCommand);
-    configureLoadBalancerHelp(loadbalancerCommand);
+    configureGlobalOptionsHelp(loadbalancerCommand);
 
     const leafPaths = [
       ["list"],
