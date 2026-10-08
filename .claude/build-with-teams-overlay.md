@@ -1,12 +1,7 @@
 # build-with-teams 오버레이: nhncloud-cli
 
-공용 `build-with-teams` 스킬에 이 저장소의 역할, worktree와 검증 경로만 보탠다.
+공용 `build-with-teams` 스킬에 이 저장소의 spawn 규칙, worktree, 검증 경로와 반복 함정 경로만 보탠다.
 
-## 역할
-
-- docs-verifier: `nhncloud-cli-docs-verifier`
-
-Claude Code 정의는 `.claude/agents/`, Codex 정의는 `.codex/agents/`에 있다.
 spawn 프롬프트에는 task 절대경로와 직전 phase에서 확인한 사실만 넘긴다.
 
 ## worktree
