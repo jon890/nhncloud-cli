@@ -16,4 +16,4 @@ STATE=$(gh pr view {N} --json state -q .state)
 [ "$STATE" = "OPEN" ] || { echo "PR is $STATE"; exit 1; }
 ```
 
-**Self-check**: 외부 가시 동작 앞에 점검, 뒤에 rollback 절차?
+**Self-check**: 외부 가시 동작 앞에 실패하면 멈추는 점검, 뒤에 rollback 절차?
