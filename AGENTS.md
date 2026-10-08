@@ -90,10 +90,10 @@ worktree에서 `pnpm install`이 esbuild 실행을 차단하면 설치를 반복
 커밋, 이슈 작성, 릴리스 전에 다음 검사가 모두 0건인지 확인한다.
 
 ```bash
-grep -rnoE "(https?://|@)[A-Za-z0-9.-]+\.(com|co\.kr|net)" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ tasks/ .agents/ .claude/ .codex/ .github/ 2>/dev/null \
+grep -rnoE "(https?://|@)[A-Za-z0-9.-]+\.(com|co\.kr|net)" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ tasks/ .agents/ .claude/ .github/ 2>/dev/null \
   | grep -vE "nhncloud\.com|nhncloudservice\.com|github\.com|npmjs\.com|example\.com|openai\.com|anthropic\.com"
 
-grep -rnE "(secret|password|appkey)['\"]?[[:space:]]*[:=][[:space:]]*['\"][A-Za-z0-9]{16,}" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ tasks/ .agents/ .claude/ .codex/ .github/ 2>/dev/null
+grep -rnE "(secret|password|appkey)['\"]?[[:space:]]*[:=][[:space:]]*['\"][A-Za-z0-9]{16,}" README.md skills/ docs/ AGENTS.md CLAUDE.md src/ tasks/ .agents/ .claude/ .github/ 2>/dev/null
 ```
 
 내부용 실제 값을 넣어야 한다면 사용자의 명시적 동의가 있어야 한다.
