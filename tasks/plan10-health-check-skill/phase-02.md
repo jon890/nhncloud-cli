@@ -24,6 +24,7 @@
 ## 의도 메모
 
 - 로그와 patch 는 `os.tmpdir()` 아래 `mkdtempSync(join(tmpdir(), "health-check-"))` 디렉터리에 둔다. worktree 를 지운 뒤에도 남아야 하기 때문이다. worktree 자체만 `worktrees/nhncloud-cli/` 아래에 둔다.
+- 임시 worktree 이름은 `health-check-<Date.now()>-<pid>`(숫자 둘을 `-` 로 이은 형식)로 정하고, 경로는 `worktrees/nhncloud-cli/health-check-<숫자>-<숫자>` 다. 이 패턴이 plan worktree(`worktrees/nhncloud-cli/plan10-health-check-skill`)와 겹치지 않으므로, 남은 임시 worktree를 찾는 검증과 정리 안내는 이 패턴만 쓴다.
 - 검사 로그는 단계마다 파일 하나로 남긴다. tail 로 자르면 어느 단언이 깨졌는지가 사라진다.
 - `pnpm audit` 결과는 보고만 하고 종료 코드 판정에 넣지 않는다. 남은 취약점의 판단은 스킬 2단계와 3단계에서 사람이 한다.
 - 계획 시점에 범위 안 갱신 뒤에도 `vite 8.0.14`, `postcss 8.5.15` 같은 개발 도구 경로의 간접 의존성이 옛 버전에 머물렀다. `pnpm update NAME` 에 간접 의존성 이름을 주어도, lockfile 을 지우고 새로 설치해도 같았다. 이 원인 조사와 해소는 이 phase 의 범위가 아니다. 스크립트는 남은 advisory 를 표로 보여 주기만 한다.
@@ -49,9 +50,9 @@
 1. `parseArgs` 가 던지면 stderr 에 메시지를 쓰고 2.
 2. `enterRepoRoot()`, `package.json` 의 `packageManager` 와 `pnpm --version` 을 `checkPnpmMajor` 로 확인. 메시지가 있으면 2.
 3. `mainCheckoutRoot()` 가 `null` 이면 2. `suffix` 는 `${Date.now()}-${process.pid}`. 경로가 이미 있으면 2. 상위 디렉터리는 `mkdirSync(..., { recursive: true })`.
-4. `git worktree add --detach WT HEAD` 실패 시 stderr 를 보여 주고 2.
-5. `process.on("SIGINT", ...)` 와 `process.on("SIGTERM", ...)` 로 중단 표시만 켠다. 처리기를 걸어 두면 node 가 바로 죽지 않아 아래 `finally` 가 worktree 를 지운다.
-6. 단계 실행은 `step(name, cmd, args, { judge = true })` 하나로 한다. `cwd: WT` 로 `run` 하고, 로그를 `outDir/<name>.log` 에 `$ cmd args` 머리와 stdout, stderr 로 쓰고, `{ name, status, signal, log, judge }` 를 쌓는다. 자식이 signal 로 끝났거나 중단 표시가 켜졌으면 실패로 보고 남은 단계를 건너뛴다.
+4. `git worktree add --detach WT HEAD` 실패 시 stderr 를 보여 주고 2. 성공한 바로 다음 줄에서 `try` 를 열고, 5~10 은 모두 그 안에서 돈다. worktree 정리는 11 의 `finally` 하나가 맡는다.
+5. 중단 판정에 `process.on("SIGINT")` 나 `process.on("SIGTERM")` 처리기를 쓰지 않는다. 자식을 `spawnSync` 로 돌리는 동안 node 이벤트 루프가 멈춰 처리기가 돌지 않는다(계획 시점 실측). 터미널의 Ctrl+C 는 자식에게도 가므로 자식 결과의 `signal` 이나 `status >= 128` 로 중단을 판정한다.
+6. 단계 실행은 `step(name, cmd, args, { judge = true })` 하나로 한다. `cwd: WT` 로 `run` 하고, 로그를 `outDir/<name>.log` 에 `$ cmd args` 머리와 stdout, stderr 로 쓰고, `{ name, status, signal, log, judge }` 를 쌓는다. 자식 결과의 `signal` 이 null 이 아니거나 `status >= 128` 이면 중단으로 보고 실패로 기록한 뒤 남은 단계를 건너뛰고 곧바로 `finally` 로 간다.
 7. 차례: `pnpm install --frozen-lockfile`, `--range` 면 `pnpm update`, `splitByDepType` 의 `prod` 가 있으면 `pnpm add ...prod`, `dev` 와 `devPkgs` 를 합친 것이 있으면 `pnpm add -D ...`, 그다음 `CHECK_STEPS`. 설치나 갱신이 실패하면 검사 단계를 돌리지 않는다. 검사 단계는 하나가 실패해도 나머지를 돈다.
 8. `pnpm audit --json` 을 `judge: false` 로 돌리고 `parseAuditReport` 와 `classifyAdvisories`(worktree 의 갱신된 `package.json` 기준)로 읽는다.
 9. worktree 에서 `git diff -- package.json pnpm-lock.yaml` 을 `outDir/changes.patch` 로 쓴다.
@@ -79,7 +80,7 @@
 ```bash
 pnpm exec vitest run .agents/skills/health-check/scripts/trial-update.test.mjs
 OUT="$(mktemp -d)" && node .agents/skills/health-check/scripts/trial-update.mjs --range --out "$OUT"; s=$?; echo "trial=$s"; test "$s" -le 1 && test -f "$OUT/changes.patch" && test -f "$OUT/tsc.log"
-test "$(git worktree list --porcelain | grep -c 'health-check-')" = 0
+test "$(git worktree list --porcelain | grep -c '/worktrees/nhncloud-cli/health-check-[0-9]')" = 0
 node .agents/skills/health-check/scripts/trial-update.mjs --pkg commander; test $? = 2
 git status --porcelain package.json pnpm-lock.yaml | wc -l | grep -qx ' *0'
 pnpm tsc --noEmit
@@ -89,7 +90,7 @@ git diff --check
 ```
 
 - 둘째 줄은 실제 registry 에 접속해 1분 안팎이 걸린다. 종료 코드 0 이나 1 이 정상이다. 2 면 worktree 생성이나 pnpm 확인이 실패한 것이다. 1 이면 보고의 단계 표에서 실패한 단계와 로그 경로를 PR 본문에 옮긴다.
-- 셋째 줄은 시험 뒤 임시 worktree 가 남지 않았는지 본다.
+- 셋째 줄은 시험 뒤 임시 worktree 가 남지 않았는지 본다. 경로 패턴을 `health-check-<숫자>` 로 좁힌 것은 이 plan worktree(경로와 브랜치 이름에 `health-check` 가 든다)를 세지 않기 위해서다.
 - 다섯째 줄은 작업 중인 checkout 의 `package.json` 과 lockfile 이 바뀌지 않았는지 본다.
 
 ## 변경 파일
