@@ -35,12 +35,50 @@ Commander가 먼저 발견한 누락은 기존 영문 오류를 stderr에 한 �
 - 공공망 profile은 연결 테스트를 지원하지 않아 `--no-verify`가 필요하다.
 - 자격증명은 `credentials.json`, 기본 profile 같은 일반 설정은 `config.json`에 둔다.
 
-설정 후 `nhncloud doctor`로 파일 권한, profile과 공개 스킬 상태를 오프라인 진단할 수 있다.
-세부 필드는 [data-schema.md](data-schema.md)를 따른다.
+설정 후 `nhncloud doctor`로 파일 상태와 권한, profile과 공개 스킬 상태를 진단할 수 있다.
+자격증명과 설정 파일의 필드는 [data-schema.md](data-schema.md)를 따른다.
+
+## 설정 진단
+
+`doctor`는 기본으로 외부 API를 호출하지 않는다.
+`--check-connection`을 줄 때만 대상 profile 하나의 연결을 확인한다([[adr-042]]).
+텍스트, `--json`, `--quiet`는 같은 진단 결과를 다른 모양으로 낸다.
+`--json` 필드와 상태 값은 [공개 스킬 common reference](../skills/nhncloud-cli/references/common.md#설정-진단)의 「설정 진단」 절이 소유한다.
+
+```mermaid
+flowchart TD
+  start([nhncloud doctor]) --> files[credentials.json, config.json 읽기]
+  files -->|없음| missing[state: missing]
+  files -->|JSON 아님, 형식 오류| invalid[state: invalid + 고정 reason]
+  files -->|읽기 권한 없음| unreadable[state: unreadable + 오류 코드]
+  files -->|정상| ok[state: ok, profile 목록, 권한]
+  missing & invalid & unreadable & ok --> resolve[profile 해석]
+  resolve --> skill[공개 스킬 상태 판정]
+  skill -->|판정 실패| skillerr[status: error]
+  skill --> flag{--check-connection}
+  skillerr --> flag
+  flag -->|없음| report[connection.checked: false]
+  flag -->|있음| usable{자격증명 ok, profile 있음, environment 올바름}
+  usable -->|아니오| unavailable[모든 대상 skipped: profile-unavailable]
+  usable -->|gov| gov[모든 대상 skipped: gov-unsupported]
+  usable -->|일반망| probe[대상별 순차 확인]
+  probe -->|블록 없음| nc[skipped: not-configured]
+  probe -->|appkey만 있고 UAK 없음| um[skipped: uak-missing]
+  probe -->|성공| pass[ok]
+  probe -->|인증 실패| auth[failed: auth]
+  probe -->|네트워크, API 오류| err[failed: error + exitCode]
+  report & unavailable & gov & nc & um & pass & auth & err --> out[stdout 에 보고서 출력, 종료 코드 0]
+```
+
+- 진단 대상 파일이 없거나 손상돼도 보고서는 나온다. 자격증명이 없는 빈 HOME 에서도 `doctor --json`은 온전한 JSON 을 낸다.
+- 연결 확인은 `configure`의 연결 테스트 함수를 그대로 쓰고 토큰 캐시를 읽거나 쓰지 않는다.
+- 연결 확인 대상은 `userAccessKey`, `iaas`, `logncrash`, `ncr`, `ncs` 순서로 하나씩 확인한다. 한 대상의 실패는 다음 대상 확인을 막지 않는다.
+- 보고서를 냈으면 종료 코드는 0이다. 알 수 없는 옵션 같은 입력 오류만 기존 종료 코드 규칙을 따른다.
+- 진단 결과는 stdout 에 쓴다. 자격증명의 비밀값과 appkey 는 어떤 출력에도 넣지 않는다.
 
 ## 명령 탐색
 
-사람은 단계별 help로 좁혀 간다.
+사람은 단계별 help로 범위를 줄여 간다.
 
 ```bash
 nhncloud --help
@@ -146,7 +184,7 @@ rollback도 새 상태 전이를 만들 수 있으므로 완료와 실패를 같
 - IPv4 인증은 서버가 본 요청 출발지 IP로 판정하므로 CLI가 따로 보내는 값이 없다.
 - MAC 인증은 `--mac-address`로 준 콜론 구분 값을 소문자로 바꿔 헤더로 보낸다. 형식이 틀리면 자격증명을 읽기 전에 종료 코드 3으로 끝난다.
 - 인증서 인증만 켠 키 저장소는 지원하지 않는다. 인증 실패는 서버의 `resultMessage`를 담은 API 오류로 끝난다.
-- `skm confirm`은 서버가 본 클라이언트 IP, MAC 헤더와 인증서 사용 여부를 보여 준다. 인증 실패 원인을 좁힐 때 먼저 실행한다.
+- `skm confirm`은 서버가 본 클라이언트 IP, MAC 헤더와 인증서 사용 여부를 보여 준다. 인증 실패 원인을 찾을 때 먼저 실행한다.
 
 암호화·서명할 데이터는 `--plaintext`, `--file`, 표준 입력 순으로 읽고 받은 바이트를 그대로 보낸다. 끝 줄바꿈과 앞의 UTF-8 BOM도 지우지 않는다.
 암호문과 서명값은 base64 문자열이라 앞뒤 공백을 지운다.
