@@ -94,7 +94,7 @@ describe("서브커맨드 옵션과 root 예약 플래그 충돌", () => {
     expect(commands.length).toBeGreaterThan(20);
   });
 
-  it("어떤 서브커맨드도 root 예약 플래그를 재정의하지 않는다", async () => {
+  it("어떤 서브커맨드도 root 예약 플래그를 재정의하지 않는다", () => {
     const offenders: Offender[] = [];
 
     for (const { source, command } of commands) {
