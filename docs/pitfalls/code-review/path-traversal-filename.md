@@ -4,12 +4,12 @@ category: code-review
 title: 외부 응답의 fileName 으로 경로 조립 (path traversal)
 triggers: [path-traversal, basename, fileName]
 tool_catchable: false
-source: [PR40, PR72]
+source: []
 related: []
 ---
 
 **증상**: 서버 / API 가 반환한 `fileName` 을 검증 없이 `path.join(outDir, fileName)` 에 사용. 악의적 (또는 버그있는) 서버가 `../../etc/passwd` 같은 값을 반환하면 지정 디렉토리 밖으로 파일이 기록됨.
 **Good**: 외부에서 받은 fileName 은 항상 `basename(fileName)` 으로 directory component 제거 후 join. 다운로드 / 첨부 / 사용자가 통제하지 않는 모든 경로 입력에 적용.
 **검출**: `grep -rnE 'join\([^)]*\bfileName\b' src/commands/` 중 `basename` 미적용 라인.
-**Why**: `deploy download` 같은 파일 저장 명령에서 API 응답 또는 사용자 입력의 파일명을 그대로 join하면 지정 디렉터리 밖에 파일을 쓸 수 있다. 보안 측면에서 1줄로 막을 수 있는 취약점.
-download 명령 신설 시 `basename(decodeURIComponent(fileName))` grep 강제.
+**Why**: 서버가 준 파일명으로 저장 경로를 만드는 새 명령에서 API 응답 또는 사용자 입력의 파일명을 그대로 join하면 지정 디렉터리 밖에 파일을 쓸 수 있다. 보안 측면에서 1줄로 막을 수 있는 취약점.
+저장 경로를 만드는 명령 신설 시 `basename(decodeURIComponent(fileName))` grep 강제.

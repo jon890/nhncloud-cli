@@ -16,5 +16,5 @@ related: []
 grep -nE "Number\([a-z]" src/commands/   # 옵션 파싱에서 regex 없이 Number 만 쓰는 곳
 ```
 
-**Why**: PR #13 (plan011)에서 `parsePositiveInt`가 `1e2`를 100으로 통과시키고 빈 문자열 메시지가 빈 괄호가 됐다. **⚠️ 최다 재발 패턴**: PR #21(plan016, 옛 약화 버전 복붙), PR #22(plan017, `volume create --size`가 bare `Number()`를 써서 `--size 1e2`가 100GB 발급)까지 **3회 재발**했다. 새 명령에 양의 정수 옵션을 추가할 때마다 executor가 regex 없이 `Number()`로 새로 작성한다.
+**Why**: PR #13에서 `parsePositiveInt`가 `1e2`를 100으로 통과시키고 빈 문자열 메시지가 빈 괄호가 됐다. **⚠️ 최다 재발 패턴**: PR #21(옛 약화 버전 복붙), PR #22(`volume create --size`가 bare `Number()`를 써서 `--size 1e2`가 100GB 발급)까지 **3회 재발**했다. 새 명령에 양의 정수 옵션을 추가할 때마다 executor가 regex 없이 `Number()`로 새로 작성한다.
 **Self-check (executor 코드 작성 직전 필수 grep)**: `grep -rnE "Number\(opts\." src/commands/` 결과의 각 줄이 `src/commands/parse-options.ts`의 `POSITIVE_INTEGER_PATTERN` 검증을 거치는지 확인한다. 직접 `Number()`를 쓰는 대신 `parseIntegerOption(value, flag, { min: 1 })`을 호출하는 것이 기본이다. 새 `--size`/`--limit`/`--offset` 등 정수 옵션은 예외 없이 regex 선검증.

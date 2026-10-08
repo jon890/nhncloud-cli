@@ -16,4 +16,4 @@ related: []
 
 **Self-check**: 새 수치 옵션의 범위·기본값이 docs 인용에 근거하는가, 추측인가? 코드 검증·기본값·help·README·SKILL 다섯 곳이 같은 범위로 일치하는가?
 
-**Why**: PR #24(plan019) critic M2 부수 발견: export `--size`(scroll pageSize)를 1에서 1000, 기본 1000으로 추측했으나 공식 Log & Crash Search API docs는 **10에서 100**이라고 설명한다. WebFetch로 응답 예제와 범위를 확인한 뒤 허용 범위를 10에서 100, 기본값을 100으로 정정했다. 새 API의 페이지 이동과 한도 수치마다 재발할 수 있다.
+**Why**: PR #24 critic M2 부수 발견: export `--size`(scroll pageSize)를 1에서 1000, 기본 1000으로 추측했으나 공식 Log & Crash Search API docs는 **10에서 100**이라고 설명한다. WebFetch로 응답 예제와 범위를 확인한 뒤 허용 범위를 10에서 100, 기본값을 100으로 정정했다. 새 API의 페이지 이동과 한도 수치마다 재발할 수 있다.

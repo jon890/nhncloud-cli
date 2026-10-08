@@ -4,7 +4,7 @@ category: code-review
 title: 테스트 mock — self-mock (vi.mock("./same-file.js")) 금지
 triggers: [테스트, self mock, vitest]
 tool_catchable: false
-source: [plan039]
+source: []
 related: []
 ---
 
@@ -19,6 +19,5 @@ grep -n 'vi\.mock("\./' tasks/*/phase-*.md
 ```
 
 **대안**: 테스트 대상이 내부에서 호출하는 **외부 의존성** (`../cache/store.js` 등) 을 mock.
-기존 패턴: `member-group.test.ts` 참조.
 
-**Why**: plan039 critic REVISE — `ensureProjects` 를 self-mock 했으나 CommonJS 번들에서 동일 파일 내부 참조는 원본 유지. 실제 `getProjects` 가 `~/.nhncloud/cache/` 에 접근하며 flaky 테스트 발생.
+**Why**: 테스트 대상 파일을 self-mock 해도 CommonJS 번들에서 동일 파일 내부 참조는 원본이 유지된다. 실제 구현이 `~/.nhncloud/cache/` 에 접근하며 flaky 테스트가 생긴다.

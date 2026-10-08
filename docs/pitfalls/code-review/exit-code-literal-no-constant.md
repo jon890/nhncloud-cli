@@ -23,4 +23,4 @@ grep -nE "EXIT_[A-Z_]+ =" src/utils/exit-codes.ts
 
 **Self-check**: 새 파일의 exit code 인자가 숫자 리터럴인가? 같은 값의 `EXIT_*` 상수가 exit-codes.ts 에 있으면 import 로 교체.
 
-**Why**: PR #3 (plan003) code-reviewer MEDIUM — configure.ts 가 `3 // EXIT_PARAM_ERROR` 리터럴. 다른 파일은 모두 상수 import. 신규 명령·helper 파일마다 재발 가능.
+**Why**: PR #3 code-reviewer MEDIUM — configure.ts 가 `3 // EXIT_PARAM_ERROR` 리터럴. 다른 파일은 모두 상수 import. 신규 명령·helper 파일마다 재발 가능.

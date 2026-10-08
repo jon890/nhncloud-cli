@@ -14,4 +14,4 @@ related: []
 
 **Self-check**: phase 의 모든 테스트 기대값이 대상 함수 코드(파일:라인)에 근거하는가? "원형 보존/wrap"·"throw/무반환" 같은 반대쌍을 코드로 확인했는가? instanceof 분기 입력이 실제 인스턴스인가?
 
-**Why**: PR #25 (plan020) critic MAJOR에서 httpError 테스트 phase가 raw Error를 "원형 보존(감싸지 않음)"으로 단언했으나 실제 `src/api/httpError.ts`는 `NhnCloudCliError(EXIT_API_ERROR)`로 감싼다. index.json description에까지 정반대 기대값이 전파됐다. MINOR로 HTTPError를 평범한 객체로 만들면 404/500이 분기를 안 타고 잘못된 이유로 통과하는 함정도 지적됐다. 테스트 작성 task마다 재발 가능.
+**Why**: PR #25 critic MAJOR에서 httpError 테스트 phase가 raw Error를 "원형 보존(감싸지 않음)"으로 단언했으나 실제 `src/api/httpError.ts`는 `NhnCloudCliError(EXIT_API_ERROR)`로 감싼다. index.json description에까지 정반대 기대값이 전파됐다. MINOR로 HTTPError를 평범한 객체로 만들면 404/500이 분기를 안 타고 잘못된 이유로 통과하는 함정도 지적됐다. 테스트 작성 task마다 재발 가능.

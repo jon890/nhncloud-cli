@@ -24,6 +24,6 @@ git stash; grep -c '<검증토큰>' <docs>; git stash pop   # baseline >0 이면
 
 **Self-check**: 이 task 의 핵심 위험(실측 확정 / 신규 docs 행 / 런타임 불변식)이 성공 기준의 자동 검사로 *실제로 막히는가*? 추정값·누락 상태로 성공 기준을 전부 통과시킬 수 있으면 검사가 비어 있는 것.
 
-> **자기참조 grep 함정 (PR #19/plan014)**: 성공 기준이 `grep -c "<토큰>" 같은_파일.md` 형태인데 `<토큰>` 이 **그 grep 명령줄 자체에도 등장**하면 항상 ≥1 을 반환해 "기대 0" 을 절대 만족 못 한다(placeholder 완성 여부 검사에서 흔함). grep 을 절(`sed -n '/## 시작/,/## 끝/p' | grep`)로 한정하거나, 검사 대상이 사전 충전돼 의미 없으면 기준을 삭제한다.
+> **자기참조 grep 함정 (PR #19)**: 성공 기준이 `grep -c "<토큰>" 같은_파일.md` 형태인데 `<토큰>` 이 **그 grep 명령줄 자체에도 등장**하면 항상 ≥1 을 반환해 "기대 0" 을 절대 만족 못 한다(placeholder 완성 여부 검사에서 흔함). grep 을 절(`sed -n '/## 시작/,/## 끝/p' | grep`)로 한정하거나, 검사 대상이 사전 충전돼 의미 없으면 기준을 삭제한다.
 
-**Why**: PR #12 (plan010) critic 2 MAJOR — ① image endpoint 실측이 성공 기준에 없어 estimate 완료 가능, ② docs 검증이 `grep -c 'image'` 라 기존 `--image` 텍스트로 통과. 둘 다 성공 기준 문구를 forcing/변별 토큰으로 바꿔 해소. 외부 의존 실측·신규 docs 행이 있는 task 마다 재발 가능.
+**Why**: PR #12 critic 2 MAJOR — ① image endpoint 실측이 성공 기준에 없어 estimate 완료 가능, ② docs 검증이 `grep -c 'image'` 라 기존 `--image` 텍스트로 통과. 둘 다 성공 기준 문구를 forcing/변별 토큰으로 바꿔 해소. 외부 의존 실측·신규 docs 행이 있는 task 마다 재발 가능.

@@ -4,7 +4,7 @@ category: plan
 title: 결정이나 CLI 표면을 폐지한 뒤 살아 있는 문서 표현을 덜 훑음
 triggers: [결정 변경, 옵션 폐지, 문서 sweep]
 tool_catchable: false
-source: [plan064, plan065]
+source: []
 related: [revise-string-change-cascade-missing, path-migration-agents-missing]
 ---
 
@@ -28,6 +28,6 @@ rg -n -- "--<removed-option>|RemovedType|removedSetting|<removed-arg>|\[removed-
 
 **Self-check**: 없앤 내부 식별자와 사용자 표면 표현을 모두 검색했는가? `docs/prd.md`와 공개 가이드가 범위에 들어갔는가? ADR의 역사와 현재 동작 설명을 구분했는가?
 
-**Why**: plan064에서는 `--app-key` 제거를 ADR에만 반영해 현재 동작 문서가 남았고, plan065에서는 내부 식별자를 검색했지만 `<target>` 표기를 쓰던 PRD를 놓쳤다. 두 사례의 공통 원인은 결정이 노출되는 문서 표면을 완결적으로 정의하지 않은 것이다.
+**Why**: `--app-key` 를 제거할 때는 ADR에만 반영해 현재 동작 문서가 남았고, `<target>` 표기를 정리할 때는 내부 식별자를 검색했지만 `<target>` 표기를 쓰던 PRD를 놓쳤다. 두 사례의 공통 원인은 결정이 노출되는 문서 표면을 완결적으로 정의하지 않은 것이다.
 
 관련: [[revise-string-change-cascade-missing]], [[path-migration-agents-missing]]

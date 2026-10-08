@@ -4,7 +4,7 @@ category: code-review
 title: `as unknown as T` 이중 단언
 triggers: [as unknown as, 이중 단언, union type]
 tool_catchable: false
-source: [PR64]
+source: []
 related: []
 ---
 
@@ -23,6 +23,6 @@ related: []
 grep -nE "as unknown as " src/
 ```
 
-**Why**: PR #64 (plan031): 두 타입 관계를 이중 단언으로 우회.
+**Why**: 두 타입 관계를 이중 단언으로 우회하면 타입 안전성이 깨지고, spec 과 실제 응답의 shape 불일치가 조용히 통과한다.
 
 **Self-check**: `as unknown as T` 가 등장하면 타입 구조적 관계를 types.ts 에 명시했는가?

@@ -17,4 +17,4 @@ related: []
 
 **Self-check**: endpoint base 변수가 host 만인가, 버전까지 포함하나(`keystone.ts`·endpoint 해석부에서 확인)? 새 URL 이 기존 형제 메서드와 같은 prefix 깊이인가? base 가 버전 포함이면 새 경로에 `/v2`·`/v2.0` 리터럴이 없는가?
 
-**Why**: PR #23 (plan018) critic CRITICAL — floatingip 6개 메서드 전부 `${networkEndpoint}/v2.0/...` 로 이중 `/v2.0`. networkEndpoint 가 이미 `https://host/v2.0`(keystone.ts) 라 전 명령 404. 6곳 모두 `/v2.0` 제거로 해소. compute/image/network/blockstorage 처럼 버전 포함 base 를 공유하는 IaaS 명령마다 재발 가능.
+**Why**: PR #23 critic CRITICAL — floatingip 6개 메서드 전부 `${networkEndpoint}/v2.0/...` 로 이중 `/v2.0`. networkEndpoint 가 이미 `https://host/v2.0`(keystone.ts) 라 전 명령 404. 6곳 모두 `/v2.0` 제거로 해소. compute/image/network/blockstorage 처럼 버전 포함 base 를 공유하는 IaaS 명령마다 재발 가능.

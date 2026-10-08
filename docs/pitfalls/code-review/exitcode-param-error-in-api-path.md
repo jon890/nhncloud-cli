@@ -4,7 +4,7 @@ category: code-review
 title: catch 의 `err.exitCode` 분기 시 `toNhnCloudCliError` 의 실제 매핑 미확인
 triggers: [exitCode, EXIT_PARAM_ERROR, API]
 tool_catchable: false
-source: [PR63]
+source: []
 related: []
 ---
 
@@ -38,5 +38,5 @@ grep -rnE "exitCode\s*===\s*EXIT_PARAM_ERROR" src/commands/ src/services/ src/ap
 
 **Self-check**: catch 안에서 exitCode 분기를 쓰는 코드를 작성/리뷰할 때, `src/api/httpError.ts` 의 `toNhnCloudCliError` 가 그 에러 케이스에 어떤 exitCode 를 *실제로* 부여하는지 grep 으로 확인했는가? mock 으로 짠 테스트가 그 exitCode 를 mirror 하는가?
 
-**Why**: PR #63 (plan029) — 한 resolver 의 catch 가 `EXIT_PARAM_ERROR` 를 검사했다. 테스트도 같은 값으로 reject 해서 7/7 PASS 였지만 실제 production path 의 `toNhnCloudCliError` 는 `EXIT_API_ERROR` 를 부여해 분기가 dead 였다. code-reviewer 가 catch 케이스와 `toNhnCloudCliError` 매핑을 대조해 잡았다.
+**Why**: 한 resolver 의 catch 가 `EXIT_PARAM_ERROR` 를 검사했다. 테스트도 같은 값으로 reject 해서 7/7 PASS 였지만 실제 production path 의 `toNhnCloudCliError` 는 `EXIT_API_ERROR` 를 부여해 분기가 dead 였다. code-reviewer 가 catch 케이스와 `toNhnCloudCliError` 매핑을 대조해 잡았다.
   현재 저장소에서 같은 함정이 앉는 자리는 `src/commands/loadbalancer/helpers.ts` 의 `resolveLoadBalancerId`·`resolveIpAclGroupId` 다. 이 resolver 들은 이름 조회 실패를 스스로 `EXIT_PARAM_ERROR` 로 던지면서 그 안에서 `client.listLoadBalancers()` 를 호출하므로, 호출부 catch 가 exitCode 만 보면 자신이 던진 param 오류와 API 오류를 구별하지 못한다.

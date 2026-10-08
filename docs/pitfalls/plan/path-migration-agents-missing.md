@@ -10,13 +10,13 @@ related: [decision-surface-sweep-incomplete]
 
 **증상**: 파일이나 디렉터리 경로를 옮긴 뒤 코드와 스킬만 검색해 역할 정의, 오버레이 또는 CI 프롬프트가 없어진 경로를 계속 가리킨다. 이 파일들은 실행 절차와 검증 명령을 포함할 수 있어 참조가 깨져도 컴파일러가 잡지 못한다.
 
-**Good**: 경로 이전 전후에 저장소의 지침·문서·스킬·역할·워크플로·코드·task 전체에서 이전 경로를 검색한다. 검색 범위에는 `AGENTS.md`, `docs/`, `.agents/`, `.claude/`, `.codex/`, `.github/`, `README.md`, `skills/`, `src/`, `tasks/`를 포함한다.
+**Good**: 경로 이전 전후에 저장소의 지침·문서·스킬·역할·워크플로·코드·task 전체에서 이전 경로를 검색한다. 검색 범위에는 `AGENTS.md`, `docs/`, `.agents/`, `.claude/`, `.github/`, `README.md`, `skills/`, `src/`, `tasks/`를 포함한다.
 
 **검출**:
 
 ```bash
 rg -n --hidden --glob '!.git/**' '<old-path>' \
-  AGENTS.md docs .agents .claude .codex .github README.md skills src tasks
+  AGENTS.md docs .agents .claude .github README.md skills src tasks
 ```
 
 **Self-check**: 역할 정의와 오버레이, CI 프롬프트까지 검색했는가? 이전 경로가 현재 문서에 남지 않았는가? 역사적 기록이라 보존한 결과는 현재 지침과 구분되는가?

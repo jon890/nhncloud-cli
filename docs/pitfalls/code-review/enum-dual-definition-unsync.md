@@ -21,6 +21,6 @@ grep -oE "kr[0-9]|jp[0-9]|us[0-9]" src/commands/configure.ts | sort -u
 grep -oE "kr[0-9]|jp[0-9]|us[0-9]" src/api/endpoints.ts | sort -u   # 두 결과가 동일해야 함
 ```
 
-**Why**: PR #6 (plan004) 🟠 — configure region choices 가 INSTANCE_HOST 맵과 불일치 (us1 잉여·kr3 누락). region·flavor 등 enum 을 추가하는 작업마다 재발 가능.
+**Why**: PR #6 🟠 — configure region choices 가 INSTANCE_HOST 맵과 불일치 (us1 잉여·kr3 누락). region·flavor 등 enum 을 추가하는 작업마다 재발 가능.
 
 **Self-check**: 새 허용값 집합을 추가/수정했는가? 같은 집합을 참조하는 다른 정의처가 있고, 두 곳이 정확히 일치하는가?

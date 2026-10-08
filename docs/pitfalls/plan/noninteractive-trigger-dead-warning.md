@@ -4,7 +4,7 @@ category: plan
 title: nonInteractive trigger 확장 시 interactive 분기의 옵션 경고 정리 누락
 triggers: [nonInteractive, 경고, dead code]
 tool_catchable: false
-source: [PR68]
+source: []
 related: []
 ---
 
@@ -23,6 +23,6 @@ grep -n "opts\.<옵션명>" src/commands/configure.ts
 
 진입 조건과 interactive 분기 양쪽에 같은 옵션이 있으면 한쪽이 dead 다.
 
-**Why**: PR #68 (plan033) docs-verifier VIOLATION에서 `nonInteractive = ... || hasTagChange` 확장 후 interactive else 안에 `if (hasTagChange) stderr "단독 호출 안 됨"`을 그대로 뒀다.
+**Why**: docs-verifier VIOLATION에서 `nonInteractive = ... || hasTagChange` 확장 후 interactive else 안에 `if (hasTagChange) stderr "단독 호출 안 됨"`을 그대로 뒀다.
   도달할 수 없고 메시지도 정반대다.
   cc/parent 같이 trigger 미포함 옵션의 경고 패턴을 그대로 적용할 때 발생.

@@ -4,11 +4,11 @@ category: code-review
 title: "정상 빈 결과" 를 stderr 로 출력하거나 조기 반환에서 출력 모드 분기를 빠뜨림
 triggers: [빈 결과, stderr, stdout, early return, quiet mode]
 tool_catchable: false
-source: [PR40]
+source: []
 related: []
 ---
 
-**증상**: 목록이 0 개인 **정상 빈 상태** 메시지를 `process.stderr.write` 로 보냄. AGENTS.md 컨벤션은 `데이터=stdout / 에러·진행로그=stderr`. 빈 결과는 에러가 아니므로 stderr 위반 + 자동화 파이프 처리 어색함.
+**증상**: 목록이 0 개인 **정상 빈 상태** 메시지를 `process.stderr.write` 로 보냄. AGENTS.md 컨벤션은 `데이터=stdout / 에러·진행로그=stderr`. 빈 결과는 에러가 아니므로 stderr 위반이고 자동화 파이프 처리도 어색해진다.
 빈 결과를 조기 반환(early return)으로 처리하면서 `--json` 분기만 추가하고 `--quiet` 분기를 빠뜨리는 변형도 있다. `--quiet` 인데 "없습니다." plain text 가 stdout 에 나와 자동화 스크립트 parse 가 깨진다.
 
 **Good**: 빈 결과도 `src/formatters/table.ts` 의 `output()` 을 거치게 한다. 빈 `rows` 는 `printTable` 이 stdout 에 `결과 없음` 으로 출력하고, `--json` 은 raw 데이터, `--quiet` 은 `ids` 가 비면 무출력이다.

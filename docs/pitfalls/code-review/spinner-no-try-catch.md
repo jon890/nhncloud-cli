@@ -4,7 +4,7 @@ category: code-review
 title: spinner 시작 후 try/catch 없이 API 호출 → 에러 시 spinner leak
 triggers: [spinner, try-catch]
 tool_catchable: false
-source: [PR46, PR64, PR6]
+source: [PR6]
 related: []
 ---
 
@@ -58,7 +58,7 @@ if (opts.wait) {
 }
 ```
 
-**Why**: PR #6 (plan004) 🟡에서 create `--wait`가 첫 spinner stop 없이 두 번째 spinner를 시작해 고아 spinner가 생겼다. `--wait`·폴링 같은 다단계 진행 표시 명령마다 재발 가능.
+**Why**: PR #6 🟡에서 create `--wait`가 첫 spinner stop 없이 두 번째 spinner를 시작해 고아 spinner가 생겼다. `--wait`·폴링 같은 다단계 진행 표시 명령마다 재발 가능.
 
 **spinner 구간 안에서 stderr 로 경고 쓰기 (재발 패턴)**: spinner 가 도는 동안 `process.stderr.write` 로 경고를 내면 ora 프레임과 같은 stream 이라 텍스트가 애니메이션 문자와 섞인다 (`src/utils/spinner.ts` 의 `stream: process.stderr`). 저장소 선례는 예외 없이 경고를 spinner **밖**에 둔다 (`floatingip/delete.ts`, `deploy/download.ts` 는 `stopSpinner` 뒤).
 

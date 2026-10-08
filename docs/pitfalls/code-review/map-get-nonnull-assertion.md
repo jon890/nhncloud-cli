@@ -4,7 +4,7 @@ category: code-review
 title: Map.has → get()! non-null assertion
 triggers: [Map.get(), !, non-null]
 tool_catchable: false
-source: [PR68]
+source: []
 related: []
 ---
 
@@ -18,7 +18,7 @@ TypeScript 는 `has` 후 `get` 을 narrowing 안 함 → 런타임 undefined 가
 grep -nE "\.get\([^)]+\)!" src/
 ```
 
-**Why**: PR #68 (plan033) — Map.has 후 get()! 단언.
+**Why**: `Map.has` 후 `get()!` 단언은 undefined 가능성을 숨긴다.
 
 **Self-check**: Map.get() 결과에 `!` 단언이 있는가?
 있으면 위 패턴으로 교체.

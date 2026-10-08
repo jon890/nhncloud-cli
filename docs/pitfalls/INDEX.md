@@ -44,12 +44,12 @@ category: plan | code-review
 title: <한 줄 요약>
 triggers: [<변경 유형 키워드>, ...]   # 라우터가 이 값으로 매칭
 tool_catchable: <true|false>          # true 면 Why 에 그래도 유지하는 이유
-source: [PR40, plan004, ...]          # 출처 PR#/plan###: 본문 Why 에서 backfill, 미상은 []
+source: [PR44, PR55, ...]            # 출처 PR#: 본문 Why 에서 backfill, 미상은 []
 related: [<다른 패턴 slug>, ...]      # 백링크
 ---
 ```
 
-본문 규칙: 사고 사례(plan###)는 1개로 충분, 복수 나열 금지. "왜 이 가드가 필요한지" 1줄 단서 필수.
+본문 규칙: 사고 사례는 1개로 충분, 복수 나열 금지. "왜 이 가드가 필요한지" 1줄 단서 필수.
 
 **링크 규칙**:
 

@@ -37,4 +37,4 @@ grep -rnE "as \w+\[\] \| \w+\[\]" src/   # union 배열 단언 반환 의심
 
 **Self-check**: 오버로드/union 반환 메서드가 확장 타입 전용 필드를 런타임 가드로 검증하는가? 아니면 공통 필드만 보고 `as` 로 통과시키는가?
 
-**Why**: plan007 (PR #9) bot review 🟡 — `listFlavors` `--detail` 응답이 공통 가드(`isFlavorsResponse`)만 거쳐 detail 필드 미검증. Nova 스키마 드리프트 시 "undefined" 셀 출력. critic 은 phase 단계에서 이 캐스트를 정당으로 봤으나 런타임 드리프트는 놓침.
+**Why**: PR #9 bot review 🟡 — `listFlavors` `--detail` 응답이 공통 가드(`isFlavorsResponse`)만 거쳐 detail 필드 미검증. Nova 스키마 드리프트 시 "undefined" 셀 출력. critic 은 phase 단계에서 이 캐스트를 정당으로 봤으나 런타임 드리프트는 놓침.
