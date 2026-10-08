@@ -11,7 +11,7 @@
   - 인증 헤더 `X-TC-AUTHENTICATION-ID/SECRET` 표기 그대로 200 — 교정 불요.
   - host `kr1-ncr.api.nhncloudservice.com` 200 확인.
   - `appKey` = NCR 서비스 appkey(레지스트리 식별자 아님).
-  - **응답 형태**: `{ header, registries: [...] }`(목록) / `{ header, registry: {...} }`(단건) — `body` 없는 named 필드. 당초 "봉투 `body` 안 배열" 가정이 틀려 첫 머지(PR #26)의 `unwrap→body` 가 "body 없음" 으로 실패 → hotfix 로 `unwrapHeader`+named 필드 직접 읽기로 정정.
+  - **응답 형태**: `{ header, registries: [...] }`(목록) / `{ header, registry: {...} }`(단건) — `body` 없는 named 필드. 그래서 `unwrapHeader`+named 필드 직접 읽기를 쓴다.
 - **대안 기각**:
   - deploy OAuth 토큰 교환 재사용 — NCR 은 UAK 를 정적 헤더로 직접 받으므로 토큰 교환이 불필요한 복잡도. `x-nhn-authorization: Bearer` 도 지원하나 정적 헤더가 더 단순.
   - IaaS Keystone 토큰([[adr-010]]) — NCR 은 OpenStack 이 아니라 Harbor 라 Keystone 무관.
