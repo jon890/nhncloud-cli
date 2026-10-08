@@ -2,7 +2,7 @@ import { readdir } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Command } from "commander";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 /**
  * root program(`src/index.ts`)이 소유한 플래그 목록이다.
@@ -78,16 +78,26 @@ async function exportedCommands(): Promise<{ source: string; command: Command }[
   return collected;
 }
 
+// 명령 모듈 전체를 동적으로 import 해 비용이 크다. 병렬 실행 부하에서 기본 5초를 넘을 수 있어
+// 한 번만 수집하고 수집 단계에만 넉넉한 시간 상한을 준다.
+const IMPORT_TIMEOUT_MS = 30_000;
+
 describe("서브커맨드 옵션과 root 예약 플래그 충돌", () => {
-  it("검사 대상 커맨드를 실제로 수집한다", async () => {
+  let commands: { source: string; command: Command }[] = [];
+
+  beforeAll(async () => {
+    commands = await exportedCommands();
+  }, IMPORT_TIMEOUT_MS);
+
+  it("검사 대상 커맨드를 실제로 수집한다", () => {
     // 훑기가 아무것도 못 잡으면 아래 검사가 공허하게 통과하므로 하한을 고정한다.
-    expect((await exportedCommands()).length).toBeGreaterThan(20);
+    expect(commands.length).toBeGreaterThan(20);
   });
 
   it("어떤 서브커맨드도 root 예약 플래그를 재정의하지 않는다", async () => {
     const offenders: Offender[] = [];
 
-    for (const { source, command } of await exportedCommands()) {
+    for (const { source, command } of commands) {
       const found: Offender[] = [];
       collectOffenders(command, "", found);
       offenders.push(...found.map((entry) => ({ ...entry, path: `${source}: ${entry.path}` })));
