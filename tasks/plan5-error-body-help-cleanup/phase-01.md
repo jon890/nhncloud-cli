@@ -62,7 +62,7 @@ export async function readHttpErrorBody(err: HTTPError): Promise<unknown>
 - JSON 본문(`{"a":1}`) 이면 `{ a: 1 }` 을 돌려준다.
 - JSON 이 아닌 본문(`"not json"`)이면 `undefined` 를 돌려준다.
 - 빈 본문이면 `undefined` 를 돌려준다.
-- 같은 오류로 두 번 부르면 두 번 다 같은 객체를 돌려준다. `clone()` 을 빠뜨리면 실패하는 테스트다.
+- 같은 오류로 두 번 부르면 두 번 다 `toEqual({ a: 1 })` 이다. `json()` 은 부를 때마다 새 객체를 만드므로 `toBe` 로 비교하지 않는다. `clone()` 을 빠뜨리면 두 번째 읽기가 실패하는 테스트다.
 
 ### 4. 기존 서비스 테스트는 그대로 통과해야 한다
 

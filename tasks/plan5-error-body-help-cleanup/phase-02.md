@@ -60,10 +60,11 @@ node_modules/.bin/tsup
 node dist/index.js logncrash search --help | grep -c -- --json
 node dist/index.js skm keystore auth add --help | grep -c "Global Options:"
 node dist/index.js loadbalancer list --help | grep -c "Global Options:"
+node dist/index.js network security-group --help | grep -c "Global Options:"
 node dist/index.js commands --json > /dev/null
 ```
 
-- grep 세 줄은 모두 `1` 이상이어야 한다.
+- grep 네 줄은 모두 `1` 이상이어야 한다. `loadbalancer list` 줄은 바꾸기 전에도 `1` 이라 회귀 확인이고, 나머지 세 줄이 새 동작을 확인한다.
 - `grep -rn "configureLoadBalancerHelp" src` 결과가 0건이어야 한다.
 
 ## 변경 파일
