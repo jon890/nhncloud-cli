@@ -18,7 +18,7 @@ description: "nhncloud-cli 새 버전을 main 에서 태그, GitHub Release, npm
 | 1 | 사전 검증 | 현재 브랜치가 `main` 이고 `git status --porcelain` 이 비어 있으며 `AGENTS.md` 의 검증 명령이 모두 성공했다 |
 | 2 | 변경 분석 | 커밋·PR·닫힌 이슈 목록을 사용자에게 보였고, 아직 열린 이슈 중 이번에 닫을 것이 확정됐다 |
 | 3 | 문서 동기화 | 새 명령과 옵션이 README 와 공개 스킬 reference 에 있다. 없으면 보완 커밋이 있다 |
-| 4 | 공개 정보 검사 | `AGENTS.md` 의 공개 정보 검사 grep 이 모두 0건이다 |
+| 4 | 공개 정보 검사 | `node scripts/check-pii.mjs` 가 종료 코드 0 으로 끝난다 |
 | 5 | 버전 범프 | bump 커밋이 `origin/main` 에 push 됐다 |
 | 6 | 태그와 GitHub Release | 태그가 push 됐고 Release 본문 점검이 0건이다 |
 | 7 | npm 배포 | 사용자가 `npm publish` 를 실행했고 npm 에 새 버전이 보인다 |
@@ -83,20 +83,19 @@ grep -n "$KEYWORD" README.md skills/nhncloud-cli/SKILL.md skills/nhncloud-cli/re
 
 ## 4. 공개 정보 검사
 
-`AGENTS.md` 「공개 저장소 정보 보호」 절의 grep 을 모두 실행한다. 패턴과 대상 경로는 그 절이 소유한다.
+`node scripts/check-pii.mjs` 를 실행한다. 허용 목록은 그 스크립트가 소유한다.
 
 - 걸린 곳이 있으면 위치를 보이고 그 절의 placeholder 로 바꾼 보완 커밋을 만든 뒤 다시 검사한다.
 - 사용자가 내부 값 사용에 명시적으로 동의하지 않으면 릴리스를 멈춘다.
 
 ## 5. 버전 범프
 
-`package.json` 의 `version` 과 `src/index.ts` 의 `.version("x.y.z")` 두 곳을 `$VERSION` 으로 바꾼다.
-CLI 버전 문자열이 `src/index.ts` 에 하드코딩돼 있어 두 곳을 함께 바꿔야 한다.
+`package.json` 의 `version` 만 `$VERSION` 으로 바꾼다. CLI 버전은 빌드 때 그 값에서 주입된다.
 
 ```bash
 pnpm run build
 [ "$(git branch --show-current)" = "main" ] || { echo "STOP: main 이 아니다"; exit 1; }
-git add package.json src/index.ts
+git add package.json
 git commit -m "chore: bump version to $TAG"
 git push origin main
 ```

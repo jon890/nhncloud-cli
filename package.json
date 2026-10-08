@@ -35,6 +35,7 @@
     "skills",
     "README.md"
   ],
+  "packageManager": "pnpm@11.18.0",
   "engines": {
     "node": ">=20"
   },
@@ -45,7 +46,9 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run --passWithNoTests",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "verify:package": "node scripts/verify-package.mjs",
+    "check:pii": "node scripts/check-pii.mjs"
   },
   "license": "MIT",
   "dependencies": {
