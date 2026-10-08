@@ -19,6 +19,7 @@ export const CHECKS = [
   { name: "테스트", cmd: "pnpm", args: ["test"] },
   { name: "빌드", cmd: "pnpm", args: ["run", "build"] },
   { name: "패키지 산출물 검증", cmd: "pnpm", args: ["run", "verify:package"] },
+  { name: "명령 카탈로그", cmd: "node", args: ["dist/index.js", "commands", "--json"], stdio: "ignore" },
 ];
 
 function main() {
@@ -30,7 +31,7 @@ function main() {
   const failed = [];
   for (const check of CHECKS) {
     console.log(`[검사] ${check.name}: ${check.cmd} ${check.args.join(" ")}`);
-    const r = run(check.cmd, check.args, { cwd: root, stdio: "inherit" });
+    const r = run(check.cmd, check.args, { cwd: root, stdio: check.stdio ?? "inherit" });
     if (r.status !== 0) failed.push(check.name);
   }
   if (failed.length > 0) {

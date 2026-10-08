@@ -12,6 +12,11 @@ permissions:
   contents: read
   id-token: write
 
+# 같은 태그가 짧은 간격으로 두 번 push 돼도 게시가 겹치지 않게 한다.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     name: Verify & Publish
