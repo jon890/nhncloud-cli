@@ -21,6 +21,8 @@
 | `src/formatters/` | table, JSON과 quiet 출력 |
 | `src/skill/` | 공개 스킬 매니페스트, 상태 판정과 설치 수명주기 |
 | `src/utils/` | 종료 코드, 오류, spinner, 입력 크기와 시간 처리 |
+| `src/version.ts` | 빌드 때 `package.json`에서 주입한 CLI 버전 |
+| `scripts/` | 커밋·CI·릴리스 전에 도는 검사 스크립트(공개 정보 검사, 패키지 산출물 검증) |
 
 명령의 실제 경로, 인수와 옵션 목록은 코드에서 생성하는 `nhncloud commands --json`이 소유한다.
 이 문서에는 파일별 명령 목록을 복제하지 않는다.
@@ -109,3 +111,6 @@ HTTP 테스트는 `ky`를 mock하고 실제 응답 형태에 맞는 fixture를 �
 
 완료 검증 명령은 `AGENTS.md`가 소유한다.
 tsup와 vitest가 타입 검사를 대신하지 않으므로 `tsc --noEmit`을 별도로 실행한다.
+
+CLI 버전은 `package.json`의 `version` 하나가 소유한다. `tsup.config.ts`가 빌드 때 `__NHNCLOUD_CLI_VERSION__`으로 주입하고, 주입되지 않은 테스트와 개발 실행에서는 `0.0.0-dev`를 쓴다.
+`scripts/*.test.mjs`도 vitest가 실행한다.
