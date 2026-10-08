@@ -94,7 +94,7 @@ export function buildUnknownOptionHint(input: UnknownOptionHintInput): string;
 - 판정 A: 정규화한 인수 이름이 정규화한 옵션 이름과 같은 인수가 있으면 그 인수를 돌려준다.
 - A에 맞는 인수가 없으면 아래 B와 C에 맞는 인수를 모은다. 서로 다른 인수가 정확히 하나면 그 인수를, 아니면 `undefined` 를 돌려준다.
   - 판정 B: 정규화한 인수 이름이 `<옵션 이름>-` 으로 시작한다. 이 판정에 맞는 인수가 둘 이상이면 B의 후보는 없는 것으로 친다.
-  - 판정 C: `commandPath` 에서 첫 원소(루트 이름)를 뺀 단계 가운데 하나를 `segment` 라 할 때, 옵션 이름이 `<segment>-<정규화한 인수 이름>` 과 같다.
+  - 판정 C: `commandPath` 에서 첫 원소(루트 이름)를 뺀 단계 가운데 하나를 `segment` 라 할 때, 옵션 이름이 `<segment>-<정규화한 인수 이름>` 과 같다. 단 그 명령의 다른 인수의 정규화한 이름과 같은 `segment` 는 후보에서 뺀다. `ncs template version get <id> <version>` 에서 `--version-id` 가 `<id>`(템플릿 ID)를 가리키지 않게 하기 위해서다.
 - 돌려주는 값은 선언한 인수 이름 그대로다(`volumeId`). 정규화한 값을 돌려주지 않는다.
 - `argumentNames` 가 비어 있으면 `undefined` 다.
 
@@ -157,6 +157,7 @@ export function buildUnknownOptionHint(input: UnknownOptionHintInput): string;
 | `x-id` | `nhncloud x get` | `id`, `x-id-name` | `undefined` | B와 C가 다른 인수 |
 | `cluster-id` | `nhncloud nks cluster get` | `cluster` | `undefined` | 범위 밖 |
 | `nhncloud-id` | `nhncloud get` | `id` | `undefined` | 루트 이름은 C에서 뺀다 |
+| `version-id` | `nhncloud ncs template version get` | `id`, `version` | `undefined` | 다른 인수 이름과 같은 segment 는 C에서 뺀다 |
 | `region` | `nhncloud instance get` | `id` | `undefined` | 맞는 인수 없음 |
 | `id` | `nhncloud instance list` | (없음) | `undefined` | 인수 없음 |
 
@@ -204,7 +205,9 @@ node dist/index.js instance get --instance-id x 2>&1 >/dev/null | grep -F "사�
 node dist/index.js instance get --instance-id x 2>/dev/null; test $? -eq 1
 test -z "$(node dist/index.js instance get --instance-id x --json 2>/dev/null)"
 node dist/index.js instance security-group add --instance a b 2>&1 >/dev/null | grep -F "위치 인수 <instance-id> 로"
+# 판정 A, B, C 어디에도 맞지 않는 옵션에는 안내가 붙지 않는다(구현 전에도 통과하는 회귀 확인)
 ! node dist/index.js instance get --idd x 2>&1 | grep -q "안내:"
+! node dist/index.js ncs template version get a b --version-id c 2>&1 | grep -q "안내:"
 ! node dist/index.js instance volume attach x --volume v --volume-id y 2>&1 | grep -q "안내:"
 node dist/index.js instance get --idd x 2>/dev/null; test $? -eq 1
 node dist/index.js commands --json > /dev/null
