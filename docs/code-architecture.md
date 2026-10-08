@@ -110,6 +110,8 @@ Log & Crash service client는 공식 `available-token` 응답의 정수 필드�
 연결 확인은 `commands/configure-verify.ts`의 검증 함수를 재사용하며 doctor 전용 HTTP 요청을 만들지 않는다.
 
 내부 개발 워크플로우는 `.agents/skills/`에 둔다.
+의존성 버전, 취약점과 정적으로 판정할 수 있는 저장소 규약의 정기 점검은 `.agents/skills/health-check/`가 맡는다.
+측정과 갱신 시험은 이 스킬의 `scripts/`가 하고, 갱신은 작업 중인 checkout이 아니라 메인 checkout의 `worktrees/nhncloud-cli/` 아래 임시 worktree에서 시험한 뒤 지운다.
 반복 함정은 `docs/pitfalls/`에 패턴당 한 파일로 저장하고 `INDEX.md`를 라우터로 쓴다.
 원시 회고와 실행 통계는 저장소 문서로 누적하지 않는다.
 
