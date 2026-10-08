@@ -112,6 +112,76 @@ CLI가 UAK를 OAuth 토큰으로 교환하므로 별도 logncrash secret은 저�
 저장 파일은 `~/.nhncloud/credentials.json`이고 mode 0600으로 관리된다.
 기본 profile은 선택적으로 `~/.nhncloud/config.json`의 `defaultProfile`로 지정한다.
 
+## 설정 진단
+
+`nhncloud doctor`는 자격증명 파일, 설정 파일, 대상 profile, 공개 스킬 상태를 진단한다.
+기본 실행은 외부 API를 호출하지 않는다.
+`--check-connection`을 주면 대상 profile 하나의 자격증명으로 실제 연결을 확인한다.
+
+```bash
+nhncloud doctor
+nhncloud doctor --json | jq .
+nhncloud doctor --profile staging --check-connection --json
+nhncloud doctor --quiet          # ready 또는 not-ready
+nhncloud doctor --json | jq -e '.ready'   # 준비되지 않았으면 jq 가 1 로 끝난다
+```
+
+진단 보고서를 출력했으면 종료 코드는 문제가 있어도 0이다.
+실패로 끝나야 하는 점검은 `ready` 필드로 판정한다.
+비밀값(UAK secret, API 비밀번호, appkey)은 어떤 출력 형식에도 넣지 않는다.
+
+`--json` 최상위 필드:
+
+| 필드 | 값 |
+|---|---|
+| `schemaVersion` | `1` |
+| `ready` | 자격증명 파일이 `ok`, 대상 profile 이 있고 자격증명 블록이 하나 이상 있으며 `environment`가 올바르고, 연결 확인을 했다면 `failed`가 없을 때 `true`. `config.state`는 반영하지 않으므로 `config.json` 손상은 `config.state`로 따로 본다 |
+| `credentials` | `credentials.json` 진단. 아래 표 |
+| `config` | `config.json` 진단. 아래 표 |
+| `profile` | `{ "name": string \| null, "exists": boolean }`. `name`은 profile 해석 순서로 정한 대상이며, `config.json` 이 JSON 이 아니라 해석하지 못하면 `null` |
+| `connection` | 연결 확인 결과. 아래 표 |
+| `skills` | `{ "agents": { "claude": ... } }`. 에이전트별 공개 스킬 상태 |
+
+`credentials`와 `config`:
+
+| 필드 | 값 |
+|---|---|
+| `path` | 파일의 절대 경로 |
+| `state` | `ok`, `missing`, `invalid`(JSON 이 아니거나 형식이 맞지 않음), `unreadable`(권한 등으로 읽지 못함) |
+| `reason` | `state`가 `invalid`나 `unreadable`일 때만 있는 고정 문구. 파일 내용은 담지 않는다 |
+| `permissions` | `credentials`에만 있다. 파일이 있으면 `ok`(group·other 권한 없음), `too-open`, `unknown`(Windows) |
+| `profiles` | `credentials`에만 있다. `[{ "name", "environment": "real" \| "gov" \| "invalid", "blocks": string[] }]`. `blocks`는 profile 안의 블록 이름(`userAccessKey`, `iaas`, `logncrash` 등)을 정렬한 목록이다 |
+| `defaultProfile` | `config`에만 있다. `defaultProfile` 값이나 `null` |
+
+`connection`:
+
+| 경우 | 모양 |
+|---|---|
+| `--check-connection` 없음 | `{ "checked": false }` |
+| `--check-connection` 있음 | `{ "checked": true, "profile": string \| null, "targets": { "userAccessKey", "iaas", "logncrash", "ncr", "ncs" } }` |
+
+`targets`의 각 값은 `{ "status", "reason"?, "exitCode"? }`다.
+
+| `status` | `reason` | 뜻 |
+|---|---|---|
+| `ok` | 없음 | 연결과 인증에 성공했다 |
+| `failed` | `auth` | 인증에 실패했다. 키나 appkey를 확인한다 |
+| `failed` | `error` | 네트워크나 API 오류로 확인하지 못했다. `exitCode`에 그 오류의 종료 코드가 있다. Log & Crash 는 조회 한도 소진도 `failed`로 보고된다 |
+| `skipped` | `not-configured` | profile 에 그 블록이 없거나 필수 값이 비어 있다 |
+| `skipped` | `uak-missing` | appkey 는 있지만 함께 쓰는 공통 UAK 가 없다(`logncrash`, `ncr`, `ncs`) |
+| `skipped` | `uak-failed` | `userAccessKey` 확인이 `ok`가 아니라 UAK 로 OAuth 토큰을 받는 대상(`logncrash`, `ncs`)을 확인하지 않았다 |
+| `skipped` | `gov-unsupported` | 공공망 profile 이라 확인하지 않았다 |
+| `skipped` | `profile-unavailable` | 자격증명 파일을 읽지 못했거나 대상 profile 이 없거나 `environment`가 올바르지 않다 |
+
+`ncr`과 `ncs` 확인은 `kr1` region 을 가정한다.
+연결 확인은 대상을 순차로 확인하며 요청마다 `--request-timeout`(기본 30초) 상한이 적용된다.
+`logncrash` 확인은 최근 1분 범위의 검색 요청을 하나 보내므로 Log & Crash 조회 토큰을 쓴다.
+
+`skills.agents.claude`는 에이전트 경로 하나의 `SkillStatus`(`schemaVersion` 1)에 `recoveryCommand`(복구 명령, `current`이면 `null`)를 더한 것이다.
+상태를 판정하지 못하면 `{ "status": "error", "reason": string }`이다.
+`reason`에는 원문 오류 메시지를 넣지 않고 고정 문구만 쓴다. 오류에 문자열 errno 코드(`EACCES` 등)가 있으면 그 코드만 붙인다.
+에이전트가 늘면 `agents`에 키가 추가되며 기존 키의 모양은 바뀌지 않는다.
+
 ## Profile 우선순위
 
 profile 해석 순서:

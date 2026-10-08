@@ -49,3 +49,4 @@ ADR-NNN 내용은 `docs/adr/NNN-*.md` 로 찾는다(번호 glob: slug 몰라도 
 - [ADR-039](039-skm-client-auth-and-secret-output.md): Secure Key Manager: IP·MAC 클라이언트 인증과 명시 조회의 비밀값 출력. 쓰기 범위 제외는 ADR-040으로 대체
 - [ADR-040](040-skm-write-commands.md): Secure Key Manager 쓰기: 키 저장소 ID 지정, 삭제 예약과 즉시 삭제 분리, 키 저장소 부분 수정
 - [ADR-041](041-release-publish-local-ci-verify.md): npm 게시는 로컬에서 사람이 하고 태그 push 워크플로는 검증만 한다
+- [ADR-042](042-doctor-offline-default-and-exit-code.md): doctor 는 기본 오프라인, 연결 확인은 `--check-connection`, 진단 결과로 종료 코드를 바꾸지 않는다

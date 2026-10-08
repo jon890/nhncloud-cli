@@ -11,7 +11,9 @@
 5. exit code를 확인한다.
 6. 서비스별 인증 모델을 대조한다.
 
-`nhncloud doctor`는 자격증명과 공개 스킬 설치 상태를 오프라인에서 진단한다.
+`nhncloud doctor`는 기본으로 외부 API를 호출하지 않고 자격증명, 설정 파일, 공개 스킬 설치 상태를 진단한다.
+`--check-connection`을 주면 대상 profile 의 자격증명으로 실제 연결까지 확인한다.
+출력 필드와 상태 값은 [common.md](common.md#설정-진단)의 「설정 진단」 절을 본다.
 
 ## 인증 모델
 

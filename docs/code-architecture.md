@@ -104,6 +104,10 @@ Log & Crash service client는 공식 `available-token` 응답의 정수 필드�
 `src/skill/manifest.ts`가 매니페스트와 콘텐츠 해시를 검증하고, `src/skill/manager.ts`가 관리 저장소와 활성 링크 전환을 담당한다.
 `commands/skills.ts`와 `commands/doctor.ts`는 이 판정을 재구현하지 않고 공용 경계를 호출한다.
 
+`commands/doctor.ts`는 진단 보고서 하나를 만들어 텍스트, `--json`, `--quiet`로 출력한다.
+자격증명과 설정 파일 진단은 `src/config/credentials.ts`의 `inspectCredentialsFile`과 `inspectConfigFile`이 소유한다. 이 둘은 파일 상태를 예외 대신 값으로 돌려주고 비밀값은 담지 않는다.
+연결 확인은 `commands/configure-verify.ts`의 검증 함수를 재사용하며 doctor 전용 HTTP 요청을 만들지 않는다.
+
 내부 개발 워크플로우는 `.agents/skills/`에 둔다.
 반복 함정은 `docs/pitfalls/`에 패턴당 한 파일로 저장하고 `INDEX.md`를 라우터로 쓴다.
 원시 회고와 실행 통계는 저장소 문서로 누적하지 않는다.
