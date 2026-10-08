@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import chalk from "chalk";
@@ -405,4 +405,117 @@ export async function warnLegacyDeployTargets(): Promise<void> {
         "나머지 좌표는 --artifact-id 등 옵션으로 넘기세요.\n",
     ),
   );
+}
+
+export type LocalFileState = "ok" | "missing" | "invalid" | "unreadable";
+
+export interface CredentialsProfileSummary {
+  name: string;
+  environment: "real" | "gov" | "invalid";
+  blocks: string[];
+}
+
+export interface CredentialsFileInspection {
+  path: string;
+  state: LocalFileState;
+  reason?: string;
+  permissions?: "ok" | "too-open" | "unknown";
+  profiles: CredentialsProfileSummary[];
+}
+
+export interface ConfigFileInspection {
+  path: string;
+  state: LocalFileState;
+  reason?: string;
+  defaultProfile: string | null;
+}
+
+type ReadJsonResult =
+  | { state: "ok"; parsed: unknown }
+  | { state: Exclude<LocalFileState, "ok">; reason?: string };
+
+/**
+ * 파일을 읽어 JSON 으로 파싱하고 결과를 상태 값으로 돌려준다. throw 하지 않는다.
+ * JSON.parse 의 오류 메시지는 파일 내용 일부를 인용할 수 있어 reason 에 담지 않는다.
+ */
+async function readJsonState(filePath: string): Promise<ReadJsonResult> {
+  let raw: string;
+  try {
+    raw = await readFile(filePath, "utf-8");
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === "ENOENT") return { state: "missing" };
+    return { state: "unreadable", reason: `파일을 읽지 못했습니다 (${code ?? "UNKNOWN"})` };
+  }
+
+  try {
+    return { state: "ok", parsed: JSON.parse(raw) };
+  } catch {
+    return { state: "invalid", reason: "JSON 형식이 아닙니다" };
+  }
+}
+
+async function inspectPermissions(filePath: string): Promise<"ok" | "too-open" | "unknown" | undefined> {
+  try {
+    const { mode } = await stat(filePath);
+    if (process.platform === "win32") return "unknown";
+    return (mode & 0o077) === 0 ? "ok" : "too-open";
+  } catch {
+    return undefined;
+  }
+}
+
+function summarizeProfile(name: string, value: unknown): CredentialsProfileSummary {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return { name, environment: "invalid", blocks: [] };
+  }
+  const profile = value as Record<string, unknown>;
+  const env = profile["environment"];
+  const environment = env === undefined ? "real" : env === "gov" ? "gov" : "invalid";
+  const blocks = Object.keys(profile)
+    .filter((key) => key !== "environment")
+    .sort();
+  return { name, environment, blocks };
+}
+
+/**
+ * credentials.json 의 상태를 예외 없이 값으로 돌려준다 (doctor 전용).
+ * 비밀값은 담지 않고 profile 이름, environment, 블록 이름만 담는다.
+ */
+export async function inspectCredentialsFile(): Promise<CredentialsFileInspection> {
+  const result = await readJsonState(CREDENTIALS_PATH);
+  const permissions = result.state === "missing" ? undefined : await inspectPermissions(CREDENTIALS_PATH);
+  const base = { path: CREDENTIALS_PATH, ...(permissions ? { permissions } : {}), profiles: [] };
+
+  if (result.state !== "ok") {
+    return { ...base, state: result.state, ...(result.reason ? { reason: result.reason } : {}) };
+  }
+  if (!isCredentials(result.parsed)) {
+    return { ...base, state: "invalid", reason: "version: 1 과 profiles 필드가 필요합니다" };
+  }
+
+  const profiles = Object.entries(result.parsed.profiles)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([name, value]) => summarizeProfile(name, value));
+  return { ...base, state: "ok", profiles };
+}
+
+/** config.json 의 상태를 예외 없이 값으로 돌려준다 (doctor 전용). */
+export async function inspectConfigFile(): Promise<ConfigFileInspection> {
+  const result = await readJsonState(CONFIG_PATH);
+  const base = { path: CONFIG_PATH, defaultProfile: null };
+
+  if (result.state !== "ok") {
+    return { ...base, state: result.state, ...(result.reason ? { reason: result.reason } : {}) };
+  }
+  if (!isConfig(result.parsed)) {
+    return { ...base, state: "invalid", reason: "version: 1 이 필요합니다" };
+  }
+
+  const defaultProfile = result.parsed.defaultProfile;
+  return {
+    ...base,
+    state: "ok",
+    defaultProfile: typeof defaultProfile === "string" && defaultProfile !== "" ? defaultProfile : null,
+  };
 }

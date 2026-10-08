@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { EXIT_CONFIG_ERROR } from "../utils/exit-codes.js";
@@ -27,8 +27,8 @@ afterAll(async () => {
 });
 afterEach(async () => {
   vi.restoreAllMocks();
-  await rm(configPath, { force: true });
-  await rm(credentialsPath, { force: true });
+  await rm(configPath, { force: true, recursive: true });
+  await rm(credentialsPath, { force: true, recursive: true });
 });
 
 async function writeConfig(value: unknown): Promise<void> {
@@ -212,5 +212,108 @@ describe("warnLegacyDeployTargets", () => {
 
     const { readFile } = await import("node:fs/promises");
     await expect(readFile(configPath, "utf-8")).resolves.toBe(original);
+  });
+});
+
+describe("inspectCredentialsFile", () => {
+  const fixture = {
+    version: 1,
+    profiles: {
+      "public-project": {
+        environment: "gov",
+        userAccessKey: { id: "fake-id", secret: "fake-secret" },
+      },
+      default: {
+        userAccessKey: { id: "fake-id", secret: "fake-secret" },
+        iaas: { tenantId: "fake-tenant", username: "fake-user", password: "fake-password", region: "KR1" },
+        logncrash: { appkey: "test-appkey" },
+      },
+      odd: { environment: "other" },
+    },
+  };
+
+  it("파일이 없으면 missing 이고 permissions 가 없다", async () => {
+    const result = await credentials.inspectCredentialsFile();
+    expect(result.state).toBe("missing");
+    expect(result.profiles).toEqual([]);
+    expect(result).not.toHaveProperty("permissions");
+  });
+
+  it("JSON 이 아니면 invalid 이고 reason 에 파일 내용이 없다", async () => {
+    await writeFile(credentialsPath, "{not json", "utf-8");
+    const result = await credentials.inspectCredentialsFile();
+    expect(result.state).toBe("invalid");
+    expect(result.reason).toBe("JSON 형식이 아닙니다");
+    expect(result.reason).not.toContain("not json");
+  });
+
+  it("version 이 다르면 invalid 와 형식 문구를 돌려준다", async () => {
+    await writeCredentials({ version: 2, profiles: {} });
+    const result = await credentials.inspectCredentialsFile();
+    expect(result.state).toBe("invalid");
+    expect(result.reason).toBe("version: 1 과 profiles 필드가 필요합니다");
+  });
+
+  it("경로가 디렉터리이면 unreadable 이고 reason 에 EISDIR 가 있다", async () => {
+    await mkdir(credentialsPath);
+    const result = await credentials.inspectCredentialsFile();
+    expect(result.state).toBe("unreadable");
+    expect(result.reason).toContain("EISDIR");
+  });
+
+  it("정상 파일은 이름순 profile 과 environment, 정렬된 blocks 를 돌려준다", async () => {
+    await writeCredentials(fixture);
+    const result = await credentials.inspectCredentialsFile();
+    expect(result.state).toBe("ok");
+    expect(result.profiles).toEqual([
+      { name: "default", environment: "real", blocks: ["iaas", "logncrash", "userAccessKey"] },
+      { name: "odd", environment: "invalid", blocks: [] },
+      { name: "public-project", environment: "gov", blocks: ["userAccessKey"] },
+    ]);
+  });
+
+  it("결과에 비밀값이 들어 있지 않다", async () => {
+    await writeCredentials(fixture);
+    const serialized = JSON.stringify(await credentials.inspectCredentialsFile());
+    for (const secret of ["fake-secret", "fake-password", "test-appkey"]) {
+      expect(serialized).not.toContain(secret);
+    }
+  });
+
+  it.skipIf(process.platform === "win32")("파일 권한 0600 은 ok, 0644 는 too-open 이다", async () => {
+    await writeCredentials(fixture);
+    await chmod(credentialsPath, 0o600);
+    expect((await credentials.inspectCredentialsFile()).permissions).toBe("ok");
+    await chmod(credentialsPath, 0o644);
+    expect((await credentials.inspectCredentialsFile()).permissions).toBe("too-open");
+  });
+});
+
+describe("inspectConfigFile", () => {
+  it("파일이 없으면 missing 이고 defaultProfile 이 null 이다", async () => {
+    const result = await credentials.inspectConfigFile();
+    expect(result.state).toBe("missing");
+    expect(result.defaultProfile).toBeNull();
+  });
+
+  it("defaultProfile 이 있으면 그 값을 돌려준다", async () => {
+    await writeConfig({ version: 1, defaultProfile: "staging" });
+    const result = await credentials.inspectConfigFile();
+    expect(result.state).toBe("ok");
+    expect(result.defaultProfile).toBe("staging");
+  });
+
+  it("defaultProfile 이 없으면 null 이다", async () => {
+    await writeConfig({ version: 1 });
+    const result = await credentials.inspectConfigFile();
+    expect(result.state).toBe("ok");
+    expect(result.defaultProfile).toBeNull();
+  });
+
+  it("JSON 이 아니면 invalid 이다", async () => {
+    await writeFile(configPath, "{not json", "utf-8");
+    const result = await credentials.inspectConfigFile();
+    expect(result.state).toBe("invalid");
+    expect(result.reason).toBe("JSON 형식이 아닙니다");
   });
 });
