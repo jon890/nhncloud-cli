@@ -39,7 +39,7 @@ export type DoctorConnectionTarget = "userAccessKey" | "iaas" | "logncrash" | "n
 
 export interface DoctorConnectionResult {
   status: "ok" | "failed" | "skipped";
-  reason?: "auth" | "error" | "not-configured" | "uak-missing" | "gov-unsupported" | "profile-unavailable";
+  reason?: "auth" | "error" | "not-configured" | "uak-missing" | "uak-failed" | "gov-unsupported" | "profile-unavailable";
   exitCode?: number;
 }
 
@@ -85,8 +85,8 @@ export const doctorCommand = createDoctorCommand();
 1. `credentials = await inspectCredentials()`, `config = await inspectConfig()`.
 2. `profile.name`: `resolveProfile(options.profile)` 결과. `NhnCloudCliError` 를 던지면 `null`. 다른 예외는 그대로 던진다.
 3. `profile.exists`: `credentials.state === "ok"` 이고 `credentials.profiles` 에 같은 이름이 있을 때 `true`.
-4. `skills.agents.claude`: `createSkillContext()` 와 `inspectSkill(context)` 를 하나의 try 로 감싼다. 성공하면 `{ ...status, recoveryCommand: skillRecoveryCommand(status.status) ?? null }`. 실패하면 `{ status: "error", reason: err instanceof Error ? err.message : String(err) }`.
-5. `ready`: `credentials.state === "ok"` 이고 `profile.exists` 이고 그 profile 요약의 `environment !== "invalid"` 이며, `connection.checked` 가 true 면 `targets` 에 `status: "failed"` 가 없을 때 `true`.
+4. `skills.agents.claude`: `createSkillContext()` 와 `inspectSkill(context)` 를 하나의 try 로 감싼다. 성공하면 `{ ...status, recoveryCommand: skillRecoveryCommand(status.status) ?? null }`. 실패하면 `{ status: "error", reason }`. `reason` 은 고정 문구(`공개 스킬 상태를 판정하지 못했습니다`)이고, `err` 가 객체이며 `err.code` 가 문자열이면 `: <code>` 만 붙인다. `err.message` 와 원문 오류 문자열은 어떤 경우에도 넣지 않는다.
+5. `ready`: `credentials.state === "ok"` 이고 `profile.exists` 이고 그 profile 요약의 `environment !== "invalid"` 이며 `blocks.length > 0` 이고, `connection.checked` 가 true 면 `targets` 에 `status: "failed"` 가 없을 때 `true`.
 
 명령 정의:
 
@@ -115,6 +115,8 @@ export const doctorCommand = createDoctorCommand();
 - `--profile staging` 을 주면 `resolveProfile` 이 `"staging"` 으로 불린다.
 - `inspectSkill` 이 throw 하면 `skills.agents.claude` 가 `{ status: "error", reason }` 이고 나머지 필드는 그대로 나온다.
 - profile 요약의 `environment` 가 `"invalid"` 면 `ready: false`.
+- 대상 profile 요약의 `blocks` 가 빈 배열이면 `ready: false`.
+- `inspectSkill` 이 `message` 에 `fake-secret` 이 든 오류를 `code: "EACCES"` 와 함께 던지면 `reason` 에 `EACCES` 가 있고 `fake-secret` 과 원문 메시지는 없다. `code` 가 없으면 고정 문구만 나온다.
 - 텍스트 모드: `credentials.state: "invalid"` 에서 출력에 `reason` 이 들어가고, profile 이름에 `"\u001b[31m"` 같은 제어 문자를 넣으면 출력에 ESC 문자가 남지 않는다.
 - 모든 경우에 `process.exitCode` 가 바뀌지 않는다(테스트 전후로 `undefined`).
 

@@ -33,6 +33,7 @@ README 와 공개 스킬 reference 의 doctor 안내를 새 동작에 맞춘다.
 
 - 연결 확인은 순차로 한다. 한 대상이 실패해도 다음 대상을 확인한다. 병렬로 하면 결과 순서와 요청 부하가 실행마다 달라진다.
 - `failed` 와 `error` 의 `exitCode` 는 잡은 오류가 `NhnCloudCliError` 면 그 `exitCode`, 아니면 `EXIT_API_ERROR`(`src/utils/exit-codes.ts`). 오류 메시지는 보고서에 넣지 않는다. Log & Crash, NCR, NCS 요청 URL 경로에 appkey 가 들어가 오류 메시지에 섞일 수 있다.
+- 요청마다 `--request-timeout`(기본 30초) 상한이 적용되므로 순차 확인의 최악 시간은 요청 수에 비례한다. 그래서 UAK 확인이 실패하면 UAK 로 OAuth 토큰을 받는 대상은 건너뛴다.
 - 진단 결과가 실패여도 종료 코드는 0 이다(ADR-042). `NhnCloudCliError` 를 다시 던지지 않는다.
 - 기존 `verifyLogncrash` 는 최근 1분 범위 검색 요청을 하나 보내 조회 토큰을 쓴다. 이 비용 때문에 연결 확인은 명시 플래그로만 한다. `available-token` 으로 바꾸는 것은 이 plan 범위 밖이다.
 
@@ -62,7 +63,8 @@ export interface DoctorConnectionDependencies {
   3. 일반망이면 대상별로 다음을 한다.
      - `userAccessKey`: `getUserAccessKey` 가 `NhnCloudCliError` 를 던지면 `skipped` 와 `not-configured`. 아니면 `verifyUserAccessKey`.
      - `iaas`: `getIaasCredential` 이 `NhnCloudCliError` 를 던지면 `not-configured`. 아니면 `verifyIaas`.
-     - `logncrash`, `ncr`, `ncs`: `getOptionalServiceCredential(service, name)` 가 `undefined` 거나 `appkey` 가 빈 값이면 `not-configured`. appkey 는 있는데 UAK 를 읽지 못하면 `uak-missing`. 둘 다 있으면 해당 verify 함수.
+     - `logncrash`, `ncr`, `ncs`: `getOptionalServiceCredential(service, name)` 가 `undefined` 거나 `appkey` 가 빈 값이면 `not-configured`. appkey 는 있는데 UAK 를 읽지 못하면 `uak-missing`. `logncrash`, `ncs` 는 OAuth 토큰을 UAK 로 받으므로 `userAccessKey` 결과가 `ok` 가 아니면 `skipped` 와 `uak-failed`(`ncr` 은 정적 UAK 서명이라 해당하지 않는다). 모두 통과하면 해당 verify 함수.
+  4. 3번 단계의 getter 가 `NhnCloudCliError` 외의 예외를 포함해 무엇을 던지든(inspect 이후 파일이 바뀐 경우), 그 대상은 `skipped` 와 `profile-unavailable` 로 바꾸고 종료 코드 0 을 유지한다. verify 함수의 예외는 위 `failed`/`error` 규칙을 따른다.
      - verify 결과가 `true` 면 `{ status: "ok" }`, `false` 면 `{ status: "failed", reason: "auth" }`, throw 하면 `{ status: "failed", reason: "error", exitCode }`.
 - `ready` 계산은 phase 02 규칙 그대로다. `targets` 에 `failed` 가 있으면 `false`.
 - 명령에 `.option("--check-connection", "대상 profile 의 자격증명으로 실제 연결을 확인한다 (외부 API 호출)")` 를 더한다. 이름은 root 예약 플래그와 겹치지 않는다.
@@ -82,6 +84,8 @@ phase 02 의 fake 의존성에 `connection` fake 를 더한다. 실제 네트워
 - `getUserAccessKey` 가 `NhnCloudCliError` 를 던지고 ncr appkey 가 있으면 `ncr` 이 `uak-missing`, `verifyNcr` 는 불리지 않는다.
 - 대상 profile 요약의 `environment` 가 `"gov"` 면 다섯 대상 모두 `gov-unsupported` 이고 getter 와 verify 가 하나도 불리지 않는다.
 - `credentials.state: "missing"` 이면 다섯 대상 모두 `profile-unavailable`.
+- `verifyUserAccessKey` 가 `false` 면 `logncrash`, `ncs` 는 `skipped` 와 `uak-failed` 이고 `verifyLogncrash`, `verifyNcs` 는 불리지 않으며, `ncr` 은 그대로 확인된다.
+- `getIaasCredential` 이 `Error("x")`(NhnCloudCliError 아님)를 던지면 `iaas` 가 `skipped` 와 `profile-unavailable` 이고 명령은 종료 코드 0 으로 끝나며 나머지 대상은 계속 확인된다.
 - 위 모든 경우 `process.exitCode` 가 바뀌지 않는다.
 - 텍스트 모드: 실패와 건너뜀이 섞인 입력에서 「연결 확인」 절이 출력되고, fixture 의 UAK secret, iaas password, appkey 문자열이 stdout 과 stderr 어디에도 없다.
 
@@ -112,7 +116,7 @@ git diff --check
 
 - 모든 명령이 종료 코드 0.
 - 빈 HOME 두 줄은 네트워크 없이 끝난다. 두 번째 줄은 자격증명이 없어 연결 확인 대상이 모두 `profile-unavailable` 이므로 외부 요청을 보내지 않는다.
-- 문서를 고쳤으면 저장소의 한국어 표기 검사(`korean-check` 스킬의 검사기)를 바꾼 md 파일에 실행해 종료 코드 0 을 확인한다.
+- 문서를 고쳤으면 저장소의 한국어 표기 검사를 바꾼 md 파일에 실행해 종료 코드 0 을 확인한다. `python3 $(ls -d $HOME/.claude/plugins/cache/*/*/*/korean-check 2>/dev/null | head -1)/scripts/korean-style-check.py <파일>` 형태이며, 경로가 없으면 건너뛰고 건너뛰었다고 보고한다.
 
 ## 변경 파일
 
