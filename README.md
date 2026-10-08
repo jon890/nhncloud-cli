@@ -11,6 +11,12 @@ NHN 이 만든 공식 제품이 아니에요.
 인스턴스, 네트워크, 로드밸런서, Kubernetes, 로그 검색, 배포, 키 관리를 명령 한 줄로 다루고, 결과를 `--json` 으로 내보내요.
 Claude Code 에 스킬로 설치하면 "인스턴스 목록 보여줘" 같은 말을 그대로 알아듣고 처리해요.
 
+```bash
+npm install -g @bifos/nhncloud-cli
+nhncloud configure
+nhncloud skills install
+```
+
 ```
 "인스턴스 목록 보여줘"
 "kr1 리전에 인스턴스 만들고 ACTIVE 될 때까지 기다려줘"
@@ -45,8 +51,12 @@ npm install -g @bifos/nhncloud-cli
 nhncloud configure
 ```
 
-인스턴스, 네트워크 같은 IaaS 명령을 쓴다면 `--iaas-password` 에 콘솔 로그인 비밀번호가 아니라 IAM 의 **API 비밀번호**를 넣어야 해요.
-나머지 입력 항목과 흔한 실수는 [IaaS 가이드](skills/nhncloud-cli/references/iaas.md)에 있어요.
+인스턴스, 네트워크 같은 IaaS 명령을 쓴다면 두 값을 특히 조심해 주세요.
+
+- `--iaas-password` 는 콘솔 로그인 비밀번호가 아니라 IAM 의 **API 비밀번호**예요. IAM 사용자 상세 페이지의 "API 비밀번호 설정"에서 따로 발급해요.
+- `--iaas-username` 은 계정 이메일이나 IAM 계정 ID 예요. tenantId 와 비슷하게 생긴 UUID 형태의 "API 사용자 ID"가 아니에요.
+
+나머지 입력 항목은 [IaaS 가이드](skills/nhncloud-cli/references/iaas.md)에 있어요.
 공공기관용 NHN Cloud 설정은 [공통 가이드](skills/nhncloud-cli/references/common.md)에 있어요.
 
 ### 3. 설정을 확인해요
@@ -60,8 +70,8 @@ nhncloud doctor
 ### 4. 첫 명령을 실행해요
 
 ```bash
-nhncloud instance list    # 인스턴스 목록
-nhncloud network list     # VPC 목록
+nhncloud instance list --region kr1    # 인스턴스 목록
+nhncloud network list --region kr1     # VPC 목록
 ```
 
 `--region` 은 IaaS 와 NKS 계열에서 결과가 달라지므로, 기본값에 기대지 말고 직접 지정하는 편이 안전해요.
@@ -132,8 +142,8 @@ nhncloud skm key list <keystore-id>                           # Secure Key Manag
 nhncloud skm secret get <key-id> --quiet                      # 기밀 데이터 원문
 ```
 
-삭제나 전체 교체처럼 되돌리기 어려운 명령은 `--yes` 를 붙여야 실행돼요.
-비대화형 환경에서 `--yes` 가 없으면 API 를 호출하기 전에 끝나요.
+삭제처럼 되돌리기 어려운 일부 명령은 `--yes` 를 붙여야 실행돼요. 비대화형 환경에서 `--yes` 가 없으면 API 를 호출하기 전에 끝나요.
+확인 없이 바로 실행되는 변경 명령도 있으니, 에이전트에게 맡기기 전에 [공통 가이드](skills/nhncloud-cli/references/common.md)의 「되돌릴 수 없는 명령」 절을 먼저 봐 주세요.
 
 명령과 옵션은 `--help` 로 볼 수 있어요.
 
@@ -156,8 +166,8 @@ nhncloud instance get <instance-id> --json | jq -r '.status'
 nhncloud logncrash available-token --json | jq -r '.availableToken'
 ```
 
-`--json` 은 CLI 가 가공한 출력이라 원본 응답과 모양이 달라요. 명령별 모양은 [공통 가이드](skills/nhncloud-cli/references/common.md)에 있어요.
-요청 타임아웃, 환경변수, 비대화형 설정도 같은 문서에 있어요.
+`--json` 은 CLI 가 가공한 출력이라 원본 응답과 모양이 달라요. 명령별 모양은 「할 수 있는 일」 표의 서비스별 가이드에 있어요.
+요청 타임아웃, 환경변수, 비대화형 설정은 [공통 가이드](skills/nhncloud-cli/references/common.md)에 있어요.
 
 ## 더 알아보기
 
@@ -191,6 +201,7 @@ pnpm test
 ```
 
 새 명령을 추가하는 규칙은 [AGENTS.md](AGENTS.md) 와 [docs/code-architecture.md](docs/code-architecture.md) 에 있어요.
+커밋과 PR 제목은 `type(scope): 설명` 형식으로, 커밋 메시지와 PR 본문은 한국어로 써 주세요.
 이 저장소는 공개돼요. 실제 자격증명이나 리소스 ID 는 남기지 말고 `<instance-id>` 같은 placeholder 를 써 주세요.
 
 ## 라이선스
