@@ -15,7 +15,10 @@ ${XDG_DATA_HOME}/nhncloud-cli/             # XDG_DATA_HOME이 절대 경로일 �
       references/...
       .nhncloud-skill.json
 
-~/.claude/skills/
+~/.claude/skills/                          # Claude Code
+  nhncloud-cli -> <dataRoot>/skills/{packageVersion}-{contentDigestHex}/
+
+~/.agents/skills/                          # Codex (사용자 범위 스킬 경로)
   nhncloud-cli -> <dataRoot>/skills/{packageVersion}-{contentDigestHex}/
 ```
 
@@ -53,8 +56,11 @@ interface NhnCloudSkillManifest {
 같은 저장소가 있으면 매니페스트와 실제 콘텐츠를 검증한 뒤 재사용한다.
 새 저장소와 활성 링크는 각각 같은 파일시스템의 임시 경로에서 완성한 후 `rename`으로 교체한다.
 
+두 활성 경로는 같은 관리 저장소를 가리킨다([[adr-043]]).
+두 경로의 부모 디렉터리를 `realpath` 로 비교해 같은 실제 디렉터리이면 하나의 활성 항목으로 다룬다.
+
 `--force`로 사용자 항목이나 손상된 관리 저장소를 교체할 때는 같은 상위 디렉터리에 UTC 시각이 포함된 백업을 남긴다.
-`uninstall`은 `~/.claude/skills/nhncloud-cli` 활성 링크만 제거하고 관리 저장소는 보존한다.
+`uninstall`은 `~/.claude/skills/nhncloud-cli`와 `~/.agents/skills/nhncloud-cli` 활성 링크만 제거하고 관리 저장소는 보존한다.
 
 ## credentials.json
 

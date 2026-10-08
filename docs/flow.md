@@ -88,8 +88,8 @@ flowchart TD
   files -->|읽기 권한 없음| unreadable[state: unreadable + 오류 코드]
   files -->|정상| ok[state: ok, profile 목록, 권한]
   missing & invalid & unreadable & ok --> resolve[profile 해석]
-  resolve --> skill[공개 스킬 상태 판정]
-  skill -->|판정 실패| skillerr[status: error]
+  resolve --> skill[에이전트 경로별 공개 스킬 상태 판정]
+  skill -->|그 경로의 판정 실패| skillerr[그 에이전트만 status: error]
   skill --> flag{--check-connection}
   skillerr --> flag
   flag -->|없음| report[connection.checked: false]
@@ -246,10 +246,44 @@ rollback도 새 상태 전이를 만들 수 있으므로 완료와 실패를 같
 
 ## 공개 스킬 수명주기
 
-`nhncloud skills status`는 활성 링크, 관리 저장소 매니페스트와 콘텐츠 해시를 비교한다.
-install과 update는 새 관리 저장소를 완성한 뒤 링크를 원자적으로 전환한다.
-사용자 항목이나 수정·손상된 관리 저장소는 기본 보존하고, 강제 교체할 때도 백업한다.
-uninstall은 인식 가능한 활성 링크만 제거하고 실제 디렉터리와 알 수 없는 링크는 거부한다.
+활성 경로는 Claude Code 의 `~/.claude/skills/nhncloud-cli` 와 Codex 의 `~/.agents/skills/nhncloud-cli` 두 곳이다([[adr-043]]).
+두 경로는 같은 관리 저장소를 가리키며, 네 하위 명령은 Codex 설치 여부와 관계없이 두 경로를 함께 다룬다.
+
+`nhncloud skills status`는 경로마다 활성 링크, 관리 저장소 매니페스트와 콘텐츠 해시를 비교한다.
+다른 링크를 거쳐 관리 저장소에 닿는 링크는 `realpath` 가 관리 저장소 안이면 관리형으로 판정한다.
+전체 상태는 `corrupt`, `modified`, `unmanaged`, `broken`, `outdated`, `missing`, `current` 순으로 두 경로 가운데 먼저 해당하는 값이다.
+두 경로가 모두 `current` 일 때만 `current` 이고, `--quiet` 는 이 전체 상태 토큰을 낸다.
+조회가 끝나면 상태와 관계없이 종료 코드는 0 이다.
+
+```mermaid
+flowchart TD
+  start([skills install 또는 update]) --> inspect[두 경로를 모두 검사]
+  inspect --> cur{두 경로 모두 current}
+  cur -->|예| noop[변경 없이 unchanged 출력]
+  cur -->|아니오| guard{한 경로라도 unmanaged, modified, corrupt}
+  guard -->|예, --force 없음| reject[어느 경로도 바꾸지 않고 종료 코드 3]
+  guard -->|아니오, 또는 --force| repo[관리 저장소 준비 또는 재사용]
+  repo --> same{두 경로의 부모가 같은 실제 디렉터리}
+  same -->|예| one[전환 대상 하나로 합침]
+  same -->|아니오| two[current 가 아닌 경로마다 전환 대상]
+  one & two --> temp[전환 대상마다 임시 링크 생성]
+  temp --> switch[순서대로 사용자 항목 백업 후 rename 으로 전환]
+  switch -->|한 경로 실패| rollback[이미 바꾼 경로를 이전 항목으로 되돌림]
+  rollback -->|되돌리기 성공| fail[종료 코드 3, 원래 오류 표시]
+  rollback -->|되돌리기 실패| failkeep[종료 코드 3, 되돌리지 못한 경로와 백업 경로 표시]
+  switch -->|모두 성공| verify[두 경로 다시 검사]
+  verify -->|current 아님| rollback
+  verify -->|current| done[결과 출력]
+```
+
+- 사용자 항목이나 수정·손상된 관리 저장소는 기본 보존하고, `--force` 로 교체할 때도 백업한다.
+- Claude Code 경로만 최신인 기존 설치는 전체 상태가 `missing` 이고, `install` 이나 `update` 가 Codex 경로만 새로 연결한다.
+- 동시에 두 번 실행하면 관리 저장소는 같은 이름으로 수렴하고, 링크 전환은 경로마다 `rename` 으로 원자적이라 마지막 실행의 링크가 남는다.
+
+uninstall은 두 경로를 먼저 검사한다.
+한 경로라도 실제 디렉터리나 알 수 없는 링크이면 어느 링크도 지우지 않고 종료 코드 3 으로 끝난다.
+없는 경로는 건너뛰고, 인식 가능한 활성 링크만 지운다. 관리 저장소는 보존한다.
+두 번째 경로의 제거가 실패하면 먼저 지운 링크를 되돌린 뒤 실패한다.
 
 ## 실패와 자동화 계약
 
