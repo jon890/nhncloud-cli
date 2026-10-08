@@ -12,7 +12,7 @@ related: []
 
 **Good**: 출력 컬럼을 docs 에 나열할 땐 **command 의 `headers` 배열을 grep 해 그대로 옮긴다**.
 - `grep -n "headers:" src/commands/<svc>/<cmd>.ts` → 배열 원소를 docs 컬럼 설명과 1:1 대조.
-- 컬럼이 4개 이상이면 모두 적거나 "주요 N개 + 전체는 --json" 로 명시(임의 누락 금지).
+- 컬럼이 4개 이상이면 모두 적거나 "주요 N개, 전체는 --json" 로 명시(임의 누락 금지).
 
 **Self-check**: docs 의 "(컬럼1·컬럼2·…)" 가 실제 `headers` 배열 길이·원소와 일치하는가? AGENTS.md·flow.md·README 세 곳의 컬럼 나열이 서로, 그리고 코드와 일관되는가?
 

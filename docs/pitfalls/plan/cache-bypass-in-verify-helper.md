@@ -14,7 +14,7 @@ related: []
 
 **Good**: 검증/테스트 helper 는 **반드시 캐시를 우회**한다.
 - 재사용 함수에 `forceRefresh?: boolean` 추가 (true 면 캐시 읽기·쓰기 양쪽 건너뜀). 기존 호출은 default false 로 동작 유지.
-- verify helper 가 `forceRefresh=true` 로 호출. plan 본문에 "캐시 우회 필수" 명시 + 성공 기준에 `grep forceRefresh` 추가.
+- verify helper 가 `forceRefresh=true` 로 호출. plan 본문에 "캐시 우회 필수" 명시하고 성공 기준에 `grep forceRefresh` 추가.
 
 **Self-check**: 새 검증/테스트 helper 가 재사용하는 함수가 캐시·메모이즈를 하는가? 그 캐시 키가 검증 대상 값과 무관한 축이면 우회 경로를 뚫었는가?
 
