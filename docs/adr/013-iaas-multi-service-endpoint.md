@@ -18,6 +18,6 @@
   - **profile 에 endpoint 직접 저장**: 설정 부담이 있고 region override 와 충돌.
 - **트레이드오프**:
   - region 코드가 compute·image·network·blockstorage **네 host 맵**에 중복된다(image 둘 → network 셋 → blockstorage 넷): region 추가 시 동기화 누락 위험.
-    구현 시 네 맵 key 집합 일치를 성공 기준 grep 으로 확인한다 (상시 런타임 가드는 아님: 추가 시 후속 task). 서비스 type 이 늘수록 맵 관리 부담이 커진다: 동적 catalog 파싱 재검토 임계가 또 한 단계 가까워졌다.
+    네 맵 key 집합 일치는 추가 시 grep 으로 확인하며 상시 런타임 가드는 없다. 서비스 type 이 늘수록 맵 관리 부담이 커진다: 동적 catalog 파싱 재검토 임계가 또 한 단계 가까워졌다.
   - host 패턴·tenant 유무는 문서만으로 확정하지 않고 실제 요청으로 확인했다. blockstorage도 `/volumes/detail` 요청과 응답 처리 단계까지 도달해 host와 tenant 경로를 사용했다.
   - **kr1/kr2 만 publicURL 실측 확정. kr3/jp1 IMAGE_HOST·NETWORK_HOST·BLOCKSTORAGE_HOST 는 같은 패턴으로 추론**(미실측): 자격증명 확보 시 후속 실측. 첫 호출이 host 에서 실패하면 `getaddrinfo ENOTFOUND` 로만 드러난다.

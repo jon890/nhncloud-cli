@@ -4,10 +4,9 @@
   - **업로드**: ky `json:`(JSON body) 대신 `body: FormData` 로 `multipart/form-data` 전송. `Content-Type` 은 수동 지정하지 않는다 — ky 가 boundary 를 자동 설정한다. 파일 파트는 command 에서 statSync 가드 후 읽은 Buffer 를 Blob 으로 감싼다.
   - **다운로드**: 응답을 공통 봉투 JSON 으로 가정하지 않는다(`unwrap`·ADR-006 미적용). `.json()` 대신 `.arrayBuffer()` 로 받아 Buffer 를 반환하고 command 가 `writeFileSync` 로 파일에 쓴다. 성공/실패는 HTTP status(ky `throwHttpErrors`)로만 판정한다.
 - **맥락**: 두 명령 모두 NHN Cloud Deploy v2.1 의 바이너리 전송 endpoint 다. upload 응답은 봉투 JSON(`body.{downloadUrl, binaryKey}`).
-- **⚠️ 실측 pending (docs 봇차단 — 수동 QA 로 확정)**: 추측 머지 금지(AGENTS.md). upload·download 둘 다 쓰기/실호출이라 수동 QA 에서 함께 확정한다.
-  - endpoint 경로 세그먼트 단/복수: upload/download 는 `binary-group`(단수)로 추정하나 011 조회는 `binary-groups`(복수)다. 404 면 복수형으로 review-fix.
-  - download 응답 형태: raw 파일 바이너리인지, `downloadUrl` 을 담은 JSON 메타인지 미확정(upload 가 downloadUrl 을 주므로 후자 가능성). 코드는 raw 바이너리 가정(`.arrayBuffer()` 저장)이고, JSON 판명 시 downloadUrl 2차 GET 으로 review-fix. round-trip diff 가 wrong-content 를 잡는다.
-  - upload 응답 `binaryKey` 타입(number|string): 코드는 둘 다 수용 후 `Number()` 정규화(기존 isBinary 관례).
+- **미실측**: upload·download 는 쓰기 호출이라 실측하지 못했다. 코드는 `binary-group`(단수) 경로와 raw 바이너리 응답(`.arrayBuffer()` 저장)을 가정하며, 조회 경로는 `binary-groups`(복수)다.
+  - 단수 경로가 404 이거나 download 응답이 `downloadUrl` JSON 메타이면 가정을 고쳐야 한다.
+  - upload 응답 `binaryKey` 는 number|string 을 모두 받아 `Number()` 로 정규화한다.
 - **조회 응답 실측 갱신 (2026-06-23)**: `deploy binary-groups` 읽기 전용 live 호출에서 `description: null` 응답을 확인했다.
   따라서 `BinaryGroup.description` 은 optional `string | null` 로 취급한다.
   같은 target 의 `deploy binaries` 는 `totalCount: number`, `binaries: []` 였으므로 `Binary` 항목 필드 필수성은 아직 확정하지 않는다.

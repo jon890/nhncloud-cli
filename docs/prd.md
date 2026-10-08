@@ -29,9 +29,12 @@ AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트�
 - `nhncloud logncrash search`: Log & Crash Search v3 커서 기반 로그 검색 ([[adr-024]])
 - `nhncloud logncrash export`: scroll 대량 추출과 조회 상태별 결과 파일 보존 ([[adr-030]], [[adr-032]], [[adr-034]])
 - `nhncloud logncrash available-token`: 남은 조회 토큰과 양수가 될 때까지의 추정 대기 시간 확인 ([[adr-036]])
+- `nhncloud logncrash send`: 로그 전송 (collector)
 - `nhncloud deploy`: 배포 실행과 조회 (자주 쓰는 핵심 명령군)
   - `run`: 배포 실행 (OAuth 토큰 교환, 동기/`--async`)
   - `artifacts` / `server-groups` / `histories`: 조회
+  - `scenarios`: 시나리오 조회
+  - `upload` / `download` / `binaries` / `binary-groups`: 바이너리 전송과 조회
   - appkey 는 profile 로만 지정하고 배포 좌표는 명령 옵션으로만 받는다([[adr-033]])
 - `nhncloud instance`: Compute 인스턴스 제어 (OpenStack Nova v2 호환, 일회성 CI 러너 자동화)
   - `create`: 발급 (비동기 기본, `--wait` 로 ACTIVE+IP 대기)
@@ -69,12 +72,9 @@ AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트�
 - `nhncloud skills`: 공개 스킬의 상태 조회·설치·갱신·제거. 버전과 콘텐츠 해시로 오래된 설치와 사용자 수정본을 구분한다([[adr-025]]).
 - `nhncloud commands`와 `doctor`: 기계 판독 가능한 명령 탐색과 로컬 설정 진단.
 - profile 기반 자격증명 (`~/.nhncloud/credentials.json` 과 `~/.nhncloud/config.json`)
+- 공공망 profile(`environment: gov`)은 OAuth, Deploy, NCR, IaaS, NKS, Secure Key Manager를 지원하고 NCS, API Gateway, Log & Crash는 호출 전에 거부한다 ([[adr-037]])
 - 출력 3모드: 테이블 / `--json` / `--quiet`
 - `--profile` 로 profile 전환
-
-### 제외 (v1)
-
-- 공공기관용(gov) 엔드포인트
 
 ## 성공 지표
 

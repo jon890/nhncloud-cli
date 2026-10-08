@@ -1,7 +1,7 @@
 # ADR-004: profile 공통 UAK 와 서비스별 자격증명 블록
 
 - **결정**: profile 아래에 공통 `userAccessKey`(개인 UAK) 1개 와 서비스별 블록(`logncrash` 등)을 둔다.
-  - `userAccessKey` — deploy·ncs·logncrash 검색 등 OAuth 서비스가 공유 (개인/계정 단위, [[adr-007]], [[adr-024]])
+  - `userAccessKey` — OAuth 서비스가 공유 (개인/계정 단위, 목록은 [data-schema.md](../data-schema.md)의 「토큰 캐시」, [[adr-007]], [[adr-024]])
   - 서비스 블록 — 서비스 고유 appkey 등 프로젝트 단위 값
 - **맥락**: NHN Cloud 는 서비스마다 인증이 다르다.
   - Log & Crash Search v3 — appkey 와 공통 UAK OAuth 토큰 (`X-NHN-Authorization: Bearer`, [[adr-024]])

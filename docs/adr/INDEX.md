@@ -12,7 +12,7 @@ ADR-NNN 내용은 `docs/adr/NNN-*.md` 로 찾는다(번호 glob: slug 몰라도 
 - [ADR-002](002-ky-http-client.md): ky (HTTP 클라이언트)
 - [ADR-003](003-profile-credentials-json.md): profile 기반 자격증명: JSON 과 credentials/config 분리
 - [ADR-004](004-profile-service-credentials.md): profile 안 서비스별 자격증명 블록
-- [ADR-005](005-endpoint-hardcoded-map.md): 엔드포인트 하드코딩 맵 (gov 제외)
+- [ADR-005](005-endpoint-hardcoded-map.md): 엔드포인트 하드코딩 맵 (gov 제외). gov 제외는 ADR-037로 대체
 - [ADR-006](006-nhn-response-envelope.md): NHN 공통 응답 봉투 정규화
 - [ADR-007](007-deploy-oauth-token-cache.md): 공통 UAK OAuth client_credentials 토큰 교환과 단기 캐시
 - [ADR-008](008-deploy-named-target-config.md): deploy 좌표 named target. appkey 위치와 named target은 ADR-033으로 대체
@@ -44,7 +44,7 @@ ADR-NNN 내용은 `docs/adr/NNN-*.md` 로 찾는다(번호 glob: slug 몰라도 
 - [ADR-034](034-logncrash-export-completed-result-preservation.md): Log & Crash export 완료 결과 보존: 조회 상태와 파일 형식 상태 분리
 - [ADR-035](035-required-option-exit-code.md): 필수 옵션 누락을 입력 오류로 정규화: Commander 메시지와 조기 검증 유지
 - [ADR-036](036-logncrash-available-token-preflight.md): Log & Crash 조회 토큰 사전 확인과 추정 대기 시간
-- [ADR-037](037-gov-profile-endpoints.md): 공공망 profile의 OAuth·Deploy·NCR·IaaS endpoint 선택
+- [ADR-037](037-gov-profile-endpoints.md): 공공망 profile의 endpoint 선택 (OAuth, Deploy, NCR, IaaS, NKS, SKM)
 - [ADR-038](038-security-group-write-safety.md): 보안그룹 쓰기: 이름 기반 인스턴스 연결과 삭제 안전 확인
 - [ADR-039](039-skm-client-auth-and-secret-output.md): Secure Key Manager: IP·MAC 클라이언트 인증과 명시 조회의 비밀값 출력. 쓰기 범위 제외는 ADR-040으로 대체
 - [ADR-040](040-skm-write-commands.md): Secure Key Manager 쓰기: 키 저장소 ID 지정, 삭제 예약과 즉시 삭제 분리, 키 저장소 부분 수정

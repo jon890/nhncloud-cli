@@ -48,6 +48,7 @@ commands ──> services ──> api
 
 services ──> utils
 api ──> cache, config, utils
+services ──> config(타입만)
 skill ──> config와 독립된 사용자 데이터 경계
 ```
 
@@ -60,7 +61,7 @@ skill ──> config와 독립된 사용자 데이터 경계
 
 | 서비스군 | 인증 경계 | endpoint 경계 |
 |---|---|---|
-| deploy, ncs, Log & Crash 검색, API Gateway, Secure Key Manager | `api/oauth.ts`, `cache/token-store.ts` | `api/endpoints.ts`와 서비스 client |
+| 토큰 캐시를 공유하는 OAuth 서비스([data-schema.md](data-schema.md)의 「토큰 캐시」) | `api/oauth.ts`, `cache/token-store.ts` | `api/endpoints.ts`와 서비스 client |
 | instance, network, blockstorage, loadbalancer, nks | `api/keystone.ts`, `cache/token-store.ts` | region별 IaaS endpoint |
 | NCR Management API | profile 공통 UAK 정적 헤더 | region별 NCR host |
 | NCR Harbor data plane | UAK Basic Auth | registry 응답에서 검증한 host |
