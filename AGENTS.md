@@ -48,6 +48,7 @@ NHN Cloud 서비스를 AWS CLI 방식으로 호출하는 TypeScript 와 Commande
 ```bash
 pnpm install
 pnpm run build
+pnpm verify:package
 pnpm tsc --noEmit
 pnpm test
 node dist/index.js commands --json
