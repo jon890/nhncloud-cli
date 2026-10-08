@@ -11,7 +11,7 @@ related: []
 **증상**: Commander `requiredOption("--name")` 으로 이미 진입 전 강제되는데, action handler 안에 `if (!opts.name) throw ...` 수동 검증을 또 둠.
 절대 true 가 될 수 없는 dead code.
 
-**Good**: `requiredOption` 으로 보장되는 필드는 action 내부 재검증 제거 + 필요 시 `opts.name!` non-null assertion (이유 주석).
+**Good**: `requiredOption` 으로 보장되는 필드는 action 내부 재검증 제거, 필요 시 `opts.name!` non-null assertion (이유 주석).
 `requiredOption` 으로 강제 안 되는 검증 (예: 반복 옵션의 `length === 0`) 만 수동으로 남긴다.
 
 **검출**:

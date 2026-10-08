@@ -35,7 +35,7 @@
     그래서 404 는 "경로 없음" 이 아니라 "그 메서드로는 없음" 을 뜻한다.
 - **트레이드오프**: 응답에 nullable 필드가 많다(`dedicatedId`·`parentPath`·`methodType`·
   `methodName`·`methodDescription`·`stageName`·`customBackendEndpointUrl`·`rollbackAt`).
-  타입 가드를 string-only 로 좁히면 null 하나가 응답 전체를 거부하므로
+  타입 가드를 string-only 로 제한하면 null 하나가 응답 전체를 거부하므로
   `string | null` 을 허용하고 출력에서 대체 문자를 쓴다.
 - **적용 범위**: 이 ADR 은 조회에 한정한다.
   쓰기는 리소스 식별 요소(`path`·`methodType`)가 불변이고 변경을 스테이지에 가져온 뒤

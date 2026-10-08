@@ -12,8 +12,8 @@ related: []
   atomic 보장이 없으므로 첫 호출 성공 뒤 두 번째가 실패하면 부분 상태가 남는다.
   catch 가 `toNhnCloudCliError` 로 throw 만 하면 사용자는 "전체 실패" 로 오해하고 명령을 재실행해 앞 단계를 중복 적용한다.
 **Good**: sequential 호출의 catch 안에서 (1) `stopSpinner(false, "...")`, (2) `process.stderr.write("⚠  본문은 수정되었으나 X 변경에 실패했습니다. 본문 재실행 금지 — ...")`, (3) re-throw.
-  phase 본문 작업 항목에 try/catch + stderr 안내 코드 스니펫 명시.
-**검출**: phase diff 에 `client.X` + `client.Y` 두 호출이 같은 비-Promise.all 블록에 있으면 의심. grep 패턴:
+  phase 본문 작업 항목에 try/catch, stderr 안내 코드 스니펫 명시.
+**검출**: phase diff 에 `client.X`와 `client.Y` 두 호출이 같은 비-Promise.all 블록에 있으면 의심. grep 패턴:
 ```bash
 git diff main..HEAD -- src/commands/ | grep -E "^\+\s+await client\." | wc -l
 # 같은 함수에서 2 이상이면 sequential 패턴 — partial-failure 처리 확인

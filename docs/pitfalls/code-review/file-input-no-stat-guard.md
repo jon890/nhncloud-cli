@@ -38,6 +38,6 @@ const raw = readFileSync(path);
 grep -n "readFileSync\|readFile(" src/commands/
 ```
 
-**Self-check**: 파일 경로 옵션을 읽는 command 에서 `readFileSync` 직전에 `statSync` + `isFile()` + size 가드 + errno 노출이 모두 있는가?
+**Self-check**: 파일 경로 옵션을 읽는 command 에서 `readFileSync` 직전에 `statSync`, `isFile()`, size 가드, errno 노출이 모두 있는가?
 
 **Why**: PR #8 code-reviewer 🟡 2건 — `--user-data` 를 stat 없이 readFileSync. 파일 입력 옵션 (--*-file / config import 등) 추가마다 재발 가능.

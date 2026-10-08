@@ -18,4 +18,4 @@ related: []
 
 **Self-check**: 새 목록 명령의 첫 응답에 pagination 헤더/필드가 있는가? 있으면 전수 수집하는가, 단일 호출인가? 항목 많은 리소스로 실측해 truncation 이 없는지 확인했는가?
 
-**Why**: PR #28 critic MAJOR — `ncr images`/`ncr tags` 가 Harbor REST 를 단일 호출로 가정. 실측에서 한 repo 에 artifact 60·145개 + `Link: rel="next"`·`x-total-count: 60` 확인 — 기본 page_size 면 앞부분만. `getAllPages`(page_size=100·rel="next" 전수)로 정정, artifact 145개 repo 2페이지 수집을 실측·테스트로 박제. 새 목록 endpoint 추가마다 재발 가능.
+**Why**: PR #28 critic MAJOR — `ncr images`/`ncr tags` 가 Harbor REST 를 단일 호출로 가정. 실측에서 한 repo 에 artifact 60·145개와 `Link: rel="next"`·`x-total-count: 60` 확인 — 기본 page_size 면 앞부분만. `getAllPages`(page_size=100·rel="next" 전수)로 정정, artifact 145개 repo 2페이지 수집을 실측·테스트로 박제. 새 목록 endpoint 추가마다 재발 가능.

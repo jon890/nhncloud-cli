@@ -13,4 +13,4 @@ related: [noninteractive-interactive-duplication]
 **Good**: 2개 이상 command 가 쓸 순수 유틸(client 의존 없는 confirm/validation/parse)은 처음부터 `src/commands/<svc>/helpers.ts` 에 정의하고 각 command 가 거기서 import. peer command 파일에서 import 하지 않는다(대칭 깨짐 — `resolveNcsClient` 가 helpers 에 있는 것과 일관).
 **검출**: `git diff --name-only` 결과의 같은 `src/commands/<svc>/` 파일이 3 개 이상이고 각 diff 의 +라인 패턴이 `for/map(... await ...)` 형태로 유사하면 추출 후보.
 **Self-check**: 새 command 파일 작성/리뷰 시 `grep -n "^\(export \)\?\(async \)\?function" src/commands/<svc>/*.ts` 로 같은 함수명이 2 파일 이상에 있거나, command 파일이 peer command 파일(`./<other-command>.js`)에서 유틸을 import 하면 helpers.ts 이전 후보.
-**Why**: 로컬 정의는 첫 phase 엔 자연스럽지만 다음 phase 가 재사용하면서 복붙/역방향 의존이 생기고, 후속 변경 시 한쪽만 갱신되는 회귀 위험 + review 왕복 비용. helpers.ts 단일 정의가 cheaper.
+**Why**: 로컬 정의는 첫 phase 엔 자연스럽지만 다음 phase 가 재사용하면서 복붙/역방향 의존이 생기고, 후속 변경 시 한쪽만 갱신되는 회귀 위험과 review 왕복 비용. helpers.ts 단일 정의가 cheaper.

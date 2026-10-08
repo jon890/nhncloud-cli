@@ -8,7 +8,7 @@ source: []
 related: []
 ---
 
-**증상**: 기존 payload parser 가 필수 필드 + 상호 배타 옵션을 둘 다 검증.
+**증상**: 기존 payload parser 가 필수 필드와 상호 배타 옵션을 둘 다 검증.
   새 helper `validateRequiredFields` 추가 시 이름이 "Required" 라 필수 필드만 검증하고 상호 배타 옵션 누락.
   create 는 정책 모두 검사하는데 update (신규 helper) 는 필수 필드만 → 정책 비대칭.
 
