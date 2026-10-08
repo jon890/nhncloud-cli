@@ -1,17 +1,29 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import {
+  getIaasCredential,
+  getOptionalServiceCredential,
+  getUserAccessKey,
   inspectConfigFile,
   inspectCredentialsFile,
   resolveProfileName,
   type ConfigFileInspection,
   type CredentialsFileInspection,
 } from "../config/credentials.js";
+import type { IaasCredential, ServiceCredential, UserAccessKey } from "../config/types.js";
 import { printJson } from "../formatters/table.js";
 import { createSkillManagerContext, type SkillManagerContext } from "../skill/context.js";
 import { inspectSkill, type SkillStatus } from "../skill/manager.js";
 import { NhnCloudCliError } from "../utils/errors.js";
+import { EXIT_API_ERROR } from "../utils/exit-codes.js";
 import { sanitizeForTerminal } from "../utils/terminal.js";
+import {
+  verifyIaas,
+  verifyLogncrash,
+  verifyNcr,
+  verifyNcs,
+  verifyUserAccessKey,
+} from "./configure-verify.js";
 import { skillRecoveryCommand } from "./skills-output.js";
 
 const SKILL_NAME = "nhncloud-cli";
@@ -54,12 +66,24 @@ export interface DoctorReport {
   skills: { agents: { claude: DoctorSkillAgentStatus } };
 }
 
+export interface DoctorConnectionDependencies {
+  getUserAccessKey: (profileName: string) => Promise<UserAccessKey>;
+  getIaasCredential: (profileName: string) => Promise<IaasCredential>;
+  getOptionalServiceCredential: (service: string, profileName: string) => Promise<ServiceCredential | undefined>;
+  verifyUserAccessKey: (uak: UserAccessKey) => Promise<boolean>;
+  verifyIaas: (iaas: IaasCredential) => Promise<boolean>;
+  verifyLogncrash: (uak: UserAccessKey, appkey: string) => Promise<boolean>;
+  verifyNcr: (uak: UserAccessKey, appkey: string) => Promise<boolean>;
+  verifyNcs: (uak: UserAccessKey, appkey: string) => Promise<boolean>;
+}
+
 export interface DoctorDependencies {
   inspectCredentials: () => Promise<CredentialsFileInspection>;
   inspectConfig: () => Promise<ConfigFileInspection>;
   resolveProfile: (cliProfile?: string) => Promise<string>;
   createSkillContext: () => SkillManagerContext;
   inspectSkill: (context: SkillManagerContext) => Promise<SkillStatus>;
+  connection: DoctorConnectionDependencies;
 }
 
 const defaultDependencies: DoctorDependencies = {
@@ -68,12 +92,23 @@ const defaultDependencies: DoctorDependencies = {
   resolveProfile: resolveProfileName,
   createSkillContext: createSkillManagerContext,
   inspectSkill,
+  connection: {
+    getUserAccessKey,
+    getIaasCredential,
+    getOptionalServiceCredential,
+    verifyUserAccessKey,
+    verifyIaas,
+    verifyLogncrash,
+    verifyNcr,
+    verifyNcs,
+  },
 };
 
 interface DoctorCommandOptions {
   profile?: string;
   json?: boolean;
   quiet?: boolean;
+  checkConnection?: boolean;
 }
 
 /** profile 해석 실패는 사용자 설정 문제이므로 보고서의 null 로 바꾼다. */
@@ -113,8 +148,107 @@ function connectionHasFailure(connection: DoctorConnection): boolean {
   );
 }
 
+const CONNECTION_TARGETS: DoctorConnectionTarget[] = ["userAccessKey", "iaas", "logncrash", "ncr", "ncs"];
+
+function skipAll(reason: DoctorConnectionResult["reason"]): Record<DoctorConnectionTarget, DoctorConnectionResult> {
+  return Object.fromEntries(
+    CONNECTION_TARGETS.map((target) => [target, { status: "skipped", reason }]),
+  ) as Record<DoctorConnectionTarget, DoctorConnectionResult>;
+}
+
+/**
+ * verify 함수 결과를 보고서 값으로 바꾼다.
+ * 오류 메시지는 요청 URL 의 appkey 를 담을 수 있어 종료 코드만 남긴다.
+ */
+async function runVerify(verify: () => Promise<boolean>): Promise<DoctorConnectionResult> {
+  try {
+    return (await verify()) ? { status: "ok" } : { status: "failed", reason: "auth" };
+  } catch (err) {
+    const exitCode = err instanceof NhnCloudCliError ? err.exitCode : EXIT_API_ERROR;
+    return { status: "failed", reason: "error", exitCode };
+  }
+}
+
+/**
+ * 필수 블록 getter 를 부른다.
+ * 설정 누락(NhnCloudCliError)은 not-configured, 그 밖의 예외(진단 이후 파일 변경 등)는 profile-unavailable 이다.
+ */
+async function readRequired<T>(
+  read: () => Promise<T>,
+): Promise<{ value: T } | { skipped: DoctorConnectionResult }> {
+  try {
+    return { value: await read() };
+  } catch (err) {
+    const reason = err instanceof NhnCloudCliError ? "not-configured" : "profile-unavailable";
+    return { skipped: { status: "skipped", reason } };
+  }
+}
+
+/** appkey 를 쓰는 서비스 블록을 읽는다. getter 예외는 원인을 가리지 않고 profile-unavailable 이다. */
+async function readAppkey(
+  service: "logncrash" | "ncr" | "ncs",
+  profileName: string,
+  deps: DoctorConnectionDependencies,
+): Promise<{ appkey: string } | { skipped: DoctorConnectionResult }> {
+  try {
+    const credential = await deps.getOptionalServiceCredential(service, profileName);
+    if (!credential?.appkey) return { skipped: { status: "skipped", reason: "not-configured" } };
+    return { appkey: credential.appkey };
+  } catch {
+    return { skipped: { status: "skipped", reason: "profile-unavailable" } };
+  }
+}
+
+/**
+ * 대상 profile 의 연결을 순차로 확인한다.
+ * 공공망 자격증명은 일반망 주소로 보내지 않는다(ADR-037).
+ * 진단 결과가 실패여도 예외를 던지지 않는다(ADR-042).
+ */
+async function checkConnection(
+  profileName: string | null,
+  credentials: CredentialsFileInspection,
+  profileSummary: CredentialsFileInspection["profiles"][number] | undefined,
+  deps: DoctorConnectionDependencies,
+): Promise<Record<DoctorConnectionTarget, DoctorConnectionResult>> {
+  if (
+    credentials.state !== "ok" ||
+    profileName === null ||
+    profileSummary === undefined ||
+    profileSummary.environment === "invalid"
+  ) {
+    return skipAll("profile-unavailable");
+  }
+  if (profileSummary.environment === "gov") return skipAll("gov-unsupported");
+
+  const uakRead = await readRequired(() => deps.getUserAccessKey(profileName));
+  const uak = "value" in uakRead ? uakRead.value : undefined;
+  const userAccessKey =
+    "value" in uakRead ? await runVerify(() => deps.verifyUserAccessKey(uakRead.value)) : uakRead.skipped;
+
+  const iaasRead = await readRequired(() => deps.getIaasCredential(profileName));
+  const iaas = "value" in iaasRead ? await runVerify(() => deps.verifyIaas(iaasRead.value)) : iaasRead.skipped;
+
+  const checkAppkeyService = async (
+    service: "logncrash" | "ncr" | "ncs",
+    verify: (uak: UserAccessKey, appkey: string) => Promise<boolean>,
+    usesOAuth: boolean,
+  ): Promise<DoctorConnectionResult> => {
+    const read = await readAppkey(service, profileName, deps);
+    if ("skipped" in read) return read.skipped;
+    if (uak === undefined) return { status: "skipped", reason: "uak-missing" };
+    if (usesOAuth && userAccessKey.status !== "ok") return { status: "skipped", reason: "uak-failed" };
+    return runVerify(() => verify(uak, read.appkey));
+  };
+
+  const logncrash = await checkAppkeyService("logncrash", deps.verifyLogncrash, true);
+  const ncr = await checkAppkeyService("ncr", deps.verifyNcr, false);
+  const ncs = await checkAppkeyService("ncs", deps.verifyNcs, true);
+
+  return { userAccessKey, iaas, logncrash, ncr, ncs };
+}
+
 export async function buildDoctorReport(
-  options: { profile?: string },
+  options: { profile?: string; checkConnection?: boolean },
   dependencies: DoctorDependencies,
 ): Promise<DoctorReport> {
   const credentials = await dependencies.inspectCredentials();
@@ -124,7 +258,13 @@ export async function buildDoctorReport(
     credentials.state === "ok" && profileName !== null
       ? credentials.profiles.find((summary) => summary.name === profileName)
       : undefined;
-  const connection: DoctorConnection = { checked: false };
+  const connection: DoctorConnection = options.checkConnection
+    ? {
+        checked: true,
+        profile: profileName,
+        targets: await checkConnection(profileName, credentials, profileSummary, dependencies.connection),
+      }
+    : { checked: false };
   const claude = await inspectClaudeSkill(dependencies);
 
   const ready =
@@ -230,11 +370,40 @@ function printSkillSection(skill: DoctorSkillAgentStatus): void {
   }
 }
 
+const SKIP_REASONS: Partial<Record<NonNullable<DoctorConnectionResult["reason"]>, string>> = {
+  "not-configured": "설정 없음",
+  "uak-missing": "공통 userAccessKey 없음",
+  "uak-failed": "userAccessKey 확인이 성공하지 않아 건너뜀",
+  "gov-unsupported": "공공망 profile 은 연결 확인을 지원하지 않음",
+  "profile-unavailable": "대상 profile 을 읽을 수 없음",
+};
+
+function printConnectionSection(connection: DoctorConnection): void {
+  if (!connection.checked) return;
+  line(chalk.bold("\n연결 확인"));
+  for (const target of CONNECTION_TARGETS) {
+    const result = connection.targets[target];
+    const label = `  ${target}:`;
+    if (result.status === "ok") {
+      const region = target === "ncr" || target === "ncs" ? " (kr1)" : "";
+      line(`${label} ${chalk.green(`✓ 성공${region}`)}`);
+    } else if (result.status === "failed" && result.reason === "auth") {
+      line(`${label} ${chalk.red("❌ 인증 실패")} — 키나 appkey 를 확인하세요.`);
+    } else if (result.status === "failed") {
+      line(`${label} ${chalk.red(`❌ 오류 (종료 코드 ${result.exitCode ?? EXIT_API_ERROR})`)}`);
+    } else {
+      const reason = result.reason ? (SKIP_REASONS[result.reason] ?? result.reason) : "";
+      line(`${label} ${chalk.gray(`건너뜀 — ${reason}`)}`);
+    }
+  }
+}
+
 function printText(report: DoctorReport): void {
   line(chalk.bold("\n🔍 nhncloud-cli 진단\n"));
   printCredentialsSection(report.credentials);
   printConfigSection(report.config);
   printProfileSection(report.profile);
+  printConnectionSection(report.connection);
   printSkillSection(report.skills.agents.claude);
 
   line();
@@ -248,11 +417,15 @@ function printText(report: DoctorReport): void {
 
 export function createDoctorCommand(dependencies: DoctorDependencies = defaultDependencies): Command {
   return new Command("doctor")
-    .description("자격증명·스킬 설치 상태를 진단한다(오프라인 — 연결 테스트는 configure 로)")
+    .description("자격증명·설정·스킬 상태를 진단한다(기본 오프라인, --check-connection 으로 연결 확인)")
     .option("--profile <name>", "진단할 profile 이름")
+    .option("--check-connection", "대상 profile 의 자격증명으로 실제 연결을 확인한다 (외부 API 호출)")
     .action(async (_opts: unknown, cmd: Command) => {
       const opts = cmd.optsWithGlobals<DoctorCommandOptions>();
-      const report = await buildDoctorReport({ profile: opts.profile }, dependencies);
+      const report = await buildDoctorReport(
+        { profile: opts.profile, checkConnection: opts.checkConnection },
+        dependencies,
+      );
 
       if (opts.json) {
         printJson(report);

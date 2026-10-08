@@ -63,9 +63,11 @@ nhncloud configure
 
 ```bash
 nhncloud doctor
+nhncloud doctor --check-connection   # 대상 profile 의 실제 연결까지 확인
 ```
 
-`doctor` 는 외부 API 를 호출하지 않고 자격증명과 스킬 설치 상태만 확인해요.
+`doctor` 는 기본으로 외부 API 를 호출하지 않고 자격증명, 설정 파일, 스킬 설치 상태를 확인해요.
+`--check-connection` 을 주면 대상 profile 의 자격증명으로 실제 연결까지 확인해요.
 
 ### 4. 첫 명령을 실행해요
 
@@ -184,7 +186,8 @@ nhncloud logncrash available-token --json | jq -r '.availableToken'
 - 설정이 의심되면 `nhncloud doctor` 를 먼저 실행해 보세요.
 - 에이전트가 새 명령을 모르면 `nhncloud skills update` 를 실행해 주세요.
 - 종료 코드별 대처는 [문제 해결](skills/nhncloud-cli/references/troubleshooting.md)에 있어요.
-- 버그나 제안은 [GitHub Issues](https://github.com/jon890/nhncloud-cli/issues) 에 남겨 주세요. 설정 문제라면 `nhncloud doctor` 출력을 함께 붙여 주세요. 비밀값은 가려 주세요.
+- 버그나 제안은 [GitHub Issues](https://github.com/jon890/nhncloud-cli/issues) 에 남겨 주세요. 설정 문제라면 `nhncloud doctor --json` 출력을 함께 붙여 주세요.
+  비밀값은 출력에 들어가지 않지만 파일 경로에 사용자 이름이 보일 수 있으니 필요하면 가려 주세요.
 
 ## 기여하기
 
