@@ -1,9 +1,17 @@
+import { isIP } from "node:net";
 import type { Command } from "commander";
 import { getAccessToken } from "../../api/oauth.js";
 import { getProfileEnvironment, getUserAccessKey, resolveProfileName } from "../../config/credentials.js";
-import { printJson, type OutputOptions } from "../../formatters/table.js";
+import { output, printJson, type OutputOptions } from "../../formatters/table.js";
 import { SkmClient } from "../../services/skm/client.js";
-import type { SkmAuthDetail, SkmAuthType, SkmKeyStatusFilter, SkmKeyType } from "../../services/skm/types.js";
+import type {
+  SkmAuthDetail,
+  SkmAuthMode,
+  SkmAuthType,
+  SkmKeyStatusFilter,
+  SkmKeyStoreInput,
+  SkmKeyType,
+} from "../../services/skm/types.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
@@ -32,6 +40,11 @@ export function withSkmOptions(command: Command): Command {
     .option("--profile <name>", "사용할 profile 이름");
 }
 
+/** 인증 정보 명령의 --type 필수 옵션을 붙인다. */
+export function withTypeOption(command: Command): Command {
+  return command.requiredOption("--type <type>", "인증 정보 종류 (ipv4|mac|certificate)");
+}
+
 /** 콜론 구분 MAC 주소만 받는다. 하이픈 구분은 서버가 같은 값으로 보는지 문서에 없어 거부한다. */
 export function parseMacAddressOption(value: string | undefined): string | undefined {
   if (value === undefined) return undefined;
@@ -57,6 +70,79 @@ export function parseAuthTypeOption(value: string): SkmAuthType {
     );
   }
   return found;
+}
+
+/** "ipv4,mac,certificate" 중 하나 이상을 받아 Y/N 세 값으로 바꾼다. */
+export function parseAuthListOption(
+  value: string,
+): Pick<SkmKeyStoreInput, "ip4AuthUse" | "macAuthUse" | "certificateAuthUse"> {
+  const items = value.split(",").map((item) => item.trim());
+  if (items.some((item) => !AUTH_TYPES.some((type) => type === item))) {
+    throw new NhnCloudCliError(
+      `--auth는 ipv4, mac, certificate를 쉼표로 나열해야 합니다 (입력: ${JSON.stringify(value)}).`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+  const flag = (type: SkmAuthType): "Y" | "N" => (items.includes(type) ? "Y" : "N");
+  return { ip4AuthUse: flag("ipv4"), macAuthUse: flag("mac"), certificateAuthUse: flag("certificate") };
+}
+
+export function parseAuthModeOption(value: string): SkmAuthMode {
+  const upper = value.toUpperCase();
+  if (upper !== "AND" && upper !== "OR") {
+    throw new NhnCloudCliError(
+      `--auth-mode는 and 또는 or여야 합니다 (입력: ${JSON.stringify(value)}).`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+  return upper;
+}
+
+/** trim 한 설명을 돌려준다. 비면 보내지 않도록 undefined 다. */
+export function parseDescriptionOption(value: string | undefined, maxLength: number): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.length > maxLength) {
+    throw new NhnCloudCliError(`--description은 ${maxLength}자 이하여야 합니다.`, EXIT_PARAM_ERROR);
+  }
+  return trimmed;
+}
+
+/** IPv4 주소이거나 /0 부터 /32 까지의 CIDR 대역인지 검사한다. */
+function isIpv4OrCidr(value: string): boolean {
+  const [address, prefix, ...rest] = value.split("/");
+  if (rest.length > 0 || address === undefined || isIP(address) !== 4) return false;
+  return prefix === undefined || /^(\d|[12]\d|3[0-2])$/.test(prefix);
+}
+
+/**
+ * 인증 정보 값을 검증한다. ipv4 는 IPv4 주소나 CIDR 대역(키 저장소가 대역으로도 등록한다),
+ * mac 은 --mac-address 와 같은 콜론 형식을 소문자로, certificate 는 trim 한 이름을 돌려준다.
+ */
+export function parseAuthValue(type: SkmAuthType, value: string): string {
+  if (type === "ipv4") {
+    if (!isIpv4OrCidr(value)) {
+      throw new NhnCloudCliError(
+        `IPv4 주소나 CIDR 대역 형식이 아닙니다 (입력: ${JSON.stringify(value)}).`,
+        EXIT_PARAM_ERROR,
+      );
+    }
+    return value;
+  }
+  if (type === "mac") {
+    if (!MAC_ADDRESS_PATTERN.test(value)) {
+      throw new NhnCloudCliError(
+        `MAC 주소는 aa:bb:cc:dd:ee:ff 형식이어야 합니다 (입력: ${JSON.stringify(value)}).`,
+        EXIT_PARAM_ERROR,
+      );
+    }
+    return value.toLowerCase();
+  }
+  const name = value.trim();
+  if (!name) {
+    throw new NhnCloudCliError("인증서 이름이 비어 있습니다.", EXIT_PARAM_ERROR);
+  }
+  return name;
 }
 
 export function parseKeyTypeOption(value: string | undefined): SkmKeyType | undefined {
@@ -138,6 +224,22 @@ export function printSkmValue(opts: OutputOptions, value: string, raw: unknown):
   } else {
     process.stdout.write(sanitizeMultilineForTerminal(value) + "\n");
   }
+}
+
+/** 키 저장소 ID 로 이름을 조회한다. 키 생성·인증 정보 API 는 이름을 받는다 (ADR-040). */
+export async function resolveKeyStoreName(client: SkmClient, keyStoreId: number): Promise<string> {
+  const keyStore = await client.getKeyStore(keyStoreId);
+  return keyStore.name;
+}
+
+/** 쓰기 결과를 field/value 로 출력한다. ids 는 --quiet 출력이다. */
+export function outputSkmWriteResult(opts: OutputOptions, result: Record<string, unknown>, ids: string[]): void {
+  output(opts, {
+    headers: ["field", "value"],
+    rows: Object.entries(result).map(([key, value]) => [key, formatCell(value)]),
+    raw: result,
+    ids,
+  });
 }
 
 export function parseKeyVersionOption(value: string | undefined): number | undefined {

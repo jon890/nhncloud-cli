@@ -8,12 +8,17 @@ import { resolveServiceAppKey } from "../service-appkey.js";
 import {
   formatCell,
   maskAuthDetail,
+  parseAuthListOption,
+  parseAuthModeOption,
   parseAuthTypeOption,
+  parseAuthValue,
+  parseDescriptionOption,
   parseKeyNameOption,
   parseKeyStatusOption,
   parseKeyStoreId,
   parseKeyTypeOption,
   parseMacAddressOption,
+  resolveKeyStoreName,
   resolveSkmClient,
 } from "./helpers.js";
 
@@ -72,6 +77,57 @@ describe("skm helpers 파서", () => {
   });
 });
 
+function paramErrorMessage(fn: () => unknown, message: string): void {
+  expect(fn).toThrow(expect.objectContaining({ message, exitCode: EXIT_PARAM_ERROR }));
+}
+
+describe("skm 키 저장소 쓰기 파서", () => {
+  it("--auth는 나열한 인증만 Y로 바꾼다", () => {
+    expect(parseAuthListOption("ipv4,mac")).toEqual({ ip4AuthUse: "Y", macAuthUse: "Y", certificateAuthUse: "N" });
+    expect(parseAuthListOption("certificate")).toEqual({ ip4AuthUse: "N", macAuthUse: "N", certificateAuthUse: "Y" });
+  });
+
+  it("--auth는 빈 항목과 알 수 없는 값을 거부한다", () => {
+    for (const bad of ["ipv4,", "", "ipv4,ip"]) {
+      paramErrorMessage(
+        () => parseAuthListOption(bad),
+        `--auth는 ipv4, mac, certificate를 쉼표로 나열해야 합니다 (입력: ${JSON.stringify(bad)}).`,
+      );
+    }
+  });
+
+  it("--auth-mode는 대소문자 없이 and·or만 받는다", () => {
+    expect(parseAuthModeOption("OR")).toBe("OR");
+    expect(parseAuthModeOption("and")).toBe("AND");
+    paramErrorMessage(() => parseAuthModeOption("xor"), '--auth-mode는 and 또는 or여야 합니다 (입력: "xor").');
+  });
+
+  it("--description은 trim하고 비면 undefined, 한도를 넘으면 거부한다", () => {
+    expect(parseDescriptionOption(" d ", 1000)).toBe("d");
+    expect(parseDescriptionOption("   ", 1000)).toBeUndefined();
+    expect(parseDescriptionOption(undefined, 1000)).toBeUndefined();
+    expect(parseDescriptionOption("a".repeat(1000), 1000)).toBe("a".repeat(1000));
+    paramErrorMessage(() => parseDescriptionOption("a".repeat(1001), 1000), "--description은 1000자 이하여야 합니다.");
+  });
+
+  it("인증 정보 값은 종류별 형식을 검사한다", () => {
+    expect(parseAuthValue("ipv4", "10.0.0.1")).toBe("10.0.0.1");
+    expect(parseAuthValue("ipv4", "10.0.0.0/24")).toBe("10.0.0.0/24");
+    expect(parseAuthValue("ipv4", "10.0.0.0/32")).toBe("10.0.0.0/32");
+    paramErrorMessage(() => parseAuthValue("ipv4", "10.0.0.0/33"), 'IPv4 주소나 CIDR 대역 형식이 아닙니다 (입력: "10.0.0.0/33").');
+    paramErrorMessage(() => parseAuthValue("ipv4", "10.0.0.0/"), 'IPv4 주소나 CIDR 대역 형식이 아닙니다 (입력: "10.0.0.0/").');
+    paramErrorMessage(() => parseAuthValue("ipv4", "10.0.0.0/24/1"), 'IPv4 주소나 CIDR 대역 형식이 아닙니다 (입력: "10.0.0.0/24/1").');
+    expect(parseAuthValue("mac", "AA:BB:CC:DD:EE:FF")).toBe("aa:bb:cc:dd:ee:ff");
+    expect(parseAuthValue("certificate", " cert1 ")).toBe("cert1");
+    paramErrorMessage(() => parseAuthValue("ipv4", "999.0.0.1"), 'IPv4 주소나 CIDR 대역 형식이 아닙니다 (입력: "999.0.0.1").');
+    paramErrorMessage(
+      () => parseAuthValue("mac", "AA-BB-CC-DD-EE-FF"),
+      'MAC 주소는 aa:bb:cc:dd:ee:ff 형식이어야 합니다 (입력: "AA-BB-CC-DD-EE-FF").',
+    );
+    paramErrorMessage(() => parseAuthValue("certificate", "  "), "인증서 이름이 비어 있습니다.");
+  });
+});
+
 describe("maskAuthDetail", () => {
   it("password를 가린 사본을 돌려주고 원본은 바꾸지 않는다", () => {
     const original = { name: "c", password: "p" };
@@ -116,5 +172,30 @@ describe("resolveSkmClient", () => {
     const { profileName } = await resolveSkmClient({ macAddress: "aa:bb:cc:dd:ee:ff" });
     expect(profileName).toBe("default");
     expect(SkmClient).toHaveBeenCalledWith("token", "gov", "appkey", "aa:bb:cc:dd:ee:ff");
+  });
+});
+
+describe("resolveKeyStoreName", () => {
+  // SkmClient 는 이 파일에서 vi.fn() 생성자로 mock 되어 있어 인스턴스에 메서드가 없다.
+  function keyStoreClient(): SkmClient {
+    const client = new SkmClient("token", "real", "appkey");
+    client.getKeyStore = vi.fn();
+    return client;
+  }
+
+  it("키 저장소 상세 조회 응답의 name을 돌려준다", async () => {
+    const client = keyStoreClient();
+    vi.mocked(client.getKeyStore).mockResolvedValue({
+      keyStoreId: 3, name: "store-name", ip4AuthUse: "N", macAuthUse: "N", certificateAuthUse: "N",
+    });
+    await expect(resolveKeyStoreName(client, 3)).resolves.toBe("store-name");
+    expect(client.getKeyStore).toHaveBeenCalledWith(3);
+  });
+
+  it("상세 조회가 실패하면 같은 오류로 reject한다", async () => {
+    const failure = new NhnCloudCliError("키 저장소 없음", EXIT_PARAM_ERROR);
+    const client = keyStoreClient();
+    vi.mocked(client.getKeyStore).mockRejectedValue(failure);
+    await expect(resolveKeyStoreName(client, 3)).rejects.toBe(failure);
   });
 });
