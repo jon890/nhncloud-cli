@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SkillManagerContext } from "../skill/context.js";
-import type { SkillInstallResult, SkillStatus } from "../skill/manager.js";
+import type { SkillInstallResult, SkillStatus, SkillsStatus } from "../skill/manager.js";
 import {
   createSkillsCommand,
   type SkillCommandDependencies,
@@ -33,12 +33,22 @@ const currentStatus: SkillStatus = {
   linkTarget: "/home/tester/.local/share/nhncloud-cli/skills/1.2.3-digest",
 };
 
+function withAgents(status: SkillStatus): SkillsStatus {
+  return {
+    ...status,
+    agents: {
+      claude: status,
+      codex: { ...status, destination: "/home/tester/.agents/skills/nhncloud-cli" },
+    },
+  };
+}
+
 const updatedResult: SkillInstallResult = {
   schemaVersion: 1,
   action: "updated",
   changed: true,
-  previousStatus: outdatedStatus,
-  status: currentStatus,
+  previousStatus: withAgents(outdatedStatus),
+  status: withAgents(currentStatus),
   repositoryPath: currentStatus.linkTarget ?? "",
   backupPaths: ["/home/tester/.claude/skills/nhncloud-cli.backup-test"],
 };
@@ -150,7 +160,7 @@ describe("skills install/update/uninstall", () => {
       ...updatedResult,
       action: "unchanged",
       changed: false,
-      previousStatus: currentStatus,
+      previousStatus: withAgents(currentStatus),
       backupPaths: [],
     });
 

@@ -6,6 +6,7 @@ import {
   mkdtemp,
   readFile,
   readlink,
+  realpath,
   rename,
   rm,
   stat,
@@ -27,6 +28,10 @@ const PACKAGE_NAME = "@bifos/nhncloud-cli";
 const SKILL_NAME = "nhncloud-cli";
 const DIGEST_HEX_PATTERN = /^[0-9a-f]{64}$/;
 
+export const SKILL_AGENTS = ["claude", "codex"] as const;
+export type SkillAgent = (typeof SKILL_AGENTS)[number];
+export const SKILL_AGENT_NAMES: Record<SkillAgent, string> = { claude: "Claude Code", codex: "Codex" };
+
 export type SkillStatusToken =
   | "current"
   | "missing"
@@ -47,14 +52,32 @@ export interface SkillStatus {
   managed: boolean;
 }
 
+export interface SkillsStatus extends SkillStatus {
+  agents: Record<SkillAgent, SkillStatus>;
+}
+
+/** 두 에이전트 경로의 상태를 합칠 때 먼저 나오는 상태가 이긴다. */
+const STATUS_PRIORITY: readonly SkillStatusToken[] = [
+  "corrupt",
+  "modified",
+  "unmanaged",
+  "broken",
+  "outdated",
+  "missing",
+  "current",
+];
+
+/** force 없이는 바꾸지 않는 상태다. */
+const PROTECTED_STATUSES: readonly SkillStatusToken[] = ["unmanaged", "modified", "corrupt"];
+
 export type SkillInstallAction = "unchanged" | "installed" | "updated" | "recovered" | "replaced";
 
 export interface SkillInstallResult {
   schemaVersion: 1;
   action: SkillInstallAction;
   changed: boolean;
-  previousStatus: SkillStatus;
-  status: SkillStatus;
+  previousStatus: SkillsStatus;
+  status: SkillsStatus;
   repositoryPath: string;
   backupPaths: string[];
 }
@@ -84,8 +107,10 @@ function sourcePath(context: SkillManagerContext): string {
   return path.join(context.packageRoot, "skills", SKILL_NAME);
 }
 
-function destinationPath(context: SkillManagerContext): string {
-  return path.join(context.homeDir, ".claude", "skills", SKILL_NAME);
+function destinationPath(context: SkillManagerContext, agent: SkillAgent): string {
+  return agent === "claude"
+    ? path.join(context.homeDir, ".claude", "skills", SKILL_NAME)
+    : path.join(context.homeDir, ".agents", "skills", SKILL_NAME);
 }
 
 function resolveLinkTarget(linkPath: string, rawTarget: string): string {
@@ -248,17 +273,107 @@ async function inspectRepository(targetPath: string, expected?: RepositoryName):
   return { status: "valid", installedVersion: manifest.packageVersion };
 }
 
-function statusBase(context: SkillManagerContext): Omit<SkillStatus, "status" | "managed"> {
+function statusBase(
+  context: SkillManagerContext,
+  agent: SkillAgent,
+): Omit<SkillStatus, "status" | "managed"> {
   return {
     schemaVersion: 1,
-    destination: destinationPath(context),
+    destination: destinationPath(context, agent),
     source: sourcePath(context),
     currentVersion: context.currentVersion,
   };
 }
 
-export async function inspectSkill(context: SkillManagerContext): Promise<SkillStatus> {
-  const base = statusBase(context);
+type StatusBase = Omit<SkillStatus, "status" | "managed">;
+
+/**
+ * 관리 저장소 디렉터리를 가리키는 링크에 저장소 판정 규칙을 적용한다.
+ * isExpectedPath 는 링크가 현재 소스의 기대 저장소 경로와 같은지 판단한다.
+ */
+async function managedRepositoryStatus(
+  context: SkillManagerContext,
+  base: StatusBase,
+  linkTarget: string,
+  repositoryLocation: string,
+  isExpectedPath: (expectedPath: string) => Promise<boolean>,
+): Promise<SkillStatus> {
+  const repositoryName = parseRepositoryName(repositoryLocation);
+  if (!repositoryName) {
+    return { ...base, status: "corrupt", linkTarget, managed: true };
+  }
+
+  const repository = await inspectRepository(repositoryLocation, repositoryName);
+  if (repository.status === "modified" || repository.status === "corrupt") {
+    return {
+      ...base,
+      status: repository.status,
+      installedVersion: repository.installedVersion ?? repositoryName.version,
+      linkTarget,
+      managed: true,
+    };
+  }
+  if (repository.status === "missing") {
+    return {
+      ...base,
+      status: "broken",
+      installedVersion: repositoryName.version,
+      linkTarget,
+      managed: true,
+    };
+  }
+
+  const currentDigest = calculateSkillContentDigest(base.source);
+  const isCurrent =
+    repositoryName.version === context.currentVersion &&
+    repositoryName.digest === currentDigest &&
+    (await isExpectedPath(repositoryPath(context, currentDigest)));
+  return {
+    ...base,
+    status: isCurrent ? "current" : "outdated",
+    installedVersion: repository.installedVersion,
+    linkTarget,
+    managed: true,
+  };
+}
+
+/** 실제 경로를 구한다. 경로가 없으면 undefined, 그 밖의 오류는 사용자 오류로 던진다. */
+async function optionalRealpath(targetPath: string): Promise<string | undefined> {
+  try {
+    return await realpath(targetPath);
+  } catch (error) {
+    if (isNodeError(error, "ENOENT")) {
+      return undefined;
+    }
+    throw managerError(`스킬 경로를 확인할 수 없습니다: ${targetPath}`, error);
+  }
+}
+
+/**
+ * 다른 링크를 거쳐 관리 저장소에 닿는 링크를 판정한다. 관리 저장소에 닿지 않으면 undefined 다.
+ * macOS 임시 디렉터리처럼 /var 와 /private/var 가 섞이지 않게 양쪽 모두 realpath 로 비교한다.
+ */
+async function inspectIndirectManagedLink(
+  context: SkillManagerContext,
+  base: StatusBase,
+  linkTarget: string,
+): Promise<SkillStatus | undefined> {
+  const realRoot = await optionalRealpath(repositoryRoot(context));
+  if (!realRoot) {
+    return undefined;
+  }
+  const realTarget = await optionalRealpath(linkTarget);
+  if (!realTarget || path.dirname(realTarget) !== realRoot) {
+    return undefined;
+  }
+  return managedRepositoryStatus(context, base, linkTarget, realTarget, async (expectedPath) => {
+    const realExpected = await optionalRealpath(expectedPath);
+    return realExpected !== undefined && realExpected === realTarget;
+  });
+}
+
+export async function inspectAgentSkill(context: SkillManagerContext, agent: SkillAgent): Promise<SkillStatus> {
+  const base = statusBase(context, agent);
   const destinationStat = await optionalLstat(base.destination);
   if (!destinationStat) {
     return { ...base, status: "missing", managed: false };
@@ -294,43 +409,18 @@ export async function inspectSkill(context: SkillManagerContext): Promise<SkillS
   }
 
   if (isManagedRepositoryLocation(context, linkTarget)) {
-    if (!repositoryName) {
-      return { ...base, status: "corrupt", linkTarget, managed: true };
-    }
-
-    const repository = await inspectRepository(linkTarget, repositoryName);
-    if (repository.status === "modified" || repository.status === "corrupt") {
-      return {
-        ...base,
-        status: repository.status,
-        installedVersion: repository.installedVersion ?? repositoryName.version,
-        linkTarget,
-        managed: true,
-      };
-    }
-    if (repository.status === "missing") {
-      return {
-        ...base,
-        status: "broken",
-        installedVersion: repositoryName.version,
-        linkTarget,
-        managed: true,
-      };
-    }
-
-    const currentDigest = calculateSkillContentDigest(base.source);
-    const expectedPath = repositoryPath(context, currentDigest);
-    const isCurrent =
-      repositoryName.version === context.currentVersion &&
-      repositoryName.digest === currentDigest &&
-      path.resolve(linkTarget) === path.resolve(expectedPath);
-    return {
-      ...base,
-      status: isCurrent ? "current" : "outdated",
-      installedVersion: repository.installedVersion,
+    return managedRepositoryStatus(
+      context,
+      base,
       linkTarget,
-      managed: true,
-    };
+      linkTarget,
+      async (expectedPath) => path.resolve(linkTarget) === path.resolve(expectedPath),
+    );
+  }
+
+  const indirect = await inspectIndirectManagedLink(context, base, linkTarget);
+  if (indirect) {
+    return indirect;
   }
 
   const legacyPackage = targetStat.isDirectory()
@@ -349,6 +439,16 @@ export async function inspectSkill(context: SkillManagerContext): Promise<SkillS
   }
 
   return { ...base, status: "unmanaged", linkTarget, managed: false };
+}
+
+function aggregateStatus(statuses: SkillStatus[]): SkillStatusToken {
+  return STATUS_PRIORITY.find((token) => statuses.some((status) => status.status === token)) ?? "current";
+}
+
+export async function inspectSkill(context: SkillManagerContext): Promise<SkillsStatus> {
+  const claude = await inspectAgentSkill(context, "claude");
+  const codex = await inspectAgentSkill(context, "codex");
+  return { ...claude, status: aggregateStatus([claude, codex]), agents: { claude, codex } };
 }
 
 function utcBackupSuffix(): string {
@@ -467,43 +567,150 @@ async function prepareRepository(
   }
 }
 
-async function switchActiveLink(
+interface LinkSwitch {
+  agents: SkillAgent[];
+  destination: string;
+  resolvedDestination: string;
+  previous: SkillStatus;
+  previousRawTarget?: string;
+  temporaryLink: string;
+  backup?: string;
+  activated: boolean;
+}
+
+function temporaryLinkPath(destination: string): string {
+  return path.join(path.dirname(destination), `.${SKILL_NAME}.link-${randomUUID()}`);
+}
+
+async function planLinkSwitches(context: SkillManagerContext, previous: SkillsStatus): Promise<LinkSwitch[]> {
+  const switches: LinkSwitch[] = [];
+  for (const agent of SKILL_AGENTS) {
+    const agentStatus = previous.agents[agent];
+    if (agentStatus.status === "current") {
+      continue;
+    }
+    const destination = destinationPath(context, agent);
+    const parent = path.dirname(destination);
+    await mkdir(parent, { recursive: true });
+    const resolvedDestination = path.join(await realpath(parent), path.basename(destination));
+    const sameTarget = switches.find((entry) => entry.resolvedDestination === resolvedDestination);
+    if (sameTarget) {
+      sameTarget.agents.push(agent);
+      continue;
+    }
+
+    let previousRawTarget: string | undefined;
+    if (agentStatus.status !== "missing" && agentStatus.status !== "unmanaged") {
+      try {
+        previousRawTarget = await readlink(destination);
+      } catch (error) {
+        throw managerError(`스킬 링크를 읽을 수 없습니다: ${destination}`, error);
+      }
+    }
+    switches.push({
+      agents: [agent],
+      destination,
+      resolvedDestination,
+      previous: agentStatus,
+      previousRawTarget,
+      temporaryLink: temporaryLinkPath(destination),
+      activated: false,
+    });
+  }
+  return switches;
+}
+
+/** 바꾼 경로를 역순으로 되돌리고 되돌리지 못한 경로와 남은 백업을 돌려준다. */
+async function rollbackLinkSwitches(
+  switches: LinkSwitch[],
+  operations: SkillManagerOperations,
+  temporaryLinks: string[],
+): Promise<{ failed: string[]; preservedBackups: string[]; firstError?: unknown }> {
+  const failed: string[] = [];
+  const preservedBackups: string[] = [];
+  let firstError: unknown;
+
+  for (const entry of [...switches].reverse()) {
+    try {
+      if (entry.activated && entry.backup) {
+        await rm(entry.destination, { force: true });
+        await operations.rename(entry.backup, entry.destination);
+      } else if (entry.activated && entry.previousRawTarget !== undefined) {
+        const restoreLink = temporaryLinkPath(entry.destination);
+        temporaryLinks.push(restoreLink);
+        await symlink(entry.previousRawTarget, restoreLink);
+        await operations.rename(restoreLink, entry.destination);
+      } else if (entry.activated && entry.previous.status === "missing") {
+        await rm(entry.destination, { force: true });
+      } else if (!entry.activated && entry.backup) {
+        await operations.rename(entry.backup, entry.destination);
+      }
+    } catch (error) {
+      failed.push(entry.destination);
+      if (entry.backup) {
+        preservedBackups.push(entry.backup);
+      }
+      firstError ??= error;
+    }
+  }
+  return { failed, preservedBackups, firstError };
+}
+
+/**
+ * 상태가 current 가 아닌 에이전트 경로를 모두 새 저장소로 전환하고 사후 검사까지 한다.
+ * 어느 단계에서든 실패하면 이미 바꾼 경로를 되돌려 두 경로가 다른 버전으로 갈라지지 않게 한다.
+ */
+async function switchActiveLinks(
   context: SkillManagerContext,
   repository: string,
-  previousStatus: SkillStatus,
-  force: boolean,
+  previous: SkillsStatus,
   operations: SkillManagerOperations,
-): Promise<string[]> {
-  const destination = destinationPath(context);
-  const parent = path.dirname(destination);
-  await mkdir(parent, { recursive: true });
-  const temporaryLink = path.join(parent, `.${SKILL_NAME}.link-${randomUUID()}`);
+): Promise<{ backupPaths: string[]; status: SkillsStatus }> {
+  const switches = await planLinkSwitches(context, previous);
+  const temporaryLinks = switches.map((entry) => entry.temporaryLink);
   const backupPaths: string[] = [];
-  await symlink(repository, temporaryLink);
 
   try {
-    if (previousStatus.status === "unmanaged") {
-      if (!force) {
-        throw managerError(`관리되지 않은 스킬 항목이 있습니다. --force로 백업 후 교체하세요: ${destination}`);
+    let failure: unknown;
+    let failedAfterVerification = false;
+    try {
+      for (const entry of switches) {
+        await symlink(repository, entry.temporaryLink);
       }
-      const backup = await backupPath(destination, operations);
-      backupPaths.push(backup);
-      try {
-        await operations.rename(temporaryLink, destination);
-      } catch (error) {
-        return await restoreBackup(backup, destination, operations, error);
+      for (const entry of switches) {
+        if (entry.previous.status === "unmanaged") {
+          entry.backup = await backupPath(entry.destination, operations);
+          backupPaths.push(entry.backup);
+        }
+        await operations.rename(entry.temporaryLink, entry.destination);
+        entry.activated = true;
       }
-      return backupPaths;
+      const status = await inspectSkill(context);
+      if (status.status === "current") {
+        return { backupPaths, status };
+      }
+      failure = managerError(`스킬 설치 후 상태가 current가 아닙니다: ${status.status}`);
+      failedAfterVerification = true;
+    } catch (error) {
+      failure = error;
     }
 
-    try {
-      await operations.rename(temporaryLink, destination);
-    } catch (error) {
-      throw managerError(`활성 스킬 링크를 전환할 수 없습니다: ${destination}`, error);
+    const rollback = await rollbackLinkSwitches(switches, operations, temporaryLinks);
+    if (rollback.failed.length > 0) {
+      throw managerError(
+        `스킬 전환에 실패했고 일부 경로를 되돌리지 못했습니다: ${rollback.failed.join(", ")}; 보존한 백업: ${rollback.preservedBackups.join(", ") || "없음"}; 전환 오류: ${toReason(failure)}`,
+        rollback.firstError,
+      );
     }
-    return backupPaths;
+    if (failedAfterVerification) {
+      throw failure;
+    }
+    throw managerError(
+      `스킬 전환에 실패해 바꾼 경로를 이전 상태로 되돌렸습니다: ${switches.map((entry) => entry.destination).join(", ")}`,
+      failure,
+    );
   } finally {
-    await rm(temporaryLink, { force: true });
+    await Promise.all(temporaryLinks.map((link) => rm(link, { force: true })));
   }
 }
 
@@ -545,30 +752,28 @@ async function installSkillInternal(
       backupPaths: [],
     };
   }
-  if (
-    (previousStatus.status === "unmanaged" ||
-      previousStatus.status === "modified" ||
-      previousStatus.status === "corrupt") &&
-    !force
-  ) {
-    throw managerError(`스킬 상태가 ${previousStatus.status}입니다. --force로 백업 후 교체하세요: ${previousStatus.destination}`);
+  if (!force) {
+    for (const agent of SKILL_AGENTS) {
+      const agentStatus = previousStatus.agents[agent];
+      if (PROTECTED_STATUSES.includes(agentStatus.status)) {
+        throw managerError(
+          `${SKILL_AGENT_NAMES[agent]} 스킬 상태가 ${agentStatus.status}입니다. --force로 백업 후 교체하세요: ${agentStatus.destination}`,
+        );
+      }
+    }
   }
 
   const prepared = await prepareRepository(context, force, operations);
-  const linkBackups = await switchActiveLink(context, prepared.repository, previousStatus, force, operations);
-  const status = await inspectSkill(context);
-  if (status.status !== "current") {
-    throw managerError(`스킬 설치 후 상태가 current가 아닙니다: ${status.status}`);
-  }
+  const switched = await switchActiveLinks(context, prepared.repository, previousStatus, operations);
 
   return {
     schemaVersion: 1,
     action: installAction(previousStatus.status),
     changed: true,
     previousStatus,
-    status,
+    status: switched.status,
     repositoryPath: prepared.repository,
-    backupPaths: [...prepared.backupPaths, ...linkBackups],
+    backupPaths: [...prepared.backupPaths, ...switched.backupPaths],
   };
 }
 
@@ -615,8 +820,8 @@ export async function uninstallSkill(
   context: SkillManagerContext,
   operations: SkillManagerOperations = defaultOperations,
 ): Promise<"removed" | "absent"> {
-  const destination = destinationPath(context);
-  const status = await inspectSkill(context);
+  const destination = destinationPath(context, "claude");
+  const status = await inspectAgentSkill(context, "claude");
   if (status.status === "missing") {
     return "absent";
   }

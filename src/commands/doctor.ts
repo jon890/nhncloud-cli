@@ -13,7 +13,7 @@ import {
 import type { IaasCredential, ServiceCredential, UserAccessKey } from "../config/types.js";
 import { printJson } from "../formatters/table.js";
 import { createSkillManagerContext, type SkillManagerContext } from "../skill/context.js";
-import { inspectSkill, type SkillStatus } from "../skill/manager.js";
+import { inspectAgentSkill, type SkillStatus } from "../skill/manager.js";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_API_ERROR } from "../utils/exit-codes.js";
 import { sanitizeForTerminal } from "../utils/terminal.js";
@@ -91,7 +91,7 @@ const defaultDependencies: DoctorDependencies = {
   inspectConfig: inspectConfigFile,
   resolveProfile: resolveProfileName,
   createSkillContext: createSkillManagerContext,
-  inspectSkill,
+  inspectSkill: (c) => inspectAgentSkill(c, "claude"),
   connection: {
     getUserAccessKey,
     getIaasCredential,
