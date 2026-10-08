@@ -1,0 +1,93 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+env:
+  NODE_VERSION: "20"
+
+# id-token 은 npm Trusted Publishing(OIDC)을 켰을 때만 쓰인다.
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  release:
+    name: Verify & Publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          standalone: true
+
+      # registry-url 은 npm publish 가 레지스트리를 npmjs.org 로 잡게 한다.
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+          registry-url: "https://registry.npmjs.org"
+
+      # 실제 자격증명과 사내 식별자가 게시물에 섞이는 것을 막는다.
+      - name: Check for exposed identifiers
+        run: node scripts/check-pii.mjs
+
+      # lockfile 과 다른 의존성으로 게시되는 것을 막는다.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 타입 오류가 있는 커밋이 게시되는 것을 막는다.
+      - name: Run type check
+        run: pnpm tsc --noEmit
+
+      # 테스트가 깨진 커밋이 게시되는 것을 막는다.
+      - name: Run tests
+        run: pnpm test
+
+      # 빌드가 깨진 커밋이 게시되는 것을 막는다.
+      - name: Run build
+        run: pnpm build
+
+      # 산출물 버전과 패키지에 담기는 스킬 파일이 어긋난 채 게시되는 것을 막는다.
+      - name: Verify package artifact
+        run: pnpm verify:package
+
+      # 태그와 package.json 버전이 다른 커밋이 게시되는 것을 막는다.
+      - name: Verify tag matches package.json version
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "${GITHUB_REF_NAME#v}" != "$PKG_VERSION" ]; then
+            echo "tag ${GITHUB_REF_NAME} does not match package.json version ${PKG_VERSION}" >&2
+            exit 1
+          fi
+
+      # pre-release 버전이 latest 배포 태그로 게시되는 것을 막는다.
+      - name: Reject pre-release version
+        run: |
+          case "${GITHUB_REF_NAME#v}" in
+            *-*)
+              echo "pre-release version ${GITHUB_REF_NAME} is not published by this workflow" >&2
+              exit 1
+              ;;
+          esac
+
+      # Trusted Publishing 은 npm CLI 11.5.1 이상이 필요한데 Node 20 에는 npm 10.x 가 번들돼 있다.
+      - name: Upgrade npm for Trusted Publishing
+        if: vars.NPM_TRUSTED_PUBLISHING == 'true'
+        run: npm install -g npm@^11.5.1
+
+      # 저장소 변수가 켜졌을 때만 게시한다. 토큰 없이 OIDC 로 인증하고 provenance 를 남긴다.
+      - name: Publish to npm
+        if: vars.NPM_TRUSTED_PUBLISHING == 'true'
+        run: npm publish --access public --provenance
+
+      # 게시를 건너뛴 사실이 로그에 남지 않아 성공으로 오해되는 것을 막는다.
+      - name: Report publish skipped
+        if: vars.NPM_TRUSTED_PUBLISHING != 'true'
+        run: echo "NPM_TRUSTED_PUBLISHING is not 'true'; verification passed, npm publish skipped"
