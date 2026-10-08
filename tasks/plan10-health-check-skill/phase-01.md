@@ -55,7 +55,7 @@ health-check 스킬 1단계의 측정이 사람의 해석 없이 같은 표를 �
 머리 주석에 사용법(`node .agents/skills/health-check/scripts/deps-report.mjs [--json]`), 출력하는 것, 종료 코드(0 낡은 것도 취약점도 없음, 1 하나 이상 있음, 2 저장소 root 나 pnpm 을 찾지 못했거나 pnpm 버전이 맞지 않거나 pnpm 출력을 읽지 못함)를 적는다.
 
 - `export function buildResult(pkg, outdatedRaw, audit)` 는 `{ engines, outdated, advisories, summary }` 를 돌려준다. `summary` 는 `{ outdatedInRange, outdatedMajor, deprecated, runtimeAdvisories, devAdvisories, bySeverity }` 이고 `bySeverity` 는 `audit.metadata.vulnerabilities` 다.
-- `export function renderMarkdown(result)` 는 문자열을 돌려준다. 제목은 `# 의존성 측정`, 요약 목록 네 줄(범위 안과 메이저와 deprecated 개수, 런타임과 개발 경로 취약점 건수, 0보다 큰 등급별 건수나 `없음`, `engines.node`), 낡은 것이 있으면 `## 낡은 의존성` 표(열: 패키지, 구분, 현재, 최신, 갱신 종류. 갱신 종류는 `메이저` 나 `범위 안`), advisory 가 있으면 `## 취약점` 표(열: 경로, 등급, 패키지, 설치, 수정, 거쳐 오는 직접 의존성, 내용. 경로는 `runtime` 이나 `dev`(낡은 의존성 표의 구분 열과 같은 표기), 내용의 `|` 는 `\|` 로 이스케이프)다.
+- `export function renderMarkdown(result)` 는 문자열을 돌려준다. 제목은 `# 의존성 측정`, 요약 목록 네 줄(범위 안과 메이저와 deprecated 개수, 런타임과 개발 경로 취약점 건수, 0보다 큰 등급별 건수나 `없음`, `engines.node`), 낡은 것이 있으면 `## 낡은 의존성` 표(열: 패키지, 구분, 현재, 최신, 갱신 종류. 패키지 칸은 백틱으로 감싼다. 갱신 종류는 `메이저` 나 `범위 안`), advisory 가 있으면 `## 취약점` 표(열: 경로, 등급, 패키지, 설치, 수정, 거쳐 오는 직접 의존성, 내용. 경로는 `runtime` 이나 `dev`(낡은 의존성 표의 구분 열과 같은 표기), 내용의 `|` 는 `\|` 로 이스케이프)다.
 - `main()` 순서: `enterRepoRoot()`, `package.json` 읽기, `run("pnpm", ["--version"])` 결과를 `checkPnpmMajor` 로 확인해 메시지가 있으면 stderr 출력 후 2, `pnpm outdated --format json`(종료 코드 0 과 1 만 정상, 빈 stdout 은 `{}`), `pnpm audit --json` 을 `parseAuditReport` 로 읽기(null 이면 2), `--json` 이면 `JSON.stringify(result, null, 2)` 아니면 `renderMarkdown` 을 stdout 에. 반환값은 낡은 것과 advisory 합이 0 보다 크면 1 아니면 0. 예외는 stderr 에 이유를 쓰고 2.
 - 파일 끝은 `release` 스크립트와 같은 직접 실행 가드로 `process.exit(main())` 한다.
 

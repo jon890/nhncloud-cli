@@ -21,7 +21,7 @@
 - 계획 시점(2026-10-08) 코드의 사실이다. 규칙을 만들 때 이 사실로 오탐을 확인한다.
   - `process.exit(` 는 `src/index.ts` 에만 있다.
   - `src/commands/skm/asymmetric-key.ts` 는 `fetch` 라는 이름의 함수 인자를 받아 `fetch(client, ...)` 로 부른다. 전역 fetch 가 아니다.
-  - `src/config/credentials.ts` 와 `src/cache/token-store.ts` 의 `writeFile` 호출은 여러 줄에 걸쳐 `mode: 0o600` 을 준다.
+  - `src/config/credentials.ts` 와 `src/cache/token-store.ts` 의 `writeFile` 호출은 `mode: 0o600` 을 준다(`src/config/credentials.ts` 는 여러 줄 호출, `src/cache/token-store.ts` 는 한 줄 호출).
   - `src/commands/appkey-option.test-helper.ts` 는 테스트 보조 파일이다.
   - `src/commands/deploy/commands.test.ts` 처럼 디렉터리 하나의 테스트 파일이 여러 명령 파일을 `from "./artifacts.js"` 형태로 import 한다.
   - `package.json` 의 `engines.node` 는 `>=20`, `tsup.config.ts` 의 `target` 은 `"node20"`, `.github/workflows/ci.yml` 과 `release.yml` 의 `NODE_VERSION` 은 `"20"` 이다.
@@ -43,7 +43,7 @@
 `root` 에 `package.json`, `src/index.ts`, `tsup.config.ts` 중 하나라도 없으면 `Error` 를 던진다.
 
 파일 집합: `src/` 아래 `.ts` 전부. 테스트 파일은 `/\.test(?:-helper)?\.ts$/` 에 맞는 것이고, 나머지가 운영 파일이다.
-주석 줄 제외는 `//` 로 시작하는 줄과 `/* ... */` 블록 안의 줄을 뺀다.
+주석 줄 제외는 `//` 로 시작하는 줄과 `/* ... */` 블록 안의 줄을 뺀다(줄 앞 공백을 지운 뒤 판정한다). `sensitive-write-mode` 의 호출 전체 문자열도 `exit-code-literal` 과 같은 괄호 짝 맞춤으로 얻는다.
 
 | id | 등급 | 대상 | 판정 |
 |---|---|---|---|
@@ -52,7 +52,7 @@
 | `plain-error` | warn | 운영 파일, 주석 제외 | `/\bthrow\s+(?:new\s+)?Error\s*\(/` |
 | `exit-code-literal` | error | 운영 파일 | `new NhnCloudCliError(` 마다 괄호 짝을 맞춰 호출 전체 문자열을 얻고(문자열 리터럴 안의 괄호는 세지 않는다), 그 문자열이 `/,\s*\d+\s*,?\s*\)$/` 에 맞으면 위반 |
 | `sensitive-write-mode` | error | `src/config/` 와 `src/cache/` 아래 운영 파일 | `writeFile`, `writeFileSync`, `appendFile`, `appendFileSync`, `createWriteStream` 중 이름 뒤에 `\s*\(` 가 붙은 것만 호출로 본다(import 줄의 이름은 호출이 아니다). 호출마다 호출 전체 문자열에 `/\bmode\s*:/` 가 없으면 위반 |
-| `node-version-alignment` | warn | `package.json`, `tsup.config.ts`, `.github/workflows/*.yml` | `engines.node` 의 첫 숫자, `tsup.config.ts` 의 `target: "nodeNN"` 숫자, 워크플로에서 `NODE_VERSION:` 이나 `node-version:` 으로 시작하는 줄의 숫자들을 읽는다. 숫자가 없는 줄(`node-version: ${{ env.NODE_VERSION }}`)은 무시한다. 읽지 못한 값(engines, target)마다 1건, target 이 engines 와 다르면 1건, 워크플로에서 읽은 숫자 집합이 비었거나 engines 값이 없으면 1건. main 에서는 engines `>=20`, target `node20`, 워크플로 숫자 집합 `{20}` 이라(`ci.yml` 과 `release.yml` 의 `node-version` 줄은 숫자가 없어 무시된다) 0건이다 |
+| `node-version-alignment` | warn | `package.json`, `tsup.config.ts`, `.github/workflows/*.yml` | `engines.node` 의 첫 숫자, `tsup.config.ts` 의 `target: "nodeNN"` 숫자, 워크플로에서 `NODE_VERSION:` 이나 `node-version:` 으로 시작하는 줄(앞 공백을 지운 뒤 판정한다. 실제 `ci.yml` 은 들여쓰여 있다)의 숫자들을 읽는다. 숫자가 없는 줄(`node-version: ${{ env.NODE_VERSION }}`)은 무시한다. 읽지 못한 값(engines, target)마다 1건, target 이 engines 와 다르면 1건(둘 다 읽었을 때만 비교한다), 워크플로에서 읽은 숫자 집합이 비었거나 engines 숫자를 포함하지 않으면 1건. main 에서는 engines `>=20`, target `node20`, 워크플로 숫자 집합 `{20}` 이라(`ci.yml` 과 `release.yml` 의 `node-version` 줄은 숫자가 없어 무시된다) 0건이다 |
 | `command-tests` | info | `src/commands/` 아래 운영 파일 중 `index.ts` 가 아닌 것 | 같은 디렉터리의 테스트 파일 어느 것도 `from "./<stem>.js"` 나 `from "./<stem>"` 를 담지 않으면 1건. 제목에 전체 명령 파일 수를 넣는다 |
 | `large-files` | info | 운영 파일 | 400줄 이상. 줄 수 내림차순, `line` 은 `N줄` |
 
@@ -67,8 +67,9 @@
 기본 표본: `package.json`(`engines.node: ">=20"`), `tsup.config.ts`(`target: "node20"`), `.github/workflows/ci.yml`(`NODE_VERSION: "20"`), `src/index.ts`(`process.exit(1);`).
 
 - 검출과 비검출 표본 하나: `src/commands/run.ts` 에 주석 처리된 `process.exit`, `fetch`, `throw Error` 각 한 줄과 실제 `process.exit (1);`, `globalThis.fetch ("a");`, `throw new Error("b");`, 여러 줄로 쓴 `new NhnCloudCliError(\n  "x",\n  3,\n)` 한 건과 `new NhnCloudCliError("y", EXIT_PARAM_ERROR)` 한 건을 둔다. `src/commands/local.ts` 에는 `async function load(fetch: () => Promise<void>) { await fetch(); }` 를 둔다. `src/config/files.ts` 에는 `import { writeFile, appendFile } from "node:fs/promises";` 줄(검출되면 안 된다)과 여러 줄에 걸쳐 `mode: 0o600` 을 준 `writeFile` 한 건과 mode 없는 `appendFile(path, data);` 한 건을 둔다. 기대값은 `process-exit` 1, `raw-fetch` 1, `plain-error` 1, `exit-code-literal` 1, `sensitive-write-mode` 1, `node-version-alignment` 0.
+- 위 두 표본과 `command-tests` 표본은 케이스마다 별도 `mkdtemp` 저장소에 만든다. 한 저장소에 섞으면 `command-tests` 의 hits 에 `run.ts` 와 `local.ts` 가 섞인다.
 - `command-tests`: `src/commands/a.ts`, `src/commands/b.ts`, `src/commands/index.ts`, `src/commands/a.test.ts`(`import { x } from "./a.js";`), `src/commands/x.test-helper.ts` 를 두면 hits 의 `at` 목록이 `["src/commands/b.ts"]` 다.
-- `node-version-alignment`: `engines` 없는 `package.json`, target 없는 `tsup.config.ts`, 숫자가 있는 버전 줄이 없는 워크플로(`node-version: ${{ env.NODE_VERSION }}` 한 줄만 있어도 같다)면 count 3. 기본 표본의 워크플로에 `node-version: ${{ env.NODE_VERSION }}` 줄을 더해도 count 0 이다.
+- `node-version-alignment`: `engines` 없는 `package.json`, target 없는 `tsup.config.ts`, 숫자가 있는 버전 줄이 없는 워크플로(`node-version: ${{ env.NODE_VERSION }}` 한 줄만 있어도 같다)면 count 3. 기본 표본의 워크플로에 `node-version: ${{ env.NODE_VERSION }}` 줄을 더해도 count 0 이다. 기본 표본의 워크플로를 `NODE_VERSION: "22"` 로 바꾸면 count 1 이다.
 - 필수 파일이 없는 빈 디렉터리에서 `inspect` 가 던진다.
 - `renderMarkdown` 출력에 `# 규약 검사` 와 `## process-exit` 가 있다.
 

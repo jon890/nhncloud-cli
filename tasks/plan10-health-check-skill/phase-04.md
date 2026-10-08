@@ -7,7 +7,7 @@
 phase 01~03 의 스크립트를 순서대로 부르는 `SKILL.md` 와 단계별 판단 기준을 담은 references 를 만든다.
 스킬을 실행하면 작업 단위 표가 나오고 사용자가 단위마다 적용 경로를 정할 수 있게 하는 것이 이슈 #124 의 완료 조건이다.
 
-**범위 외**: 실제 메이저 갱신(commander 15, ky 2, typescript 7, @types/node 26)의 판정과 적용. 스킬이 머지된 뒤 이 스킬을 처음 실행한 결과로 별도 계획을 세운다. 이 사실을 PR 본문에 적는다.
+**범위 외**: 실제 메이저 갱신(예: commander 15, ky 2, typescript 7, @types/node 26. 실제 목록은 실행 시점의 `pnpm outdated` 가 정한다)의 판정과 적용. 스킬이 머지된 뒤 이 스킬을 처음 실행한 결과로 별도 계획을 세운다. 이 사실을 PR 본문에 적는다.
 
 **PR 본문**: 마지막 phase 를 마친 PR 본문은 `Refs #124` 로 쓰고 `Closes` 는 쓰지 않는다. 이 스킬을 처음 실행한 결과로 메이저 갱신 계획이 남아 있어 이슈가 닫히면 안 된다. 본문에는 이 스킬이 소비되는 경로도 적는다. 사용자가 「의존성 점검」, 「정기 점검」, `/health-check` 처럼 부르면 `SKILL.md` frontmatter 의 `description` 트리거가 스킬을 연다는 것이다. 같은 성격의 `codebase-maintenance` 스킬이 #102 에서 소비되지 않는다는 이유로 삭제되었기 때문이다.
 
@@ -57,7 +57,7 @@ frontmatter:
 - 2절 범위 안 갱신 시험: `node .agents/skills/health-check/scripts/trial-update.mjs --range; echo "trial=$?"` 블록. 갱신 뒤에도 취약점이 남으면 3단계 전에 1단계 표의 「거쳐 오는 직접 의존성」 열을 보고, 범위 안에서 풀리는 취약점을 메이저 갱신의 이득으로 세지 않는다는 규칙. peer 로 자동 설치된 개발 도구가 옛 버전에 머물면 `--dev-pkg NAME@SPEC` 으로 직접 선언을 시험한다는 것. 실패하면 표의 로그 경로를 읽고 실패한 테스트 이름을 적는다는 것. 시험이 중간에 끊겨 임시 worktree 가 남으면 스크립트가 출력한 정리 명령을 그대로 쓴다는 것. 직접 지워야 하면 `git worktree list` 에서 경로가 `worktrees/nhncloud-cli/health-check-<숫자>-<숫자>` 패턴에 정확히 맞는 것만 `git worktree remove --force` 대상이고, 이 plan 의 worktree 처럼 이름에 `health-check` 가 들어도 그 패턴이 아니면 지우지 않는다는 경고 한 줄. 이 설명 문장에서도 `<숫자>` 같은 자리표시자는 코드 블록에 넣지 않는다.
 - 3절 메이저 판단: 1단계 표에서 갱신 종류가 「메이저」인 패키지마다 `references/major-upgrade.md` 를 읽는다는 것과, `PKGS=(--pkg "NAME@SPEC")` 배열을 채워 `trial-update.mjs --range "${PKGS[@]}"` 를 돌리는 블록. 블록 앞에 배열에 1단계 표의 메이저 대상을 넣는다고 적는다. 타입 오류는 `tsc.log` 에서 파일과 줄을 읽어 수정량으로 적는다는 것.
 - 4절 구조와 유지보수성 검토: `references/review-axes.md` 에 따라 읽기 전용 검토를 하고, 높음 항목은 근거 파일과 줄을 직접 열어 확인하며 확인하지 못하면 「확인하지 않음」이라고 적는다는 것.
-- 5절 보고와 적용 경로 결정: 작업 단위 표(열: 단위, 내용, 규모, 먼저 정할 것), 버전을 바꾸는 단위에는 `references/major-upgrade.md` 「이유 표」를 붙인다는 것, 규모별 경로 표(시험을 마친 의존성 갱신과 몇 줄짜리 결함 수정은 이 세션에서 브랜치를 만들어 관심사별로 커밋, 여러 명령에 걸치거나 정책을 먼저 정해야 하는 것은 `planning` 으로 문서와 task 를 만든 뒤 `orchestration` 으로 넘긴다), 권장안을 먼저 적고 사용자가 정한다는 것, 의존성 갱신 커밋 본문에 이유 표를 패키지마다 한 줄씩 옮기고 `pnpm audit` 건수의 전후 변화와 남은 것의 이유를 적는다는 것, PR 은 사용자 확인 뒤 만든다는 것. 갱신을 적용할 때는 `trial-update.mjs` 가 남긴 `changes.patch` 를 작업 브랜치에서 `git apply` 한다는 것.
+- 5절 보고와 적용 경로 결정: 작업 단위 표(열: 단위, 내용, 규모, 먼저 정할 것), 버전을 바꾸는 단위에는 `references/major-upgrade.md` 「이유 표」를 붙인다는 것, 규모별 경로 표(시험을 마친 의존성 갱신과 몇 줄짜리 결함 수정은 이 세션에서 브랜치를 만들어 관심사별로 커밋, 여러 명령에 걸치거나 정책을 먼저 정해야 하는 것은 `planning` 으로 문서와 task 를 만든 뒤 `orchestration` 으로 넘긴다), 권장안을 먼저 적고 사용자가 정한다는 것, 의존성 갱신 커밋 본문에 이유 표를 패키지마다 한 줄씩 옮기고 `pnpm audit` 건수의 전후 변화와 남은 것의 이유를 적는다는 것, PR 은 사용자 확인 뒤 만든다는 것. 갱신을 적용할 때는 `trial-update.mjs` 가 남긴 `changes.patch` 를 작업 브랜치에서 `git apply` 하고 이어서 `pnpm install --frozen-lockfile` 로 node_modules 를 맞춘다는 것. patch 는 `os.tmpdir()` 아래에 있어 재부팅하면 사라지므로 적용 전에 있는지 확인하고 없으면 시험을 다시 돌린다는 것.
 
 ### 2. `.agents/skills/health-check/references/major-upgrade.md` 신규
 

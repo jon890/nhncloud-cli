@@ -7,7 +7,7 @@
 범위 안 갱신과 지정한 패키지 갱신을 메인 checkout 의 `worktrees/nhncloud-cli/` 아래 임시 worktree 에서 설치하고 타입 검사, 테스트, 빌드, 패키지 산출물 검증을 돌린 뒤 결과 표와 patch 를 남기고 worktree 를 지우는 스크립트를 만든다.
 작업 중인 checkout 의 `package.json` 과 `pnpm-lock.yaml` 을 건드리지 않고 메이저 갱신의 수정량을 재기 위해서다.
 
-**범위 외**: 실제 메이저 갱신(commander 15, ky 2, typescript 7, @types/node 26)의 판정과 적용. 이 phase 의 검증은 시험 경로가 동작하는지만 본다.
+**범위 외**: 실제 메이저 갱신(예: commander 15, ky 2, typescript 7, @types/node 26. 실제 목록은 실행 시점의 `pnpm outdated` 가 정한다)의 판정과 적용. 이 phase 의 검증은 시험 경로가 동작하는지만 본다.
 
 ## 컨텍스트
 
@@ -50,9 +50,9 @@
 1. `parseArgs` 가 던지면 stderr 에 메시지를 쓰고 2.
 2. `enterRepoRoot()`, `package.json` 의 `packageManager` 와 `pnpm --version` 을 `checkPnpmMajor` 로 확인. 메시지가 있으면 2.
 3. `mainCheckoutRoot()` 가 `null` 이면 2. `suffix` 는 `${Date.now()}-${process.pid}`. 경로가 이미 있으면 2. 상위 디렉터리는 `mkdirSync(..., { recursive: true })`.
-4. `git worktree add --detach WT HEAD` 실패 시 stderr 를 보여 주고 2. 성공한 바로 다음 줄에서 `try` 를 열고, 5~10 은 모두 그 안에서 돈다. worktree 정리는 11 의 `finally` 하나가 맡는다.
-5. 중단 판정에 `process.on("SIGINT")` 나 `process.on("SIGTERM")` 처리기를 쓰지 않는다. 자식을 `spawnSync` 로 돌리는 동안 node 이벤트 루프가 멈춰 처리기가 돌지 않는다(계획 시점 실측). 터미널의 Ctrl+C 는 자식에게도 가므로 자식 결과의 `signal` 이나 `status >= 128` 로 중단을 판정한다.
-6. 단계 실행은 `step(name, cmd, args, { judge = true })` 하나로 한다. `cwd: WT` 로 `run` 하고, 로그를 `outDir/<name>.log` 에 `$ cmd args` 머리와 stdout, stderr 로 쓰고, `{ name, status, signal, log, judge }` 를 쌓는다. 자식 결과의 `signal` 이 null 이 아니거나 `status >= 128` 이면 중단으로 보고 실패로 기록한 뒤 남은 단계를 건너뛰고 곧바로 `finally` 로 간다.
+4. `git worktree add --detach WT HEAD` 실패 시 stderr 를 보여 주고 2. 성공한 바로 다음에 stderr 에 worktree 경로와 `git worktree remove --force "WT"` 명령을 먼저 쓴다(강제 종료로 남아도 정리할 단서가 남게 한다). 그다음 줄에서 `try` 를 열고, 5~10 은 모두 그 안에서 돈다. worktree 정리는 11 의 `finally` 하나가 맡는다.
+5. `process.on("SIGINT", () => {})` 와 `process.on("SIGTERM", () => {})` 처리기를 등록해 node 가 죽지 않게 한다. 처리기가 없으면 Ctrl+C 에 node 가 즉시 죽어 `finally` 의 worktree 정리가 돌지 않는다(계획 검토 때 실측: 처리기 없음은 종료 코드 130 에 `finally` 미실행, no-op 처리기를 두면 `finally` 실행). 처리기 본문은 비워 둔다. 자식을 `spawnSync` 로 돌리는 동안 이벤트 루프가 멈춰 처리기는 돌지 않으므로 중단 판정에 쓰지 않는다. 터미널의 Ctrl+C 는 자식에게도 가므로 자식 결과의 `signal` 이나 `status >= 128` 로 중단을 판정한다.
+6. 단계 실행 루프는 `export function runSteps(steps, runner)` 로 분리한다. `steps` 는 `{ name, cmd, args, kind, judge }` 배열이고 `kind` 는 `"setup"`(설치, 갱신) 또는 `"check"`(`CHECK_STEPS`)다. `judge` 의 기본값은 true 다. `runner(step)` 은 `{ status, signal }` 을 돌려준다. `runSteps` 는 단계마다 `runner` 를 부르고 `{ name, status, signal, judge, kind }` 배열을 돌려준다. 자식 결과의 `signal` 이 null 이 아니거나 `status >= 128` 이면 중단으로 보고 실패로 기록한 뒤 남은 단계를 부르지 않는다. `kind` 가 `"setup"` 인 단계가 실패해도 남은 단계를 부르지 않고, `"check"` 단계는 하나가 실패해도 나머지를 돈다. 실제 `main()` 의 runner 는 `cwd: WT` 로 `run` 하고 로그를 `outDir/<name>.log` 에 `$ cmd args` 머리와 stdout, stderr 로 쓴 뒤 `log` 경로를 결과에 붙인다. 중단이면 곧바로 `finally` 로 간다.
 7. 차례: `pnpm install --frozen-lockfile`, `--range` 면 `pnpm update`, `splitByDepType` 의 `prod` 가 있으면 `pnpm add ...prod`, `dev` 와 `devPkgs` 를 합친 것이 있으면 `pnpm add -D ...`, 그다음 `CHECK_STEPS`. 설치나 갱신이 실패하면 검사 단계를 돌리지 않는다. 검사 단계는 하나가 실패해도 나머지를 돈다.
 8. `pnpm audit --json` 을 `judge: false` 로 돌리고 `parseAuditReport` 와 `classifyAdvisories`(worktree 의 갱신된 `package.json` 기준)로 읽는다.
 9. worktree 에서 `git diff -- package.json pnpm-lock.yaml` 을 `outDir/changes.patch` 로 쓴다.
@@ -72,6 +72,9 @@
 - `splitByDepType(["ky@^2", "typescript@^7"], new Set(["typescript"]))` 는 `{ prod: ["ky@^2"], dev: ["typescript@^7"] }`.
 - `trialWorktreePath("/repo", "1-2")` 는 `join("/repo", "worktrees", "nhncloud-cli", "health-check-1-2")`.
 - `CHECK_STEPS` 의 이름 목록이 `["tsc", "test", "build", "verify-package"]` 다.
+- `runSteps` 정상 경로: 가짜 runner 가 모두 `{ status: 0, signal: null }` 을 돌려주면 모든 단계를 순서대로 부르고 결과 길이가 같다.
+- `runSteps` 설치 실패: install 단계에서 `{ status: 1 }` 을 돌려주면 `CHECK_STEPS` 의 단계를 하나도 부르지 않는다(step 에 `kind: "setup"` 또는 `"check"` 를 둬 구분한다. setup 이 실패하면 check 를 건너뛰고, check 하나가 실패하면 나머지 check 는 돈다).
+- `runSteps` 중단: runner 가 `{ status: null, signal: "SIGINT" }` 를 돌려주면 그 뒤 단계를 부르지 않고, `status: 130` 도 같다.
 
 표본 값에 사내 도메인처럼 보이는 문자열이나 16자 이상 비밀값 같은 리터럴을 쓰지 않는다.
 
