@@ -38,9 +38,10 @@ nhncloud skm secret get <key-id> --quiet
 
 `--quiet`가 출력하는 값은 다음과 같다.
 
-- `keystore list`: `keyStoreId`
-- `key list`: `keyId`
+- `keystore list`·`keystore get`: `keyStoreId`
+- `key list`·`key get`: `keyId`
 - `secret get`: 기밀 데이터
+- `symmetric-key get`: 대칭키 원문
 - `symmetric-key encrypt`: 암호문
 - `symmetric-key decrypt`: 평문
 - `asymmetric-key sign`: 서명값
@@ -50,6 +51,7 @@ nhncloud skm secret get <key-id> --quiet
 - `key create`·`secret update`·`key delete|purge`: `keyId`
 - `keystore create|update|delete`: `keyStoreId`
 - `keystore auth add|delete|purge`: 입력한 IPv4·MAC 값(소문자로 정규화) 또는 인증서 이름
+- `keystore auth get`: 조회한 인증 정보의 값 또는 인증서 이름
 
 ## 쓰기 명령
 
@@ -100,6 +102,8 @@ nhncloud skm secret get <key-id> --json | jq -j '.secret' > secret.txt
 ```
 인증서 인증 상세의 `password`는 `***`로 가린다.
 `secret update`는 바꾼 값을 출력하지 않는다.
+`symmetric-key get`은 대칭키 원문을 stdout에 낸다.
+`key get`, `keystore get`, `keystore auth get`은 메타데이터만 출력하고 키 원문과 인증서 비밀번호는 내지 않는다.
 비밀값 명령의 stdout을 로그나 이슈, 채팅에 붙이지 않는다.
 
 ## 서명 검증 종료 코드

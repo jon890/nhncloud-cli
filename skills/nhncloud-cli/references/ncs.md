@@ -60,7 +60,7 @@ nhncloud ncs workload events <workload-id> --task <task-id> --type Warning --jso
 
 ### logs·events 시간 필터
 
-`--from`과 `--to`는 다음 두 형식을 받는다.
+`--from`과 `--to`는 다음 형식을 받는다.
 
 - 시간대와 초를 포함한 RFC3339 절대시간
 - `now`

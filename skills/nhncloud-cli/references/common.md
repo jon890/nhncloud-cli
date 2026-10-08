@@ -75,7 +75,7 @@ nhncloud skills uninstall --quiet
 
 공공망 profile에는 `~/.nhncloud/credentials.json`의 해당 profile 블록에 `"environment": "gov"`를 명시한다.
 기존 profile은 이 필드를 생략하면 일반망을 사용한다.
-현재 공공망 endpoint 선택 대상은 OAuth, Deploy, NCR, IaaS이며 공공망에서 주소가 확인되지 않은 API는 호출하지 않는다.
+공공망에서 주소가 확인되지 않은 API는 호출하지 않는다.
 `configure`의 연결 테스트는 일반망 주소를 사용한다. 공공망 자격증명은 `--no-verify`로 저장하고, profile에 `environment`를 추가한 뒤 조회 명령으로 확인한다.
 
 ```bash
@@ -175,8 +175,6 @@ nhncloud commands
 nhncloud commands --json
 nhncloud commands --json | jq '.commands[] | select(.path=="nks cluster list")'
 ```
-
-AI 에이전트는 먼저 `commands --json`으로 실제 command path와 option 이름을 확인하고, 그다음 서비스 reference를 읽는다.
 
 ## 되돌릴 수 없는 명령
 
