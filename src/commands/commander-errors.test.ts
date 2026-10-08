@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { EXIT_PARAM_ERROR } from "../utils/exit-codes.js";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { configureCommanderExitCodes } from "./commander-errors.js";
@@ -78,6 +78,96 @@ describe("configureCommanderExitCodes", () => {
       exitCode: 1,
     });
     expect(output().stderr).toBe("error: unknown option '--unknown'\n");
+  });
+
+  describe("알 수 없는 옵션의 위치 인수 안내", () => {
+    const hint =
+      "안내: --instance-id 는 옵션이 아닙니다. 위치 인수 <id> 로 전달하세요.\n" +
+      "사용법: nhncloud instance get [options] <id>\n";
+
+    function createInstanceTree(configureGet?: (get: Command) => void) {
+      let stdout = "";
+      let stderr = "";
+      const output = {
+        writeOut: (text: string) => {
+          stdout += text;
+        },
+        writeErr: (text: string) => {
+          stderr += text;
+        },
+      };
+      const action = vi.fn();
+      const get = new Command("get")
+        .argument("<id>")
+        .option("--region <region>")
+        .action(action);
+      configureGet?.(get);
+      const instance = new Command("instance").addCommand(get);
+      const root = new Command("nhncloud").option("--json").addCommand(instance);
+      for (const command of [root, instance, get]) {
+        command.configureOutput(output);
+      }
+      configureCommanderExitCodes(root);
+
+      return { root, action, output: () => ({ stdout, stderr }) };
+    }
+
+    it("위치 인수 이름을 옵션으로 부르면 오류 줄 뒤에 안내를 붙인다", async () => {
+      const { root, action, output } = createInstanceTree();
+
+      await expect(root.parseAsync(
+        ["instance", "get", "--instance-id", "x"],
+        { from: "user" },
+      )).rejects.toMatchObject({ code: "commander.unknownOption", exitCode: 1 });
+      expect(output().stderr).toBe(`error: unknown option '--instance-id'\n${hint}`);
+      expect(output().stdout).toBe("");
+      expect(action).not.toHaveBeenCalled();
+    });
+
+    it("--json 을 함께 줘도 안내는 stderr에만 나온다", async () => {
+      const { root, output } = createInstanceTree();
+
+      await expect(root.parseAsync(
+        ["instance", "get", "--instance-id", "x", "--json"],
+        { from: "user" },
+      )).rejects.toMatchObject({ code: "commander.unknownOption", exitCode: 1 });
+      expect(output().stdout).toBe("");
+      expect(output().stderr).toContain(hint);
+    });
+
+    it("옵션 이름 오타에는 Commander 제안만 남기고 안내를 붙이지 않는다", async () => {
+      const { root, output } = createInstanceTree();
+
+      await expect(root.parseAsync(
+        ["instance", "get", "--regoin", "x"],
+        { from: "user" },
+      )).rejects.toMatchObject({ code: "commander.unknownOption", exitCode: 1 });
+      expect(output().stderr).toContain("(Did you mean --region?)");
+      expect(output().stderr).not.toContain("안내:");
+    });
+
+    it("Commander가 비슷한 옵션을 제안하면 안내를 붙이지 않는다", async () => {
+      const { root, output } = createInstanceTree((get) => {
+        get.option("--instance <name>");
+      });
+
+      await expect(root.parseAsync(
+        ["instance", "get", "--instance-id", "x"],
+        { from: "user" },
+      )).rejects.toMatchObject({ code: "commander.unknownOption", exitCode: 1 });
+      expect(output().stderr).toContain("(Did you mean --instance?)");
+      expect(output().stderr).not.toContain("안내:");
+    });
+
+    it("위치 인수가 없는 그룹 명령의 알 수 없는 옵션에는 안내를 붙이지 않는다", async () => {
+      const { root, output } = createInstanceTree();
+
+      await expect(root.parseAsync(
+        ["instance", "--foo"],
+        { from: "user" },
+      )).rejects.toMatchObject({ code: "commander.unknownOption", exitCode: 1 });
+      expect(output().stderr).toBe("error: unknown option '--foo'\n");
+    });
   });
 
   it("도움말과 버전은 exit 0을 유지한다", async () => {

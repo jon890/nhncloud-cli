@@ -25,6 +25,41 @@ Commander가 먼저 발견한 누락은 기존 영문 오류를 stderr에 한 �
 도움말과 버전 출력은 종료 코드 0이다.
 `--json`과 `--quiet`은 파서 오류를 데이터 출력으로 바꾸지 않는다.
 
+알 수 없는 옵션의 이름이 그 명령의 위치 인수를 가리키면, Commander 오류 줄 뒤에 안내 두 줄을 stderr에 덧붙인다.
+첫 줄은 그 값을 어느 위치 인수로 넘기는지, 둘째 줄은 Commander가 만든 그 명령의 사용법이다.
+명령마다 문구를 두지 않고 Commander에 등록된 인수 이름과 명령 경로로 만든다.
+
+```text
+$ nhncloud instance get --instance-id <instance-id>
+error: unknown option '--instance-id'
+안내: --instance-id 는 옵션이 아닙니다. 위치 인수 <id> 로 전달하세요.
+사용법: nhncloud instance get [options] <id>
+```
+
+옵션 이름이 위치 인수를 가리킨다고 보는 경우는 셋이다.
+비교 전에 `--`와 `=값`을 떼고, camelCase로 선언한 인수 이름(`volumeId`)은 kebab-case(`volume-id`)로 바꾼다.
+
+| 판정 | 예 |
+|---|---|
+| 인수 이름과 같다 | `instance volume detach`의 `--volume-id`와 `<volumeId>` |
+| 인수 이름이 `<옵션 이름>-`으로 시작하고 그런 인수가 하나뿐이다 | `instance security-group add`의 `--instance`와 `<instance-id>` |
+| 옵션 이름이 `<명령 경로의 한 단계 이름>-<인수 이름>`이다 | `instance get`의 `--instance-id`와 `<id>` |
+
+첫 판정에 맞는 인수가 있으면 그것을 안내한다.
+없으면 둘째와 셋째 판정에 맞는 인수를 모으고, 정확히 하나일 때만 안내한다.
+셋째 판정은 그 명령의 다른 인수 이름과 같은 단계를 쓰지 않는다. `ncs template version get <id> <version>` 의 `--version-id` 가 템플릿 ID 를 가리키지 않게 하기 위해서다.
+어느 판정에도 맞지 않거나 후보가 둘 이상이면 Commander 오류 줄만 남긴다.
+짧은 옵션(`-x`)과 옵션 이름 오타는 다루지 않는다.
+오타는 Commander가 `(Did you mean ...)`으로 이미 제안한다.
+Commander가 비슷한 옵션을 제안했으면 판정이 맞아도 안내를 붙이지 않는다.
+`instance volume attach <id> --volume <volumeId>`에 `--volume-id`를 더하면 셋째 판정이 `<id>`를 가리키지만, 실제 의도는 제안된 `--volume`이다.
+필수 옵션이 빠진 호출은 Commander가 필수 옵션 누락을 먼저 보고하므로 안내가 붙지 않는다.
+
+안내는 종료 코드와 stdout을 바꾸지 않는다.
+`--json`이나 `--quiet`을 함께 줘도 안내는 stderr에 나간다.
+알 수 없는 옵션을 위치 인수로 해석해 명령을 실행하지도 않는다.
+틀린 호출이 성공하면 호출자가 무엇이 틀렸는지 알 수 없고, 이름이 겹치지 않는 값이 엉뚱한 인수로 들어갈 수 있기 때문이다.
+
 ## 최초 설정
 
 `nhncloud configure`는 대화형 입력과 CI용 flag 입력을 모두 지원한다.
@@ -80,7 +115,7 @@ flowchart TD
 
 ## 명령 탐색
 
-사람은 단계별 help로 범위를 줄여 간다.
+사람은 단계별 help로 범위를 줄여 가며 찾는다.
 
 ```bash
 nhncloud --help
