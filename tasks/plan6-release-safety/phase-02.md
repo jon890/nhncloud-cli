@@ -24,6 +24,8 @@
 - 호스트를 허용 목록과 **호스트 경계로** 비교한다(부분 문자열 금지).
 - 찾은 위치를 `파일:줄:값` 으로 stdout 에 내고 종료 코드 1, 깨끗하면 0, 필수 경로를 못 읽으면 2.
 - 함수(`walkFiles`, `findForeignDomains`, `findSecrets`, `main`)를 export 하고, 직접 실행될 때만 `main()` 을 돈다.
+- 도메인은 dooray-cli 와 같은 정규식으로 뽑는다: `/(https?:\/\/|@)([A-Za-z0-9.-]+\.(?:com|co\.kr|net)[A-Za-z0-9.-]*)/g`. 끝의 `[A-Za-z0-9.-]*` 가 없으면 허용 도메인 뒤에 다른 도메인을 붙인 주소가 허용 호스트로 잘려 통과한다. 호스트는 소문자로 바꿔 비교한다.
+- `SCAN` 은 `README.md`, `skills/`, `docs/`, `AGENTS.md`, `src/`, `.agents/`, `.claude/`, `.github/`, `scripts/` 다. `.codex/` 는 넣지 않는다(다른 PR 이 그 디렉터리를 없앤다). `OPTIONAL_SCAN` 은 `tasks/` 다.
 
 **근거 문서**: `docs/code-architecture.md` 「최상위 경계」 표의 `scripts/` 행, `AGENTS.md` 「공개 저장소 정보 보호」 절.
 
@@ -34,7 +36,9 @@
   - `OK_DOMAINS`: 정확히 같을 때만 허용. `github.com`, `npmjs.com`, `www.npmjs.com`, `anthropic.com`, `openai.com`, `claude.com`, `api-lncs-search.alpha-nhncloudservice.com`.
   - alpha 호스트는 ADR-024, ADR-036 이 링크한 공개 명세 주소다. 다른 alpha 호스트가 새로 들어오면 걸리도록 접미사로 허용하지 않는다.
 - 비밀값 패턴은 지금 grep 과 같은 뜻을 유지한다. 넓히지 않는다. 새로 걸리는 것이 생기면 이 phase 의 범위를 넘는다.
-- 테스트는 대조 표본으로 검출력을 확인한다. 허용 도메인의 typosquat(`nhncloud.com.evil.net`, `evilnhncloud.com`)이 걸리는지, 허용 도메인의 하위 호스트(`api-keymanager.nhncloudservice.com`)는 통과하는지를 본다.
+- 테스트는 대조 표본으로 검출력을 확인한다. 허용 도메인 뒤에 다른 도메인을 붙인 주소, 허용 도메인 앞에 글자를 붙인 주소가 걸리는지, 허용 도메인의 하위 호스트(`api-keymanager.nhncloudservice.com`)는 통과하는지를 본다.
+- `scripts/` 도 검사 대상이므로, 테스트의 위반 표본 문자열은 런타임에 조각을 이어 만든다. 예: `"https://wiki.internal-corp" + ".com"`. 그대로 쓰면 테스트 파일 자신이 검사에 걸린다.
+- `.gitignore` 의 다른 항목과 `dist/`, `node_modules/`, `worktrees/` 는 건너뛰는 디렉터리로 처리한다.
 
 ## 작업 항목
 
@@ -44,8 +48,10 @@
 
 ### 2. `scripts/check-pii.test.mjs` 신규
 
-- `findForeignDomains`: 허용 호스트와 하위 호스트는 빈 결과, typosquat 두 표본과 `https://wiki.internal-corp.com` 은 걸린다.
-- `findSecrets`: `secret: "AbCdEfGhIjKlMnOp1234"` 는 걸리고 `password = "short"` 와 `<secret>` placeholder 는 걸리지 않는다.
+- `findForeignDomains`: 허용 호스트와 하위 호스트는 빈 결과다. 표본은 런타임에 조각을 이어 만든다.
+  - 걸려야 하는 표본: `docs.nhncloud` 뒤에 `.com.evil.io` 를 붙인 주소, `evilnhncloud` 뒤에 `.com` 을 붙인 주소, `wiki.internal-corp` 뒤에 `.com` 을 붙인 주소
+  - 통과해야 하는 표본: 대문자로 쓴 허용 도메인 `DOCS.NHNCLOUD.COM`
+- `findSecrets`: `secret` 키에 16자 이상 영숫자 값을 따옴표로 준 줄은 걸리고, 짧은 값과 `<secret>` placeholder 는 걸리지 않는다.
 - `main({ cwd })`: 임시 디렉터리(`fs.mkdtemp`)에 필수 경로를 만들고 위반 파일 하나를 넣으면 1, 지우면 0, 필수 경로 하나를 빼면 2.
 
 ### 3. `package.json`
@@ -83,7 +89,7 @@ git grep -n 'grep -rnoE\|grep -rnE' -- AGENTS.md
 
 - 두 번째 줄은 `exit=0` 이어야 한다. 지금 저장소에 위반이 있으면 고치지 말고 위치를 보고한다.
 - 마지막 줄은 0건이어야 한다.
-- 대조 표본: `docs/` 에 `https://wiki.internal-corp.com/x` 한 줄을 담은 임시 파일을 만들어 `exit=1` 과 그 위치가 출력되는지 보고 파일을 지운다.
+- 대조 표본: `docs/` 에 사내처럼 보이는 도메인(`wiki.internal-corp` 에 `.com` 을 붙인 주소) 한 줄을 담은 임시 파일을 만들어 `exit=1` 과 그 위치가 출력되는지 보고 파일을 지운다.
 
 ## 변경 파일
 

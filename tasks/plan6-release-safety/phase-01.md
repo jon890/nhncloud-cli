@@ -7,7 +7,7 @@
 `nhncloud --version` 이 `package.json` 의 `version` 과 항상 같게 하고, 게시할 산출물이 그 버전과 공개 스킬 파일을 담았는지 검사하는 스크립트를 만든다.
 지금은 `src/index.ts` 의 `.version("0.18.0")` 과 `package.json` 을 릴리스 때 손으로 함께 바꿔야 한다.
 
-**범위 외**: 공개 정보 검사(phase 02), pnpm 고정과 CI 단계 추가(phase 03), 릴리스 스킬 문서 수정(별도 계획).
+**범위 외**: 공개 정보 검사(phase 02), pnpm 고정과 CI 단계 추가(phase 03). 릴리스 자동화는 다음 계획(plan7)이 맡지만, 이 phase 가 없애는 문자열을 가리키는 릴리스 스킬 두 줄은 여기서 고친다.
 
 ## 컨텍스트
 
@@ -63,14 +63,22 @@ export const CLI_VERSION: string =
 
 `scripts` 에 `"verify:package": "node scripts/verify-package.mjs"` 를 더한다. `version` 은 바꾸지 않는다.
 
-### 7. 테스트 실행 범위
+### 7. `.agents/skills/release/SKILL.md` 「5. 버전 범프」 절
+
+「`package.json` 의 `version` 과 `src/index.ts` 의 `.version("x.y.z")` 두 곳을 …」 두 줄을 「`package.json` 의 `version` 만 `$VERSION` 으로 바꾼다. CLI 버전은 빌드 때 그 값에서 주입된다.」 로 바꾸고, 같은 절의 `git add package.json src/index.ts` 를 `git add package.json` 으로 바꾼다. 다른 절은 건드리지 않는다.
+
+### 8. 테스트 실행 범위
 
 `vitest.config.ts` 의 `test.include` 를 `["src/**/*.test.ts", "scripts/**/*.test.mjs"]` 로 넓힌다. 이 phase 에는 `scripts/` 테스트가 없지만 phase 02 가 쓴다.
 
 ## 검증
 
+먼저 의존성을 설치한다. `pnpm install` 이 esbuild 승인 문제로 실패하면 `AGENTS.md` 「빌드와 검증」 절의 우회 절차를 따른다.
+
 ```bash
-git grep -n '"0\.18\.0"\|\.version("' -- src
+pnpm install
+git grep -n '"0\.18\.0"' -- src
+git grep -n '\.version("' -- src/index.ts
 node_modules/.bin/vitest run src/version.test.ts
 node_modules/.bin/tsc --noEmit
 node_modules/.bin/vitest run
@@ -79,7 +87,7 @@ node dist/index.js --version
 node scripts/verify-package.mjs; echo "exit=$?"
 ```
 
-- 첫 줄은 0건이어야 한다.
+- 두 `git grep` 은 모두 0건이어야 한다. `src/commands/*.test.ts` 의 `.version("1.0.0")` 같은 테스트 전용 리터럴은 대상이 아니다.
 - `node dist/index.js --version` 은 `package.json` 의 `version` 과 같아야 한다.
 - `verify-package.mjs` 는 `exit=0` 이어야 한다.
 - 실패를 잡는지 대조 표본으로 확인한다: `package.json` 의 `version` 을 임시로 `9.9.9` 로 바꾸고 빌드하지 않은 채 `node scripts/verify-package.mjs` 를 돌려 `exit=1` 과 버전 불일치 메시지를 확인한 뒤 되돌린다. 되돌린 뒤 `git diff package.json` 에 `version` 변화가 없어야 한다.
@@ -95,3 +103,4 @@ node scripts/verify-package.mjs; echo "exit=$?"
 | `scripts/verify-package.mjs` | 신규 |
 | `package.json` | 수정 |
 | `vitest.config.ts` | 수정 |
+| `.agents/skills/release/SKILL.md` | 수정 |
