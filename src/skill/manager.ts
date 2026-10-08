@@ -629,12 +629,13 @@ async function rollbackLinkSwitches(
 ): Promise<{ failed: string[]; preservedBackups: string[]; firstError?: unknown }> {
   const failed: string[] = [];
   const preservedBackups: string[] = [];
+  const removeEntry = operations.rm ?? defaultOperations.rm;
   let firstError: unknown;
 
   for (const entry of [...switches].reverse()) {
     try {
       if (entry.activated && entry.backup) {
-        await rm(entry.destination, { force: true });
+        await removeEntry(entry.destination, { force: true });
         await operations.rename(entry.backup, entry.destination);
       } else if (entry.activated && entry.previousRawTarget !== undefined) {
         const restoreLink = temporaryLinkPath(entry.destination);
@@ -642,7 +643,7 @@ async function rollbackLinkSwitches(
         await symlink(entry.previousRawTarget, restoreLink);
         await operations.rename(restoreLink, entry.destination);
       } else if (entry.activated && entry.previous.status === "missing") {
-        await rm(entry.destination, { force: true });
+        await removeEntry(entry.destination, { force: true });
       } else if (!entry.activated && entry.backup) {
         await operations.rename(entry.backup, entry.destination);
       }
@@ -706,8 +707,12 @@ async function switchActiveLinks(
     if (failedAfterVerification) {
       throw failure;
     }
+    const changed = switches.filter((entry) => entry.activated || entry.backup !== undefined);
+    if (changed.length === 0) {
+      throw managerError("스킬 전환을 시작하지 못해 어떤 경로도 바꾸지 않았습니다", failure);
+    }
     throw managerError(
-      `스킬 전환에 실패해 바꾼 경로를 이전 상태로 되돌렸습니다: ${switches.map((entry) => entry.destination).join(", ")}`,
+      `스킬 전환에 실패해 바꾼 경로를 이전 상태로 되돌렸습니다: ${changed.map((entry) => entry.destination).join(", ")}`,
       failure,
     );
   } finally {
@@ -871,8 +876,11 @@ interface UninstallTarget {
   destination: string;
   resolvedDestination: string;
   linkTarget: string;
-  candidate?: string;
-  rawTarget?: string;
+}
+
+interface MovedUninstallTarget extends UninstallTarget {
+  candidate: string;
+  rawTarget: string;
 }
 
 /** 실제 경로가 같은 에이전트 경로를 하나로 합친 제거 대상을 만든다. 없는 경로는 대상이 아니다. */
@@ -937,35 +945,33 @@ function uninstallRollbackError(
 
 /** 이동한 candidate 들을 모두 원래 위치로 되돌린 뒤 실패한다. */
 async function rollbackMovedCandidates(
-  moved: UninstallTarget[],
+  moved: Array<Pick<MovedUninstallTarget, "destination" | "candidate">>,
   operations: SkillManagerOperations,
   originalError: unknown,
 ): Promise<never> {
   const results: Array<{ destination: string; result: CandidateRestore }> = [];
   for (const target of [...moved].reverse()) {
-    if (target.candidate) {
-      results.push({
-        destination: target.destination,
-        result: await tryRestoreCandidate(target.candidate, target.destination, operations),
-      });
-    }
+    results.push({
+      destination: target.destination,
+      result: await tryRestoreCandidate(target.candidate, target.destination, operations),
+    });
   }
   throw uninstallRollbackError(results, originalError, "옮긴 경로");
 }
 
-/** 활성 링크를 candidate 로 옮기고 검사 때와 같은 링크인지 다시 확인한다. 이동 중 ENOENT 면 false 다. */
+/** 활성 링크를 candidate 로 옮기고 검사 때와 같은 링크인지 다시 확인한다. 이동 중 ENOENT 면 undefined 다. */
 async function moveUninstallCandidate(
   target: UninstallTarget,
-  moved: UninstallTarget[],
+  moved: MovedUninstallTarget[],
   operations: SkillManagerOperations,
-): Promise<boolean> {
+): Promise<MovedUninstallTarget | undefined> {
   const { destination } = target;
   const candidate = path.join(path.dirname(destination), `.${SKILL_NAME}.uninstall-${randomUUID()}`);
   try {
     await operations.rename(destination, candidate);
   } catch (error) {
     if (isNodeError(error, "ENOENT")) {
-      return false;
+      return undefined;
     }
     const moveError = managerError(`활성 스킬 링크를 제거용 임시 경로로 이동할 수 없습니다: ${destination}`, error);
     if (moved.length === 0) {
@@ -973,16 +979,15 @@ async function moveUninstallCandidate(
     }
     return await rollbackMovedCandidates(moved, operations, moveError);
   }
-  target.candidate = candidate;
-
+  let rawTarget: string | undefined;
   let verificationError: unknown;
   try {
     const candidateStat = await lstat(candidate);
     if (!candidateStat.isSymbolicLink()) {
       verificationError = new Error("검사 후 활성 경로가 심볼릭 링크가 아닌 항목으로 변경되었습니다.");
     } else {
-      target.rawTarget = await readlink(candidate);
-      if (resolveLinkTarget(destination, target.rawTarget) !== target.linkTarget) {
+      rawTarget = await readlink(candidate);
+      if (resolveLinkTarget(destination, rawTarget) !== target.linkTarget) {
         verificationError = new Error("검사 후 활성 스킬 링크 대상이 변경되었습니다.");
       }
     }
@@ -990,31 +995,37 @@ async function moveUninstallCandidate(
     verificationError = error;
   }
 
-  if (verificationError !== undefined) {
+  if (verificationError !== undefined || rawTarget === undefined) {
     if (moved.length === 0) {
       return await restoreUninstallCandidate(candidate, destination, operations, verificationError);
     }
-    return await rollbackMovedCandidates([...moved, target], operations, verificationError);
+    return await rollbackMovedCandidates([...moved, { destination, candidate }], operations, verificationError);
   }
-  return true;
+  return { ...target, candidate, rawTarget };
 }
 
 /** candidate 들을 지운다. 하나라도 실패하면 지운 경로와 남은 경로를 모두 이전 상태로 되돌린다. */
 async function removeUninstallCandidates(
-  moved: UninstallTarget[],
+  moved: MovedUninstallTarget[],
   operations: SkillManagerOperations,
 ): Promise<void> {
   const removeEntry = operations.rm ?? defaultOperations.rm;
   for (const [index, target] of moved.entries()) {
     try {
-      await removeEntry(target.candidate as string, { force: true });
+      await removeEntry(target.candidate, { force: true });
     } catch (originalError) {
+      if (index === 0) {
+        if (moved.length === 1) {
+          return await restoreUninstallCandidate(target.candidate, target.destination, operations, originalError);
+        }
+        return await rollbackMovedCandidates(moved, operations, originalError);
+      }
       const results: Array<{ destination: string; result: CandidateRestore }> = [];
       for (const [restoreIndex, entry] of moved.entries()) {
         const result =
           restoreIndex < index
-            ? await tryRestoreRemovedLink(entry.destination, entry.rawTarget as string, operations)
-            : await tryRestoreCandidate(entry.candidate as string, entry.destination, operations);
+            ? await tryRestoreRemovedLink(entry.destination, entry.rawTarget, operations)
+            : await tryRestoreCandidate(entry.candidate, entry.destination, operations);
         results.push({ destination: entry.destination, result });
       }
       throw uninstallRollbackError(results, originalError, "지운 경로");
@@ -1033,23 +1044,20 @@ export async function uninstallSkill(
 ): Promise<SkillUninstallResult> {
   const targets = await planUninstallTargets(context);
 
-  const moved: UninstallTarget[] = [];
+  const moved: MovedUninstallTarget[] = [];
   for (const target of targets) {
-    if (await moveUninstallCandidate(target, moved, operations)) {
-      moved.push(target);
+    const movedTarget = await moveUninstallCandidate(target, moved, operations);
+    if (movedTarget) {
+      moved.push(movedTarget);
     }
   }
   await removeUninstallCandidates(moved, operations);
 
-  const agents = Object.fromEntries(
-    SKILL_AGENTS.map((agent) => [
-      agent,
-      {
-        action: moved.some((target) => target.agents.includes(agent)) ? "removed" : "absent",
-        destination: destinationPath(context, agent),
-      },
-    ]),
-  ) as SkillUninstallResult["agents"];
+  const agentResult = (agent: SkillAgent): { action: SkillUninstallAction; destination: string } => ({
+    action: moved.some((target) => target.agents.includes(agent)) ? "removed" : "absent",
+    destination: destinationPath(context, agent),
+  });
+  const agents: SkillUninstallResult["agents"] = { claude: agentResult("claude"), codex: agentResult("codex") };
   return {
     action: SKILL_AGENTS.some((agent) => agents[agent].action === "removed") ? "removed" : "absent",
     agents,

@@ -42,7 +42,7 @@ nhncloud skills update
 | `unmanaged` | 한 경로라도 사용자가 만든 파일·디렉터리 또는 알 수 없는 링크가 설치 경로를 차지함 | 내용을 확인한 뒤 `nhncloud skills update --force` |
 
 상태는 설치 경로를 합친 값이고 위 표의 `corrupt`부터 `current` 방향으로 먼저 해당하는 값이다.
-`--json`의 `destination`, `linkTarget`, `managed`는 Claude Code 경로 값이며 경로별 상세는 `agents.*`에 있다.
+`status --json`의 최상위 `destination`, `linkTarget`, `managed`는 Claude Code 경로 값이다. 경로별 상세의 위치는 아래 `--json` 설명이 명령별로 정한다.
 
 두 경로가 모두 `current` 일 때만 상태가 `current` 다.
 
@@ -69,8 +69,10 @@ nhncloud skills uninstall --quiet
 ```
 
 `--json`은 상태·변경 여부·백업 경로처럼 자동화에 필요한 필드를 제공한다.
-경로별 상세는 `agents.claude`, `agents.codex` 에 있다.
-최상위 필드는 합친 `status` 를 빼면 Claude Code 경로의 상세다.
+경로별 정보는 `agents.claude`, `agents.codex` 에 있고 위치는 명령마다 다르다.
+`status` 는 최상위 `agents.*` 에 경로별 상세를 두고, 최상위 필드는 합친 `status` 를 빼면 Claude Code 경로의 상세다.
+`install` 과 `update` 는 `status.agents.*` 에 경로별 상세를 둔다.
+`uninstall` 은 최상위 `agents.*` 에 경로별 `action` 과 `destination` 을 둔다.
 `--quiet`은 상태 토큰 하나만 stdout에 출력한다.
 
 Codex 에서는 `$nhncloud-cli` 로 스킬을 부를 수 있다.

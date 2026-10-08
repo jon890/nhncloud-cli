@@ -522,6 +522,30 @@ describe("두 에이전트 경로", () => {
     expect(await readFile(claudeFile, "utf8")).toBe("Claude 사용자 내용\n");
   });
 
+  it("첫 경로의 백업부터 실패하면 어떤 경로도 바꾸지 않았다고 알린다", async () => {
+    const claudeFile = await writeUserDirectory(destination("claude"), "Claude 사용자 내용\n");
+    const claudeBackupPrefix = `${destination("claude")}.backup-`;
+    const operations: SkillManagerOperations = {
+      async rename(oldPath, newPath) {
+        if (oldPath === destination("claude") && typeof newPath === "string" && newPath.startsWith(claudeBackupPrefix)) {
+          throw new Error("의도한 Claude Code 백업 실패");
+        }
+        await fsRename(oldPath, newPath);
+      },
+    };
+
+    const error = await installSkill(context, { force: true }, operations).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(NhnCloudCliError);
+    const message = (error as NhnCloudCliError).message;
+    expect(message).toContain("스킬 전환을 시작하지 못해 어떤 경로도 바꾸지 않았습니다");
+    expect(message).toContain("의도한 Claude Code 백업 실패");
+    expect(message).not.toContain("이전 상태로 되돌렸습니다");
+    expect(await readFile(claudeFile, "utf8")).toBe("Claude 사용자 내용\n");
+    await expect(lstat(destination("codex"))).rejects.toMatchObject({ code: "ENOENT" });
+    expect(await leftoverTemporaryLinks()).toEqual([]);
+  });
+
   it("전환 뒤 사후 검사가 current가 아니면 두 경로를 이전 상태로 되돌린다", async () => {
     const previousRepository = await installOutdated();
     const operations: SkillManagerOperations = {
@@ -744,6 +768,29 @@ describe("두 에이전트 경로 제거", () => {
     expect(await readlink(destination("claude"))).toBe(claudeLink);
     expect(await readlink(destination("codex"))).toBe(codexLink);
     expect(claudeLink).toBe(installed.repositoryPath);
+    expect(await leftoverTemporaryLinks(".nhncloud-cli.")).toEqual([]);
+  });
+
+  it("경로가 하나뿐일 때 candidate 삭제가 실패하면 지우지 않고 원래 위치로 복원했다고 알린다", async () => {
+    const installed = await installSkill(context);
+    await rm(destination("codex"));
+    const operations: SkillManagerOperations = {
+      rename: fsRename,
+      async rm(target, options) {
+        if (typeof target === "string" && path.basename(target).startsWith(".nhncloud-cli.uninstall-")) {
+          throw new Error("의도한 삭제 실패");
+        }
+        await rm(target, options);
+      },
+    };
+
+    const error = await uninstallSkill(context, operations).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(NhnCloudCliError);
+    const message = (error as NhnCloudCliError).message;
+    expect(message).toContain("활성 스킬 링크를 제거하지 않고 원래 위치로 복원했습니다");
+    expect(message).not.toContain("지운 경로");
+    expect(await readlink(destination("claude"))).toBe(installed.repositoryPath);
     expect(await leftoverTemporaryLinks(".nhncloud-cli.")).toEqual([]);
   });
 });
