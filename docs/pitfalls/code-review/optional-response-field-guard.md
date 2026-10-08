@@ -38,7 +38,7 @@ grep -rn "function is.*(val: unknown)" src/services/
 그 필드가 type 에만 있고 guard 에 없지는 않은가?
 비정상 타입 응답을 `EXIT_API_ERROR` 로 거부하는 test 가 있는가?
 
-**Why**: PR43(plan032) — `Volume.availability_zone?: string` 을 추가했지만 `isVolume` 은 해당 필드를 검증하지 않아 숫자 응답도 통과했다.
+**Why**: PR #43 — `Volume.availability_zone?: string` 을 추가했지만 `isVolume` 은 해당 필드를 검증하지 않아 숫자 응답도 통과했다.
 code-reviewer 가 `availability_zone: 123` 회귀를 지적했고, guard + test 로 수정했다.
 
 관련: [[nullable-field-string-only-guard]], [[optional-field-as-cast-return]]

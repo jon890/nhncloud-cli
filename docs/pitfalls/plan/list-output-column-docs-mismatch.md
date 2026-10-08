@@ -16,6 +16,6 @@ related: []
 
 **Self-check**: docs 의 "(컬럼1·컬럼2·…)" 가 실제 `headers` 배열 길이·원소와 일치하는가? AGENTS.md·flow.md·README 세 곳의 컬럼 나열이 서로, 그리고 코드와 일관되는가?
 
-**Why**: PR #23 (plan018) docs-verifier UPDATE_NEEDED — `floatingip list` headers 는 `[id, floating_ip_address, status, port_id, fixed_ip_address]` 5개인데 AGENTS.md·flow.md 가 `fixed_ip_address` 누락한 4개로 기재. 두 곳 보강으로 해소. 새 list 명령마다 재발 가능.
+**Why**: PR #23 docs-verifier UPDATE_NEEDED — `floatingip list` headers 는 `[id, floating_ip_address, status, port_id, fixed_ip_address]` 5개인데 AGENTS.md·flow.md 가 `fixed_ip_address` 누락한 4개로 기재. 두 곳 보강으로 해소. 새 list 명령마다 재발 가능.
 
-> **확장 — 옵션 표도 동일**: README/SKILL 의 새 명령 **옵션 목록**도 commander `.option(...)` 정의와 1:1 이어야 한다. 특히 수치 옵션의 범위·기본값(`--size` 범위 10~100·기본 100)을 docs 에 빠뜨리면 사용자가 허용값을 모른다. `grep -nE "\.option\(" src/commands/<svc>/<cmd>.ts` → README/SKILL 옵션 표와 대조. (PR #24 plan019 docs-verifier UPDATE — export `--size` 범위·`--profile` 가 README 표에 누락.)
+> **확장 — 옵션 표도 동일**: README/SKILL 의 새 명령 **옵션 목록**도 commander `.option(...)` 정의와 1:1 이어야 한다. 특히 수치 옵션의 범위·기본값(`--size` 범위 10~100·기본 100)을 docs 에 빠뜨리면 사용자가 허용값을 모른다. `grep -nE "\.option\(" src/commands/<svc>/<cmd>.ts` → README/SKILL 옵션 표와 대조. (PR #24 docs-verifier UPDATE — export `--size` 범위·`--profile` 가 README 표에 누락.)

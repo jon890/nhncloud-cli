@@ -4,7 +4,7 @@ category: code-review
 title: 옵션과 positional 중복 입력에서 silent fallback (`opts.X ?? positional`)
 triggers: [옵션, positional, silent fallback]
 tool_catchable: false
-source: [PR46]
+source: []
 related: []
 ---
 

@@ -7,14 +7,13 @@ skills 가 공유하는 회피 패턴 모음. **모놀리식 문서가 아니라
 
 1. 이 INDEX 의 **라우터 표**에서 지금 작업의 변경 유형 행을 찾는다.
 2. 그 행이 가리키는 pattern 파일만 읽고 self-check 한다.
-3. **애매하면** 해당 카테고리 디렉터리(`plan/` · `team/` · `code-review/`)를 통째로 읽는다 (과소선택보다 안전).
+3. **애매하면** 해당 카테고리 디렉터리(`plan/` · `code-review/`)를 통째로 읽는다 (과소선택보다 안전).
 
 소비자별 카테고리:
 
 | 카테고리 | 디렉터리 | 호출 시점 | 사용 스킬 |
 |---|---|---|---|
 | plan 작성 | `plan/` | task 파일 작성 직후 self-check | planning, build-with-teams |
-| team 운영 | `team/` | 팀원 스폰·메시지 작성 시 | build-with-teams |
 | code-review | `code-review/` | 코드 작성·리뷰 시 (diff 대상) | build-with-teams, review-fix |
 
 ## 축적 규칙 (무분별한 성장 방지)
@@ -41,16 +40,16 @@ skills 가 공유하는 회피 패턴 모음. **모놀리식 문서가 아니라
 ```yaml
 ---
 id: <kebab-slug = 파일명 stem>
-category: plan | team | code-review
+category: plan | code-review
 title: <한 줄 요약>
 triggers: [<변경 유형 키워드>, ...]   # 라우터가 이 값으로 매칭
 tool_catchable: <true|false>          # true 면 Why 에 그래도 유지하는 이유
-source: [PR40, plan004, ...]          # 출처 PR#/plan###: 본문 Why 에서 backfill, 미상은 []
+source: [PR44, PR55, ...]            # 출처 PR#: 본문 Why 에서 backfill, 미상은 []
 related: [<다른 패턴 slug>, ...]      # 백링크
 ---
 ```
 
-본문 규칙: 사고 사례(plan###)는 1개로 충분, 복수 나열 금지. "왜 이 가드가 필요한지" 1줄 단서 필수.
+본문 규칙: 사고 사례는 1개로 충분, 복수 나열 금지. "왜 이 가드가 필요한지" 1줄 단서 필수.
 
 **링크 규칙**:
 
@@ -77,8 +76,6 @@ related: [<다른 패턴 slug>, ...]      # 백링크
    ```bash
    # 예: spinner 순서를 바꾸는 코드 작성
    grep -rl "triggers:.*spinner" docs/pitfalls/code-review/
-   # 예: 팀원 스폰·메시지 plan
-   grep -rl "triggers:.*\(팀원 스폰\|SendMessage\)" docs/pitfalls/team/
    ```
 
 2. **자주 쓰는 변경 유형 → 파일** (큐레이션):
@@ -87,8 +84,8 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 |---|---|---|
 | spinner·UX 순서 (validation 전 시작) | code-review | [spinner-before-validation](code-review/spinner-before-validation.md), [spinner-no-try-catch](code-review/spinner-no-try-catch.md), [resolver-after-editor](code-review/resolver-after-editor.md) |
 | 에러 처리 일관성 (exitCode·catch) | code-review | [exitcode-param-error-in-api-path](code-review/exitcode-param-error-in-api-path.md), [exitcode-missing](code-review/exitcode-missing.md), [credential-loader-reinvented-swallow](code-review/credential-loader-reinvented-swallow.md) |
-| 타입 안전성 (Map.get()! / 이중 단언 / optional 응답 필드) | code-review | [map-get-nonnull-assertion](code-review/map-get-nonnull-assertion.md), [double-assertion-unknown](code-review/double-assertion-unknown.md), [double-assertion-union-type](code-review/double-assertion-union-type.md), [optional-response-field-guard](code-review/optional-response-field-guard.md), [shared-guard-foreign-schema](code-review/shared-guard-foreign-schema.md) |
-| API/HTTP 패턴 (redirect·throwHttpErrors) | code-review | [redirect-manual-status-missing](code-review/redirect-manual-status-missing.md), [numeric-response-string-number-mixed](code-review/numeric-response-string-number-mixed.md) |
+| 타입 안전성 (Map.get()! / 이중 단언 / optional 응답 필드) | code-review | [map-get-nonnull-assertion](code-review/map-get-nonnull-assertion.md), [double-assertion-unknown](code-review/double-assertion-unknown.md), [optional-response-field-guard](code-review/optional-response-field-guard.md), [shared-guard-foreign-schema](code-review/shared-guard-foreign-schema.md) |
+| API/HTTP 패턴 (응답 숫자 타입) | code-review | [numeric-response-string-number-mixed](code-review/numeric-response-string-number-mixed.md) |
 | 방어 가드와 회귀 테스트 | code-review | [guard-without-failing-test](code-review/guard-without-failing-test.md) |
 | 봉투 검사 (200-고정 API·isSuccessful) | code-review | [write-method-envelope-unchecked](code-review/write-method-envelope-unchecked.md), [new-endpoint-envelope-assumed](plan/new-endpoint-envelope-assumed.md) |
 | 일반망·공공망 응답 필드 차이 | plan | [gov-doc-field-parity-assumed](plan/gov-doc-field-parity-assumed.md), [optional-response-field-guard](code-review/optional-response-field-guard.md) |
@@ -96,14 +93,12 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 | path-traversal (fileName basename) | code-review | [path-traversal-filename](code-review/path-traversal-filename.md) |
 | interactive 경고 vs 실제 동작 | code-review | [interactive-warning-mismatch](code-review/interactive-warning-mismatch.md), [noninteractive-trigger-dead-warning](plan/noninteractive-trigger-dead-warning.md) |
 | CLI option parser/helper 적용 | plan | [option-parse-before-side-effects](plan/option-parse-before-side-effects.md), [numeric-param-range-unverified](plan/numeric-param-range-unverified.md), [positive-int-number-only](code-review/positive-int-number-only.md) |
-| 공용 helper 배치·중복 (DRY) | code-review | [shared-helper-in-command-file](code-review/shared-helper-in-command-file.md), [duplicate-map-block-no-helper](code-review/duplicate-map-block-no-helper.md), [noninteractive-interactive-duplication](code-review/noninteractive-interactive-duplication.md) |
+| 공용 helper 배치·중복 (DRY) | code-review | [shared-helper-in-command-file](code-review/shared-helper-in-command-file.md), [noninteractive-interactive-duplication](code-review/noninteractive-interactive-duplication.md) |
 | ADR·이슈 본문에 외부 상태를 근거로 쓸 때 | plan | [stale-context-as-doc-evidence](plan/stale-context-as-doc-evidence.md), [external-state-gate-missing](plan/external-state-gate-missing.md) |
-| 기존 동작을 반대로 뒤집는 변경 (실패 경로·보존 정책) | plan | [goal-reversed-logic-reuse](plan/goal-reversed-logic-reuse.md), [stale-code-in-reuse-claim](plan/stale-code-in-reuse-claim.md) |
+| 기존 동작을 반대로 뒤집는 변경 (실패 경로·보존 정책) | plan | [goal-reversed-logic-reuse](plan/goal-reversed-logic-reuse.md) |
 | 결정·옵션·인수 폐지 후 문서 표면 정리 | plan | [decision-surface-sweep-incomplete](plan/decision-surface-sweep-incomplete.md), [path-migration-agents-missing](plan/path-migration-agents-missing.md) |
 | 되돌릴 수 없는 쓰기 명령 (배포·삭제·전송) | plan | [safety-note-without-user-facing-text](plan/safety-note-without-user-facing-text.md), [write-command-executor-live-call](plan/write-command-executor-live-call.md) |
-| plan 작성 (phase 항목·검증 명령·완료 조건) | plan | [numeric-estimation](plan/numeric-estimation.md), [manual-verification-criterion](plan/manual-verification-criterion.md) |
-| 팀원 스폰·메시지 (build-with-teams) | team | [sendmessage-reply-missing](team/sendmessage-reply-missing.md), [member-premature-execution](team/member-premature-execution.md), [executor-premature-execution](plan/executor-premature-execution.md) |
-| worktree·cwd 격리 | team | [executor-cwd-isolation](team/executor-cwd-isolation.md), [execution-context-ambiguous](plan/execution-context-ambiguous.md), [cwd-tracking-dual-status](team/cwd-tracking-dual-status.md) |
+| plan 작성 (phase 항목·검증 명령·완료 조건) | plan | [numeric-estimation](plan/numeric-estimation.md) |
 
 표에 없으면 trigger grep, 그래도 애매하면 카테고리 디렉터리 통째로 읽는다.
 
@@ -113,26 +108,16 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 
 - [cache-bypass-in-verify-helper](plan/cache-bypass-in-verify-helper.md)
 - [carve-out-conflicting-prohibition](plan/carve-out-conflicting-prohibition.md)
-- [decision-docs-in-phase](plan/decision-docs-in-phase.md)
 - [decision-surface-sweep-incomplete](plan/decision-surface-sweep-incomplete.md)
 - [endpoint-version-double-prefix](plan/endpoint-version-double-prefix.md)
-- [execution-context-ambiguous](plan/execution-context-ambiguous.md)
-- [executor-premature-execution](plan/executor-premature-execution.md)
 - [external-state-gate-missing](plan/external-state-gate-missing.md)
-- [file-scope-inaccurate](plan/file-scope-inaccurate.md)
-- [filter-type-narrowing-lost](plan/filter-type-narrowing-lost.md)
 - [four-face-guard-missing](plan/four-face-guard-missing.md)
-- [function-signature-unverified](plan/function-signature-unverified.md)
 - [goal-reversed-logic-reuse](plan/goal-reversed-logic-reuse.md)
 - [gov-doc-field-parity-assumed](plan/gov-doc-field-parity-assumed.md)
-- [import-identifier-collision](plan/import-identifier-collision.md)
 - [input-validation-policy-asymmetry](plan/input-validation-policy-asymmetry.md)
 - [integrated-command-partial-surface](plan/integrated-command-partial-surface.md)
 - [list-endpoint-pagination-missing](plan/list-endpoint-pagination-missing.md)
 - [list-output-column-docs-mismatch](plan/list-output-column-docs-mismatch.md)
-- [macos-bsd-sed-word-boundary](plan/macos-bsd-sed-word-boundary.md)
-- [manual-verification-criterion](plan/manual-verification-criterion.md)
-- [new-command-docs-required-skip](plan/new-command-docs-required-skip.md)
 - [new-endpoint-envelope-assumed](plan/new-endpoint-envelope-assumed.md)
 - [noninteractive-trigger-dead-warning](plan/noninteractive-trigger-dead-warning.md)
 - [numeric-estimation](plan/numeric-estimation.md)
@@ -140,7 +125,6 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [on-disk-schema-multiple-options](plan/on-disk-schema-multiple-options.md)
 - [option-parse-before-side-effects](plan/option-parse-before-side-effects.md)
 - [path-migration-agents-missing](plan/path-migration-agents-missing.md)
-- [prev-plan-interaction-missing](plan/prev-plan-interaction-missing.md)
 - [prose-migration-lossless-checklist](plan/prose-migration-lossless-checklist.md)
 - [punt-orphan-deliverable](plan/punt-orphan-deliverable.md)
 - [revise-string-change-cascade-missing](plan/revise-string-change-cascade-missing.md)
@@ -148,44 +132,21 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [safety-note-without-user-facing-text](plan/safety-note-without-user-facing-text.md)
 - [single-file-split-section-boundary-leak](plan/single-file-split-section-boundary-leak.md)
 - [source-feeding-roundtrip-unverified](plan/source-feeding-roundtrip-unverified.md)
-- [stale-code-in-reuse-claim](plan/stale-code-in-reuse-claim.md)
 - [stale-context-as-doc-evidence](plan/stale-context-as-doc-evidence.md)
 - [structure-migration-frontmatter-placeholder](plan/structure-migration-frontmatter-placeholder.md)
 - [success-criterion-no-enforcement](plan/success-criterion-no-enforcement.md)
 - [test-expected-value-guessed](plan/test-expected-value-guessed.md)
 - [test-module-const-mock-timing](plan/test-module-const-mock-timing.md)
-- [type-optional-cascade-grep-missing](plan/type-optional-cascade-grep-missing.md)
 - [write-command-executor-live-call](plan/write-command-executor-live-call.md)
-
-### [team/](team/)
-
-- [branch-check-before-commit](team/branch-check-before-commit.md)
-- [critic-stale-reread](team/critic-stale-reread.md)
-- [cwd-tracking-dual-status](team/cwd-tracking-dual-status.md)
-- [executor-cwd-isolation](team/executor-cwd-isolation.md)
-- [executor-scope-creep](team/executor-scope-creep.md)
-- [member-premature-execution](team/member-premature-execution.md)
-- [reviewer-no-plan-context](team/reviewer-no-plan-context.md)
-- [self-shutdown-pattern](team/self-shutdown-pattern.md)
-- [sendmessage-reply-missing](team/sendmessage-reply-missing.md)
-- [task-index-phase-count-mismatch](team/task-index-phase-count-mismatch.md)
 
 ### [code-review/](code-review/)
 
 - [adjacent-command-pattern-missing](code-review/adjacent-command-pattern-missing.md)
 - [ambiguous-option-positional-silent-fallback](code-review/ambiguous-option-positional-silent-fallback.md)
-- [cache-consistency](code-review/cache-consistency.md)
 - [cache-non-atomic-write](code-review/cache-non-atomic-write.md)
-- [client-dep-in-utils](code-review/client-dep-in-utils.md)
-- [commander-reserved-flag-conflict](code-review/commander-reserved-flag-conflict.md)
 - [credential-loader-reinvented-swallow](code-review/credential-loader-reinvented-swallow.md)
-- [dead-field-function-name-mismatch](code-review/dead-field-function-name-mismatch.md)
 - [delimiter-concat-hash-collision](code-review/delimiter-concat-hash-collision.md)
-- [docs-regex-digit-range-mismatch](code-review/docs-regex-digit-range-mismatch.md)
-- [double-assertion-union-type](code-review/double-assertion-union-type.md)
 - [double-assertion-unknown](code-review/double-assertion-unknown.md)
-- [duplicate-map-block-no-helper](code-review/duplicate-map-block-no-helper.md)
-- [early-return-quiet-mode-missing](code-review/early-return-quiet-mode-missing.md)
 - [empty-result-stderr-wrong](code-review/empty-result-stderr-wrong.md)
 - [enum-dual-definition-unsync](code-review/enum-dual-definition-unsync.md)
 - [exit-code-literal-no-constant](code-review/exit-code-literal-no-constant.md)
@@ -210,7 +171,6 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [path-traversal-filename](code-review/path-traversal-filename.md)
 - [positive-int-number-only](code-review/positive-int-number-only.md)
 - [quiet-mode-identifier-missing](code-review/quiet-mode-identifier-missing.md)
-- [redirect-manual-status-missing](code-review/redirect-manual-status-missing.md)
 - [required-option-redundant-guard](code-review/required-option-redundant-guard.md)
 - [resolver-after-editor](code-review/resolver-after-editor.md)
 - [resolver-boundary-empty-id](code-review/resolver-boundary-empty-id.md)
@@ -220,7 +180,6 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 - [shared-helper-in-command-file](code-review/shared-helper-in-command-file.md)
 - [spinner-before-validation](code-review/spinner-before-validation.md)
 - [spinner-no-try-catch](code-review/spinner-no-try-catch.md)
-- [test-regex-dotall-missing](code-review/test-regex-dotall-missing.md)
 - [test-self-mock](code-review/test-self-mock.md)
 - [union-false-nullish-coalescing](code-review/union-false-nullish-coalescing.md)
 - [union-overload-common-guard-only](code-review/union-overload-common-guard-only.md)

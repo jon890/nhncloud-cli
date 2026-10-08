@@ -4,7 +4,7 @@ category: code-review
 title: 가드가 막는 실패를 검증하는 회귀 테스트가 없음
 triggers: [가드, 회귀 테스트, mutation]
 tool_catchable: false
-source: [plan063]
+source: [PR94]
 related: [test-self-mock]
 ---
 
@@ -23,6 +23,6 @@ rg -n "if \(|guard|already|closed|duplicate" src/
 
 **Self-check**: 이번에 추가하거나 유지한 가드는 어떤 실패를 막는가? 그 가드만 제거하면 실패하는 테스트가 있는가? 가드가 막는 계약을 주석이나 타입으로 더 분명히 표현했는가?
 
-**Why**: plan063 검토에서 JSON 배열의 이중 닫기와 안내 문구의 중복을 막는 가드를 제거해도 전체 테스트가 통과했다. 정상 경로 테스트만으로는 가드의 필요성을 입증할 수 없으므로 변이 검증이 필요하다.
+**Why**: PR #94 검토에서 JSON 배열의 이중 닫기와 안내 문구의 중복을 막는 가드를 제거해도 전체 테스트가 통과했다. 정상 경로 테스트만으로는 가드의 필요성을 입증할 수 없으므로 변이 검증이 필요하다.
 
 관련: [[test-self-mock]]

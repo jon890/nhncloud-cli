@@ -20,4 +20,4 @@ related: []
 
 **Self-check**: 신규 옵션 식별자가 위 5곳 전부에 등장하는가? interactive ↔ 비대화형 분기 mismatch 0건(옵션이 한 분기에만 있지 않은가)?
 
-**Why**: PR #26(plan021) critic MAJOR: `--ncr-appkey` 추가를 "옵션과 verifyNcr"로 압축했으나 configure.ts의 hasFlag·빈 가드·runNonInteractive·saveAndVerify 호출처를 빠뜨렸다. [noninteractive-trigger-dead-warning](noninteractive-trigger-dead-warning.md)과 인접하지만, 이 패턴은 고정 위치인자 헬퍼의 시그니처와 호출처를 함께 고치는 문제를 다룬다. configure에 새 서비스 자격증명을 추가하는 plan마다 재발할 수 있다.
+**Why**: PR #26 critic MAJOR: `--ncr-appkey` 추가를 "옵션과 verifyNcr"로 압축했으나 configure.ts의 hasFlag·빈 가드·runNonInteractive·saveAndVerify 호출처를 빠뜨렸다. [noninteractive-trigger-dead-warning](noninteractive-trigger-dead-warning.md)과 인접하지만, 이 패턴은 고정 위치인자 헬퍼의 시그니처와 호출처를 함께 고치는 문제를 다룬다. configure에 새 서비스 자격증명을 추가하는 plan마다 재발할 수 있다.

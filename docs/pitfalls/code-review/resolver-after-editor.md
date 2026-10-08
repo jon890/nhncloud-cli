@@ -4,7 +4,7 @@ category: code-review
 title: resolver 를 파일·stdin·payload 수집보다 뒤에 호출 (resolver-before-input)
 triggers: [resolver, file, stdin, payload]
 tool_catchable: false
-source: [PR74, PR64]
+source: []
 related: []
 ---
 

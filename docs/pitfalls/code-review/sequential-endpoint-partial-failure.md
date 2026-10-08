@@ -4,7 +4,7 @@ category: code-review
 title: sequential endpoint 호출 — partial-failure stderr 안내 + spinner pair 누락
 triggers: [순차 endpoint, 부분 실패]
 tool_catchable: false
-source: [PR62]
+source: []
 related: []
 ---
 
@@ -18,6 +18,6 @@ related: []
 git diff main..HEAD -- src/commands/ | grep -E "^\+\s+await client\." | wc -l
 # 같은 함수에서 2 이상이면 sequential 패턴 — partial-failure 처리 확인
 ```
-**Why**: PR #62 critic REVISE — 첫 호출이 성공한 뒤 두 번째가 실패하면 앞 변경은 이미 반영된 상태로 남는데, 사용자가 전체 실패로 읽고 재실행해 중복 적용이 났다.
+**Why**: 첫 호출이 성공한 뒤 두 번째가 실패하면 앞 변경은 이미 반영된 상태로 남는데, 사용자가 전체 실패로 읽고 재실행해 중복 적용이 났다.
   현재 저장소의 기준 구현은 `src/commands/loadbalancer/rebind.ts` 의 `rebindIpAclSnapshots` 다. 실패한 Load Balancer 를 건너뛰지 않고 계속 시도하면서 `succeeded`·`failed` 와 재시도 명령(`retry_command`)을 구조화해 반환하고, `src/commands/loadbalancer/target.ts` 가 그 결과를 stderr 안내로 풀어 쓴다.
   ADR-022 가 이 계약(자동 원복 금지, 부분 실패 종료 코드, 재시도 명령 제공)을 소유한다. 새 sequential 경로를 추가할 때마다 같은 UX 를 점검한다.

@@ -4,7 +4,7 @@ category: plan
 title: 입력 검증 정책 일관성 — 신규 검증 helper 가 기존 정책 일부만 포함
 triggers: [입력 검증, 검증 정책, 비대칭]
 tool_catchable: false
-source: [PR68]
+source: []
 related: []
 ---
 

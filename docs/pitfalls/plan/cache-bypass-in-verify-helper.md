@@ -18,4 +18,4 @@ related: []
 
 **Self-check**: 새 검증/테스트 helper 가 재사용하는 함수가 캐시·메모이즈를 하는가? 그 캐시 키가 검증 대상 값과 무관한 축이면 우회 경로를 뚫었는가?
 
-**Why**: PR #3 (plan003) critic MAJOR — `verifyUserAccessKey` 가 캐시 우선 `getAccessToken` 재사용. 캐시는 profile 키라 틀린 UAK 도 false-positive. 향후 다른 검증 helper (토큰·세션·연결 테스트) 가 캐시 우선 함수를 재사용할 때 재발 가능.
+**Why**: PR #3 critic MAJOR — `verifyUserAccessKey` 가 캐시 우선 `getAccessToken` 재사용. 캐시는 profile 키라 틀린 UAK 도 false-positive. 향후 다른 검증 helper (토큰·세션·연결 테스트) 가 캐시 우선 함수를 재사용할 때 재발 가능.

@@ -38,4 +38,4 @@ grep -rnE "\.body as |return [a-zA-Z.]+ as [A-Z]" src/api/   # optional 필드 a
 
 **Self-check**: optional (`?:`) 필드를 `as T` 로 반환하는 곳이 있는가? 그러면 undefined 가 T 로 누수 — guard 로 교체.
 
-**Why**: PR #1 (plan001) — `unwrap` 의 `res.body as T` 가 optional body 의 undefined 를 묵시 반환. envelope 는 모든 service client 가 공유하므로 한 번의 누수가 전 서비스에 전파.
+**Why**: PR #1 — `unwrap` 의 `res.body as T` 가 optional body 의 undefined 를 묵시 반환. envelope 는 모든 service client 가 공유하므로 한 번의 누수가 전 서비스에 전파.

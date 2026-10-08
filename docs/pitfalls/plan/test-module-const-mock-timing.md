@@ -4,7 +4,7 @@ category: plan
 title: 모듈 최상위 const(homedir/env 파생) 테스트 — SUT 정적 import 시 mock 이 늦어 상수가 잘못 굳음
 triggers: [테스트, vitest, vi.mock, homedir, 모듈 상수, 캐시 경로]
 tool_catchable: false
-source: [plan039]
+source: []
 related: [test-self-mock]
 ---
 

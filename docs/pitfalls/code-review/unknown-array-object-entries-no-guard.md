@@ -33,4 +33,4 @@ grep -rnE "as Record<string, unknown>\)" src/commands/   # 배열 요소 캐스�
 
 **Self-check**: 동적 API 응답 배열을 순회하며 `Object.entries(item)` 하는 곳에 primitive 가드가 있는가?
 
-**Why**: plan002 (PR #2) code-reviewer FIX_NEEDED — `deploy artifacts` 가 응답 배열 요소를 가드 없이 `Object.entries` 처리. Deploy API 가 primitive 배열을 주면 런타임 TypeError.
+**Why**: PR #2 code-reviewer FIX_NEEDED — `deploy artifacts` 가 응답 배열 요소를 가드 없이 `Object.entries` 처리. Deploy API 가 primitive 배열을 주면 런타임 TypeError.

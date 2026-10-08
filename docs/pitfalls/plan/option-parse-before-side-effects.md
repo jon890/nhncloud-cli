@@ -4,7 +4,7 @@ category: plan
 title: CLI 옵션 parser 적용 시 parsed 변수 hoist 누락
 triggers: [옵션 parser, 숫자 옵션, validation, side effect, 자격증명]
 tool_catchable: false
-source: [PR44, plan031]
+source: [PR44]
 related: [spinner-before-validation, positive-int-number-only, numeric-param-range-unverified]
 ---
 
@@ -17,6 +17,6 @@ target resolve, client 생성, spinner, API args 는 parsed 변수만 사용한�
 **Self-check**: 변경 대상 command 마다 parsed 변수 목록을 plan 에 열거한다.
 각 parsed 변수가 side-effectful 호출보다 앞에 있는지 grep 으로 확인한다.
 
-**Why**: plan031 에서 `deploy run --concurrent` parsing 순서가 `getDeployTarget()` / `createDeployClient()` / spinner / `client.run()` 보다 앞이라고 명시되지 않아 critic REVISE 가 발생했다.
+**Why**: PR #44 에서 `deploy run --concurrent` parsing 순서가 `getDeployTarget()` / `createDeployClient()` / spinner / `client.run()` 보다 앞이라고 명시되지 않아 critic REVISE 가 발생했다.
 
 관련: [[spinner-before-validation]], [[positive-int-number-only]], [[numeric-param-range-unverified]]

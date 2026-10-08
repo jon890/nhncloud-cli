@@ -24,4 +24,4 @@ grep -rnE "phase [0-9]+ 에서|예정|추가한다" tasks/{plan}/
 
 **Self-check**: punt 한 산출물마다 받는 phase 번호가 의존성상 가능한가? 그 phase 작업목록 + 성공기준에 실제로 등장하는가?
 
-**Why**: PR #6 (plan004) critic MAJOR — phase-1 이 `verifyIaas` 를 phase-3 으로 punt 했으나 phase-3 에 작업항목 0건. token 발급이 phase-2 라 phase-3 에선 못 만드는 의존성 오류까지 겹침. 검증 helper·헬퍼 추출을 다른 phase 로 미루는 작업마다 재발 가능.
+**Why**: PR #6 critic MAJOR — phase-1 이 `verifyIaas` 를 phase-3 으로 punt 했으나 phase-3 에 작업항목 0건. token 발급이 phase-2 라 phase-3 에선 못 만드는 의존성 오류까지 겹침. 검증 helper·헬퍼 추출을 다른 phase 로 미루는 작업마다 재발 가능.
