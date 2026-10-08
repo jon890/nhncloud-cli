@@ -64,15 +64,17 @@ flowchart TD
   usable -->|일반망| probe[대상별 순차 확인]
   probe -->|블록 없음| nc[skipped: not-configured]
   probe -->|appkey만 있고 UAK 없음| um[skipped: uak-missing]
+  probe -->|UAK 확인이 ok 아님, OAuth 대상| uf[skipped: uak-failed]
   probe -->|성공| pass[ok]
   probe -->|인증 실패| auth[failed: auth]
   probe -->|네트워크, API 오류| err[failed: error + exitCode]
-  report & unavailable & gov & nc & um & pass & auth & err --> out[stdout 에 보고서 출력, 종료 코드 0]
+  report & unavailable & gov & nc & um & uf & pass & auth & err --> out[stdout 에 보고서 출력, 종료 코드 0]
 ```
 
 - 진단 대상 파일이 없거나 손상돼도 보고서는 나온다. 자격증명이 없는 빈 HOME 에서도 `doctor --json`은 온전한 JSON 을 낸다.
 - 연결 확인은 `configure`의 연결 테스트 함수를 그대로 쓰고 토큰 캐시를 읽거나 쓰지 않는다.
-- 연결 확인 대상은 `userAccessKey`, `iaas`, `logncrash`, `ncr`, `ncs` 순서로 하나씩 확인한다. 한 대상의 실패는 다음 대상 확인을 막지 않는다.
+- 연결 확인 대상은 `userAccessKey`, `iaas`, `logncrash`, `ncr`, `ncs` 순서로 하나씩 확인한다. 한 대상의 실패는 다음 대상 확인을 막지 않는다. 다만 `userAccessKey` 확인이 `ok`가 아니면 같은 UAK 로 OAuth 토큰을 받는 `logncrash`, `ncs`는 `uak-failed`로 건너뛰어 같은 실패를 반복 대기하지 않는다.
+- 해석한 profile 에 자격증명 블록이 하나도 없으면 `ready`는 `false`다.
 - 보고서를 냈으면 종료 코드는 0이다. 알 수 없는 옵션 같은 입력 오류만 기존 종료 코드 규칙을 따른다.
 - 진단 결과는 stdout 에 쓴다. 자격증명의 비밀값과 appkey 는 어떤 출력에도 넣지 않는다.
 

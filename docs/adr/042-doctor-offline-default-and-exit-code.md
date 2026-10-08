@@ -4,6 +4,7 @@
 - **결정**: `nhncloud doctor` 는 기본으로 로컬 파일과 공개 스킬 상태만 읽고 외부 API 를 호출하지 않는다.
   - 서비스 연결 확인은 `--check-connection` 을 줄 때만 한다. 대상은 해석한 profile 하나이고, `configure` 의 연결 테스트 함수를 그대로 쓴다.
   - 공공망 profile 은 연결 확인을 하지 않고 모든 대상을 `skipped` 와 `gov-unsupported` 로 보고한다.
+  - `userAccessKey` 확인이 `ok`가 아니면 UAK 로 OAuth 토큰을 받는 대상(`logncrash`, `ncs`)은 `skipped` 와 `uak-failed` 로 건너뛴다. 같은 UAK 로 요청마다 타임아웃까지 기다리는 시간을 줄인다.
   - 진단 보고서를 출력했으면 자격증명이 없거나 연결이 실패해도 종료 코드는 0 이다. 자동화는 JSON 의 `ready` 와 각 상태 필드로 판정한다.
 - **맥락**:
   - 형제 프로젝트 dooray-cli 의 `doctor` 는 API 하나에 기본으로 접속한다. 이 저장소는 profile 하나에 UAK, IaaS, 서비스별 appkey 가 함께 있어 확인 대상이 다섯 곳이고, 요청도 그만큼 나간다.
@@ -17,5 +18,6 @@
 - **결과**:
   - 얻는 것: 기본 실행은 빠르고 결정적이며 네트워크와 조회 한도에 영향이 없다. 보고서는 항상 stdout 에 온전한 JSON 으로 나온다.
   - 감당할 것: 종료 코드만 보는 자동화는 문제를 감지하지 못한다. 실패로 끝나야 하는 점검은 `jq -e '.ready'` 로 판정한다. 나중에 종료 코드로 실패를 알리는 모드가 필요하면 별도 플래그로 추가하고 기본 동작은 유지한다.
+  - 범위 밖 후속: Log & Crash 확인은 조회 한도가 소진돼도 `failed` 로 보고된다. `available-token` 확인([[adr-036]])으로 바꾸는 일은 이 결정에 포함하지 않는다.
   - doctor 자신을 실행하지 못한 경우(알 수 없는 옵션 같은 Commander 입력 오류)는 기존 종료 코드 규칙을 따른다.
 - **적용 범위**: `nhncloud doctor` 의 텍스트, `--json`, `--quiet` 출력 모두. 출력 필드는 공개 스킬 `references/common.md` 의 「설정 진단」 절이 소유한다.

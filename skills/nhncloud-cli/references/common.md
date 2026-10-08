@@ -135,7 +135,7 @@ nhncloud doctor --json | jq -e '.ready'   # 준비되지 않았으면 jq 가 1 �
 | 필드 | 값 |
 |---|---|
 | `schemaVersion` | `1` |
-| `ready` | 자격증명 파일이 `ok`, 대상 profile 이 있고 `environment`가 올바르며, 연결 확인을 했다면 `failed`가 없을 때 `true` |
+| `ready` | 자격증명 파일이 `ok`, 대상 profile 이 있고 자격증명 블록이 하나 이상 있으며 `environment`가 올바르고, 연결 확인을 했다면 `failed`가 없을 때 `true` |
 | `credentials` | `credentials.json` 진단. 아래 표 |
 | `config` | `config.json` 진단. 아래 표 |
 | `profile` | `{ "name": string \| null, "exists": boolean }`. `name`은 profile 해석 순서로 정한 대상이며, `config.json` 이 JSON 이 아니라 해석하지 못하면 `null` |
@@ -166,17 +166,20 @@ nhncloud doctor --json | jq -e '.ready'   # 준비되지 않았으면 jq 가 1 �
 |---|---|---|
 | `ok` | 없음 | 연결과 인증에 성공했다 |
 | `failed` | `auth` | 인증에 실패했다. 키나 appkey를 확인한다 |
-| `failed` | `error` | 네트워크나 API 오류로 확인하지 못했다. `exitCode`에 그 오류의 종료 코드가 있다 |
+| `failed` | `error` | 네트워크나 API 오류로 확인하지 못했다. `exitCode`에 그 오류의 종료 코드가 있다. Log & Crash 는 조회 한도 소진도 `failed`로 보고된다 |
 | `skipped` | `not-configured` | profile 에 그 블록이 없거나 필수 값이 비어 있다 |
 | `skipped` | `uak-missing` | appkey 는 있지만 함께 쓰는 공통 UAK 가 없다(`logncrash`, `ncr`, `ncs`) |
+| `skipped` | `uak-failed` | `userAccessKey` 확인이 `ok`가 아니라 UAK 로 OAuth 토큰을 받는 대상(`logncrash`, `ncs`)을 확인하지 않았다 |
 | `skipped` | `gov-unsupported` | 공공망 profile 이라 확인하지 않았다 |
 | `skipped` | `profile-unavailable` | 자격증명 파일을 읽지 못했거나 대상 profile 이 없거나 `environment`가 올바르지 않다 |
 
 `ncr`과 `ncs` 확인은 `kr1` region 을 가정한다.
+연결 확인은 대상을 순차로 확인하며 요청마다 `--request-timeout`(기본 30초) 상한이 적용된다.
 `logncrash` 확인은 최근 1분 범위의 검색 요청을 하나 보내므로 Log & Crash 조회 토큰을 쓴다.
 
-`skills.agents.claude`는 `nhncloud skills status --json`과 같은 상태 객체에 `recoveryCommand`(복구 명령, `current`이면 `null`)를 더한 것이다.
+`skills.agents.claude`는 에이전트 경로 하나의 `SkillStatus`(`schemaVersion` 1)에 `recoveryCommand`(복구 명령, `current`이면 `null`)를 더한 것이다.
 상태를 판정하지 못하면 `{ "status": "error", "reason": string }`이다.
+`reason`에는 원문 오류 메시지를 넣지 않고 고정 문구만 쓴다. 오류에 문자열 errno 코드(`EACCES` 등)가 있으면 그 코드만 붙인다.
 에이전트가 늘면 `agents`에 키가 추가되며 기존 키의 모양은 바뀌지 않는다.
 
 ## Profile 우선순위
