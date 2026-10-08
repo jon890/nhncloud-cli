@@ -3,8 +3,12 @@
 공개 스킬 관리, configure, profile, 출력 모드, 에러 코드를 다룬다.
 서비스별 세부 명령은 각 reference를 읽는다.
 
-## Claude Code 공개 스킬 관리
+## Claude Code·Codex 공개 스킬 관리
 
+설치 경로는 Claude Code 의 `~/.claude/skills/nhncloud-cli` 와 Codex 의 `~/.agents/skills/nhncloud-cli` 다.
+두 경로는 같은 관리 저장소를 가리킨다.
+Codex 를 설치했는지와 관계없이 두 경로를 만들고, 필요하면 `~/.agents/skills` 디렉터리도 만든다.
+이전에 Claude Code 경로에만 설치했다면 `nhncloud skills install` 이나 `update` 를 다시 실행해 Codex 경로를 연결한다.
 
 ```bash
 # 전역 설치한 CLI에서 설치
@@ -29,17 +33,25 @@ nhncloud skills update
 
 | 상태 | 의미 | 복구 명령 |
 |------|------|-----------|
-| `current` | 현재 CLI 버전과 콘텐츠 해시가 일치함 | 조치 없음 |
-| `missing` | 활성 스킬이 설치되지 않음 | `nhncloud skills install` |
-| `outdated` | 이전 버전 또는 기존 패키지·저장소 직접 링크 | `nhncloud skills update` |
-| `broken` | 관리형 링크 또는 기존 패키지 링크의 대상이 없음 | `nhncloud skills update` |
-| `modified` | 관리 저장소 콘텐츠가 설치 매니페스트와 다름 | 내용을 확인한 뒤 `nhncloud skills update --force` |
-| `corrupt` | 관리 저장소 경로나 매니페스트가 손상됨 | 내용을 확인한 뒤 `nhncloud skills update --force` |
-| `unmanaged` | 사용자가 만든 파일·디렉터리 또는 알 수 없는 링크가 설치 경로를 차지함 | 내용을 확인한 뒤 `nhncloud skills update --force` |
+| `current` | 모든 설치 경로가 현재 CLI 버전과 콘텐츠 해시에 일치함 | 조치 없음 |
+| `missing` | 한 경로라도 활성 스킬이 설치되지 않음 | `nhncloud skills install` |
+| `outdated` | 한 경로라도 이전 버전 또는 기존 패키지·저장소 직접 링크임 | `nhncloud skills update` |
+| `broken` | 한 경로라도 관리형 링크 또는 기존 패키지 링크의 대상이 없음 | `nhncloud skills update` |
+| `modified` | 한 경로라도 관리 저장소 콘텐츠가 설치 매니페스트와 다름 | 내용을 확인한 뒤 `nhncloud skills update --force` |
+| `corrupt` | 한 경로라도 관리 저장소 경로나 매니페스트가 손상됨 | 내용을 확인한 뒤 `nhncloud skills update --force` |
+| `unmanaged` | 한 경로라도 사용자가 만든 파일·디렉터리 또는 알 수 없는 링크가 설치 경로를 차지함 | 내용을 확인한 뒤 `nhncloud skills update --force` |
+
+상태는 설치 경로를 합친 값이고 위 표의 `corrupt`부터 `current` 방향으로 먼저 해당하는 값이다.
+`status --json`의 최상위 `destination`, `linkTarget`, `managed`는 Claude Code 경로 값이다. 경로별 상세의 위치는 아래 `--json` 설명이 명령별로 정한다.
+
+두 경로가 모두 `current` 일 때만 상태가 `current` 다.
 
 `--force`는 사용자 항목 또는 수정·손상된 관리 저장소를 삭제하지 않고 같은 상위 디렉터리에 백업한 뒤 교체한다.
-`nhncloud skills uninstall`은 `~/.claude/skills/nhncloud-cli`의 활성 심볼릭 링크만 제거하며 버전별 관리 저장소는 보존한다.
-설치 경로가 사용자 파일이나 실제 디렉터리이면 제거하지 않는다.
+한 경로라도 `unmanaged`, `modified`, `corrupt` 면 `--force` 없이는 어느 경로도 바꾸지 않는다.
+다른 링크를 거쳐 가다가 대상이 사라진 링크(예: `~/.agents/skills/nhncloud-cli` 가 없는 `~/.claude/skills/nhncloud-cli` 를 가리킴)도 `unmanaged` 로 판정한다. 링크가 가리키는 곳을 확인한 뒤 `--force` 로 교체한다.
+한 경로의 전환이 실패하면 이미 바꾼 경로를 이전 상태로 되돌린다.
+`nhncloud skills uninstall`은 두 설치 경로의 활성 심볼릭 링크만 제거하며 버전별 관리 저장소는 보존한다.
+한 경로라도 사용자 파일, 실제 디렉터리, 알 수 없는 링크이면 어느 링크도 제거하지 않는다.
 
 자동화에서는 모든 하위 명령에 전역 출력 옵션을 함께 사용할 수 있다.
 
@@ -58,7 +70,14 @@ nhncloud skills uninstall --quiet
 ```
 
 `--json`은 상태·변경 여부·백업 경로처럼 자동화에 필요한 필드를 제공한다.
+경로별 정보는 `agents.claude`, `agents.codex` 에 있고 위치는 명령마다 다르다.
+`status` 는 최상위 `agents.*` 에 경로별 상세를 두고, 최상위 필드는 합친 `status` 를 빼면 Claude Code 경로의 상세다.
+`install` 과 `update` 는 `status.agents.*` 에 경로별 상세를 둔다.
+`uninstall` 은 최상위 `agents.*` 에 경로별 `action` 과 `destination` 을 둔다.
 `--quiet`은 상태 토큰 하나만 stdout에 출력한다.
+
+Codex 에서는 `$nhncloud-cli` 로 스킬을 부를 수 있다.
+설치한 스킬이 Codex 에 보이지 않으면 Codex 를 다시 시작한다.
 
 ## 초기 설정
 
@@ -140,7 +159,7 @@ nhncloud doctor --json | jq -e '.ready'   # 준비되지 않았으면 jq 가 1 �
 | `config` | `config.json` 진단. 아래 표 |
 | `profile` | `{ "name": string \| null, "exists": boolean }`. `name`은 profile 해석 순서로 정한 대상이며, `config.json` 이 JSON 이 아니라 해석하지 못하면 `null` |
 | `connection` | 연결 확인 결과. 아래 표 |
-| `skills` | `{ "agents": { "claude": ... } }`. 에이전트별 공개 스킬 상태 |
+| `skills` | `{ "agents": { "claude": ..., "codex": ... } }`. 에이전트별 공개 스킬 상태 |
 
 `credentials`와 `config`:
 
@@ -177,10 +196,12 @@ nhncloud doctor --json | jq -e '.ready'   # 준비되지 않았으면 jq 가 1 �
 연결 확인은 대상을 순차로 확인하며 요청마다 `--request-timeout`(기본 30초) 상한이 적용된다.
 `logncrash` 확인은 최근 1분 범위의 검색 요청을 하나 보내므로 Log & Crash 조회 토큰을 쓴다.
 
-`skills.agents.claude`는 에이전트 경로 하나의 `SkillStatus`(`schemaVersion` 1)에 `recoveryCommand`(복구 명령, `current`이면 `null`)를 더한 것이다.
+`skills.agents.claude`와 `skills.agents.codex`는 각각 Claude Code(`~/.claude/skills/nhncloud-cli`)와 Codex(`~/.agents/skills/nhncloud-cli`) 경로 하나의 `SkillStatus`(`schemaVersion` 1)에 `recoveryCommand`(복구 명령, `current`이면 `null`)를 더한 것이다.
 상태를 판정하지 못하면 `{ "status": "error", "reason": string }`이다.
+한 경로의 판정이 실패해도 그 에이전트만 `error`가 되고 다른 에이전트의 상태는 그대로다.
 `reason`에는 원문 오류 메시지를 넣지 않고 고정 문구만 쓴다. 오류에 문자열 errno 코드(`EACCES` 등)가 있으면 그 코드만 붙인다.
 에이전트가 늘면 `agents`에 키가 추가되며 기존 키의 모양은 바뀌지 않는다.
+doctor 가 경로마다 다른 복구 명령을 보여도 어느 명령이든 두 경로를 함께 고친다.
 
 ## Profile 우선순위
 

@@ -1,0 +1,27 @@
+# ADR-043: 공개 스킬을 Claude Code 와 Codex 경로에 함께 연결하고 두 경로를 한 단위로 바꾼다
+
+- **status**: `accepted`
+- **결정**: `nhncloud skills install|update|uninstall` 은 `~/.claude/skills/nhncloud-cli` 와 `~/.agents/skills/nhncloud-cli` 두 경로를 함께 다룬다.
+  - 두 경로는 [[adr-025]] 의 같은 관리 저장소를 가리키는 심볼릭 링크다. 에이전트를 고르는 플래그는 두지 않고, Codex 가 설치되지 않은 머신에서도 두 경로를 모두 만든다.
+  - 변경 전에 두 경로를 모두 검사한다. 한쪽이라도 `--force` 가 필요한 상태(`unmanaged`, `modified`, `corrupt`)면 어느 경로도 바꾸지 않고 실패한다. `uninstall` 은 한쪽이라도 관리하지 않는 항목이면 어느 링크도 지우지 않는다.
+  - 한 경로의 전환이나 제거가 실패하면 이미 바꾼 경로를 원래 항목으로 되돌린 뒤 실패한다.
+  - 두 경로의 부모 디렉터리가 `realpath` 로 같은 실제 디렉터리이면 임시 링크 생성, 백업, 전환, 복구를 한 번만 한다.
+  - `skills status --json` 은 `schemaVersion` 1 을 유지하고 필드만 더한다. 최상위 `status` 는 두 경로의 상태를 합친 값이고, 나머지 최상위 필드는 Claude Code 경로의 상세다. 경로별 상세는 `agents.claude`, `agents.codex` 에 둔다.
+- **맥락**:
+  - OpenAI 의 Codex 공식 문서 「Agent Skills」 페이지(2026-10-08 확인)는 사용자 범위 스킬을 `$HOME/.agents/skills` 에서 읽고 심볼릭 링크로 된 스킬 디렉터리를 따라간다고 적는다. 그 밖의 범위는 저장소의 `.agents/skills`, `/etc/codex/skills`, Codex 내장 스킬이다.
+  - Codex CLI 0.160.1 이 설치된 개발 머신에서 `~/.agents/skills` 아래 다른 CLI 의 관리형 스킬 링크가 실제로 쓰이고 있었다. 같은 머신에서 `~/.agents/skills/nhncloud-cli` 는 사용자가 손으로 `~/.claude/skills/nhncloud-cli` 를 가리키게 만든 링크였다. 이 이슈(#123)가 없애려는 수작업이 그것이다.
+  - `$CODEX_HOME/skills`(기본 `~/.codex/skills`)는 Codex 의 skill-installer 가 쓰는 위치다. 공식 문서의 탐색 범위 목록에는 없어 이 결정의 대상이 아니다.
+  - 형제 저장소 dooray-cli 의 ADR-035 가 같은 두 경로와 같은 보호, 복구 규칙을 쓴다. 두 CLI 를 함께 쓰는 사용자는 같은 동작을 기대한다.
+  - 기존 `skills status --json` 은 Claude Code 경로 하나의 `SkillStatus` 객체였다. 이 객체의 최상위 `status` 를 읽는 자동화(`doctor`, 사용자 스크립트)가 있다.
+- **대안 기각**:
+  - `--agent claude|codex|all` 플래그: 한쪽만 설치한 상태가 정상 상태가 되어 `status` 가 무엇을 기준으로 `current` 인지 설정이 하나 더 필요해진다. 쓰지 않는 에이전트의 경로에 링크 하나가 더 생기는 비용보다 크다. 사용자 요구가 생기면 기본값을 유지한 채 옵션으로 더한다.
+  - Codex 설치를 감지해 있을 때만 연결: `~/.codex` 나 `codex` 실행 파일의 존재는 Codex 가 스킬을 읽는지와 같지 않고, Codex 를 나중에 설치한 사용자는 `update` 를 다시 실행해야 한다.
+  - 경로마다 따로 보호하고 가능한 쪽만 바꾸기: 한 번의 명령이 경로마다 다른 버전을 남겨 `status` 가 계속 `current` 가 아니게 된다. 사용자는 어느 쪽이 바뀌었는지 출력을 읽어야 알 수 있다.
+  - `skills status --json` 을 `{ agents: {...} }` 로 바꾸고 `schemaVersion` 2 로 올림: 최상위 `status` 를 읽던 자동화가 모두 깨진다. 최상위 `status` 를 합친 값으로 두면 기존 자동화는 Codex 경로까지 포함한 더 엄격한 판정을 그대로 받는다.
+- **결과**:
+  - 얻는 것: `nhncloud skills install` 한 번으로 Claude Code 와 Codex 가 같은 버전의 스킬을 읽는다. 한쪽에 사용자 항목이 있으면 아무것도 바뀌지 않아 두 경로가 다른 버전으로 갈라지지 않는다.
+  - 감당할 것: CLI 버전이 오르면 Claude Code 경로가 `outdated` 가 되고 합친 상태도 `outdated` 가 된다. 복구 명령 `skills update` 가 두 경로를 함께 연결한다. `missing` 은 Codex 링크를 손으로 지운 경우처럼 한쪽 링크만 없을 때 나온다. 어느 복구 명령(`install`, `update`)을 실행해도 두 경로가 함께 고쳐진다. `~/.agents/skills/nhncloud-cli` 에 사용자 항목이 있는 사용자는 Claude Code 경로를 바꾸려 해도 `--force` 가 필요하다.
+  - 감당할 것: `~/.agents` 가 파일이거나 접근 권한이 없으면 Claude Code 경로만 쓰는 사용자의 `skills status` 와 `install` 도 실패한다. 요구가 생기면 `--agent` 옵션이나 경로별 오류 보고로 완화한다.
+  - 감당할 것: 두 경로의 전환은 원자적이지 않다. 되돌리기가 실패하면 오류 메시지에 되돌리지 못한 경로와 백업 경로를 남기고, 백업은 지우지 않는다.
+  - 다른 링크를 거쳐 관리 저장소에 닿는 링크(예: Codex 경로가 Claude Code 경로를 가리키는 수동 링크)는 `realpath` 가 관리 저장소 안이면 관리형으로 판정한다. 갱신할 때 관리 저장소를 직접 가리키는 링크로 바꾼다.
+- **적용 범위**: `nhncloud skills` 의 네 하위 명령과 `nhncloud doctor` 의 `skills.agents`. `doctor` 는 경로마다 따로 판정해 한쪽 판정 실패가 다른 쪽 결과를 가리지 않는다. 관리 저장소의 구조, 매니페스트, 콘텐츠 해시는 [[adr-025]] 를 그대로 따른다.

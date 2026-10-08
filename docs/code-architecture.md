@@ -102,6 +102,7 @@ Log & Crash service client는 공식 `available-token` 응답의 정수 필드�
 
 `skills/nhncloud-cli/`는 npm 패키지에 포함되는 사용자 가이드다.
 `src/skill/manifest.ts`가 매니페스트와 콘텐츠 해시를 검증하고, `src/skill/manager.ts`가 관리 저장소와 활성 링크 전환을 담당한다.
+`src/skill/manager.ts`는 에이전트 이름(`claude`, `codex`)으로 활성 경로를 정하고, 경로별 판정(`inspectAgentSkill`)과 두 경로를 합친 판정(`inspectSkill`)을 함께 제공한다([[adr-043]]).
 `commands/skills.ts`와 `commands/doctor.ts`는 이 판정을 재구현하지 않고 공용 경계를 호출한다.
 
 `commands/doctor.ts`는 진단 보고서 하나를 만들어 텍스트, `--json`, `--quiet`로 출력한다.
