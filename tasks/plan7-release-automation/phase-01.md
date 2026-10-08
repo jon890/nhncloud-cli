@@ -40,7 +40,7 @@
 - `package.json` 과 빌드된 CLI 버전의 일치는 preflight 가 따로 검사하지 않는다. `pnpm run verify:package` 가 같은 것을 확인한다.
 - Release 본문 escape 검사는 dooray-cli 처럼 백슬래시를 모두 세지 않는다. 이 저장소 Release 노트에는 코드 블록의 줄 연속 `\` 가 정상으로 들어간다. 지금 release 스킬과 같이 「백틱이나 `$` 바로 앞의 백슬래시가 든 줄」 만 센다. 정규식은 `/\\[`$]/`.
 - npm 반영 대기는 15초 간격, 최대 10분이다. `--no-wait` 은 한 번만 묻는다. `npm view <name> version --prefer-online` 으로 로컬 캐시를 건너뛴다.
-- `doc-sync-check.mjs` 는 `git diff -U0 <직전 태그>..HEAD -- src/ ':!src/**/*.test.ts'` 의 추가된 줄에서 `new Command("...")` 의 이름과 `.option(...)`·`.requiredOption(...)` 첫 문자열 안의 `--긴-이름` 을 모두 뽑는다(`-y, --yes` 처럼 짧은 플래그가 앞선 선언도 잡는다). 이 저장소는 `.requiredOption` 을 쓰므로(예: `src/commands/apigateway/resource.ts`) 옵션 추출 정규식은 `/\.(?:option|requiredOption)\(\s*["'`]([^"'`]+)["'`]/g` 로 한다. 테스트 파일은 pathspec 으로 제외해 테스트 안의 표본 문자열이 대상이 되지 않게 한다. 인자를 주면 그 문자열만 검사한다. 파일을 직접 읽어 고정 문자열로 찾고 셸 grep 에 넘기지 않는다(`--search` 같은 값을 grep 이 자기 옵션으로 읽는다).
+- `doc-sync-check.mjs` 는 `git diff -U0 <직전 태그>..HEAD -- src/ ':(exclude,glob)src/**/*.test.ts'`(`:!src/**/*.test.ts` 는 `src/` 바로 아래 테스트를 못 뺀다) 의 추가된 줄에서 `new Command("...")` 의 이름과 `.option(...)`·`.requiredOption(...)` 첫 문자열 안의 `--긴-이름` 을 모두 뽑는다. 추출은 줄 단위가 아니라 파일별로 `+` 줄의 `+` 를 떼고 `\n` 으로 이은 문자열 전체에 정규식을 적용한다(`.requiredOption(` 다음 줄에 플래그 문자열이 오는 선언이 `src/commands/ncs/workload.ts` 등에 있다)(`-y, --yes` 처럼 짧은 플래그가 앞선 선언도 잡는다). 이 저장소는 `.requiredOption` 을 쓰므로(예: `src/commands/apigateway/resource.ts`) 옵션 추출 정규식은 `/\.(?:option|requiredOption)\(\s*["'`]([^"'`]+)["'`]/g` 로 한다. 테스트 파일은 pathspec 으로 제외해 테스트 안의 표본 문자열이 대상이 되지 않게 한다. 인자를 주면 그 문자열만 검사한다. `new Command(name)` 처럼 이름을 변수로 넘기는 팩토리와 `list`, `create`, `--name` 같은 흔한 이름은 검사가 거르지 못한다. 이 한계는 스크립트 머리 주석에 적는다. 파일을 직접 읽어 고정 문자열로 찾고 셸 grep 에 넘기지 않는다(`--search` 같은 값을 grep 이 자기 옵션으로 읽는다).
 - 검사 대상 문서는 `README.md` 와 `skills/` 다. `docs/guide` 는 이 저장소에 없다.
 - 순수 로직은 함수로 export 해 테스트하고, 직접 실행될 때만 `main` 을 돈다(`fileURLToPath(import.meta.url) === resolve(process.argv[1])`).
 - 자식 프로세스는 `spawnSync` 로 부르고 종료 코드를 그 자리에서 읽는다. 셸 파이프로 잇지 않는다.
@@ -66,6 +66,8 @@ export: `extractTargets(diffText)` 는 추가된 명령과 옵션 배열을, `fi
 ### 5. 테스트 `.agents/skills/release/scripts/release-scripts.test.mjs` 신규
 
 - `extractTargets`: `+export const fooCommand = new Command("foo")`, `+  .option("-y, --yes", "...")`, `+  .option("--dry-run")`, `+  .requiredOption("--name <name>")` 이 든 diff 에서 `foo`, `--yes`, `--dry-run`, `--name` 을 뽑는다. `-` 로 시작하는 삭제 줄과 `+++` 머리 줄은 무시한다.
+- `extractTargets`(여러 줄): `+  .requiredOption(` 다음 줄이 `+    "--listener-id <id>",` 인 diff 에서 `--listener-id` 를 뽑는다.
+- `extractTargets`(테스트 제외): 이 pathspec 은 git 이 처리하므로 테스트 대상이 아니다. 대신 `git ls-files -- src/ ':(exclude,glob)src/**/*.test.ts'` 출력에 `.test.ts` 가 없음을 검증 절에서 확인한다.
 - `findMissing`: 한 파일에만 있는 대상은 빠지고, 어디에도 없는 대상만 남는다.
 - `countEscapeResidue`: `` bad \`x\` `` 와 `bad \$HOME` 줄은 세고, 백틱 코드와 줄 끝 `\` 는 세지 않는다.
 
@@ -75,7 +77,7 @@ export: `extractTargets(diffText)` 는 추가된 명령과 옵션 배열을, `fi
 
 ### 7. `docs/code-architecture.md`
 
-「테스트와 빌드」 절의 「`scripts/*.test.mjs`도 vitest가 실행한다」 문장을 「`scripts/*.test.mjs` 와 `.agents/skills/*/scripts/*.test.mjs` 도 vitest 가 실행한다」로 바꾼다.
+「테스트와 빌드」 절의 「`scripts/*.test.mjs`도 vitest가 실행한다」 문장을 「`scripts/*.test.mjs` 와 `.agents/skills/**/scripts/*.test.mjs` 도 vitest 가 실행한다」로 바꾼다.
 
 ## 검증
 
@@ -90,9 +92,11 @@ node .agents/skills/release/scripts/doc-sync-check.mjs; echo "docsync=$?"
 node .agents/skills/release/scripts/doc-sync-check.mjs "--no-such-option-xyz"; echo "docsync_missing=$?"
 node .agents/skills/release/scripts/verify-release.mjs; echo "verify_noarg=$?"
 node .agents/skills/release/scripts/verify-release.mjs "$(git describe --tags --abbrev=0)" --no-wait; echo "verify_latest=$?"
+git ls-files -- src/ ':(exclude,glob)src/**/*.test.ts' | grep -c '\.test\.ts$'
 node scripts/check-pii.mjs
 ```
 
+- `git ls-files ... | grep -c` 는 0 을 출력한다.
 - `preflight=0`
 - `docsync` 는 0 이나 1 이다. 1 이면 출력된 대상이 실제로 문서에 없는지 확인하고 보고한다. 문서를 고치지 않는다.
 - `docsync_missing=1`, `verify_noarg=2`

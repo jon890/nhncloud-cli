@@ -19,7 +19,7 @@
 | 1. 사전 검증 | `AGENTS.md` 검증 명령을 사람이 차례로 실행 | main 가드와 `git status` 확인 뒤 `node .agents/skills/release/scripts/preflight.mjs` 가 종료 코드 0 |
 | 3. 문서 동기화 | `KEYWORD` 를 사람이 정해 grep | `node .agents/skills/release/scripts/doc-sync-check.mjs` 가 종료 코드 0. 1 이면 출력된 대상의 보완 커밋을 만든 뒤 다시 돌린다 |
 | 4. 공개 정보 검사 | grep 실행 | 1단계 `preflight.mjs` 가 포함하므로 절을 1단계에 합치고 번호를 당긴다 |
-| 7. npm 배포 | `npm publish --access public --otp=OTP코드` 를 안내 | `references/publish.md` 를 읽고 수행. 통과 조건은 `verify-release.mjs $VERSION` 종료 코드 0. 이 단계에 있던 「1분 간격으로 다시 조회하고 10분…」 줄(다른 브랜치가 넣는다)은 `verify-release.mjs` 가 대기를 맡으므로 지운다 |
+| 7. npm 배포 | `npm publish --access public --otp=OTP코드` 를 안내 | `references/publish.md` 를 읽고 수행. 통과 조건은 `verify-release.mjs $VERSION` 종료 코드 0. 이 단계에 있던 「1분 간격으로 다시 조회하고 10분…」 줄(`SKILL.md` 에 이미 있다)은 `verify-release.mjs` 가 대기를 맡으므로 지운다 |
 | `SKILL.md` 목표 문장 | 「사용자가 OTP 로 npm 배포를 마칠 수 있게」 | OTP 를 말하지 않고 「사용자가 npm 게시를 마칠 수 있게」 로 고친다 |
 | 7단계 첫 문장 | 「npm 배포에는 2FA OTP 가 필요하다」 | 계정의 2단계 인증 때문에 사용자가 직접 게시해야 한다는 문장으로 고치고 OTP 를 말하지 않는다 |
 | 6. 태그와 GitHub Release | Release 본문 점검 grep | 태그 push 뒤 태그 워크플로를 기다리는 항목을 더한다(아래 「태그 워크플로 확인」). 본문 점검은 7단계의 `verify-release.mjs` 가 맡으므로 grep 블록을 지운다 |
@@ -30,7 +30,21 @@
 2. `gh run watch <id> --exit-status` 로 끝날 때까지 기다린다.
 3. 실패하면 npm 게시 단계로 가지 않고 사용자에게 보고한다.
 
+- 기다리는 시점은 `gh release create` 앞이다. 태그 run 이 success 여야 Release 를 만든다.
+- run 목록 재조회는 10초 간격, 최대 2분(12회)이다. 그래도 run 이 없으면 사용자에게 보고한다.
+- run 이 실패하면 이미 push 한 태그는 그대로 두고(force 로 갱신하지 않는다) 원인을 고친 뒤 새 패치 버전으로 다시 릴리스한다고 사용자에게 보고한다.
+
 통과 조건은 「태그 run 이 success」 다. 「워크플로우 개요」 표의 6단계 통과 조건에도 같은 문구를 쓴다.
+
+**잃지 않을 내용**: 옛 SKILL.md 의 아래 내용은 지우지 않고 옮긴다.
+
+| 옛 위치 | 내용 | 새 위치 |
+|---|---|---|
+| 3단계 위치 표(`README.md` 「에이전트 없이 직접 쓰기」, 서비스 reference) | 문서에 넣을 자리 | 새 3단계에 그대로 남긴다 |
+| 3단계 "빠졌으면 보완 커밋, 동의 없이는 건너뛰지 않음, 새 명령 없으면 통과" | 보완 규칙 | 새 3단계에 남긴다 |
+| 6단계 "본문은 `--notes-file` 로만", "`--generate-notes` 쓰지 않는다" | 노트 작성 규칙 | 새 5단계에 남긴다 |
+| 6단계 escape 잔재 복구(`gh release edit "$TAG" --notes-file "$NOTES"`) | `verify-release.mjs` 가 본문 점검에서 실패했을 때 할 일 | 새 6단계에 `verify-release.mjs` 실패 시 조치로 옮긴다 |
+| 3단계 | `doc-sync-check.mjs` 가 못 거르는 것(변수로 이름을 넘기는 팩토리, 흔한 이름) | 새 3단계에 한 줄로 적는다 |
 
 **단계 번호 재배치**: 4단계를 1단계에 합치므로 번호가 당겨진다.
 
@@ -53,6 +67,7 @@
 - 사용자에게는 `cd <저장소 루트> && npm publish --access public` 을 넘긴다. OTP 인자 없이 실행한다. 이 문서에는 OTP 옵션 문자열을 쓰지 않는다. 계정의 2단계 인증이 쓰기에도 걸려 있으면 npm 이 브라우저 인증 URL 을 띄우고 ENTER 를 기다린다.
 - 접수되면 npm 이 `Your package is being processed and may take a few minutes to become available.` 를 낸다. 반영까지 몇 분 걸린다(v0.18.0 에서 4분). `verify-release.mjs` 가 기다린다.
 - 사용자가 게시했다는데 이전 버전만 보이면 `~/.npm/_logs/` 의 가장 최근 publish 로그에서 `PUT 202` 를 찾는다. 있으면 접수된 것이다.
+- 게시 경로는 먼저 `gh variable list | grep NPM_TRUSTED_PUBLISHING` 으로 고른다. 변수가 `true` 면 CI 가 게시하므로 로컬 게시를 안내하지 않고 태그 run 의 게시 단계 성공을 확인한다. 없거나 `false` 면 로컬 게시다.
 - CI 게시는 기본으로 꺼져 있다(`docs/adr/041-release-publish-local-ci-verify.md`).
 
 **근거 문서**: `docs/adr/041-release-publish-local-ci-verify.md`.
@@ -88,9 +103,21 @@ node_modules/.bin/vitest run .agents/skills/release/scripts/release-scripts.test
 grep -rniE -- "--otp|OTP|KEYWORD=" .agents/skills/release/
 grep -oE "\.agents/skills/release/scripts/[a-z-]*\.mjs" .agents/skills/release/SKILL.md | sort -u | while read -r f; do test -f "$f" || echo "missing $f"; done
 for f in .agents/skills/release/SKILL.md .agents/skills/release/references/publish.md; do grep -oE '\]\([^)]+\)' "$f" | sed -E 's/^\]\(//;s/\)$//' | grep -vE '^(https?:|#)' | while read -r l; do test -f "$(dirname "$f")/${l%%#*}" || echo "missing link $l in $f"; done; done
+S=.agents/skills/release/SKILL.md
+grep -cE '^## [0-9]+\.' $S
+grep -c '^## 8\.' $S
+grep -c 'references/publish.md' $S
+grep -c 'gh run watch' $S
+grep -c '1분 간격' $S
+grep -cE 'grep -cE' $S
+grep -c 'gh release edit' $S
+grep -c '에이전트 없이 직접 쓰기' $S
+grep -cE 'placeholder' $S
+grep -c 'NPM_TRUSTED_PUBLISHING' .agents/skills/release/references/publish.md
 node scripts/check-pii.mjs
 ```
 
+- 신규 grep 열 줄의 기대 건수: 7, 0, 1 이상, 1 이상, 0, 0, 1 이상, 1 이상, 1 이상, 1 이상.
 - 두 번째 줄은 미추적 파일을 포함하고 대소문자를 구분하지 않으며 0건이어야 한다.
 - 세 번째 줄과 네 번째 줄은 아무것도 출력하지 않아야 한다. 네 번째 줄은 두 문서의 상대 링크(http 로 시작하는 것과 `#` 앵커 제외)를 각 파일 기준 경로로 `test -f` 한다.
 

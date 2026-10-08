@@ -1,6 +1,6 @@
 # Phase 03. 태그 push 로 도는 릴리스 검증 워크플로를 더한다
 
-**Execution profile**: fast
+**Execution profile**: standard
 
 ## 목표
 
@@ -25,17 +25,18 @@
 - OIDC Trusted Publishing 은 npm CLI 11.5.1 이상이 필요하고 Node 20 에 번들된 npm 은 10.x 다. 게시 단계 바로 앞에 `npm install -g npm@^11.5.1` 단계를 같은 `if:` 조건으로 둔다. 변수를 켜기 전에 npm 쪽 Trusted Publishing 등록을 마쳐야 한다.
 - 게시 단계는 `if: vars.NPM_TRUSTED_PUBLISHING == 'true'` 이고 명령은 `npm publish --access public --provenance` 다. `NODE_AUTH_TOKEN` 은 주지 않는다.
 - 변수가 꺼져 있으면 게시를 건너뛰었다는 사실을 로그에 남기는 단계를 둔다.
+- pre-release 검사는 태그 이름에 적용한다. 앞 단계가 태그와 `package.json` 버전의 일치를 보장하므로 둘은 같은 값이다. 검증에서는 `GITHUB_REF_NAME=v1.0.0-rc.1` 환경 변수로 셸 본문을 돌린다.
 - `actions/setup-node` 에 `registry-url: "https://registry.npmjs.org"` 를 준다.
 
 ## 작업 항목
 
 ### 1. `.github/workflows/release.yml` 신규
 
-단계 순서: checkout, pnpm 설정, Node 설정, 공개 정보 검사, 의존성 설치(`--frozen-lockfile`), 타입 검사, 테스트, 빌드, 패키지 산출물 검증, 태그와 `package.json` 버전 일치(`${GITHUB_REF_NAME#v}` 와 `node -p "require('./package.json').version"` 비교), pre-release 거부(`*-*` 이면 실패), npm 11.5.1 이상 설치(변수 조건), 게시(변수 조건), 게시 건너뜀 보고(반대 조건). 각 단계 위에 그 단계가 막는 것을 한 줄 주석으로 적는다.
+단계 순서: checkout, pnpm 설정, Node 설정, 공개 정보 검사, 의존성 설치(`--frozen-lockfile`), 타입 검사, 테스트, 빌드, 패키지 산출물 검증, 태그와 `package.json` 버전 일치(`${GITHUB_REF_NAME#v}` 와 `node -p "require('./package.json').version"` 비교), pre-release 거부(태그 이름 `${GITHUB_REF_NAME#v}` 에 `*-*` 이면 실패), npm 11.5.1 이상 설치(변수 조건), 게시(변수 조건), 게시 건너뜀 보고(반대 조건). 각 단계 위에 그 단계가 막는 것을 한 줄 주석으로 적는다.
 
 ### 2. `docs/code-architecture.md`
 
-「최상위 경계」 표나 「테스트와 빌드」 절에 `.github/workflows/release.yml`(태그 push 검증, ADR-041) 한 줄을 더한다.
+「테스트와 빌드」 절에 `.github/workflows/release.yml`(태그 push 검증, ADR-041) 한 줄을 더한다.
 
 ### 3. 워크플로 형식 확인 테스트
 
