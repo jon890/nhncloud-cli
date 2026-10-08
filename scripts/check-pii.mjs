@@ -5,7 +5,9 @@
 // 허용 도메인 목록은 이 파일이 소유한다.
 //
 // 사용법: node scripts/check-pii.mjs   (cwd 는 저장소 루트)
-// 종료 코드: 0 통과, 1 위반 발견(파일:줄:값 을 stdout 에 출력), 2 필수 검사 경로를 읽을 수 없음
+// 종료 코드: 0 통과, 1 위반 발견, 2 필수 검사 경로를 읽을 수 없음
+// 위반은 `[위반] <설명>` 머리 아래에 `파일:줄:값` 줄로 stdout 에 낸다.
+// 비밀값은 키 이름만 남기고 값을 `***` 로 가린다. CI 로그가 공개되기 때문이다.
 // `SCAN` 은 없으면 종료 코드 2 이고, `OPTIONAL_SCAN` 은 없으면 건너뛴다.
 
 import { access, readdir, readFile, stat } from "node:fs/promises";
@@ -121,7 +123,7 @@ export function findForeignDomains(text, { exact, suffixes }) {
 }
 
 export function findSecrets(text) {
-  return Array.from(text.matchAll(SECRET_PATTERN), (match) => match[0]);
+  return Array.from(text.matchAll(SECRET_PATTERN), (match) => `${match[1]}=***`);
 }
 
 function collectLineMatches(text, filePath, cwd, finder) {

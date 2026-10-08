@@ -79,6 +79,13 @@ describe("findSecrets", () => {
     expect(findSecrets("password = '" + value.toUpperCase() + "'")).toHaveLength(1);
   });
 
+  it("찾은 값은 출력에 남기지 않는다", () => {
+    const value = "abcdefghijklmnop" + "1234";
+    const [hit] = findSecrets('secret: "' + value + '"');
+    expect(hit).toBe("secret=***");
+    expect(hit).not.toContain(value);
+  });
+
   it("짧은 값과 placeholder 는 통과한다", () => {
     expect(findSecrets('secret: "short"')).toEqual([]);
     expect(findSecrets('secret: "abcdefghijklmno"')).toEqual([]);
