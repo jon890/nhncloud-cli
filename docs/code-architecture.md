@@ -115,5 +115,5 @@ HTTP 테스트는 `ky`를 mock하고 실제 응답 형태에 맞는 fixture를 �
 tsup와 vitest가 타입 검사를 대신하지 않으므로 `tsc --noEmit`을 별도로 실행한다.
 
 CLI 버전은 `package.json`의 `version` 하나가 소유한다. `tsup.config.ts`가 빌드 때 `__NHNCLOUD_CLI_VERSION__`으로 주입하고, 주입되지 않은 테스트와 개발 실행에서는 `0.0.0-dev`를 쓴다.
-`scripts/*.test.mjs`도 vitest가 실행한다.
+`scripts/*.test.mjs` 와 `.agents/skills/**/scripts/*.test.mjs` 도 vitest 가 실행한다.
 `scripts/verify-package.mjs`는 빌드 산출물의 버전과 패키지에 담기는 공개 스킬 파일을 검사하고, CI가 `scripts/check-pii.mjs`와 함께 실행한다.
