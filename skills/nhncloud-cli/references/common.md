@@ -29,13 +29,16 @@ nhncloud skills update
 
 | 상태 | 의미 | 복구 명령 |
 |------|------|-----------|
-| `current` | 현재 CLI 버전과 콘텐츠 해시가 일치함 | 조치 없음 |
-| `missing` | 활성 스킬이 설치되지 않음 | `nhncloud skills install` |
-| `outdated` | 이전 버전 또는 기존 패키지·저장소 직접 링크 | `nhncloud skills update` |
-| `broken` | 관리형 링크 또는 기존 패키지 링크의 대상이 없음 | `nhncloud skills update` |
-| `modified` | 관리 저장소 콘텐츠가 설치 매니페스트와 다름 | 내용을 확인한 뒤 `nhncloud skills update --force` |
-| `corrupt` | 관리 저장소 경로나 매니페스트가 손상됨 | 내용을 확인한 뒤 `nhncloud skills update --force` |
-| `unmanaged` | 사용자가 만든 파일·디렉터리 또는 알 수 없는 링크가 설치 경로를 차지함 | 내용을 확인한 뒤 `nhncloud skills update --force` |
+| `current` | 모든 설치 경로가 현재 CLI 버전과 콘텐츠 해시에 일치함 | 조치 없음 |
+| `missing` | 한 경로라도 활성 스킬이 설치되지 않음 | `nhncloud skills install` |
+| `outdated` | 한 경로라도 이전 버전 또는 기존 패키지·저장소 직접 링크임 | `nhncloud skills update` |
+| `broken` | 한 경로라도 관리형 링크 또는 기존 패키지 링크의 대상이 없음 | `nhncloud skills update` |
+| `modified` | 한 경로라도 관리 저장소 콘텐츠가 설치 매니페스트와 다름 | 내용을 확인한 뒤 `nhncloud skills update --force` |
+| `corrupt` | 한 경로라도 관리 저장소 경로나 매니페스트가 손상됨 | 내용을 확인한 뒤 `nhncloud skills update --force` |
+| `unmanaged` | 한 경로라도 사용자가 만든 파일·디렉터리 또는 알 수 없는 링크가 설치 경로를 차지함 | 내용을 확인한 뒤 `nhncloud skills update --force` |
+
+상태는 설치 경로를 합친 값이고 위 표의 `corrupt`부터 `current` 방향으로 먼저 해당하는 값이다.
+`--json`의 `destination`, `linkTarget`, `managed`는 Claude Code 경로 값이며 경로별 상세는 `agents.*`에 있다.
 
 `--force`는 사용자 항목 또는 수정·손상된 관리 저장소를 삭제하지 않고 같은 상위 디렉터리에 백업한 뒤 교체한다.
 `nhncloud skills uninstall`은 `~/.claude/skills/nhncloud-cli`의 활성 심볼릭 링크만 제거하며 버전별 관리 저장소는 보존한다.
