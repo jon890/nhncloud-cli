@@ -1,5 +1,5 @@
 import { HTTPError } from "ky";
-import { toNhnCloudCliError } from "../../api/httpError.js";
+import { readHttpErrorBody, toNhnCloudCliError } from "../../api/httpError.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { sanitizeForTerminal } from "../../utils/terminal.js";
 
@@ -18,16 +18,12 @@ export async function toNetworkWriteError(err: unknown): Promise<NhnCloudCliErro
   }
 
   let reason: string | null = null;
-  try {
-    const body: unknown = await err.response.json();
-    const neutron = typeof body === "object" && body !== null
-      ? (body as Record<string, unknown>)["NeutronError"] : undefined;
-    const message = typeof neutron === "object" && neutron !== null
-      ? (neutron as Record<string, unknown>)["message"] : undefined;
-    if (typeof message === "string") reason = message;
-  } catch {
-    // 본문이 비어 있거나 JSON 이 아니면 공용 변환 결과를 쓴다.
-  }
+  const body = await readHttpErrorBody(err);
+  const neutron = typeof body === "object" && body !== null
+    ? (body as Record<string, unknown>)["NeutronError"] : undefined;
+  const message = typeof neutron === "object" && neutron !== null
+    ? (neutron as Record<string, unknown>)["message"] : undefined;
+  if (typeof message === "string") reason = message;
   if (reason === null) return base;
 
   return new NhnCloudCliError(

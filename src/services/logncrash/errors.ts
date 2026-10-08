@@ -1,6 +1,6 @@
 import { HTTPError } from "ky";
 import { NhnEnvelopeError } from "../../api/envelope.js";
-import { toNhnCloudCliError } from "../../api/httpError.js";
+import { readHttpErrorBody, toNhnCloudCliError } from "../../api/httpError.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_API_ERROR } from "../../utils/exit-codes.js";
 import { sanitizeForTerminal } from "../../utils/terminal.js";
@@ -58,18 +58,14 @@ export async function toLogncrashError(err: unknown): Promise<NhnCloudCliError> 
   }
 
   let requestId: string | null = null;
-  try {
-    const body: unknown = await err.response.json();
-    if (
-      typeof body === "object" &&
-      body !== null &&
-      "requestId" in body &&
-      typeof body.requestId === "string"
-    ) {
-      requestId = body.requestId;
-    }
-  } catch {
-    // 본문이 비어 있거나 JSON 이 아니어도 500 자체는 보존한다.
+  const body = await readHttpErrorBody(err);
+  if (
+    typeof body === "object" &&
+    body !== null &&
+    "requestId" in body &&
+    typeof body.requestId === "string"
+  ) {
+    requestId = body.requestId;
   }
 
   return new LogncrashServerError(

@@ -1,7 +1,7 @@
 import ky, { HTTPError } from "ky";
 import { endpointFor } from "../../api/endpoints.js";
 import { unwrap, unwrapHeader, type NhnEnvelope } from "../../api/envelope.js";
-import { toNhnCloudCliError } from "../../api/httpError.js";
+import { readHttpErrorBody, toNhnCloudCliError } from "../../api/httpError.js";
 import { DEFAULT_TIMEOUT_MS } from "../../api/timeout.js";
 import type { CloudEnvironment } from "../../config/types.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
@@ -124,14 +124,10 @@ async function toSkmError(err: unknown): Promise<NhnCloudCliError> {
   if (!(err instanceof HTTPError)) return toNhnCloudCliError(err);
 
   let resultMessage: string | null = null;
-  try {
-    const body: unknown = await err.response.clone().json();
-    const header = isRecord(body) ? body["header"] : undefined;
-    const message = isRecord(header) ? header["resultMessage"] : undefined;
-    if (typeof message === "string") resultMessage = message;
-  } catch {
-    // 본문이 비어 있거나 JSON 이 아니면 공용 변환 결과를 쓴다.
-  }
+  const body = await readHttpErrorBody(err);
+  const header = isRecord(body) ? body["header"] : undefined;
+  const message = isRecord(header) ? header["resultMessage"] : undefined;
+  if (typeof message === "string") resultMessage = message;
   if (resultMessage === null) return toNhnCloudCliError(err);
 
   const status = err.response.status;
