@@ -95,6 +95,8 @@ Log & Crash service client는 공식 `available-token` 응답의 정수 필드�
 명령 트리를 모두 만든 뒤 `src/commands/commander-errors.ts`가 Commander 오류를 가로챈다.
 같은 시점에 `src/commands/help.ts`가 모든 하위 명령 도움말에 루트 전역 옵션(`--json`, `--quiet` 등)을 `Global Options:` 절로 보여 준다.
 필수 옵션 누락만 `EXIT_PARAM_ERROR`로 바꾸고, 이미 stderr에 출력한 오류는 최상위 처리부가 다시 출력하지 않는다(ADR-035).
+알 수 없는 옵션 오류에는 `src/commands/unknown-option-hint.ts`가 만든 위치 인수 안내를 같은 경계에서 stderr에 덧붙이고, 종료 코드는 바꾸지 않는다.
+안내 판정은 Commander 객체를 받지 않는 순수 함수로 두어 명령 트리 없이 테스트한다.
 
 ## 공개 스킬 관리
 
