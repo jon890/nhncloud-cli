@@ -26,7 +26,7 @@
 
 - 공개 스킬 파일 목록을 스크립트에 하드코딩하지 않는다. `git ls-files skills/nhncloud-cli` 로 추적 중인 파일을 뽑고, 그 각각이 `package.json` 의 `files` 규칙에 의해 패키지에 들어가는지를 `npm pack --dry-run --json` 결과와 집합 비교한다. reference 를 추가할 때 목록을 고칠 필요가 없게 하기 위해서다.
 - `npm pack --dry-run --json` 은 네트워크 없이 돈다. 출력의 `[0].files[].path` 를 읽는다.
-- 상수 이름은 `__NHNCLOUD_CLI_VERSION__` 이다. 저장소에 같은 이름이 없는지 `git grep -n "__NHNCLOUD_CLI_VERSION__"` 로 먼저 확인한다(계획 시점 0건).
+- 상수 이름은 `__NHNCLOUD_CLI_VERSION__` 이다. 저장소에 같은 이름이 없는지 `git grep -n "__NHNCLOUD_CLI_VERSION__"` 로 먼저 확인한다: `git grep -n "__NHNCLOUD_CLI_VERSION__" -- src tsup.config.ts` 가 0건이어야 한다(계획서와 `docs/` 의 설명은 대상이 아니다).
 
 ## 작업 항목
 
@@ -58,6 +58,12 @@ export const CLI_VERSION: string =
 - 검사 1: `node dist/index.js --version` 의 stdout 을 trim 한 값이 `package.json` 의 `version` 과 같다.
 - 검사 2: `git ls-files skills/nhncloud-cli` 의 모든 파일이 `npm pack --dry-run --json` 의 파일 목록에 있다. `README.md` 와 `dist/index.js` 도 있어야 한다.
 - 실패는 모아서 stderr 에 한 줄씩 내고 종료 코드 1 로 끝낸다. 자식 프로세스는 `spawnSync` 로 부르고 종료 코드를 그 자리에서 읽는다.
+- 비교 로직은 순수 함수로 export 한다: `checkVersion(expected, actual)` 은 실패 메시지 배열을, `findMissingPackedFiles(tracked, packed, required)` 는 pack 목록에 없는 파일 배열을 돌려준다. 직접 실행될 때만 `main()` 을 돈다(`check-pii.mjs` 와 같은 구조).
+
+### 5-1. `scripts/verify-package.test.mjs` 신규
+
+- `checkVersion`: 같으면 빈 배열, 다르면 불일치 메시지.
+- `findMissingPackedFiles`: 추적 중인 스킬 파일이 pack 목록에 없으면 그 파일을 돌려주고, 모두 있으면 빈 배열.
 
 ### 6. `package.json`
 
@@ -79,7 +85,7 @@ export const CLI_VERSION: string =
 pnpm install
 git grep -n '"0\.18\.0"' -- src
 git grep -n '\.version("' -- src/index.ts
-node_modules/.bin/vitest run src/version.test.ts
+node_modules/.bin/vitest run src/version.test.ts scripts/verify-package.test.mjs
 node_modules/.bin/tsc --noEmit
 node_modules/.bin/vitest run
 node_modules/.bin/tsup
@@ -101,6 +107,7 @@ node scripts/verify-package.mjs; echo "exit=$?"
 | `src/version.test.ts` | 신규 |
 | `src/index.ts` | 수정 |
 | `scripts/verify-package.mjs` | 신규 |
+| `scripts/verify-package.test.mjs` | 신규 |
 | `package.json` | 수정 |
 | `vitest.config.ts` | 수정 |
 | `.agents/skills/release/SKILL.md` | 수정 |

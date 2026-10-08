@@ -7,7 +7,7 @@
 `AGENTS.md` 「공개 저장소 정보 보호」 절이 사람에게 실행하라고 적어 둔 grep 두 줄을 `scripts/check-pii.mjs` 로 옮기고, CI 가 매 PR 과 main push 에서 실행하게 한다.
 공개 저장소라 사내 도메인이나 비밀값은 한 번 새면 되돌릴 수 없는데, 지금은 사람이 실행하지 않으면 아무것도 막지 않는다.
 
-**범위 외**: 정책(무엇을 노출하면 안 되는가, 대체 표기 표)은 `AGENTS.md` 에 그대로 둔다. 릴리스 스킬 문서 수정과 릴리스 워크플로는 별도 계획이다. pnpm 고정은 phase 03 이다.
+**범위 외**: 정책(무엇을 노출하면 안 되는가, 대체 표기 표)은 `AGENTS.md` 에 그대로 둔다. 릴리스 워크플로 자동화는 별도 계획이다(이 phase 가 없애는 grep 안내를 가리키는 릴리스 스킬 두 줄은 여기서 고친다). pnpm 고정은 phase 03 이다.
 
 ## 컨텍스트
 
@@ -23,7 +23,7 @@
 - 심볼릭 링크와 `.git`, `node_modules`, `dist`, `worktrees` 디렉터리는 건너뛴다. `CLAUDE.md` 는 `AGENTS.md` 를 가리키는 링크라 따로 넣지 않는다.
 - 호스트를 허용 목록과 **호스트 경계로** 비교한다(부분 문자열 금지).
 - 찾은 위치를 `파일:줄:값` 으로 stdout 에 내고 종료 코드 1, 깨끗하면 0, 필수 경로를 못 읽으면 2.
-- 함수(`walkFiles`, `findForeignDomains`, `findSecrets`, `main`)를 export 하고, 직접 실행될 때만 `main()` 을 돈다.
+- 함수(`walkFiles`, `findForeignDomains(text, { exact, suffixes })`, `findSecrets`, `main`)를 export 하고, `exact` 는 `OK_DOMAINS`, `suffixes` 는 `OK_DOMAIN_SUFFIXES` 다. 직접 실행될 때만 `main()` 을 돈다.
 - 도메인은 dooray-cli 와 같은 정규식으로 뽑는다: `/(https?:\/\/|@)([A-Za-z0-9.-]+\.(?:com|co\.kr|net)[A-Za-z0-9.-]*)/g`. 끝의 `[A-Za-z0-9.-]*` 가 없으면 허용 도메인 뒤에 다른 도메인을 붙인 주소가 허용 호스트로 잘려 통과한다. 호스트는 소문자로 바꿔 비교한다.
 - `SCAN` 은 `README.md`, `skills/`, `docs/`, `AGENTS.md`, `src/`, `.agents/`, `.claude/`, `.github/`, `scripts/` 다. `.codex/` 는 넣지 않는다(다른 PR 이 그 디렉터리를 없앤다). `OPTIONAL_SCAN` 은 `tasks/` 다.
 
@@ -77,6 +77,12 @@ node scripts/check-pii.mjs
 
 「커밋, 이슈 작성, 릴리스 전에 다음 검사가 모두 0건인지 확인한다」 문장은 「… 다음 검사가 종료 코드 0 으로 끝나는지 확인한다. CI 도 같은 검사를 실행한다」 로 바꾼다. 허용 목록을 고칠 곳이 스크립트라는 것을 한 줄 더한다.
 
+### 6. `.agents/skills/release/SKILL.md`
+
+- 21줄 표 「`AGENTS.md` 의 grep 두 개가 모두 0건이다」 를 「`node scripts/check-pii.mjs` 가 종료 코드 0 으로 끝난다」 로 바꾼다.
+- 85줄 「`AGENTS.md` 「공개 저장소 정보 보호」 절의 grep 두 개를 실행한다. 패턴은 그 절이 소유한다.」 를 「`node scripts/check-pii.mjs` 를 실행한다. 허용 목록은 그 스크립트가 소유한다.」 로 바꾼다.
+- 다른 줄은 건드리지 않는다.
+
 ## 검증
 
 ```bash
@@ -85,10 +91,11 @@ node scripts/check-pii.mjs; echo "exit=$?"
 node_modules/.bin/tsc --noEmit
 node_modules/.bin/vitest run
 git grep -n 'grep -rnoE\|grep -rnE' -- AGENTS.md
+git grep -n 'grep 두' -- .agents AGENTS.md
 ```
 
 - 두 번째 줄은 `exit=0` 이어야 한다. 지금 저장소에 위반이 있으면 고치지 말고 위치를 보고한다.
-- 마지막 줄은 0건이어야 한다.
+- 마지막 두 `git grep` 은 0건이어야 한다.
 - 대조 표본: `docs/` 에 사내처럼 보이는 도메인(`wiki.internal-corp` 에 `.com` 을 붙인 주소) 한 줄을 담은 임시 파일을 만들어 `exit=1` 과 그 위치가 출력되는지 보고 파일을 지운다.
 
 ## 변경 파일
@@ -100,3 +107,4 @@ git grep -n 'grep -rnoE\|grep -rnE' -- AGENTS.md
 | `package.json` | 수정 |
 | `.github/workflows/ci.yml` | 수정 |
 | `AGENTS.md` | 수정 |
+| `.agents/skills/release/SKILL.md` | 수정 |

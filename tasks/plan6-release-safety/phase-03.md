@@ -1,6 +1,6 @@
 # Phase 03. pnpm 버전을 저장소에 고정하고 CI 에 패키지 검증을 더한다
 
-**Execution profile**: fast
+**Execution profile**: standard
 
 ## 목표
 
@@ -76,6 +76,8 @@ git check-ignore -q pnpm-workspace.yaml; test $? -eq 1
 
 - `git diff --exit-code pnpm-lock.yaml` 은 종료 코드 0 이어야 한다.
 - `node -e` 줄과 `git check-ignore` 줄은 종료 코드 0 이어야 한다.
+
+로컬로는 CI 의 `standalone: true` 와 `packageManager` 조합을 증명할 수 없다. push 뒤 PR CI 에서 `Setup pnpm` 로그에 고정 버전이 찍히고 `Check for exposed identifiers`, `Verify package artifact` 단계가 통과하는지 확인한다. 이 확인은 원격 검증 목록으로 PR 본문에 옮긴다.
 
 ## 변경 파일
 
