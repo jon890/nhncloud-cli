@@ -32,7 +32,7 @@ import {
   run,
 } from "./lib.mjs";
 
-const SPEC_PATTERN = /^(@[^/]+\/)?[^@]+@.+$/;
+const SPEC_PATTERN = /^(@[^/]+\/)?[^@-][^@]*@.+$/;
 
 export const CHECK_STEPS = [
   ["tsc", ["exec", "tsc", "--noEmit"]],

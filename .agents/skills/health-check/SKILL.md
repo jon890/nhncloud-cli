@@ -47,6 +47,7 @@ node .agents/skills/health-check/scripts/trial-update.mjs --range; echo "trial=$
 - 갱신 뒤에도 취약점이 남으면 3단계 전에 1단계 표의 「거쳐 오는 직접 의존성」 열을 본다.
   범위 안에서 풀리는 취약점은 메이저 갱신의 이득으로 세지 않는다.
 - peer 로 자동 설치된 개발 도구가 옛 버전에 머물면 `--dev-pkg NAME@SPEC` 으로 직접 선언을 시험한다.
+- 시험은 HEAD 커밋 기준이라 커밋하지 않은 변경은 반영되지 않는다. 필요하면 먼저 커밋한다.
 - 실패하면 결과 표의 로그 경로를 열어 실패한 테스트 이름을 적는다.
 - 시험이 중간에 끊겨 임시 worktree 가 남으면 스크립트가 출력한 정리 명령을 그대로 쓴다.
 - 직접 지워야 하면 `git worktree list` 에서 경로가 `worktrees/nhncloud-cli/health-check-<숫자>-<숫자>` 패턴에 정확히 맞는 것만 `git worktree remove --force` 대상이다. 이름에 `health-check` 가 들어도 그 패턴이 아니면(예: 이 스킬을 만든 작업 worktree) 지우지 않는다.
@@ -84,7 +85,7 @@ node .agents/skills/health-check/scripts/trial-update.mjs --range "${PKGS[@]}"; 
 | 여러 명령에 걸치거나 정책을 먼저 정해야 하는 것 | `planning` 으로 문서와 task 를 만든 뒤 `orchestration` 으로 넘긴다 |
 
 - 갱신을 적용할 때는 `trial-update.mjs` 가 남긴 `changes.patch` 를 작업 브랜치에서 `git apply` 하고, 이어서 `pnpm install --frozen-lockfile` 로 node_modules 를 맞춘다.
-- patch 는 `os.tmpdir()` 아래에 있어 재부팅하면 사라진다. 적용 전에 있는지 확인하고, 없으면 시험을 다시 돈다.
+- patch 는 기본값으로 `os.tmpdir()` 아래에 있어 재부팅하면 사라진다. 적용 전에 있는지 확인하고, 없으면 시험을 다시 돈다.
 
 ```bash
 PATCH=""   # 2단계나 3단계 결과 표의 patch 경로를 넣는다

@@ -13,7 +13,7 @@ describe("parseArgs", () => {
     });
   });
 
-  it.each([[[]], [["--pkg"]], [["--pkg", "commander"]], [["--unknown"]]])("%j 는 던진다", (argv) => {
+  it.each([[[]], [["--pkg"]], [["--pkg", "commander"]], [["--pkg", "-g@1"]], [["--unknown"]]])("%j 는 던진다", (argv) => {
     expect(() => parseArgs(argv)).toThrow();
   });
 });
