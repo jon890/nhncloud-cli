@@ -6,10 +6,11 @@ spawn 프롬프트에는 task 절대경로와 직전 phase에서 확인한 사�
 
 ## worktree
 
-worktree는 `.agents/worktrees/plan{N}-{slug}`에 둔다.
+worktree는 `worktrees/nhncloud-cli/plan{N}-{slug}`에 둔다. 이 머신의 전역 hook이 그 밖의 worktree 경로를 막는다.
+이미 plan 브랜치 worktree에서 실행 중이면 새로 만들지 않는다.
 
 ```bash
-git worktree add .agents/worktrees/plan{N}-{slug} -b {category}/plan{N}-{slug} origin/main
+git worktree add worktrees/nhncloud-cli/plan{N}-{slug} -b {category}/plan{N}-{slug} origin/main
 ```
 
 브랜치와 PR 이름은 `.claude/planning-overlay.md`가 소유한다.
