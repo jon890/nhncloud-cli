@@ -74,7 +74,7 @@ git diff --check
 - 빈 임시 HOME 에서 실제 실행을 확인한다. 실제 홈을 쓰지 않도록 `HOME` 과 `XDG_DATA_HOME` 을 함께 바꾼다.
   `T=$(mktemp -d) && HOME="$T" XDG_DATA_HOME="$T/data" node dist/index.js doctor --json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);if(r.skills.agents.codex.status!=="missing"||r.skills.agents.claude.status!=="missing")process.exit(1)})' && rm -rf "$T"`
   종료 코드 0.
-- 한국어 점검: korean-check 스킬의 검사기 `python3 <korean-check 스킬 디렉터리>/scripts/korean-style-check.py skills/nhncloud-cli/references/common.md` 종료 코드 0.
+- 한국어 점검: korean-check 스킬의 검사기 `python3 ~/personal/fos-skills/korean-check/scripts/korean-style-check.py skills/nhncloud-cli/references/common.md` 종료 코드 0.
 
 ## 변경 파일
 

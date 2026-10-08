@@ -1,6 +1,6 @@
 # Phase 02. 두 경로 제거와 skills 명령 출력, 공개 문서
 
-**Execution profile**: standard
+**Execution profile**: deep
 
 ## 목표
 
@@ -42,8 +42,12 @@ export async function uninstallSkill(context, operations = defaultOperations): P
 
 1. `SKILL_AGENTS` 순서로 `inspectAgentSkill` 을 부른다. `missing` 이 아닌 경로 가운데 `!managed || !linkTarget` 인 것이 있으면 `managerError(\`관리되지 않은 스킬 항목이므로 어느 경로도 제거하지 않았습니다: ${destination}\`)` 를 던진다. 이 검사는 어떤 `rename` 보다 먼저 한다.
 2. 부모 디렉터리의 `realpath` 와 basename 으로 같은 실제 경로인 대상을 하나로 합친다(phase 01 의 `switchActiveLinks` 와 같은 규칙). 부모가 없으면 그 경로는 `missing` 이라 대상이 아니다.
-3. 대상마다 지금의 이동과 검증(`.${SKILL_NAME}.uninstall-${randomUUID()}` 로 `operations.rename`, `lstat`, `readlink` 로 대상 재확인)을 순서대로 한다. 이 단계가 한 경로에서 실패하면 그 경로는 `restoreUninstallCandidate` 로 복원하고, 앞에서 이동한 경로의 `candidate` 도 원래 `destination` 으로 `operations.rename` 해 되돌린 뒤 실패한다. 이동 중 `ENOENT` 는 그 경로를 `absent` 로 본다.
-4. 모든 대상의 이동과 검증이 끝난 뒤에만 `candidate` 들을 `rm` 한다. `rm` 이 실패하면 그 `candidate` 와 아직 지우지 않은 `candidate` 를 원래 위치로 되돌리고, 오류 메시지에 이미 지운 경로를 적는다.
+3. 대상마다 지금의 이동과 검증(`.${SKILL_NAME}.uninstall-${randomUUID()}` 로 `operations.rename`, `lstat`, `readlink` 로 대상 재확인)을 순서대로 한다. 이 단계가 한 경로에서 실패하면 그 경로는 `restoreUninstallCandidate` 로 복원하고, 앞에서 이동한 경로의 `candidate` 도 `optionalLstat(destination)` 으로 자리가 비었는지 확인한 뒤(`restoreUninstallCandidate` 와 같은 검사) 원래 `destination` 으로 `operations.rename` 해 되돌리고 실패한다. 이동 중 `ENOENT` 는 그 경로를 `absent` 로 본다.
+4. 이동·검증 단계에서 대상마다 `readlink` 원래 값(`rawTarget`)을 기록해 둔다. 모든 대상의 이동과 검증이 끝난 뒤에만 `candidate` 들을 `SKILL_AGENTS` 순서로 `operations.rm(candidate, { force: true })` 한다. 하나가 실패하면 다음을 한다.
+   - 아직 지우지 않은 `candidate`(실패한 것 포함)는 `restoreUninstallCandidate` 로 원래 위치로 되돌린다.
+   - 이미 지운 경로는 새 임시 링크(`.${SKILL_NAME}.link-${randomUUID()}`, 같은 부모)에 기록해 둔 `rawTarget` 으로 `symlink` 한 뒤 `operations.rename(그 링크, destination)` 으로 되살린다. 되살리기 전에 `optionalLstat(destination)` 으로 그 자리가 비었는지 본다(`restoreUninstallCandidate` 와 같은 검사).
+   - 모두 성공하면 `managerError(\`스킬 제거에 실패해 지운 경로를 이전 상태로 되돌렸습니다: ${restored.join(", ")}\`, originalError)`. 하나라도 되돌리지 못하면 나머지를 계속 되돌린 뒤 `managerError(\`스킬 제거에 실패했고 일부 경로를 되돌리지 못했습니다: ${failed.join(", ")}; 제거 오류: ${toReason(originalError)}\`, firstRestoreError)`.
+   - `SkillManagerOperations` 에 `rm: typeof rm` 을 더하고 `defaultOperations` 에 `fs/promises` 의 `rm` 을 넣는다. `uninstallSkill` 과 `rm` 을 주입할 필요가 있는 이 단계는 `operations.rm` 으로 부른다. 기존 테스트의 `{ async rename() {} }` 리터럴이 컴파일되도록 `rm` 은 optional(`rm?`)로 두고, 쓰는 쪽은 `(operations.rm ?? defaultOperations.rm)` 으로 부른다.
 5. 경로별 `action` 은 지운 경로가 `removed`, 처음부터 없거나 이동 시 `ENOENT` 인 경로가 `absent` 다. 합친 대상의 두 에이전트는 같은 `action` 을 받는다. 최상위 `action` 은 하나라도 `removed` 면 `removed`.
 
 ### 2. `src/commands/skills.ts`
@@ -81,8 +85,8 @@ export async function uninstallSkill(context, operations = defaultOperations): P
 3. Claude Code 만 관리 링크, Codex 없음: `action: "removed"`, `agents.codex.action: "absent"`.
 4. 두 번째 경로 이동 실패: `operations.rename` 이 `oldPath === destination("codex")` 일 때 던진다. 실패하고 Claude Code 링크가 원래 대상으로 돌아와 있다. 두 부모 디렉터리에 `.nhncloud-cli.uninstall-` 로 시작하는 항목이 남지 않는다.
 5. 부모가 같은 실제 디렉터리(`<homeDir>/.agents/skills` 가 `<homeDir>/.claude/skills` 를 가리키는 링크): 제거가 성공하고 두 에이전트 모두 `removed`.
-   - 두 번째 candidate 의 `rm` 이 실패: 두 경로를 설치한 뒤 `rm` 이 두 번째 candidate 에서 던지게 주입한다. 실패하고 첫 경로가 원래 링크로 되돌려져 있다(`readlink` 가 설치 때 값과 같다).
 6. 두 경로 모두 없음: `action: "absent"`.
+7. 두 부모가 다른 일반 경로에서 두 번째 candidate 의 `rm` 실패: 두 경로를 설치한 뒤 `operations.rm` 이 `path.basename(target)` 이 `.nhncloud-cli.uninstall-` 로 시작하고 `path.dirname(target)` 이 Codex 부모일 때만 던지게 주입한다(`manager.test.ts` 의 `rename` 주입과 같은 패턴). 실패 메시지에 `이전 상태로 되돌렸습니다` 가 있고, 이미 지워졌던 Claude Code 경로와 Codex 경로의 `readlink` 가 설치 때 값과 같으며, 두 부모에 `.nhncloud-cli.` 로 시작하는 임시 항목이 남지 않는다.
 
 ### 5. `src/commands/skills.test.ts`
 
@@ -94,7 +98,7 @@ export async function uninstallSkill(context, operations = defaultOperations): P
 
 ### 6. 공개 문서
 
-- `skills/nhncloud-cli/references/common.md` 「Claude Code 공개 스킬 관리」 절: 제목을 「Claude Code·Codex 공개 스킬 관리」 로 바꾼다. 다음을 더한다.
+- `skills/nhncloud-cli/references/common.md` 「Claude Code 공개 스킬 관리」 절: 먼저 현재 내용을 읽는다. 상태 표의 「한 경로라도 …」 의미 열, 합친 상태 설명, `agents.*` 문장은 이미 반영돼 있으니 다시 더하지 않는다. 제목을 「Claude Code·Codex 공개 스킬 관리」 로 바꾸고 아래 가운데 아직 없는 것만 더한다.
   - 설치 경로는 Claude Code 의 `~/.claude/skills/nhncloud-cli` 와 Codex 의 `~/.agents/skills/nhncloud-cli` 이고 두 경로는 같은 관리 저장소를 가리킨다. Codex 설치 여부와 관계없이 두 경로를 만들고, 필요하면 `~/.agents/skills` 디렉터리도 만든다.
   - 기존에 Claude Code 에만 설치했다면 `nhncloud skills install` 이나 `update` 를 다시 실행해 Codex 경로를 연결한다.
   - `status` 의 상태는 두 경로를 합친 값이며, 상태 표의 순서(`corrupt` 부터 `current` 까지)로 먼저 해당하는 값이다. 두 경로가 모두 `current` 일 때만 `current` 다. 상태 표의 의미 열을 「한 경로라도 …」 기준으로 고친다.
@@ -120,7 +124,7 @@ git diff --check
 
 - `git grep -n "Claude Code 스킬\|Claude Code 공개 스킬" -- src skills README.md` 결과가 `src/commands/doctor.ts` 의 텍스트 머리 한 줄뿐이다. 그 줄은 phase 03 이 바꾼다.
 - `git grep -n "agents/skills/nhncloud-cli" -- skills/nhncloud-cli/references/common.md README.md` 결과가 각각 1 건 이상이다.
-- 한국어 점검: korean-check 스킬의 검사기 `python3 <korean-check 스킬 디렉터리>/scripts/korean-style-check.py skills/nhncloud-cli/references/common.md README.md skills/nhncloud-cli/SKILL.md` 종료 코드 0.
+- 한국어 점검: korean-check 스킬의 검사기 `python3 ~/personal/fos-skills/korean-check/scripts/korean-style-check.py skills/nhncloud-cli/references/common.md README.md skills/nhncloud-cli/SKILL.md` 종료 코드 0.
 
 ## 변경 파일
 

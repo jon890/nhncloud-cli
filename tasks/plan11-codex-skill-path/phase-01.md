@@ -24,6 +24,7 @@
 - 한 경로라도 보호 상태면 아무것도 바꾸지 않는다. 경로마다 따로 보호하고 가능한 쪽만 바꾸는 방식은 기각했다.
 - 기존 `switchActiveLink` 는 경로 하나에서 실패하면 그 경로의 백업만 복원하고 끝난다. 두 경로에서는 앞 경로가 이미 새 링크로 바뀐 상태라 그대로 쓰면 두 경로가 다른 버전으로 갈라진다. 경로 목록 전체를 되돌리는 새 함수로 바꾼다.
 - `realpath` 비교는 양쪽 모두 `realpath` 한 값으로 한다. macOS 의 임시 디렉터리는 `/var` 가 `/private/var` 로 풀려 한쪽만 풀면 비교가 늘 어긋난다.
+- 링크가 다른 링크를 거쳐 관리 저장소에 닿는 경우(작업 항목 2)만 관리형으로 본다. Codex 링크가 Claude Code 링크를 가리키는데 그 링크가 legacy 나 broken 이면 Codex 경로는 `unmanaged` 가 되어 `--force` 없이는 갱신되지 않는다. 의도한 보수적 동작이다.
 - 되돌리기 실패를 삼키지 않는다. 되돌리지 못한 경로와 보존한 백업 경로를 오류 메시지에 넣는다.
 - 테스트는 반드시 `mkdtemp` 로 만든 임시 디렉터리를 `context.homeDir` 와 `context.dataRoot` 로 쓴다. `os.homedir()`, `createSkillManagerContext()`, 실제 `HOME` 은 테스트에서 부르지 않는다. 사용자 홈의 `~/.claude/skills` 와 `~/.agents/skills` 를 건드리면 안 된다.
 - 테스트 표본 문자열에 사내 도메인처럼 보이는 호스트나 16자 이상 비밀값 리터럴을 쓰지 않는다. `scripts/check-pii.mjs` 가 `src/` 도 검사한다.
@@ -73,13 +74,14 @@ export async function inspectSkill(context: SkillManagerContext): Promise<Skills
 1. `previous = await inspectSkill(context)`. 최상위 `status` 가 `current` 면 지금처럼 `unchanged` 를 돌려준다.
 2. `force` 가 없으면 `SKILL_AGENTS` 순서로 각 경로를 보고, 상태가 `unmanaged`, `modified`, `corrupt` 인 첫 경로에서 `managerError(\`${SKILL_AGENT_NAMES[agent]} 스킬 상태가 ${status}입니다. --force로 백업 후 교체하세요: ${destination}\`)` 를 던진다. 이 검사는 `prepareRepository` 와 어떤 파일 변경보다 먼저 한다.
 3. `prepareRepository(context, force, operations)` 를 한 번 부른다.
-4. 새 함수 `switchActiveLinks(context, repository, previous, force, operations): Promise<string[]>` 로 전환한다(기존 `switchActiveLink` 를 대체하고 지운다).
-5. `inspectSkill` 로 다시 검사해 최상위 `status` 가 `current` 가 아니면 4번이 바꾼 경로를 되돌리고 `managerError(\`스킬 설치 후 상태가 current가 아닙니다: ${status}\`)` 를 던진다. 사후 검사와 그 실패 롤백은 `switchActiveLinks` 안에서 한다(전환 기록을 공유해 같은 되돌리기 코드를 쓴다). 사후 검사에는 `inspectSkill` 을 쓰고, 실패하면 두 경로 모두 되돌린다.
+4. 새 함수 `switchActiveLinks(context, repository, previous, operations): Promise<{ backupPaths: string[]; status: SkillsStatus }>` 로 전환한다(기존 `switchActiveLink` 를 대체하고 지운다). 보호 검사가 2단계로 옮겨졌으므로 `force` 인자는 받지 않는다. `previous.agents[agent].status === "unmanaged"` 인 경로는 백업한다(2단계가 `force` 없이는 이미 막았다).
+5. `inspectSkill` 로 다시 검사해 최상위 `status` 가 `current` 가 아니면 4번이 바꾼 경로를 되돌리고 `managerError(\`스킬 설치 후 상태가 current가 아닙니다: ${status}\`)` 를 던진다. 사후 검사와 그 실패 롤백은 `switchActiveLinks` 안에서 한다(전환 기록을 공유해 같은 되돌리기 코드를 쓴다). 사후 검사에는 `inspectSkill` 을 쓰고, 그 결과를 반환값의 `status` 로 돌려줘 `installSkillInternal` 이 한 번 더 검사하지 않게 한다. 실패하면 두 경로 모두 되돌린다. 사후 검사가 실패한 뒤 되돌리기마저 실패하면 아래 「일부 경로를 되돌리지 못했습니다」 메시지의 `전환 오류` 자리에 `스킬 설치 후 상태가 current가 아닙니다: ${status}` 를 넣는다(메시지 하나만 낸다).
 6. `action` 은 지금처럼 `installAction(previous.status)`(합친 상태)다.
 
 `switchActiveLinks` 규칙:
 
 - 전환 대상: `previous.agents[agent].status !== "current"` 인 경로만.
+- 전환 기록의 `destination`, 백업, `rename` 은 원래 `destinationPath` 값으로 한다. `resolvedDestination` 은 두 경로가 같은 대상인지 비교할 때만 쓴다(macOS 에서 `/var` 와 `/private/var` 가 달라 테스트의 `newPath === destination("codex")` 주입이 어긋나지 않게 한다).
 - 각 대상의 부모 디렉터리를 `mkdir({ recursive: true })` 한 뒤 `resolvedDestination = path.join(await realpath(parent), path.basename(destination))` 를 구한다. 앞 대상과 `resolvedDestination` 이 같으면 새 전환을 만들지 않고 그 전환에 에이전트만 더한다(부모가 같은 실제 디렉터리인 경우 한 번만 전환).
 - 전환 기록: `{ agents, destination, previous: SkillStatus, previousRawTarget?: string, temporaryLink, backup?: string, activated: boolean }`. `previous.status` 가 `missing` 이나 `unmanaged` 가 아니면 `readlink(destination)` 값을 `previousRawTarget` 에 남긴다.
 - 1단계: 모든 대상에 `symlink(repository, temporaryLink)` 를 만든다. 이름은 지금 규칙(`.${SKILL_NAME}.link-${randomUUID()}`, 같은 부모 디렉터리)을 따른다.
@@ -98,9 +100,9 @@ export async function inspectSkill(context: SkillManagerContext): Promise<Skills
 
 `uninstallSkill` 은 이 phase 에서 Claude Code 경로만 다루는 지금 동작을 유지한다. 다만 지금 `inspectSkill(context)` 를 부르므로, 합친 상태를 받으면 Claude Code 링크가 있는데도 `absent` 를 돌려줄 수 있다. `inspectAgentSkill(context, "claude")` 와 `destinationPath(context, "claude")` 를 쓰게 바꾼다. 두 경로 제거는 phase 02 가 한다.
 
-### 5-1. `src/commands/doctor.ts` 기본 의존성 한 줄
+### 5-1. `src/commands/doctor.ts` 기본 의존성
 
-`defaultDependencies.inspectSkill`(94줄 근처)을 `(c) => inspectAgentSkill(c, "claude")` 로 바꾼다. `inspectSkill` 이 합친 `SkillsStatus` 를 내므로 phase 01 과 03 사이 중간 상태에서도 doctor 의 `agents.claude` 출력이 깨지지 않게 하는 한 줄이다. 다른 줄은 고치지 않고 phase 03 이 이 줄을 `inspectAgentSkill` 로 대체한다.
+`doctor.ts:16` 의 import 에 `inspectAgentSkill` 을 더하고(`inspectSkill` 은 더 쓰지 않으면 뺀다), `defaultDependencies.inspectSkill`(94줄 근처)을 `(c) => inspectAgentSkill(c, "claude")` 로 바꾼다. `inspectSkill` 이 합친 `SkillsStatus` 를 내므로 phase 01 과 03 사이 중간 상태에서도 doctor 의 `agents.claude` 출력이 깨지지 않게 하는 한 줄이다. 다른 줄은 고치지 않는다. phase 03 이 이 의존성을 두 에이전트용으로 확장한다.
 
 ### 6. `src/skill/manager.test.ts` 기존 테스트를 새 계약에 맞춘다
 
@@ -129,7 +131,7 @@ export async function inspectSkill(context: SkillManagerContext): Promise<Skills
 
 ### 8. `src/commands/skills.test.ts` fixture 타입 맞춤
 
-`updatedResult` 처럼 `SkillInstallResult` 로 선언한 fixture 의 `previousStatus` 와 `status` 에 `agents: { claude: <같은 상태>, codex: <같은 상태에 destination 만 "/home/tester/.agents/skills/nhncloud-cli"> }` 를 더해 `SkillsStatus` 로 만든다.
+`updatedResult` 처럼 `SkillInstallResult` 로 선언한 fixture 와, `src/commands/skills.test.ts:149-155` 처럼 `mockResolvedValue({ ...updatedResult, previousStatus: currentStatus, ... })` 로 `previousStatus`/`status` 를 `SkillStatus`(`agents` 없음)로 덮어쓰는 호출의 `previousStatus` 와 `status` 에 `agents: { claude: <같은 상태>, codex: <같은 상태에 destination 만 "/home/tester/.agents/skills/nhncloud-cli"> }` 를 더해 `SkillsStatus` 로 만든다.
 테스트의 단언과 명령 코드는 바꾸지 않는다. 이 파일의 출력 단언은 phase 02 가 새 출력에 맞춘다.
 
 ## 검증
