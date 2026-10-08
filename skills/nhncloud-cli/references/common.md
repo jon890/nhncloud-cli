@@ -48,6 +48,7 @@ nhncloud skills update
 
 `--force`는 사용자 항목 또는 수정·손상된 관리 저장소를 삭제하지 않고 같은 상위 디렉터리에 백업한 뒤 교체한다.
 한 경로라도 `unmanaged`, `modified`, `corrupt` 면 `--force` 없이는 어느 경로도 바꾸지 않는다.
+다른 링크를 거쳐 가다가 대상이 사라진 링크(예: `~/.agents/skills/nhncloud-cli` 가 없는 `~/.claude/skills/nhncloud-cli` 를 가리킴)도 `unmanaged` 로 판정한다. 링크가 가리키는 곳을 확인한 뒤 `--force` 로 교체한다.
 한 경로의 전환이 실패하면 이미 바꾼 경로를 이전 상태로 되돌린다.
 `nhncloud skills uninstall`은 두 설치 경로의 활성 심볼릭 링크만 제거하며 버전별 관리 저장소는 보존한다.
 한 경로라도 사용자 파일, 실제 디렉터리, 알 수 없는 링크이면 어느 링크도 제거하지 않는다.
