@@ -32,6 +32,7 @@ Commander가 먼저 발견한 누락은 기존 영문 오류를 stderr에 한 �
 - profile을 정하고 공통 UAK와 필요한 서비스 블록만 저장한다.
 - 비대화형 flag가 하나라도 있으면 prompt를 열지 않는다.
 - 기본 동작은 이번에 입력한 자격증명을 확인한다. `--no-verify`를 주면 연결 테스트를 생략한다.
+- 공공망 profile은 연결 테스트를 지원하지 않아 `--no-verify`가 필요하다.
 - 자격증명은 `credentials.json`, 기본 profile 같은 일반 설정은 `config.json`에 둔다.
 
 설정 후 `nhncloud doctor`로 파일 권한, profile과 공개 스킬 상태를 오프라인 진단할 수 있다.
@@ -179,8 +180,8 @@ uninstall은 인식 가능한 활성 링크만 제거하고 실제 디렉터리�
 
 - 설정 오류, 인수 오류, 인증 오류와 API 오류는 서로 다른 종료 코드로 구분한다.
 - 자격증명 파일 손상과 존재하지 않는 profile 오류는 원인을 그대로 표시한다.
-  NCR, NCS, API Gateway, Secure Key Manager와 Deploy의 서비스 자격증명 블록이나 필수 appkey만 없을 때
-  해당 서비스의 `configure` 명령을 안내한다.
+  서비스 자격증명 블록이나 필수 appkey만 없을 때 해당 서비스의 `configure` 명령을 안내한다.
+  대상 서비스는 [data-schema.md](data-schema.md)의 「profile 해석 순서」 절을 따른다.
 - JSON 모드에서도 경고와 오류를 stdout에 섞지 않는다.
 - API 문서와 실제 응답이 다르면 타입을 추측해 넓히지 않고 실측 근거를 남긴다.
 - 자동화 흐름은 prompt를 기다리지 않고 같은 입력에 같은 출력과 종료 코드를 반환한다.

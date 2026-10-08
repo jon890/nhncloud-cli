@@ -29,9 +29,12 @@ AWS CLI 같은 통합 명령줄 도구가 없어 매번 토큰·엔드포인트�
 - `nhncloud logncrash search`: Log & Crash Search v3 커서 기반 로그 검색 ([[adr-024]])
 - `nhncloud logncrash export`: scroll 대량 추출과 조회 상태별 결과 파일 보존 ([[adr-030]], [[adr-032]], [[adr-034]])
 - `nhncloud logncrash available-token`: 남은 조회 토큰과 양수가 될 때까지의 추정 대기 시간 확인 ([[adr-036]])
+- `nhncloud logncrash send`: 로그 전송 (collector)
 - `nhncloud deploy`: 배포 실행과 조회 (자주 쓰는 핵심 명령군)
   - `run`: 배포 실행 (OAuth 토큰 교환, 동기/`--async`)
   - `artifacts` / `server-groups` / `histories`: 조회
+  - `scenarios`: 시나리오 조회
+  - `upload` / `download` / `binaries` / `binary-groups`: 바이너리 전송과 조회
   - appkey 는 profile 로만 지정하고 배포 좌표는 명령 옵션으로만 받는다([[adr-033]])
 - `nhncloud instance`: Compute 인스턴스 제어 (OpenStack Nova v2 호환, 일회성 CI 러너 자동화)
   - `create`: 발급 (비동기 기본, `--wait` 로 ACTIVE+IP 대기)

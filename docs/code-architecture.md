@@ -48,6 +48,7 @@ commands ──> services ──> api
 
 services ──> utils
 api ──> cache, config, utils
+services ──> config(타입만)
 skill ──> config와 독립된 사용자 데이터 경계
 ```
 

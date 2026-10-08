@@ -115,7 +115,7 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, 서비�
 - `skm`: appkey(path)만. 인증 토큰은 `userAccessKey` OAuth 를 재사용하며 헤더 이름이 `X-NHN-Authorization` 이다. 키 저장소의 MAC 인증 값은 저장하지 않고 명령 옵션으로 받는다([[adr-039]])
 - `iaas`: OpenStack Keystone 자격증명. instance 등 IaaS 서비스가 공유 ([[adr-010]])
   - `password` 는 NHN 콘솔 IAM 에서 별도 발급하는 API 비밀번호 (로그인 비밀번호가 아님)
-  - `region`: `kr1` / `kr2` / `kr3` / `jp1` 중 하나. 명령의 `--region` 으로 override
+  - `region`: 일반망은 `kr1` / `kr2` / `kr3` / `jp1`(NKS는 `jp1` 제외), 공공망은 `kr1` / `kr2`. 공공망 NCR은 `kr1`만 지원한다. 명령의 `--region` 으로 override
 - 예약 키 `userAccessKey`와 `environment` 외 키는 서비스명 = 서비스별 블록
 - `environment: "gov"`: 공공망 profile에만 명시한다. 생략한 기존 profile은 일반망을 사용한다. 현재 공공망 endpoint 선택 대상은 OAuth, Deploy, NCR, IaaS, NKS, Secure Key Manager다([[adr-037]], [[adr-039]]).
 
@@ -156,7 +156,7 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, 서비�
 
 자격증명 파일 손상과 존재하지 않는 profile은 원인을 보존한
 `NhnCloudCliError(EXIT_CONFIG_ERROR)`로 종료한다.
-NCR, NCS, API Gateway, Secure Key Manager와 Deploy의 서비스 블록이나 필수 appkey가 없으면
+NCR, NCS, API Gateway, Secure Key Manager, Deploy와 Log & Crash의 서비스 블록이나 필수 appkey가 없으면
 같은 종료 코드와 함께 해당 서비스의 `configure` 명령을 안내한다.
 
 ## 캐시 범위
