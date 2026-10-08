@@ -90,7 +90,7 @@ git diff --check
 ```
 
 - 둘째 줄은 실제 registry 에 접속해 1분 안팎이 걸린다. 종료 코드 0 이나 1 이 정상이다. 2 면 worktree 생성이나 pnpm 확인이 실패한 것이다. 1 이면 보고의 단계 표에서 실패한 단계와 로그 경로를 PR 본문에 옮긴다.
-- 셋째 줄은 시험 뒤 임시 worktree 가 남지 않았는지 본다. 경로 패턴을 `health-check-<숫자>` 로 좁힌 것은 이 plan worktree(경로와 브랜치 이름에 `health-check` 가 든다)를 세지 않기 위해서다.
+- 셋째 줄은 시험 뒤 임시 worktree 가 남지 않았는지 본다. 경로 패턴을 `health-check-<숫자>` 로 한정한 것은 이 plan worktree(경로와 브랜치 이름에 `health-check` 가 든다)를 세지 않기 위해서다.
 - 다섯째 줄은 작업 중인 checkout 의 `package.json` 과 lockfile 이 바뀌지 않았는지 본다.
 
 ## 변경 파일
