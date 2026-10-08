@@ -56,6 +56,7 @@
 - 최상위 필드 표의 `skills` 행을 `{ "agents": { "claude": ..., "codex": ... } }`. 에이전트별 공개 스킬 상태 로 바꾼다.
 - 표 아래 문단의 `skills.agents.claude` 설명을 `skills.agents.claude` 와 `skills.agents.codex` 로 넓히고, 각각 Claude Code(`~/.claude/skills/nhncloud-cli`)와 Codex(`~/.agents/skills/nhncloud-cli`) 경로 하나의 `SkillStatus` 라고 적는다. 판정 실패는 그 에이전트만 `error` 가 된다는 문장을 더한다.
 - 「에이전트가 늘면 `agents`에 키가 추가되며 기존 키의 모양은 바뀌지 않는다」 문장은 유지한다.
+- doctor 가 경로마다 다른 복구 명령을 보여도 어느 명령이든 두 경로를 함께 고친다는 한 줄을 더한다.
 
 ## 검증
 

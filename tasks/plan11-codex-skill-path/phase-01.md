@@ -7,13 +7,14 @@
 `src/skill/manager.ts` 가 Claude Code 경로(`~/.claude/skills/nhncloud-cli`)와 Codex 경로(`~/.agents/skills/nhncloud-cli`)를 함께 판정하고, `installSkill` 이 두 경로를 먼저 검사한 뒤 한 단위로 전환하며 실패하면 이미 바꾼 경로를 되돌리게 한다.
 
 **범위 외**: `uninstallSkill` 의 두 경로 제거(phase 02), `skills` 명령의 텍스트 출력과 공개 문서(phase 02), `doctor`(phase 03).
+`prepareRepository` 가 `--force` 로 저장소를 교체한 뒤 링크 전환이 실패해도 저장소 교체는 되돌리지 않는다(기존 동작, 백업은 남는다).
 
 ## 컨텍스트
 
 - 지금 `src/skill/manager.ts` 는 `destinationPath(context)` 하나(`<homeDir>/.claude/skills/nhncloud-cli`)만 다룬다. `inspectSkill` 이 그 경로의 `SkillStatus` 를, `installSkill` 이 `prepareRepository` 와 `switchActiveLink` 로 그 경로 하나를 전환한다.
 - 관리 저장소(`<dataRoot>/skills/{version}-{digestHex}`), 매니페스트, 콘텐츠 해시 계약은 바꾸지 않는다. `prepareRepository` 는 그대로 한 번만 호출한다.
 - `SkillManagerOperations` 는 `{ rename }` 하나이고 테스트가 실패를 주입하는 지점이다. 새 전환 코드의 모든 `rename` 은 `operations.rename` 으로 부른다.
-- `src/commands/skills.ts`, `src/commands/doctor.ts` 는 `inspectSkill`, `installSkill`, `SkillStatus`, `SkillInstallResult` 를 import 한다. 이 phase 의 타입 변경은 필드 추가라 두 파일은 고치지 않아도 컴파일되어야 한다. `src/commands/skills.test.ts` 의 fixture 만 타입에 맞춘다.
+- `src/commands/skills.ts`, `src/commands/doctor.ts` 는 `inspectSkill`, `installSkill`, `SkillStatus`, `SkillInstallResult` 를 import 한다. 이 phase 의 타입 변경은 필드 추가라 `skills.ts` 는 고치지 않아도 컴파일되고, `doctor.ts` 는 기본 의존성 한 줄만 고친다(작업 항목 5-1). `src/commands/skills.test.ts` 의 fixture 만 타입에 맞춘다.
 
 **근거 문서**: `docs/adr/043-codex-skill-path-shared-repository.md`, `docs/adr/025-managed-skill-lifecycle.md`, `docs/flow.md` 의 「공개 스킬 수명주기」 절, `docs/data-schema.md` 의 「파일 위치」 와 「공개 스킬 매니페스트」 절
 
@@ -45,7 +46,7 @@ export const SKILL_AGENT_NAMES: Record<SkillAgent, string> = { claude: "Claude C
 
 지금의 `inspectSkill` 본문을 `export async function inspectAgentSkill(context: SkillManagerContext, agent: SkillAgent): Promise<SkillStatus>` 로 옮긴다. 판정 규칙은 그대로 두고 아래 하나만 더한다.
 
-- 링크 대상이 존재하고(`targetStat` 있음) `isManagedRepositoryLocation` 이 거짓이면, 기존 패키지 판정(`readLegacyPackageMetadata`) 전에 `realpath(linkTarget)` 과 `realpath(repositoryRoot(context))` 를 구한다. 저장소 루트가 없어 `realpath` 가 실패하면 이 분기를 건너뛴다.
+- 링크 대상이 존재하고(`targetStat` 있음) `isManagedRepositoryLocation` 이 거짓이면, 기존 패키지 판정(`readLegacyPackageMetadata`) 전에 `realpath(linkTarget)` 과 `realpath(repositoryRoot(context))` 를 구한다. 저장소 루트가 없어 `realpath` 가 `ENOENT` 로 실패하면 이 분기를 건너뛴다. `ENOENT` 를 뺀 오류(`EACCES`, `ELOOP` 등)는 기존 `optionalLstat` 처럼 `managerError` 로 던진다.
 - `path.dirname(realTarget) === realRoot` 이면 다른 링크를 거쳐 관리 저장소에 닿은 링크다. `parseRepositoryName(realTarget)` 과 `inspectRepository(realTarget, name)` 로 직접 링크와 같은 규칙(`corrupt`, `modified`, `broken`, `current`, `outdated`)을 적용하고 `managed: true` 로 낸다. `current` 판정의 경로 비교는 `realTarget` 과 `realpath(repositoryPath(context, currentDigest))` 로 한다(기대 경로가 없으면 `outdated`).
 - `linkTarget` 필드는 지금처럼 한 단계만 푼 값(`resolveLinkTarget`)을 낸다.
 
@@ -73,7 +74,7 @@ export async function inspectSkill(context: SkillManagerContext): Promise<Skills
 2. `force` 가 없으면 `SKILL_AGENTS` 순서로 각 경로를 보고, 상태가 `unmanaged`, `modified`, `corrupt` 인 첫 경로에서 `managerError(\`${SKILL_AGENT_NAMES[agent]} 스킬 상태가 ${status}입니다. --force로 백업 후 교체하세요: ${destination}\`)` 를 던진다. 이 검사는 `prepareRepository` 와 어떤 파일 변경보다 먼저 한다.
 3. `prepareRepository(context, force, operations)` 를 한 번 부른다.
 4. 새 함수 `switchActiveLinks(context, repository, previous, force, operations): Promise<string[]>` 로 전환한다(기존 `switchActiveLink` 를 대체하고 지운다).
-5. `inspectSkill` 로 다시 검사해 최상위 `status` 가 `current` 가 아니면 4번이 바꾼 경로를 되돌리고 `managerError(\`스킬 설치 후 상태가 current가 아닙니다: ${status}\`)` 를 던진다. 되돌리기는 `switchActiveLinks` 와 같은 함수를 쓰도록 전환 기록을 함수 밖으로 돌려주거나, 사후 검사를 `switchActiveLinks` 안에 둔다. 구현자가 고르되 두 경로 모두 되돌려야 한다.
+5. `inspectSkill` 로 다시 검사해 최상위 `status` 가 `current` 가 아니면 4번이 바꾼 경로를 되돌리고 `managerError(\`스킬 설치 후 상태가 current가 아닙니다: ${status}\`)` 를 던진다. 사후 검사와 그 실패 롤백은 `switchActiveLinks` 안에서 한다(전환 기록을 공유해 같은 되돌리기 코드를 쓴다). 사후 검사에는 `inspectSkill` 을 쓰고, 실패하면 두 경로 모두 되돌린다.
 6. `action` 은 지금처럼 `installAction(previous.status)`(합친 상태)다.
 
 `switchActiveLinks` 규칙:
@@ -97,6 +98,10 @@ export async function inspectSkill(context: SkillManagerContext): Promise<Skills
 
 `uninstallSkill` 은 이 phase 에서 Claude Code 경로만 다루는 지금 동작을 유지한다. 다만 지금 `inspectSkill(context)` 를 부르므로, 합친 상태를 받으면 Claude Code 링크가 있는데도 `absent` 를 돌려줄 수 있다. `inspectAgentSkill(context, "claude")` 와 `destinationPath(context, "claude")` 를 쓰게 바꾼다. 두 경로 제거는 phase 02 가 한다.
 
+### 5-1. `src/commands/doctor.ts` 기본 의존성 한 줄
+
+`defaultDependencies.inspectSkill`(94줄 근처)을 `(c) => inspectAgentSkill(c, "claude")` 로 바꾼다. `inspectSkill` 이 합친 `SkillsStatus` 를 내므로 phase 01 과 03 사이 중간 상태에서도 doctor 의 `agents.claude` 출력이 깨지지 않게 하는 한 줄이다. 다른 줄은 고치지 않고 phase 03 이 이 줄을 `inspectAgentSkill` 로 대체한다.
+
 ### 6. `src/skill/manager.test.ts` 기존 테스트를 새 계약에 맞춘다
 
 - 파일 상단 helper `destination()` 을 `destination(agent: "claude" | "codex" = "claude")` 로 바꾸고 `codex` 는 `path.join(context.homeDir, ".agents", "skills", "nhncloud-cli")` 를 돌려준다.
@@ -112,9 +117,15 @@ export async function inspectSkill(context: SkillManagerContext): Promise<Skills
 1. 빈 홈에서 `installSkill(context)`: 두 경로의 `readlink` 가 같은 `repositoryPath` 이고, `status.agents.claude.status`, `status.agents.codex.status`, 최상위 `status.status` 가 모두 `current`.
 2. Claude Code 경로만 최신(먼저 설치한 뒤 Codex 링크를 `rm`): `inspectSkill` 최상위 `status` 가 `missing`, `agents.claude.status` 가 `current`. 다시 `installSkill` 하면 `action: "installed"`, Codex 링크가 생기고 Claude Code 링크의 `readlink` 값은 그대로다.
 3. Codex 경로에 사용자 디렉터리(`user.md` 포함), Claude Code 경로 없음: `force` 없이 `NhnCloudCliError` 이고 메시지에 `Codex` 가 있다. Claude Code 경로는 여전히 `lstat` 이 `ENOENT`, `<dataRoot>/skills` 도 만들어지지 않았다(`lstat` 이 `ENOENT`). `force: true` 면 `action: "replaced"`, 백업에 `user.md` 내용이 남고 두 경로 모두 `current`.
-4. 두 번째 경로 전환 실패: 먼저 설치한 뒤 소스를 바꿔 두 경로를 `outdated` 로 만든다. `operations.rename` 이 `newPath === destination("codex")` 이고 `oldPath` 가 `.nhncloud-cli.link-` 로 시작할 때만 던지게 한다. `installSkill` 은 `"이전 상태로 되돌렸습니다"` 로 실패하고, Claude Code 링크의 `readlink` 가 이전 저장소 경로로 돌아와 있다. 두 부모 디렉터리에 `.nhncloud-cli.link-` 로 시작하는 항목이 남지 않는다.
+4. 두 번째 경로 전환 실패: 먼저 설치한 뒤 소스를 바꿔 두 경로를 `outdated` 로 만든다. `operations.rename` 이 `newPath === destination("codex")` 이고 `path.basename(oldPath)` 가 `.nhncloud-cli.link-` 로 시작할 때만 던지게 한다(기존 `manager.test.ts` 의 패턴). `installSkill` 은 `"이전 상태로 되돌렸습니다"` 로 실패하고, Claude Code 링크와 Codex 링크의 `readlink` 가 모두 이전 저장소 경로를 가리킨다. 두 부모 디렉터리에 `.nhncloud-cli.link-` 로 시작하는 항목이 남지 않는다.
 5. 부모가 같은 실제 디렉터리: `<homeDir>/.claude/skills` 를 만들고 `<homeDir>/.agents/skills` 를 그 디렉터리를 가리키는 심볼릭 링크로 만든다(`<homeDir>/.agents` 는 `mkdir`). `operations.rename` 을 감싸 `newPath` 의 basename 이 `nhncloud-cli` 인 호출 수를 센다. `installSkill` 뒤 호출 수가 1 이고 두 경로 모두 `current`.
 6. 다른 링크를 거친 관리 링크: 설치 뒤 Codex 링크를 지우고 `symlink(destination("claude"), destination("codex"))` 로 만든다. `inspectAgentSkill(context, "codex")` 가 `status: "current"`, `managed: true`. Codex 링크가 관리 저장소 밖의 사용자 디렉터리(`<root>/user-skill`)를 가리키면 `unmanaged`, `managed: false` 다.
+
+7. 롤백 실패 주입(참고 구현: 형제 저장소 dooray-cli 의 `src/skill/manager.test.ts` 의 「removes the new Claude link…」, 「restores both user entries…」, 「…verification fails」). 모두 임시 `context.homeDir` 에서 한다.
+   1. 두 경로가 모두 사용자 디렉터리(각각 `user.md` 포함)이고 `force: true` 인 상태에서 Codex 의 `.nhncloud-cli.link-` 에서 `destination("codex")` 로의 `rename` 이 실패하게 주입한다. `installSkill` 이 실패하고 두 디렉터리의 `user.md` 가 원위치에 있다.
+   2. 빈 홈에서 Codex 전환이 실패하면 Claude Code 경로를 `lstat` 했을 때 `ENOENT` 다(새로 만든 링크가 지워진다).
+   3. 백업 복원 `rename` 도 실패하게 주입한다(`oldPath` 가 백업 경로일 때 던진다). 오류 메시지에 되돌리지 못한 경로와 백업 경로가 있고, 그 백업이 디스크에 남아 있다.
+   4. 사후 검사 실패 롤백: 전환은 성공하지만 `inspectSkill` 의 최상위 상태가 `current` 가 되지 않게(예: 전환 직후 관리 저장소 콘텐츠를 바꾸는 `rename` 래퍼) 만든다. `"스킬 설치 후 상태가 current가 아닙니다"` 로 실패하고 두 경로가 이전 상태로 돌아와 있다.
 
 ### 8. `src/commands/skills.test.ts` fixture 타입 맞춤
 
@@ -143,3 +154,4 @@ git diff --check
 | `src/skill/manager.ts` | 수정 |
 | `src/skill/manager.test.ts` | 수정 |
 | `src/commands/skills.test.ts` | 수정 |
+| `src/commands/doctor.ts` | 수정 (기본 inspect 의존성 한 줄) |

@@ -81,6 +81,7 @@ export async function uninstallSkill(context, operations = defaultOperations): P
 3. Claude Code 만 관리 링크, Codex 없음: `action: "removed"`, `agents.codex.action: "absent"`.
 4. 두 번째 경로 이동 실패: `operations.rename` 이 `oldPath === destination("codex")` 일 때 던진다. 실패하고 Claude Code 링크가 원래 대상으로 돌아와 있다. 두 부모 디렉터리에 `.nhncloud-cli.uninstall-` 로 시작하는 항목이 남지 않는다.
 5. 부모가 같은 실제 디렉터리(`<homeDir>/.agents/skills` 가 `<homeDir>/.claude/skills` 를 가리키는 링크): 제거가 성공하고 두 에이전트 모두 `removed`.
+   - 두 번째 candidate 의 `rm` 이 실패: 두 경로를 설치한 뒤 `rm` 이 두 번째 candidate 에서 던지게 주입한다. 실패하고 첫 경로가 원래 링크로 되돌려져 있다(`readlink` 가 설치 때 값과 같다).
 6. 두 경로 모두 없음: `action: "absent"`.
 
 ### 5. `src/commands/skills.test.ts`
@@ -96,7 +97,8 @@ export async function uninstallSkill(context, operations = defaultOperations): P
 - `skills/nhncloud-cli/references/common.md` 「Claude Code 공개 스킬 관리」 절: 제목을 「Claude Code·Codex 공개 스킬 관리」 로 바꾼다. 다음을 더한다.
   - 설치 경로는 Claude Code 의 `~/.claude/skills/nhncloud-cli` 와 Codex 의 `~/.agents/skills/nhncloud-cli` 이고 두 경로는 같은 관리 저장소를 가리킨다. Codex 설치 여부와 관계없이 두 경로를 만들고, 필요하면 `~/.agents/skills` 디렉터리도 만든다.
   - 기존에 Claude Code 에만 설치했다면 `nhncloud skills install` 이나 `update` 를 다시 실행해 Codex 경로를 연결한다.
-  - `status` 의 상태는 두 경로를 합친 값이며, 상태 표의 순서(`corrupt` 부터 `current` 까지)로 먼저 해당하는 값이다. 두 경로가 모두 `current` 일 때만 `current` 다.
+  - `status` 의 상태는 두 경로를 합친 값이며, 상태 표의 순서(`corrupt` 부터 `current` 까지)로 먼저 해당하는 값이다. 두 경로가 모두 `current` 일 때만 `current` 다. 상태 표의 의미 열을 「한 경로라도 …」 기준으로 고친다.
+  - 표 아래에 `destination`, `linkTarget`, `managed` 는 Claude Code 경로 값이며 경로별 상세는 `agents.*` 에 있다고 적는다.
   - 한 경로라도 `unmanaged`, `modified`, `corrupt` 면 `--force` 없이는 어느 경로도 바꾸지 않는다. 한 경로의 전환이 실패하면 이미 바꾼 경로를 되돌린다.
   - `uninstall` 문장을 두 경로로 바꾸고, 한 경로라도 사용자 항목이면 어느 링크도 지우지 않는다고 적는다.
   - `--json` 설명에 `agents.claude`, `agents.codex` 경로별 상세와, 최상위 필드는 합친 `status` 를 빼면 Claude Code 경로 상세라는 점을 적는다.
