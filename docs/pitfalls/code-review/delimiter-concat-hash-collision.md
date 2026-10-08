@@ -5,7 +5,7 @@ title: 여러 자격/필드를 구분자 concat 해 해시·키를 만들면 값
 triggers: [지문, fingerprint, 해시, 캐시 키, dedup 키, concat, credentialHash]
 tool_catchable: false
 source: [PR55]
-related: [cache-consistency]
+related: [cache-non-atomic-write]
 ---
 
 **증상**: 여러 값을 `` `${a}:${b}:${c}` `` 처럼 고정 구분자로 이어 붙여 sha256 지문·캐시 키·dedup 키를 만든다.
@@ -28,4 +28,4 @@ const hash = fingerprint(JSON.stringify([tenantId, username, password]));
 
 **Why**: tsc·test 모두 통과한다(정상 입력엔 충돌이 안 나서 테스트가 초록). 충돌은 특정 값 조합에서만 드러나 탐지가 느리고, 결과가 "자격 바꿨는데 옛 캐시 재사용" 이라 원인 추적이 어렵다.
 
-관련: [[cache-consistency]]
+관련: [[cache-non-atomic-write]]

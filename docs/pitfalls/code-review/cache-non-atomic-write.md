@@ -13,6 +13,7 @@ related: []
 read 시 catch 로 `null` 반환해 graceful 하더라도, 매 만료 전 재사용 캐시가 무효화되어 불필요한 재교환 발생 — 그리고 동시 실행 시 race.
 
 **Good**: temp 파일에 쓰고 `rename` 으로 원자적 교체.
+읽을 때는 스키마 가드와 자격 지문 비교를 함께 한다 (ADR-021: 자격이 바뀐 캐시는 만료 전에도 버린다).
 
 ```ts
 import { rename } from "node:fs/promises";

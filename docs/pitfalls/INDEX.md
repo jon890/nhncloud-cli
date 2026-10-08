@@ -84,7 +84,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 |---|---|---|
 | spinner·UX 순서 (validation 전 시작) | code-review | [spinner-before-validation](code-review/spinner-before-validation.md), [spinner-no-try-catch](code-review/spinner-no-try-catch.md), [resolver-after-editor](code-review/resolver-after-editor.md) |
 | 에러 처리 일관성 (exitCode·catch) | code-review | [exitcode-param-error-in-api-path](code-review/exitcode-param-error-in-api-path.md), [exitcode-missing](code-review/exitcode-missing.md), [credential-loader-reinvented-swallow](code-review/credential-loader-reinvented-swallow.md) |
-| 타입 안전성 (Map.get()! / 이중 단언 / optional 응답 필드) | code-review | [map-get-nonnull-assertion](code-review/map-get-nonnull-assertion.md), [double-assertion-unknown](code-review/double-assertion-unknown.md), [double-assertion-union-type](code-review/double-assertion-union-type.md), [optional-response-field-guard](code-review/optional-response-field-guard.md), [shared-guard-foreign-schema](code-review/shared-guard-foreign-schema.md) |
+| 타입 안전성 (Map.get()! / 이중 단언 / optional 응답 필드) | code-review | [map-get-nonnull-assertion](code-review/map-get-nonnull-assertion.md), [double-assertion-unknown](code-review/double-assertion-unknown.md), [optional-response-field-guard](code-review/optional-response-field-guard.md), [shared-guard-foreign-schema](code-review/shared-guard-foreign-schema.md) |
 | API/HTTP 패턴 (응답 숫자 타입) | code-review | [numeric-response-string-number-mixed](code-review/numeric-response-string-number-mixed.md) |
 | 방어 가드와 회귀 테스트 | code-review | [guard-without-failing-test](code-review/guard-without-failing-test.md) |
 | 봉투 검사 (200-고정 API·isSuccessful) | code-review | [write-method-envelope-unchecked](code-review/write-method-envelope-unchecked.md), [new-endpoint-envelope-assumed](plan/new-endpoint-envelope-assumed.md) |
@@ -93,7 +93,7 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 | path-traversal (fileName basename) | code-review | [path-traversal-filename](code-review/path-traversal-filename.md) |
 | interactive 경고 vs 실제 동작 | code-review | [interactive-warning-mismatch](code-review/interactive-warning-mismatch.md), [noninteractive-trigger-dead-warning](plan/noninteractive-trigger-dead-warning.md) |
 | CLI option parser/helper 적용 | plan | [option-parse-before-side-effects](plan/option-parse-before-side-effects.md), [numeric-param-range-unverified](plan/numeric-param-range-unverified.md), [positive-int-number-only](code-review/positive-int-number-only.md) |
-| 공용 helper 배치·중복 (DRY) | code-review | [shared-helper-in-command-file](code-review/shared-helper-in-command-file.md), [duplicate-map-block-no-helper](code-review/duplicate-map-block-no-helper.md), [noninteractive-interactive-duplication](code-review/noninteractive-interactive-duplication.md) |
+| 공용 helper 배치·중복 (DRY) | code-review | [shared-helper-in-command-file](code-review/shared-helper-in-command-file.md), [noninteractive-interactive-duplication](code-review/noninteractive-interactive-duplication.md) |
 | ADR·이슈 본문에 외부 상태를 근거로 쓸 때 | plan | [stale-context-as-doc-evidence](plan/stale-context-as-doc-evidence.md), [external-state-gate-missing](plan/external-state-gate-missing.md) |
 | 기존 동작을 반대로 뒤집는 변경 (실패 경로·보존 정책) | plan | [goal-reversed-logic-reuse](plan/goal-reversed-logic-reuse.md) |
 | 결정·옵션·인수 폐지 후 문서 표면 정리 | plan | [decision-surface-sweep-incomplete](plan/decision-surface-sweep-incomplete.md), [path-migration-agents-missing](plan/path-migration-agents-missing.md) |
@@ -143,14 +143,10 @@ related: [<다른 패턴 slug>, ...]      # 백링크
 
 - [adjacent-command-pattern-missing](code-review/adjacent-command-pattern-missing.md)
 - [ambiguous-option-positional-silent-fallback](code-review/ambiguous-option-positional-silent-fallback.md)
-- [cache-consistency](code-review/cache-consistency.md)
 - [cache-non-atomic-write](code-review/cache-non-atomic-write.md)
 - [credential-loader-reinvented-swallow](code-review/credential-loader-reinvented-swallow.md)
 - [delimiter-concat-hash-collision](code-review/delimiter-concat-hash-collision.md)
-- [double-assertion-union-type](code-review/double-assertion-union-type.md)
 - [double-assertion-unknown](code-review/double-assertion-unknown.md)
-- [duplicate-map-block-no-helper](code-review/duplicate-map-block-no-helper.md)
-- [early-return-quiet-mode-missing](code-review/early-return-quiet-mode-missing.md)
 - [empty-result-stderr-wrong](code-review/empty-result-stderr-wrong.md)
 - [enum-dual-definition-unsync](code-review/enum-dual-definition-unsync.md)
 - [exit-code-literal-no-constant](code-review/exit-code-literal-no-constant.md)
