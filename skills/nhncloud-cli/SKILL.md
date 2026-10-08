@@ -17,7 +17,7 @@ description: >-
 2. 정확한 경로·인수·옵션이 필요하면 `nhncloud commands --json`에서 해당 명령을 찾는다.
 3. 조회 명령을 `--json`으로 실행해 대상 식별자와 현재 상태를 확인한다.
 4. 쓰기 명령은 대상, `--profile`, 필요한 `--region`을 명시하고, 명령이 지원하면 `--yes`를 API 호출 전에 전달한다.
-5. 결과는 stdout의 구조화 데이터로 판정하고 stderr는 진행 상황과 진단에 사용한다.
+5. 결과는 stdout의 구조화 데이터로 판정하고 stderr는 진행 상황과 진단에 사용한다. 파이프라인에는 stdout만 다음 명령에 넘기고 stderr는 진단 로그로 분리한다.
 6. 실패하면 [troubleshooting.md](references/troubleshooting.md)에서 종료 코드와 인증 모델을 확인한다.
 
 `--quiet`는 해당 명령이 핵심 값 한 줄 출력을 문서화한 경우에만 사용한다.

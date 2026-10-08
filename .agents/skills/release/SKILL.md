@@ -18,7 +18,7 @@ description: "nhncloud-cli 새 버전을 main 에서 태그, GitHub Release, npm
 | 1 | 사전 검증 | 현재 브랜치가 `main` 이고 `git status --porcelain` 이 비어 있으며 `AGENTS.md` 의 검증 명령이 모두 성공했다 |
 | 2 | 변경 분석 | 커밋·PR·닫힌 이슈 목록을 사용자에게 보였고, 아직 열린 이슈 중 이번에 닫을 것이 확정됐다 |
 | 3 | 문서 동기화 | 새 명령과 옵션이 README 와 공개 스킬 reference 에 있다. 없으면 보완 커밋이 있다 |
-| 4 | 공개 정보 검사 | `AGENTS.md` 의 grep 두 개가 모두 0건이다 |
+| 4 | 공개 정보 검사 | `AGENTS.md` 의 공개 정보 검사 grep 이 모두 0건이다 |
 | 5 | 버전 범프 | bump 커밋이 `origin/main` 에 push 됐다 |
 | 6 | 태그와 GitHub Release | 태그가 push 됐고 Release 본문 점검이 0건이다 |
 | 7 | npm 배포 | 사용자가 `npm publish` 를 실행했고 npm 에 새 버전이 보인다 |
@@ -27,7 +27,8 @@ description: "nhncloud-cli 새 버전을 main 에서 태그, GitHub Release, npm
 아래 블록은 다음 변수를 전제로 한다. 1단계에서 한 번 채운다.
 
 ```bash
-VERSION=0.18.0                       # 새 버전으로 바꾼다
+VERSION=                             # 새 버전을 넣는다. 예: 0.19.0
+[ -n "$VERSION" ] || { echo "STOP: VERSION 이 비었다"; exit 1; }
 TAG="v$VERSION"
 NOTES="/tmp/release-$TAG-notes.md"
 LAST_TAG=$(git describe --tags --abbrev=0)
@@ -82,7 +83,7 @@ grep -n "$KEYWORD" README.md skills/nhncloud-cli/SKILL.md skills/nhncloud-cli/re
 
 ## 4. 공개 정보 검사
 
-`AGENTS.md` 「공개 저장소 정보 보호」 절의 grep 두 개를 실행한다. 패턴은 그 절이 소유한다.
+`AGENTS.md` 「공개 저장소 정보 보호」 절의 grep 을 모두 실행한다. 패턴과 대상 경로는 그 절이 소유한다.
 
 - 걸린 곳이 있으면 위치를 보이고 그 절의 placeholder 로 바꾼 보완 커밋을 만든 뒤 다시 검사한다.
 - 사용자가 내부 값 사용에 명시적으로 동의하지 않으면 릴리스를 멈춘다.
@@ -118,7 +119,7 @@ gh release create "$TAG" --title "$TAG: 요약" --notes-file "$NOTES"
 gh release view "$TAG" --json body -q .body | grep -cE '\\`|\\\$'
 ```
 
-- 본문은 `--notes-file` 로만 넘긴다. 인라인 `--notes` 에 `` \` `` 나 `\$` 를 넣으면 백슬래시가 본문에 그대로 남는다. v0.10.0 에서 backtick 66개가 `` \` `` 로 출력됐다.
+- 본문은 `--notes-file` 로만 넘긴다. 인라인 `--notes` 에 `` \` `` 나 `\$` 를 넣으면 백슬래시가 본문에 그대로 남는다.
 - 두 번째 명령은 `` \` `` 나 `\$` 가 든 줄의 수를 낸다. 코드 블록의 줄 연속 `\` 는 정상이라 걸리지 않는다. 0 이 아니면 파일을 고쳐 `gh release edit "$TAG" --notes-file "$NOTES"` 로 다시 올린다.
 - `--generate-notes` 는 쓰지 않는다. 닫힌 이슈 목록이 빠진다.
 
@@ -138,8 +139,9 @@ npm publish --access public --otp=OTP코드
 npm view "@bifos/nhncloud-cli@$VERSION" version
 ```
 
-- 버전이 출력되면 통과다. 404 면 8단계를 멈추고 사용자에게 `npm publish` 출력을 확인한다.
-- v0.18.0 에서는 완료 알림을 받고 조회했을 때 404 였고, registry 의 배포 시각은 그 조회보다 4분 뒤였다.
+- 버전이 출력되면 통과다.
+- 404 는 아직 registry 에 반영되지 않은 것일 수 있다. v0.18.0 에서는 완료 알림 직후 404 였고 registry 의 배포 시각은 그보다 4분 뒤였다.
+  1분 간격으로 다시 조회하고, 10분이 지나도 404 면 8단계를 멈추고 사용자에게 `npm publish` 출력을 확인한다.
 - Release 페이지는 `https://github.com/jon890/nhncloud-cli/releases/tag/$TAG` 에서 확인한다.
 
 ## 8. 남은 이슈 처리
