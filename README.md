@@ -9,7 +9,7 @@
 NHN 이 만든 공식 제품이 아니에요.
 
 인스턴스, 네트워크, 로드밸런서, Kubernetes, 컨테이너 레지스트리와 컨테이너 서비스, 로그 검색, 배포, API Gateway, 키 관리를 명령 한 줄로 다루고, 결과를 `--json` 으로 내보내요.
-Claude Code 에 스킬로 설치하면 "인스턴스 목록 보여줘" 같은 말을 그대로 알아듣고 처리해요.
+Claude Code 나 Codex 에 스킬로 설치하면 "인스턴스 목록 보여줘" 같은 말을 그대로 알아듣고 처리해요.
 
 ```bash
 npm install -g @bifos/nhncloud-cli
@@ -80,7 +80,8 @@ nhncloud network list --region kr1     # VPC 목록
 
 ### 5. AI 에이전트에 연결해요 (선택)
 
-Claude Code 를 쓴다면 스킬을 설치해요. 에이전트가 이 CLI 의 사용법을 알게 돼요.
+Claude Code 나 Codex 를 쓴다면 스킬을 설치해요. 에이전트가 이 CLI 의 사용법을 알게 돼요.
+설치하면 Claude Code 의 `~/.claude/skills/nhncloud-cli` 와 Codex 의 `~/.agents/skills/nhncloud-cli` 에 함께 연결돼요.
 
 ```bash
 nhncloud skills install

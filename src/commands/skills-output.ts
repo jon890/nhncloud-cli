@@ -1,10 +1,14 @@
 import type { OutputOptions } from "../formatters/table.js";
 import { output } from "../formatters/table.js";
-import type {
-  SkillInstallAction,
-  SkillInstallResult,
-  SkillStatus,
-  SkillStatusToken,
+import {
+  SKILL_AGENTS,
+  SKILL_AGENT_NAMES,
+  type SkillAgent,
+  type SkillInstallAction,
+  type SkillInstallResult,
+  type SkillsStatus,
+  type SkillStatusToken,
+  type SkillUninstallAction,
 } from "../skill/manager.js";
 
 function terminalText(value: string | undefined): string {
@@ -42,15 +46,22 @@ export function skillRecoveryCommand(status: SkillStatusToken): string | undefin
   }
 }
 
-export function outputSkillStatus(opts: OutputOptions, status: SkillStatus): void {
+export function outputSkillStatus(opts: OutputOptions, status: SkillsStatus): void {
   output(opts, {
     headers: ["항목", "값"],
     rows: [
       ["상태", status.status],
       ["현재 버전", status.currentVersion],
-      ["설치 버전", terminalText(status.installedVersion)],
-      ["설치 경로", terminalText(status.destination)],
-      ["링크 대상", terminalText(status.linkTarget)],
+      ...SKILL_AGENTS.flatMap((agent) => {
+        const name = SKILL_AGENT_NAMES[agent];
+        const agentStatus = status.agents[agent];
+        return [
+          [`${name} 상태`, agentStatus.status],
+          [`${name} 설치 버전`, terminalText(agentStatus.installedVersion)],
+          [`${name} 설치 경로`, terminalText(agentStatus.destination)],
+          [`${name} 링크 대상`, terminalText(agentStatus.linkTarget)],
+        ];
+      }),
       ["복구 명령", skillRecoveryCommand(status.status) ?? "조치 없음"],
     ],
     raw: status,
@@ -69,7 +80,10 @@ export function outputSkillInstallResult(
       ["변경 여부", result.changed ? "변경됨" : "변경 없음"],
       ["이전 상태", result.previousStatus.status],
       ["현재 상태", result.status.status],
-      ["설치 경로", terminalText(result.status.destination)],
+      ...SKILL_AGENTS.map((agent) => [
+        `${SKILL_AGENT_NAMES[agent]} 설치 경로`,
+        terminalText(result.status.agents[agent].destination),
+      ]),
       ["관리 저장소", terminalText(result.repositoryPath)],
       [
         "백업 경로",
@@ -85,11 +99,12 @@ export function outputSkillInstallResult(
 
 export interface SkillUninstallOutputResult {
   schemaVersion: 1;
-  action: "removed" | "absent";
+  action: SkillUninstallAction;
   changed: boolean;
   status: "missing";
   destination: string;
   repositoryPreserved: true;
+  agents: Record<SkillAgent, { action: SkillUninstallAction; destination: string }>;
 }
 
 export function outputSkillUninstallResult(
@@ -100,7 +115,14 @@ export function outputSkillUninstallResult(
     headers: ["항목", "값"],
     rows: [
       ["작업", result.action === "removed" ? "활성 링크 제거 완료" : "활성 링크 없음"],
-      ["설치 경로", terminalText(result.destination)],
+      ...SKILL_AGENTS.flatMap((agent) => {
+        const name = SKILL_AGENT_NAMES[agent];
+        const agentResult = result.agents[agent];
+        return [
+          [`${name} 설치 경로`, terminalText(agentResult.destination)],
+          [`${name} 결과`, agentResult.action === "removed" ? "활성 링크 제거" : "활성 링크 없음"],
+        ];
+      }),
       ["관리 저장소", "보존됨"],
     ],
     raw: result,

@@ -84,6 +84,7 @@ export interface SkillInstallResult {
 
 export interface SkillManagerOperations {
   rename: typeof rename;
+  rm?: typeof rm;
 }
 
 interface RepositoryName {
@@ -101,7 +102,7 @@ type RepositoryInspection =
   | { status: "modified"; installedVersion?: string }
   | { status: "corrupt"; installedVersion?: string };
 
-const defaultOperations: SkillManagerOperations = { rename };
+const defaultOperations: Required<SkillManagerOperations> = { rename, rm };
 
 function sourcePath(context: SkillManagerContext): string {
   return path.join(context.packageRoot, "skills", SKILL_NAME);
@@ -792,85 +793,265 @@ export async function installSkill(
   }
 }
 
+interface CandidateRestore {
+  restored: boolean;
+  error?: unknown;
+  preserved?: string;
+}
+
+/** 제거용 임시 경로로 옮긴 항목을 원래 위치로 되돌린다. 원래 위치가 차 있으면 옮긴 항목을 그대로 둔다. */
+async function tryRestoreCandidate(
+  candidate: string,
+  destination: string,
+  operations: SkillManagerOperations,
+): Promise<CandidateRestore> {
+  try {
+    if (await optionalLstat(destination)) {
+      return { restored: false, preserved: candidate };
+    }
+    await operations.rename(candidate, destination);
+    return { restored: true };
+  } catch (error) {
+    return { restored: false, error, preserved: candidate };
+  }
+}
+
 async function restoreUninstallCandidate(
   candidate: string,
   destination: string,
   operations: SkillManagerOperations,
   originalError: unknown,
 ): Promise<never> {
-  if (await optionalLstat(destination)) {
+  const result = await tryRestoreCandidate(candidate, destination, operations);
+  if (result.restored) {
+    throw managerError(`활성 스킬 링크를 제거하지 않고 원래 위치로 복원했습니다: ${destination}`, originalError);
+  }
+  if (result.error === undefined) {
     throw managerError(
       `활성 스킬 경로가 동시에 변경되어 제거하지 않았습니다. 이동된 항목을 보존했습니다: ${candidate}`,
       originalError,
     );
   }
-
-  try {
-    await operations.rename(candidate, destination);
-  } catch (restoreError) {
-    throw managerError(
-      `활성 스킬 링크를 제거하지 못했고 원래 위치로 복원하지 못했습니다. 이동된 항목: ${candidate}; 제거 오류: ${toReason(originalError)}`,
-      restoreError,
-    );
-  }
-  throw managerError(`활성 스킬 링크를 제거하지 않고 원래 위치로 복원했습니다: ${destination}`, originalError);
+  throw managerError(
+    `활성 스킬 링크를 제거하지 못했고 원래 위치로 복원하지 못했습니다. 이동된 항목: ${candidate}; 제거 오류: ${toReason(originalError)}`,
+    result.error,
+  );
 }
 
-export async function uninstallSkill(
-  context: SkillManagerContext,
-  operations: SkillManagerOperations = defaultOperations,
-): Promise<"removed" | "absent"> {
-  const destination = destinationPath(context, "claude");
-  const status = await inspectAgentSkill(context, "claude");
-  if (status.status === "missing") {
-    return "absent";
+/** 이미 지운 활성 링크를 기록해 둔 원래 링크 값으로 되살린다. */
+async function tryRestoreRemovedLink(
+  destination: string,
+  rawTarget: string,
+  operations: SkillManagerOperations,
+): Promise<CandidateRestore> {
+  const restoreLink = temporaryLinkPath(destination);
+  try {
+    if (await optionalLstat(destination)) {
+      return { restored: false };
+    }
+    await symlink(rawTarget, restoreLink);
+    await operations.rename(restoreLink, destination);
+    return { restored: true };
+  } catch (error) {
+    return { restored: false, error };
+  } finally {
+    await rm(restoreLink, { force: true });
   }
-  if (!status.managed || !status.linkTarget) {
-    throw managerError(`관리되지 않은 스킬 항목이므로 제거하지 않았습니다: ${destination}`);
+}
+
+export type SkillUninstallAction = "removed" | "absent";
+
+export interface SkillUninstallResult {
+  action: SkillUninstallAction;
+  agents: Record<SkillAgent, { action: SkillUninstallAction; destination: string }>;
+}
+
+interface UninstallTarget {
+  agents: SkillAgent[];
+  destination: string;
+  resolvedDestination: string;
+  linkTarget: string;
+  candidate?: string;
+  rawTarget?: string;
+}
+
+/** 실제 경로가 같은 에이전트 경로를 하나로 합친 제거 대상을 만든다. 없는 경로는 대상이 아니다. */
+async function planUninstallTargets(context: SkillManagerContext): Promise<UninstallTarget[]> {
+  const statuses: Array<{ agent: SkillAgent; status: SkillStatus }> = [];
+  for (const agent of SKILL_AGENTS) {
+    const status = await inspectAgentSkill(context, agent);
+    if (status.status !== "missing" && (!status.managed || !status.linkTarget)) {
+      throw managerError(`관리되지 않은 스킬 항목이므로 어느 경로도 제거하지 않았습니다: ${status.destination}`);
+    }
+    statuses.push({ agent, status });
   }
 
+  const targets: UninstallTarget[] = [];
+  for (const { agent, status } of statuses) {
+    if (status.status === "missing" || !status.linkTarget) {
+      continue;
+    }
+    const realParent = await optionalRealpath(path.dirname(status.destination));
+    if (!realParent) {
+      continue;
+    }
+    const resolvedDestination = path.join(realParent, path.basename(status.destination));
+    const sameTarget = targets.find((entry) => entry.resolvedDestination === resolvedDestination);
+    if (sameTarget) {
+      sameTarget.agents.push(agent);
+      continue;
+    }
+    targets.push({
+      agents: [agent],
+      destination: status.destination,
+      resolvedDestination,
+      linkTarget: status.linkTarget,
+    });
+  }
+  return targets;
+}
+
+/** 되돌린 결과를 모아 메시지 하나로 실패한다. */
+function uninstallRollbackError(
+  results: Array<{ destination: string; result: CandidateRestore }>,
+  originalError: unknown,
+  handledLabel: string,
+): NhnCloudCliError {
+  const failed = results.filter(({ result }) => !result.restored);
+  if (failed.length === 0) {
+    return managerError(
+      `스킬 제거에 실패해 ${handledLabel}를 이전 상태로 되돌렸습니다: ${results.map(({ destination }) => destination).join(", ")}`,
+      originalError,
+    );
+  }
+  const failedText = failed
+    .map(({ destination, result }) =>
+      result.preserved ? `${destination} (이동된 항목: ${result.preserved})` : destination,
+    )
+    .join(", ");
+  return managerError(
+    `스킬 제거에 실패했고 일부 경로를 되돌리지 못했습니다: ${failedText}; 제거 오류: ${toReason(originalError)}`,
+    failed.find(({ result }) => result.error !== undefined)?.result.error,
+  );
+}
+
+/** 이동한 candidate 들을 모두 원래 위치로 되돌린 뒤 실패한다. */
+async function rollbackMovedCandidates(
+  moved: UninstallTarget[],
+  operations: SkillManagerOperations,
+  originalError: unknown,
+): Promise<never> {
+  const results: Array<{ destination: string; result: CandidateRestore }> = [];
+  for (const target of [...moved].reverse()) {
+    if (target.candidate) {
+      results.push({
+        destination: target.destination,
+        result: await tryRestoreCandidate(target.candidate, target.destination, operations),
+      });
+    }
+  }
+  throw uninstallRollbackError(results, originalError, "옮긴 경로");
+}
+
+/** 활성 링크를 candidate 로 옮기고 검사 때와 같은 링크인지 다시 확인한다. 이동 중 ENOENT 면 false 다. */
+async function moveUninstallCandidate(
+  target: UninstallTarget,
+  moved: UninstallTarget[],
+  operations: SkillManagerOperations,
+): Promise<boolean> {
+  const { destination } = target;
   const candidate = path.join(path.dirname(destination), `.${SKILL_NAME}.uninstall-${randomUUID()}`);
   try {
     await operations.rename(destination, candidate);
   } catch (error) {
     if (isNodeError(error, "ENOENT")) {
-      return "absent";
+      return false;
     }
-    throw managerError(`활성 스킬 링크를 제거용 임시 경로로 이동할 수 없습니다: ${destination}`, error);
+    const moveError = managerError(`활성 스킬 링크를 제거용 임시 경로로 이동할 수 없습니다: ${destination}`, error);
+    if (moved.length === 0) {
+      throw moveError;
+    }
+    return await rollbackMovedCandidates(moved, operations, moveError);
   }
+  target.candidate = candidate;
 
-  let candidateTarget: string;
+  let verificationError: unknown;
   try {
     const candidateStat = await lstat(candidate);
     if (!candidateStat.isSymbolicLink()) {
-      return await restoreUninstallCandidate(
-        candidate,
-        destination,
-        operations,
-        new Error("검사 후 활성 경로가 심볼릭 링크가 아닌 항목으로 변경되었습니다."),
-      );
+      verificationError = new Error("검사 후 활성 경로가 심볼릭 링크가 아닌 항목으로 변경되었습니다.");
+    } else {
+      target.rawTarget = await readlink(candidate);
+      if (resolveLinkTarget(destination, target.rawTarget) !== target.linkTarget) {
+        verificationError = new Error("검사 후 활성 스킬 링크 대상이 변경되었습니다.");
+      }
     }
-    candidateTarget = resolveLinkTarget(destination, await readlink(candidate));
   } catch (error) {
-    if (error instanceof NhnCloudCliError) {
-      throw error;
-    }
-    return await restoreUninstallCandidate(candidate, destination, operations, error);
+    verificationError = error;
   }
 
-  if (candidateTarget !== status.linkTarget) {
-    return await restoreUninstallCandidate(
-      candidate,
-      destination,
-      operations,
-      new Error("검사 후 활성 스킬 링크 대상이 변경되었습니다."),
-    );
+  if (verificationError !== undefined) {
+    if (moved.length === 0) {
+      return await restoreUninstallCandidate(candidate, destination, operations, verificationError);
+    }
+    return await rollbackMovedCandidates([...moved, target], operations, verificationError);
   }
+  return true;
+}
 
-  try {
-    await rm(candidate);
-  } catch (error) {
-    return await restoreUninstallCandidate(candidate, destination, operations, error);
+/** candidate 들을 지운다. 하나라도 실패하면 지운 경로와 남은 경로를 모두 이전 상태로 되돌린다. */
+async function removeUninstallCandidates(
+  moved: UninstallTarget[],
+  operations: SkillManagerOperations,
+): Promise<void> {
+  const removeEntry = operations.rm ?? defaultOperations.rm;
+  for (const [index, target] of moved.entries()) {
+    try {
+      await removeEntry(target.candidate as string, { force: true });
+    } catch (originalError) {
+      const results: Array<{ destination: string; result: CandidateRestore }> = [];
+      for (const [restoreIndex, entry] of moved.entries()) {
+        const result =
+          restoreIndex < index
+            ? await tryRestoreRemovedLink(entry.destination, entry.rawTarget as string, operations)
+            : await tryRestoreCandidate(entry.candidate as string, entry.destination, operations);
+        results.push({ destination: entry.destination, result });
+      }
+      throw uninstallRollbackError(results, originalError, "지운 경로");
+    }
   }
-  return "removed";
+}
+
+/**
+ * Claude Code 와 Codex 경로의 활성 링크를 한 단위로 제거한다.
+ * 한 경로라도 관리하지 않는 항목이면 어느 경로도 지우지 않고(ADR-043),
+ * 중간에 실패하면 이미 처리한 경로를 이전 상태로 되돌린다.
+ */
+export async function uninstallSkill(
+  context: SkillManagerContext,
+  operations: SkillManagerOperations = defaultOperations,
+): Promise<SkillUninstallResult> {
+  const targets = await planUninstallTargets(context);
+
+  const moved: UninstallTarget[] = [];
+  for (const target of targets) {
+    if (await moveUninstallCandidate(target, moved, operations)) {
+      moved.push(target);
+    }
+  }
+  await removeUninstallCandidates(moved, operations);
+
+  const agents = Object.fromEntries(
+    SKILL_AGENTS.map((agent) => [
+      agent,
+      {
+        action: moved.some((target) => target.agents.includes(agent)) ? "removed" : "absent",
+        destination: destinationPath(context, agent),
+      },
+    ]),
+  ) as SkillUninstallResult["agents"];
+  return {
+    action: SKILL_AGENTS.some((agent) => agents[agent].action === "removed") ? "removed" : "absent",
+    agents,
+  };
 }

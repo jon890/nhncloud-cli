@@ -6,7 +6,8 @@ import {
   installSkill,
   uninstallSkill,
   type SkillInstallResult,
-  type SkillStatus,
+  type SkillsStatus,
+  type SkillUninstallResult,
 } from "../skill/manager.js";
 import {
   outputSkillInstallResult,
@@ -22,12 +23,12 @@ interface SkillCommandOptions extends OutputOptions {
 
 export interface SkillCommandDependencies {
   createContext: () => SkillManagerContext;
-  inspect: (context: SkillManagerContext) => Promise<SkillStatus>;
+  inspect: (context: SkillManagerContext) => Promise<SkillsStatus>;
   install: (
     context: SkillManagerContext,
     options?: { force?: boolean },
   ) => Promise<SkillInstallResult>;
-  uninstall: (context: SkillManagerContext) => Promise<"removed" | "absent">;
+  uninstall: (context: SkillManagerContext) => Promise<SkillUninstallResult>;
 }
 
 const defaultDependencies: SkillCommandDependencies = {
@@ -53,8 +54,8 @@ function createInstallCommand(
   return new Command(name)
     .description(
       name === "install"
-        ? "Claude Code 스킬을 관리 저장소에 설치한다"
-        : "Claude Code 스킬을 현재 CLI 버전으로 갱신한다",
+        ? "Claude Code·Codex 스킬을 관리 저장소에 설치한다"
+        : "Claude Code·Codex 스킬을 현재 CLI 버전으로 갱신한다",
     )
     .option("--force", "사용자 항목이나 수정·손상된 관리 저장소를 백업 후 교체한다")
     .action(async (_localOpts: unknown, cmd: Command) => {
@@ -69,30 +70,30 @@ export function createSkillsCommand(
   dependencies: SkillCommandDependencies = defaultDependencies,
 ): Command {
   const statusCommand = new Command("status")
-    .description("Claude Code 스킬의 관리 상태를 조회한다")
+    .description("Claude Code·Codex 스킬의 관리 상태를 조회한다")
     .action(async (_opts: unknown, cmd: Command) => showStatus(cmd, dependencies));
 
   const uninstallCommand = new Command("uninstall")
-    .description("활성 Claude Code 스킬 링크를 제거한다")
+    .description("활성 Claude Code·Codex 스킬 링크를 제거한다")
     .action(async (_opts: unknown, cmd: Command) => {
       const opts = cmd.optsWithGlobals<SkillCommandOptions>();
       const context = dependencies.createContext();
-      const previousStatus = await dependencies.inspect(context);
-      const action = await dependencies.uninstall(context);
+      const uninstalled = await dependencies.uninstall(context);
       const result = {
         schemaVersion: 1 as const,
-        action,
-        changed: action === "removed",
+        action: uninstalled.action,
+        changed: uninstalled.action === "removed",
         status: "missing" as const,
-        destination: previousStatus.destination,
+        destination: uninstalled.agents.claude.destination,
         repositoryPreserved: true as const,
+        agents: uninstalled.agents,
       };
 
       outputSkillUninstallResult(opts, result);
     });
 
   return new Command("skills")
-    .description(`Claude Code 스킬(${SKILL_NAME}) 설치 관리`)
+    .description(`Claude Code·Codex 스킬(${SKILL_NAME}) 설치 관리`)
     .addCommand(statusCommand)
     .addCommand(createInstallCommand("install", dependencies))
     .addCommand(createInstallCommand("update", dependencies))

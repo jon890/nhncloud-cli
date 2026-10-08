@@ -3,8 +3,12 @@
 공개 스킬 관리, configure, profile, 출력 모드, 에러 코드를 다룬다.
 서비스별 세부 명령은 각 reference를 읽는다.
 
-## Claude Code 공개 스킬 관리
+## Claude Code·Codex 공개 스킬 관리
 
+설치 경로는 Claude Code 의 `~/.claude/skills/nhncloud-cli` 와 Codex 의 `~/.agents/skills/nhncloud-cli` 다.
+두 경로는 같은 관리 저장소를 가리킨다.
+Codex 를 설치했는지와 관계없이 두 경로를 만들고, 필요하면 `~/.agents/skills` 디렉터리도 만든다.
+이전에 Claude Code 경로에만 설치했다면 `nhncloud skills install` 이나 `update` 를 다시 실행해 Codex 경로를 연결한다.
 
 ```bash
 # 전역 설치한 CLI에서 설치
@@ -40,9 +44,13 @@ nhncloud skills update
 상태는 설치 경로를 합친 값이고 위 표의 `corrupt`부터 `current` 방향으로 먼저 해당하는 값이다.
 `--json`의 `destination`, `linkTarget`, `managed`는 Claude Code 경로 값이며 경로별 상세는 `agents.*`에 있다.
 
+두 경로가 모두 `current` 일 때만 상태가 `current` 다.
+
 `--force`는 사용자 항목 또는 수정·손상된 관리 저장소를 삭제하지 않고 같은 상위 디렉터리에 백업한 뒤 교체한다.
-`nhncloud skills uninstall`은 `~/.claude/skills/nhncloud-cli`의 활성 심볼릭 링크만 제거하며 버전별 관리 저장소는 보존한다.
-설치 경로가 사용자 파일이나 실제 디렉터리이면 제거하지 않는다.
+한 경로라도 `unmanaged`, `modified`, `corrupt` 면 `--force` 없이는 어느 경로도 바꾸지 않는다.
+한 경로의 전환이 실패하면 이미 바꾼 경로를 이전 상태로 되돌린다.
+`nhncloud skills uninstall`은 두 설치 경로의 활성 심볼릭 링크만 제거하며 버전별 관리 저장소는 보존한다.
+한 경로라도 사용자 파일, 실제 디렉터리, 알 수 없는 링크이면 어느 링크도 제거하지 않는다.
 
 자동화에서는 모든 하위 명령에 전역 출력 옵션을 함께 사용할 수 있다.
 
@@ -61,7 +69,12 @@ nhncloud skills uninstall --quiet
 ```
 
 `--json`은 상태·변경 여부·백업 경로처럼 자동화에 필요한 필드를 제공한다.
+경로별 상세는 `agents.claude`, `agents.codex` 에 있다.
+최상위 필드는 합친 `status` 를 빼면 Claude Code 경로의 상세다.
 `--quiet`은 상태 토큰 하나만 stdout에 출력한다.
+
+Codex 에서는 `$nhncloud-cli` 로 스킬을 부를 수 있다.
+설치한 스킬이 Codex 에 보이지 않으면 Codex 를 다시 시작한다.
 
 ## 초기 설정
 

@@ -50,12 +50,12 @@ async function replaceDestinationWithLink(target: string): Promise<void> {
   await symlink(target, destination());
 }
 
-async function leftoverTemporaryLinks(): Promise<string[]> {
+async function leftoverTemporaryLinks(prefix = ".nhncloud-cli.link-"): Promise<string[]> {
   const leftovers: string[] = [];
   for (const agent of ["claude", "codex"] as const) {
     const parent = path.dirname(destination(agent));
     const entries = await readdir(parent).catch(() => [] as string[]);
-    leftovers.push(...entries.filter((entry) => entry.startsWith(".nhncloud-cli.link-")).map((entry) => path.join(parent, entry)));
+    leftovers.push(...entries.filter((entry) => entry.startsWith(prefix)).map((entry) => path.join(parent, entry)));
   }
   return leftovers;
 }
@@ -547,10 +547,14 @@ describe("uninstallSkill", () => {
   it("활성 링크만 제거하고 관리 저장소는 보존한다", async () => {
     const installed = await installSkill(context);
 
-    expect(await uninstallSkill(context)).toBe("removed");
+    const removed = await uninstallSkill(context);
+    expect(removed.action).toBe("removed");
+    expect(removed.agents.claude.action).toBe("removed");
     await expect(lstat(destination())).rejects.toMatchObject({ code: "ENOENT" });
     expect((await lstat(installed.repositoryPath)).isDirectory()).toBe(true);
-    expect(await uninstallSkill(context)).toBe("absent");
+    const again = await uninstallSkill(context);
+    expect(again.action).toBe("absent");
+    expect(again.agents.claude.action).toBe("absent");
   });
 
   it("실제 디렉터리는 제거하지 않는다", async () => {
@@ -579,7 +583,7 @@ describe("uninstallSkill", () => {
     const managedTarget = path.join(context.dataRoot, "skills", `0.9.0-${"a".repeat(64)}`);
     await replaceDestinationWithLink(managedTarget);
 
-    expect(await uninstallSkill(context)).toBe("removed");
+    expect(await uninstallSkill(context)).toMatchObject({ action: "removed", agents: { claude: { action: "removed" } } });
     await expect(lstat(destination())).rejects.toMatchObject({ code: "ENOENT" });
 
     const packageTarget = path.join(
@@ -592,7 +596,7 @@ describe("uninstallSkill", () => {
     );
     await replaceDestinationWithLink(packageTarget);
 
-    expect(await uninstallSkill(context)).toBe("removed");
+    expect(await uninstallSkill(context)).toMatchObject({ action: "removed", agents: { claude: { action: "removed" } } });
     await expect(lstat(destination())).rejects.toMatchObject({ code: "ENOENT" });
   });
 
@@ -606,7 +610,7 @@ describe("uninstallSkill", () => {
     );
     await replaceDestinationWithLink(legacySkill);
 
-    expect(await uninstallSkill(context)).toBe("removed");
+    expect(await uninstallSkill(context)).toMatchObject({ action: "removed", agents: { claude: { action: "removed" } } });
     await expect(lstat(destination())).rejects.toMatchObject({ code: "ENOENT" });
     expect((await lstat(legacySkill)).isDirectory()).toBe(true);
   });
@@ -628,5 +632,118 @@ describe("uninstallSkill", () => {
 
     await expect(uninstallSkill(context, operations)).rejects.toBeInstanceOf(NhnCloudCliError);
     expect(await readlink(destination())).toBe(unmanagedTarget);
+  });
+});
+
+describe("두 에이전트 경로 제거", () => {
+  it("두 경로를 모두 제거하고 관리 저장소는 남긴다", async () => {
+    const installed = await installSkill(context);
+
+    const result = await uninstallSkill(context);
+
+    expect(result.action).toBe("removed");
+    expect(result.agents.claude).toEqual({ action: "removed", destination: destination("claude") });
+    expect(result.agents.codex).toEqual({ action: "removed", destination: destination("codex") });
+    await expect(lstat(destination("claude"))).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(lstat(destination("codex"))).rejects.toMatchObject({ code: "ENOENT" });
+    expect((await lstat(installed.repositoryPath)).isDirectory()).toBe(true);
+  });
+
+  it("한 경로라도 사용자 항목이면 어느 경로도 제거하지 않는다", async () => {
+    const installed = await installSkill(context);
+    await rm(destination("codex"));
+    const codexFile = await writeUserDirectory(destination("codex"), "Codex 사용자 내용\n");
+
+    const error = await uninstallSkill(context).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(NhnCloudCliError);
+    expect((error as NhnCloudCliError).message).toContain(destination("codex"));
+    expect(await readlink(destination("claude"))).toBe(installed.repositoryPath);
+    expect(await readFile(codexFile, "utf8")).toBe("Codex 사용자 내용\n");
+  });
+
+  it("Codex 경로가 없으면 Claude Code 경로만 제거하고 Codex는 absent로 보고한다", async () => {
+    await installSkill(context);
+    await rm(destination("codex"));
+
+    const result = await uninstallSkill(context);
+
+    expect(result.action).toBe("removed");
+    expect(result.agents.claude.action).toBe("removed");
+    expect(result.agents.codex.action).toBe("absent");
+    await expect(lstat(destination("claude"))).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("두 번째 경로 이동이 실패하면 첫 경로의 링크를 되돌린다", async () => {
+    const installed = await installSkill(context);
+    const operations: SkillManagerOperations = {
+      async rename(oldPath, newPath) {
+        if (oldPath === destination("codex")) {
+          throw new Error("의도한 Codex 이동 실패");
+        }
+        await fsRename(oldPath, newPath);
+      },
+    };
+
+    await expect(uninstallSkill(context, operations)).rejects.toBeInstanceOf(NhnCloudCliError);
+    expect(await readlink(destination("claude"))).toBe(installed.repositoryPath);
+    expect(await readlink(destination("codex"))).toBe(installed.repositoryPath);
+    expect(await leftoverTemporaryLinks(".nhncloud-cli.uninstall-")).toEqual([]);
+  });
+
+  it("두 경로의 부모가 같은 실제 디렉터리면 링크를 한 번 제거하고 두 경로 모두 removed로 보고한다", async () => {
+    await mkdir(path.join(context.homeDir, ".claude", "skills"), { recursive: true });
+    await mkdir(path.join(context.homeDir, ".agents"), { recursive: true });
+    await symlink(
+      path.join(context.homeDir, ".claude", "skills"),
+      path.join(context.homeDir, ".agents", "skills"),
+    );
+    await installSkill(context);
+
+    const result = await uninstallSkill(context);
+
+    expect(result.action).toBe("removed");
+    expect(result.agents.claude.action).toBe("removed");
+    expect(result.agents.codex.action).toBe("removed");
+    await expect(lstat(destination("claude"))).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(lstat(destination("codex"))).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("두 경로가 모두 없으면 absent를 돌려준다", async () => {
+    const result = await uninstallSkill(context);
+
+    expect(result).toEqual({
+      action: "absent",
+      agents: {
+        claude: { action: "absent", destination: destination("claude") },
+        codex: { action: "absent", destination: destination("codex") },
+      },
+    });
+  });
+
+  it("두 번째 candidate 삭제가 실패하면 이미 지운 경로까지 이전 링크로 되살린다", async () => {
+    const installed = await installSkill(context);
+    const claudeLink = await readlink(destination("claude"));
+    const codexLink = await readlink(destination("codex"));
+    const codexParent = path.dirname(destination("codex"));
+    const operations: SkillManagerOperations = {
+      rename: fsRename,
+      async rm(target, options) {
+        if (
+          typeof target === "string" &&
+          path.basename(target).startsWith(".nhncloud-cli.uninstall-") &&
+          path.dirname(target) === codexParent
+        ) {
+          throw new Error("의도한 Codex 삭제 실패");
+        }
+        await rm(target, options);
+      },
+    };
+
+    await expect(uninstallSkill(context, operations)).rejects.toThrow("이전 상태로 되돌렸습니다");
+    expect(await readlink(destination("claude"))).toBe(claudeLink);
+    expect(await readlink(destination("codex"))).toBe(codexLink);
+    expect(claudeLink).toBe(installed.repositoryPath);
+    expect(await leftoverTemporaryLinks(".nhncloud-cli.")).toEqual([]);
   });
 });
