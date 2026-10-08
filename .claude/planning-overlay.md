@@ -26,7 +26,7 @@
 | 자격증명·설정·캐시 | `docs/data-schema.md` |
 | 직관에 반하는 장기 결정 | `docs/adr/INDEX.md`에서 고른 ADR |
 | 계획·실행·검토 반복 함정 | `docs/pitfalls/INDEX.md`에서 고른 패턴 |
-| 내부 스킬·역할 정의 | `.agents/skills/`, `.claude/agents/`, `.codex/agents/` |
+| 내부 스킬 | `.agents/skills/` |
 
 사용자 가이드 변경은 구현과 같은 PR에 두되, 명령 카탈로그와 실제 help를 근거로 작성한다.
 

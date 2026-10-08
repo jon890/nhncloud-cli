@@ -4,6 +4,18 @@ import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_API_ERROR, EXIT_AUTH_ERROR } from "../utils/exit-codes.js";
 
 /**
+ * HTTP 오류 응답의 본문을 JSON 으로 읽는다. 본문이 비었거나 JSON 이 아니면 undefined 를 돌려준다.
+ * 본문 해석은 각 서비스가 맡는다. 원본 응답을 소비하지 않도록 복제본을 읽는다.
+ */
+export async function readHttpErrorBody(err: HTTPError): Promise<unknown> {
+  try {
+    return await err.response.clone().json();
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * ky HTTPError·TimeoutError 또는 일반 Error 를 NhnCloudCliError 로 변환한다.
  * - 401/403 → EXIT_AUTH_ERROR
  * - 그 외 4xx/5xx → EXIT_API_ERROR

@@ -13,7 +13,7 @@ import {
   resolveIpAclGroupId,
   resolveLoadBalancerClient,
 } from "./helpers.js";
-import { configureLoadBalancerHelp } from "./help.js";
+import { configureGlobalOptionsHelp } from "../help.js";
 import { targetCommand } from "./target.js";
 
 vi.mock("./helpers.js", async (importOriginal) => {
@@ -361,7 +361,7 @@ describe("loadbalancer IP ACL 대상 쓰기 명령", () => {
     ipacl.addCommand(targetCommand);
     loadbalancer.addCommand(ipacl);
     root.addCommand(loadbalancer);
-    configureLoadBalancerHelp(loadbalancer);
+    configureGlobalOptionsHelp(loadbalancer);
 
     const cases: Array<[string, string[]]> = [
       [

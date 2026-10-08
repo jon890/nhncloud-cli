@@ -1,6 +1,6 @@
 import { afterEach, describe, it, expect } from "vitest";
 import { HTTPError, TimeoutError } from "ky";
-import { toNhnCloudCliError } from "./httpError.js";
+import { readHttpErrorBody, toNhnCloudCliError } from "./httpError.js";
 import { setRequestTimeoutMs } from "./timeout.js";
 import { NhnCloudCliError } from "../utils/errors.js";
 import { EXIT_API_ERROR, EXIT_AUTH_ERROR } from "../utils/exit-codes.js";
@@ -77,5 +77,33 @@ describe("toNhnCloudCliError", () => {
     const original = new NhnCloudCliError("already", EXIT_AUTH_ERROR);
     const result = toNhnCloudCliError(original);
     expect(result).toBe(original); // 같은 객체 참조
+  });
+});
+
+describe("readHttpErrorBody", () => {
+  function makeBodyError(body: string): HTTPError {
+    return new HTTPError(
+      new Response(body, { status: 400 }),
+      new Request("https://example.com"),
+      {} as never,
+    );
+  }
+
+  it("JSON 본문을 객체로 돌려준다", async () => {
+    expect(await readHttpErrorBody(makeBodyError('{"a":1}'))).toEqual({ a: 1 });
+  });
+
+  it("JSON 이 아닌 본문이면 undefined 를 돌려준다", async () => {
+    expect(await readHttpErrorBody(makeBodyError("not json"))).toBeUndefined();
+  });
+
+  it("빈 본문이면 undefined 를 돌려준다", async () => {
+    expect(await readHttpErrorBody(makeBodyError(""))).toBeUndefined();
+  });
+
+  it("같은 오류를 두 번 읽어도 두 번 다 본문을 돌려준다", async () => {
+    const err = makeBodyError('{"a":1}');
+    expect(await readHttpErrorBody(err)).toEqual({ a: 1 });
+    expect(await readHttpErrorBody(err)).toEqual({ a: 1 });
   });
 });

@@ -1,14 +1,32 @@
 {
   "name": "@bifos/nhncloud-cli",
   "version": "0.18.0",
-  "description": "CLI tool for NHN Cloud services — AI agent & terminal friendly",
+  "description": "CLI for NHN Cloud (Compute, Network, Kubernetes, Load Balancer, Log & Crash, Deploy, Secure Key Manager and more) — AI agent & terminal friendly",
   "keywords": [
     "nhncloud",
     "cli",
     "logncrash",
     "deploy",
-    "nhn"
+    "nhn",
+    "nhn-cloud",
+    "openstack",
+    "compute",
+    "kubernetes",
+    "nks",
+    "load-balancer",
+    "log-and-crash",
+    "secure-key-manager",
+    "ai-agent",
+    "claude-code"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jon890/nhncloud-cli.git"
+  },
+  "homepage": "https://github.com/jon890/nhncloud-cli#readme",
+  "bugs": {
+    "url": "https://github.com/jon890/nhncloud-cli/issues"
+  },
   "bin": {
     "nhncloud": "dist/index.js"
   },
