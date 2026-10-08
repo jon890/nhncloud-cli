@@ -6,7 +6,7 @@ spawn 프롬프트에는 task 절대경로와 직전 phase에서 확인한 사�
 
 ## worktree
 
-worktree는 `worktrees/nhncloud-cli/plan{N}-{slug}`에 둔다. 이 머신의 전역 hook이 그 밖의 worktree 경로를 막는다.
+worktree는 `worktrees/nhncloud-cli/plan{N}-{slug}`에 둔다. Orca가 만드는 worktree와 같은 자리다. 유지보수자 환경의 hook은 그 밖의 경로를 막는다.
 이미 plan 브랜치 worktree에서 실행 중이면 새로 만들지 않는다.
 
 ```bash
