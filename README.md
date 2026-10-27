@@ -111,6 +111,7 @@ CLI 를 새 버전으로 올린 뒤에는 `nhncloud skills update` 를 한 번 �
 | API Gateway | `nhncloud apigateway` | [API Gateway](skills/nhncloud-cli/references/apigateway.md) |
 | Secure Key Manager | `nhncloud skm` | [SKM](skills/nhncloud-cli/references/skm.md) |
 | RDS for MySQL | `nhncloud rds-mysql` | [RDS for MySQL](skills/nhncloud-cli/references/rds-mysql.md) |
+| DNS Plus | `nhncloud dnsplus` | [DNS Plus](skills/nhncloud-cli/references/dnsplus.md) |
 | 설정과 진단 | `nhncloud configure`, `nhncloud doctor`, `nhncloud skills` | [공통](skills/nhncloud-cli/references/common.md) |
 
 Load Balancer TLS 인증서는 공용망과 공공망 모두 key-manager 에 저장해요.
@@ -154,9 +155,13 @@ printf '%s' "$VALUE" | nhncloud skm secret patch <key-id> <field> --replace --ye
 nhncloud rds-mysql user list <db-instance-id>                  # RDS for MySQL DB 사용자 목록
 nhncloud rds-mysql user create <db-instance-id> --name app --host '10.0.0.%' --authority crud --password-file ./pw.txt   # 미리보기
 nhncloud rds-mysql user create <db-instance-id> --name app --host '10.0.0.%' --authority crud --password-file ./pw.txt --yes --wait   # 반영하고 완료까지 대기
+nhncloud dnsplus zone list                                    # DNS Plus 존 목록
+nhncloud dnsplus recordset list --zone example.com            # 존의 레코드 세트 목록
+nhncloud dnsplus recordset create --zone example.com --name www.example.com --type A --value 192.0.2.10 --dry-run   # 보낼 요청 미리보기
+nhncloud dnsplus recordset create --zone example.com --name www.example.com --type A --value 192.0.2.10 --yes       # 같은 이름이 없을 때만 생성
 ```
 
-삭제처럼 되돌리기 어려운 일부 명령은 `--yes` 를 붙여야 실행돼요. 비대화형 환경에서 `--yes` 가 없으면 API 를 호출하기 전에 끝나요. `rds-mysql` 쓰기 명령과 `skm secret patch` 는 `--yes` 가 없으면 바뀔 내용만 보여 주는 미리보기로 끝나요.
+삭제처럼 되돌리기 어려운 일부 명령은 `--yes` 를 붙여야 실행돼요. 비대화형 환경에서 `--yes` 가 없으면 API 를 호출하기 전에 끝나요. `dnsplus recordset create`·`delete` 는 `--yes` 나 `--dry-run` 이 없으면 API 를 호출하기 전에 끝나요. `rds-mysql` 쓰기 명령과 `skm secret patch` 는 `--yes` 가 없으면 바뀔 내용만 보여 주는 미리보기로 끝나요.
 확인 없이 바로 실행되는 변경 명령도 있으니, 에이전트에게 맡기기 전에 [공통 가이드](skills/nhncloud-cli/references/common.md)의 「되돌릴 수 없는 명령」 절을 먼저 봐 주세요.
 
 명령과 옵션은 `--help` 로 볼 수 있어요.
