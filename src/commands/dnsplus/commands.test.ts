@@ -217,6 +217,16 @@ describe("dnsplus 명령", () => {
       expect(JSON.parse(stdout())).toMatchObject({ status: "succeeded", recordsetId: RS_ID });
     });
 
+    it("ID 로 지정할 때 --type 이 레코드 세트의 타입과 다르면 지우지 않는다", async () => {
+      await expect(
+        run("recordset", "delete", RS_ID, "--zone", "example.com", "--type", "TXT", "--yes"),
+      ).rejects.toMatchObject({ exitCode: EXIT_PARAM_ERROR, message: expect.stringContaining("--type TXT") });
+      expect(deleteRecordsets).not.toHaveBeenCalled();
+
+      await run("recordset", "delete", RS_ID, "--zone", "example.com", "--type", "A", "--yes", "--quiet");
+      expect(deleteRecordsets).toHaveBeenCalledWith(ZONE_ID, [RS_ID]);
+    });
+
     it("SOA 는 지우지 않는다", async () => {
       listRecordsets.mockResolvedValue([{ ...existing, recordsetType: "SOA" }]);
 

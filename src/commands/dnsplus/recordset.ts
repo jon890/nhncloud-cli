@@ -4,10 +4,9 @@ import { DnsplusClient } from "../../services/dnsplus/client.js";
 import type { DnsplusRecordset, DnsplusZone } from "../../services/dnsplus/types.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
-import { parseIntegerOption } from "../parse-options.js";
+import { collectOption, parseIntegerOption, parseRequiredArgument } from "../parse-options.js";
 import {
   buildRecordList,
-  collectOption,
   DEFAULT_TTL,
   formatCell,
   formatRecords,
@@ -18,7 +17,6 @@ import {
   parseRecordsetType,
   RECORDSET_HEADERS,
   recordsetRow,
-  requireNonEmpty,
   requireWriteMode,
   resolveDnsplusClient,
   resolveZone,
@@ -62,13 +60,21 @@ async function findRecordsets(
   input: string,
   type: string | undefined,
 ): Promise<DnsplusRecordset[]> {
-  const value = requireNonEmpty(input, "<recordset>");
+  const value = parseRequiredArgument(input, "<recordset>");
   const typeFilter = type === undefined ? undefined : parseRecordsetType(type);
   if (isUuid(value)) {
     const found = await withDnsplusSpinner("레코드 세트 조회 중...", () =>
       client.listRecordsets(zone.zoneId, { recordsetIdList: [value] }),
     );
-    return found.filter((recordset) => recordset.recordsetId === value);
+    const byId = found.filter((recordset) => recordset.recordsetId === value);
+    // ID 가 가리키는 레코드 세트의 타입이 --type 과 다르면 지우거나 읽기 전에 입력 오류로 끝낸다.
+    if (typeFilter !== undefined && byId.some((recordset) => recordset.recordsetType !== typeFilter)) {
+      throw new NhnCloudCliError(
+        `레코드 세트 ${value} 의 타입이 --type ${typeFilter} 와 다릅니다.`,
+        EXIT_PARAM_ERROR,
+      );
+    }
+    return byId;
   }
   const fqdn = toFqdn(value);
   const found = await withDnsplusSpinner("레코드 세트 조회 중...", () =>

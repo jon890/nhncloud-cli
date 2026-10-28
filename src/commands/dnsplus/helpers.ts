@@ -13,6 +13,7 @@ import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { startSpinner, stopSpinner } from "../../utils/spinner.js";
 import { sanitizeForTerminal } from "../../utils/terminal.js";
+import { parseRequiredArgument } from "../parse-options.js";
 import { resolveServiceAppKey } from "../service-appkey.js";
 
 export interface DnsplusCommandOptions extends OutputOptions {
@@ -96,19 +97,13 @@ export function toFqdn(name: string): string {
   return lowered.endsWith(".") ? lowered : `${lowered}.`;
 }
 
-export function requireNonEmpty(value: string, label: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) throw new NhnCloudCliError(`${label} 값이 비어 있습니다.`, EXIT_PARAM_ERROR);
-  return trimmed;
-}
-
 export function isUuid(value: string): boolean {
   return UUID_PATTERN.test(value);
 }
 
 /** `--zone` 값을 존 ID 나 이름으로 읽어 zone 하나로 해석한다. 이름이 정확히 같은 존만 받는다. */
 export async function resolveZone(client: DnsplusClient, zoneInput: string): Promise<DnsplusZone> {
-  const input = requireNonEmpty(zoneInput, "--zone");
+  const input = parseRequiredArgument(zoneInput, "--zone");
   if (isUuid(input)) {
     const zones = await withDnsplusSpinner("DNS Zone 조회 중...", () => client.listZones({ zoneIdList: [input] }));
     const zone = zones.find((candidate) => candidate.zoneId === input);
@@ -147,7 +142,7 @@ export function parseRecordsetType(value: string): DnsplusRecordsetType {
 
 /** 레코드 세트 이름이 존 안에 있는지 검사하고 FQDN 으로 돌려준다. */
 export function parseRecordsetName(name: string, zoneName: string): string {
-  const fqdn = toFqdn(requireNonEmpty(name, "--name"));
+  const fqdn = toFqdn(parseRequiredArgument(name, "--name"));
   const zone = zoneName.toLowerCase();
   if (fqdn !== zone && !fqdn.endsWith(`.${zone}`)) {
     throw new NhnCloudCliError(
@@ -167,7 +162,7 @@ export function buildRecordList(type: DnsplusRecordsetType, values: string[]): D
     throw new NhnCloudCliError("--value 가 하나 이상 필요합니다.", EXIT_PARAM_ERROR);
   }
   const contents = values.map((value) => {
-    const trimmed = requireNonEmpty(value, "--value");
+    const trimmed = parseRequiredArgument(value, "--value");
     if (type === "A") {
       if (!isIPv4(trimmed)) {
         throw new NhnCloudCliError(`A 레코드 값은 IPv4 주소여야 합니다: ${JSON.stringify(value)}`, EXIT_PARAM_ERROR);
@@ -182,10 +177,6 @@ export function buildRecordList(type: DnsplusRecordsetType, values: string[]): D
     throw new NhnCloudCliError("CNAME 레코드 값은 하나만 줄 수 있습니다.", EXIT_PARAM_ERROR);
   }
   return contents.map((recordContent) => ({ recordDisabled: false, recordContent }));
-}
-
-export function collectOption(value: string, previous: string[] = []): string[] {
-  return [...previous, value];
 }
 
 export function recordsetRow(recordset: DnsplusRecordset): string[] {
