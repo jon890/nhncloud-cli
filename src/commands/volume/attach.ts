@@ -11,6 +11,8 @@ import {
   type VolumeWriteOptions,
   type VolumeWriteResult,
 } from "./helpers.js";
+import { NhnCloudCliError } from "../../utils/errors.js";
+import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import type { Volume } from "../../services/blockstorage/types.js";
 
 interface AttachOpts extends VolumeWriteOptions {
@@ -53,6 +55,15 @@ export const attachCommand = withVolumeWriteOptions(
     };
     output(opts, { headers: ["field", "value"], rows: writeResultRows(result), raw: result, ids: [volume.id] });
     return;
+  }
+
+  // 다른 서버에 붙어 있으면 Compute 의 400/409 를 받기 전에 거절한다.
+  const attached = attachedServerIds(volume);
+  if (attached.length > 0) {
+    throw new NhnCloudCliError(
+      `볼륨 ${volume.id} 는 이미 다른 서버에 연결되어 있습니다 (연결 서버: ${attached.join(", ")}). 먼저 nhncloud volume detach ${volume.id} 로 연결을 해제하세요.`,
+      EXIT_PARAM_ERROR,
+    );
   }
 
   // ── 3. 연결 요청 ──

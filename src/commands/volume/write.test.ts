@@ -71,6 +71,14 @@ describe("volume write commands", () => {
       expect(vi.mocked(output).mock.calls[0]?.[1].raw).toMatchObject({ action: "unchanged", applied: false });
     });
 
+    it("다른 서버에 연결된 볼륨은 요청 전에 거절한다", async () => {
+      getMock.mockResolvedValue(vol({ status: "in-use", attachments: [attachment("srv-2")] }));
+      await expect(run(attachCommand, ["vol-1", "--server", "srv-1"])).rejects.toMatchObject({
+        exitCode: EXIT_PARAM_ERROR,
+      });
+      expect(attachMock).not.toHaveBeenCalled();
+    });
+
     it("--wait 이면 in-use 가 될 때까지 기다린다", async () => {
       getMock.mockResolvedValue(vol());
       waitMock.mockResolvedValue(vol({ status: "in-use", attachments: [attachment("srv-1")] }));

@@ -1,4 +1,4 @@
-import ky, { HTTPError } from "ky";
+import ky from "ky";
 import { toNhnCloudCliError } from "../../api/httpError.js";
 import { DEFAULT_TIMEOUT_MS } from "../../api/timeout.js";
 import { NhnCloudCliError } from "../../utils/errors.js";
@@ -29,9 +29,8 @@ function isVolumeResponse(val: unknown): val is { volume: Volume } {
 
 const DEFAULT_POLL_INTERVAL_MS = 3_000;
 
-/** get() 은 HTTPError 를 NhnCloudCliError 로 바꾸므로 원인 상태를 메시지의 "(404)" 로 판별한다. */
+/** get() 은 모든 오류를 NhnCloudCliError 로 바꾸므로 상태를 메시지의 "(404)" 접두사로 판별한다. */
 function isNotFound(err: unknown): boolean {
-  if (err instanceof HTTPError) return err.response.status === 404;
   return err instanceof NhnCloudCliError && err.message.startsWith("API 호출 실패 (404)");
 }
 
