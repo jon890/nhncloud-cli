@@ -135,6 +135,7 @@ nhncloud network list                                         # VPC 목록
 nhncloud network security-group list                          # 보안그룹 목록
 nhncloud instance security-group add <instance-id> <group> --yes  # 인스턴스에 보안그룹 연결
 nhncloud volume list                                          # 블록 스토리지 볼륨
+nhncloud volume delete <volume-id> --dry-run                  # 볼륨 삭제 미리보기 (attach·detach 도 있음)
 nhncloud floatingip list                                      # Floating IP
 nhncloud loadbalancer list                                    # 로드밸런서
 nhncloud loadbalancer listener list --loadbalancer <lb>       # 로드밸런서 리스너
