@@ -30,6 +30,9 @@ import { listCommand } from "./commands/instance/list.js";
 import { listCommand as volumeListCommand } from "./commands/volume/list.js";
 import { getCommand as volumeGetCommand } from "./commands/volume/get.js";
 import { createCommand as volumeCreateCommand } from "./commands/volume/create.js";
+import { attachCommand as volumeAttachCommand } from "./commands/volume/attach.js";
+import { detachCommand as volumeDetachCommand } from "./commands/volume/detach.js";
+import { deleteCommand as volumeDeleteCommand } from "./commands/volume/delete.js";
 import { listCommand as networkListCommand } from "./commands/network/list.js";
 import { subnetCommand } from "./commands/network/subnet.js";
 import { securityGroupCommand } from "./commands/network/security-group.js";
@@ -131,6 +134,7 @@ const volumeAgentWorkflow = `
 Agent workflow:
   1. nhncloud volume list --json
   2. nhncloud volume get <volume-id> --json
+  3. 연결과 삭제는 volume attach/detach/delete. detach·delete 는 --dry-run 으로 대상을 확인하고 --yes 로 실행한다.
 `;
 
 const floatingIpAgentWorkflow = `
@@ -299,6 +303,9 @@ const volumeCommand = new Command("volume")
 volumeCommand.addCommand(volumeListCommand);
 volumeCommand.addCommand(volumeGetCommand);
 volumeCommand.addCommand(volumeCreateCommand);
+volumeCommand.addCommand(volumeAttachCommand);
+volumeCommand.addCommand(volumeDetachCommand);
+volumeCommand.addCommand(volumeDeleteCommand);
 
 program.addCommand(volumeCommand);
 
