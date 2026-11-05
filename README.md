@@ -103,6 +103,7 @@ CLI 를 새 버전으로 올린 뒤에는 `nhncloud skills update` 를 한 번 �
 | Block Storage | `nhncloud volume` | [IaaS](skills/nhncloud-cli/references/iaas.md) |
 | Floating IP | `nhncloud floatingip` | [IaaS](skills/nhncloud-cli/references/iaas.md) |
 | Load Balancer, 리스너, 풀, L7, 인증서, IP ACL | `nhncloud loadbalancer` | [Load Balancer](skills/nhncloud-cli/references/loadbalancer.md) |
+| Private DNS zone, 레코드 세트 | `nhncloud privatedns` | [Private DNS](skills/nhncloud-cli/references/privatedns.md) |
 | Log & Crash | `nhncloud logncrash` | [Log & Crash](skills/nhncloud-cli/references/logncrash.md) |
 | Deploy | `nhncloud deploy` | [Deploy](skills/nhncloud-cli/references/deploy.md) |
 | Container Registry | `nhncloud ncr` | [NCR](skills/nhncloud-cli/references/ncr.md) |
@@ -140,6 +141,8 @@ nhncloud floatingip list                                      # Floating IP
 nhncloud loadbalancer list                                    # 로드밸런서
 nhncloud loadbalancer listener list --loadbalancer <lb>       # 로드밸런서 리스너
 nhncloud loadbalancer certificate upload --name <name> --certificate-file cert.pem --private-key-file key.pem --dry-run  # TLS 인증서 업로드 미리보기
+nhncloud privatedns zone list                                 # Private DNS zone 목록
+nhncloud privatedns record create <zone> --name www --type A --record 10.0.0.1 --dry-run  # 레코드 세트 생성 미리보기
 nhncloud ncr list                                             # 컨테이너 레지스트리
 nhncloud nks cluster list                                     # Kubernetes 클러스터
 nhncloud deploy artifacts                                     # 배포 아티팩트
@@ -163,7 +166,7 @@ nhncloud dnsplus recordset create --zone example.com --name www.example.com --ty
 nhncloud dnsplus recordset create --zone example.com --name www.example.com --type A --value 192.0.2.10 --yes       # 같은 이름이 없을 때만 생성
 ```
 
-삭제처럼 되돌리기 어려운 일부 명령은 `--yes` 를 붙여야 실행돼요. 비대화형 환경에서 `--yes` 가 없으면 API 를 호출하기 전에 끝나요. `dnsplus recordset create`·`delete` 는 `--yes` 나 `--dry-run` 이 없으면 API 를 호출하기 전에 끝나요. `rds-mysql` 쓰기 명령과 `skm secret patch` 는 `--yes` 가 없으면 바뀔 내용만 보여 주는 미리보기로 끝나요.
+삭제처럼 되돌리기 어려운 일부 명령은 `--yes` 를 붙여야 실행돼요. 비대화형 환경에서 `--yes` 가 없으면 API 를 호출하기 전에 끝나요. `dnsplus recordset create`·`delete` 와 `privatedns` 의 zone·record 생성·수정·삭제는 `--yes` 나 `--dry-run` 이 없으면 API 를 호출하기 전에 끝나요. `rds-mysql` 쓰기 명령과 `skm secret patch` 는 `--yes` 가 없으면 바뀔 내용만 보여 주는 미리보기로 끝나요.
 확인 없이 바로 실행되는 변경 명령도 있으니, 에이전트에게 맡기기 전에 [공통 가이드](skills/nhncloud-cli/references/common.md)의 「되돌릴 수 없는 명령」 절을 먼저 봐 주세요.
 
 명령과 옵션은 `--help` 로 볼 수 있어요.
