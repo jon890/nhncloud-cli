@@ -1,6 +1,6 @@
-# build-with-teams 오버레이: nhncloud-cli
+# implementation 오버레이: nhncloud-cli
 
-공용 `build-with-teams` 스킬에 이 저장소의 spawn 규칙, worktree, 검증 경로와 반복 함정 경로만 보탠다.
+공용 `implementation` 스킬에 이 저장소의 spawn 규칙, worktree, 검증 경로와 반복 함정 경로만 보탠다.
 
 spawn 프롬프트에는 task 절대경로와 직전 phase에서 확인한 사실만 넘긴다.
 
@@ -13,7 +13,7 @@ worktree는 `worktrees/nhncloud-cli/plan{N}-{slug}`에 둔다. Orca가 만드는
 git worktree add worktrees/nhncloud-cli/plan{N}-{slug} -b {category}/plan{N}-{slug} origin/main
 ```
 
-브랜치와 PR 이름은 `.claude/planning-overlay.md`가 소유한다.
+브랜치와 PR 이름은 `.claude/plan-overlay.md`가 소유한다.
 
 ## 검증
 
