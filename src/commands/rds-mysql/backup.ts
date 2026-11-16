@@ -90,7 +90,8 @@ const infoUpdateCommand = addBackupOptions(
     process.stderr.write("지정한 값이 이미 같아 요청하지 않았습니다.\n");
     return;
   }
-  if ("backupPeriod" in effective) {
+  const newPeriod = effective["backupPeriod"];
+  if (typeof newPeriod === "number" && typeof current.backupPeriod === "number" && newPeriod < current.backupPeriod) {
     process.stderr.write("경고: 보관 기간을 줄이면 새 기간을 넘긴 자동 백업이 삭제되어 시점 복원 범위가 줄 수 있습니다.\n");
   }
   await applyRdsMysqlWrite(opts, wait, client, result, () => client.updateBackupInfo(id, effective), `nhncloud rds-mysql backup-info get ${id}`);

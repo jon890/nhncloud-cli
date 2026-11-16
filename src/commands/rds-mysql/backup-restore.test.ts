@@ -222,6 +222,12 @@ describe("rds-mysql 백업·복원·인증서·로그 파일 명령", () => {
 
       expect(stderr()).toContain("보관 기간을 줄이면");
     });
+
+    it("기간을 늘리면 경고하지 않는다", async () => {
+      await run("--json", "backup-info", "update", INSTANCE_ID, "--backup-period", "14");
+
+      expect(stderr()).not.toContain("보관 기간을 줄이면");
+    });
   });
 
   describe("restore", () => {
