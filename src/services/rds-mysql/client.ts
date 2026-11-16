@@ -10,7 +10,11 @@ import {
   classifyJobStatus,
   isRdsMysqlBackup,
   isRdsMysqlAvailabilityZone,
+  isRdsMysqlBackupDetail,
   isRdsMysqlBackupInfo,
+  isRdsMysqlCertificate,
+  isRdsMysqlLogFile,
+  isRdsMysqlRestorationInfo,
   isRdsMysqlBinLog,
   isRdsMysqlDbFlavor,
   isRdsMysqlDbInstance,
@@ -32,6 +36,9 @@ import {
   type RdsMysqlBackup,
   type RdsMysqlBackupInfo,
   type RdsMysqlBinLog,
+  type RdsMysqlCertificate,
+  type RdsMysqlLogFile,
+  type RdsMysqlRestorationInfo,
   type RdsMysqlDbFlavor,
   type RdsMysqlDbInstance,
   type RdsMysqlDbInstanceDetail,
@@ -330,6 +337,74 @@ export class RdsMysqlClient {
     size?: number;
   }): Promise<RdsMysqlList<RdsMysqlBackup>> {
     return this.listField("/backups", "backups", isRdsMysqlBackup, query);
+  }
+
+  /** 응답의 `backup` 객체를 그대로 돌려준다. */
+  getBackup(backupId: string): Promise<Record<string, unknown>> {
+    return this.field("get", `/backups/${encodeURIComponent(backupId)}`, "backup", isRdsMysqlBackupDetail);
+  }
+
+  createBackup(body: Record<string, unknown>): Promise<string> {
+    return this.field("post", "/backups", "jobId", isString, body);
+  }
+
+  deleteBackup(backupId: string): Promise<string> {
+    return this.field("delete", `/backups/${encodeURIComponent(backupId)}`, "jobId", isString);
+  }
+
+  exportBackup(backupId: string, body: Record<string, unknown>): Promise<string> {
+    return this.field("post", `/backups/${encodeURIComponent(backupId)}/export`, "jobId", isString, body);
+  }
+
+  restoreBackup(backupId: string, body: Record<string, unknown>): Promise<string> {
+    return this.field("post", `/backups/${encodeURIComponent(backupId)}/restore`, "jobId", isString, body);
+  }
+
+  updateBackupInfo(dbInstanceId: string, body: Record<string, unknown>): Promise<string> {
+    return this.field("put", `${this.instancePath(dbInstanceId)}/backup-info`, "jobId", isString, body);
+  }
+
+  getRestorationInfo(dbInstanceId: string): Promise<RdsMysqlRestorationInfo> {
+    return this.topLevel(`${this.instancePath(dbInstanceId)}/restoration-info`, "restorationInfo", isRdsMysqlRestorationInfo);
+  }
+
+  /** 시점 복원과 바이너리 로그 복원이다. 새 DB 인스턴스를 만든다. */
+  restoreDbInstance(dbInstanceId: string, body: Record<string, unknown>): Promise<string> {
+    return this.field("post", `${this.instancePath(dbInstanceId)}/restore`, "jobId", isString, body);
+  }
+
+  restoreFromObjectStorage(body: Record<string, unknown>): Promise<string> {
+    return this.field("post", "/db-instances/restore-from-obs", "jobId", isString, body);
+  }
+
+  listCertificates(dbInstanceId: string): Promise<RdsMysqlCertificate[]> {
+    return this.field("get", `${this.instancePath(dbInstanceId)}/certificates`, "certificates", arrayOf(isRdsMysqlCertificate));
+  }
+
+  /** 경로가 `/certificates/upload` 다. 문서의 기능 이름은 내보내기다. */
+  exportCertificates(dbInstanceId: string, body: Record<string, unknown>): Promise<string> {
+    return this.field("post", `${this.instancePath(dbInstanceId)}/certificates/upload`, "jobId", isString, body);
+  }
+
+  listLogFiles(dbInstanceId: string, logFileTypes: string[] | undefined): Promise<RdsMysqlLogFile[]> {
+    const query = logFileTypes === undefined || logFileTypes.length === 0 ? undefined : { logFileTypes: logFileTypes.join(",") };
+    return this.field("get", `${this.instancePath(dbInstanceId)}/log-files`, "logFiles", arrayOf(isRdsMysqlLogFile), undefined, query);
+  }
+
+  /** 로그 내용은 최대 65533 바이트까지만 온다. */
+  getLogFileContent(dbInstanceId: string, logFileName: string, logFileType: string): Promise<string> {
+    return this.field(
+      "get",
+      `${this.instancePath(dbInstanceId)}/log-files/${encodeURIComponent(logFileName)}`,
+      "content",
+      isString,
+      undefined,
+      { logFileType },
+    );
+  }
+
+  exportLogFiles(dbInstanceId: string, body: Record<string, unknown>): Promise<string> {
+    return this.field("post", `${this.instancePath(dbInstanceId)}/log-files/export`, "jobId", isString, body);
   }
 
   getHaInfo(dbInstanceId: string): Promise<RdsMysqlHaInfo> {

@@ -1,6 +1,6 @@
 # RDS for MySQL 명령 안내
 
-`rds-mysql` 명령군은 RDS for MySQL의 DB 인스턴스(생성, 수정, 재시작, 삭제 등 수명주기), DB 스키마, DB 사용자, 파라미터 그룹, 바이너리 로그, 스토리지, 백업, 고가용성을 다룬다.
+`rds-mysql` 명령군은 RDS for MySQL의 DB 인스턴스(생성, 수정, 재시작, 삭제 등 수명주기), DB 스키마, DB 사용자, 파라미터 그룹, 바이너리 로그, 스토리지, 백업(생성·삭제·내보내기·설정 변경), 복원, 인증서, 로그 파일, 고가용성을 다룬다.
 쓰기는 모두 `--yes`가 없으면 미리보기다. 대부분 비동기 작업이라 `--wait`로 완료까지 기다릴 수 있다.
 
 ## 인증과 설정
@@ -32,6 +32,11 @@ nhncloud rds-mysql binlog list <db-instance-id> [--deletable]
 nhncloud rds-mysql storage get <db-instance-id>
 nhncloud rds-mysql backup-info get <db-instance-id>
 nhncloud rds-mysql backup list [--instance <db-instance-id>] [--type auto|manual] [--db-version <version>] [--page <n>] [--size <n>]
+nhncloud rds-mysql backup get <backup-id>
+nhncloud rds-mysql restore info <db-instance-id>
+nhncloud rds-mysql certificate list <db-instance-id>
+nhncloud rds-mysql log-file list <db-instance-id> [--type error|binlog|general|slow-query|audit|backup]
+nhncloud rds-mysql log-file get <db-instance-id> <log-file-name> --type error [--output-file <path>]
 nhncloud rds-mysql ha get <db-instance-id>
 nhncloud rds-mysql instance network <db-instance-id>
 nhncloud rds-mysql instance maintenances <db-instance-id> [--type <type>] [--status <statuses>] [--category <category>]
@@ -53,10 +58,10 @@ nhncloud rds-mysql project members
 - `user list`: `dbUserId`
 - `job get`: `jobStatus`
 - `parameter-group list`: `parameterGroupId`, `parameter-group get`: `parameterName`
-- `binlog list`: `binLogFileName`, `backup list`: `backupId`, `ha get`: `haStatus`, `backup-info get`: `backupPeriod`, `storage get`: `storageSize`
+- `binlog list`: `binLogFileName`, `backup list`: `backupId`, `ha get`: `haStatus`, `backup-info get`: `backupPeriod`, `storage get`: `storageSize`, `backup get`: `backupId`, `restore info`: 복원 가능한 `backupId`, `certificate list`·`log-file list`: 파일 이름
 - `flavor list`: `dbFlavorId`, `db-version list`: `dbVersion`, `storage types`: 유형 이름, `subnet list`: `subnetId`, `availability-zone list`: 이름, `project regions`: `regionCode`, `project members`: `memberId`, `instance maintenances`: `maintenanceId`, `instance network`: 접속 도메인
 - `parameter-group copy`: 요청했을 때만 새 `parameterGroupId`
-- 작업을 요청하는 쓰기(`schema create`, `user create`·`update`·`delete`, `instance set-parameter-group`, `instance rebuild`, `instance create`·`replicate`·`modify`·`start`·`stop`·`restart`·`promote`·`delete`·`enable-public-access`·`disable-public-access`, `storage expand`, `ha pause`·`resume`·`repair`·`split`): 요청했을 때만 `jobId`. 미리보기와 변경 없음은 아무것도 출력하지 않는다.
+- 작업을 요청하는 쓰기(`schema create`, `user create`·`update`·`delete`, `instance set-parameter-group`, `instance rebuild`, `instance create`·`replicate`·`modify`·`start`·`stop`·`restart`·`promote`·`delete`·`enable-public-access`·`disable-public-access`, `storage expand`, `ha pause`·`resume`·`repair`·`split`, `backup create`·`delete`·`export`·`restore`, `backup-info update`, `restore point-in-time`·`from-object-storage`, `certificate export`, `log-file export`): 요청했을 때만 `jobId`. 미리보기와 변경 없음은 아무것도 출력하지 않는다.
 
 ## 쓰기 명령
 
@@ -183,4 +188,34 @@ nhncloud rds-mysql instance delete <db-instance-id> --yes --wait
 - `enable-deletion-protection`·`disable-deletion-protection`: 같은 값이면 요청하지 않는다. 응답에 작업이 없어 `--wait`가 없다. 서버 오류로 끝나면 다시 읽어 반영됐는지 확인하고, 반영됐으면 종료 코드 0과 경고로 알린다(`--json`의 `verifiedAfterError`).
 - `enable-public-access`·`disable-public-access`: 외부 접속 허용 여부를 응답에서 읽을 수 없어 현재 값과 비교하지 않고 서버에 맡긴다. `instance network`로 접속 정보를 본다.
 - `maintenances`는 목록 조회만 한다. 유지 관리 실행과 예약, 파라미터 그룹 변경 적용은 콘솔에서 한다.
+- 공공망(`environment: gov`)에서 빠진 명령은 없다. v4.0 경로가 일반망과 같다.
+
+## 백업, 복원, 인증서, 로그 파일
+
+모두 `--yes`가 없으면 미리보기이고 작업을 받는 명령은 `--wait`로 기다린다. 실호출로 확인하지 않은 쓰기 본문은 공식 문서 기준이다.
+
+```bash
+nhncloud rds-mysql backup create --name nightly --method full --instance <db-instance-id> --yes --wait
+nhncloud rds-mysql backup create --name inc1 --method incremental --base-backup <backup-id> --yes
+nhncloud rds-mysql backup delete <backup-id> --yes
+nhncloud rds-mysql backup export <backup-id> --tenant-id <32자리> --username <계정> --container <컨테이너> --object-path <경로> --password-file ./obs-pw.txt --yes
+nhncloud rds-mysql backup-info update <db-instance-id> --backup-period 14 --backup-schedule 02:00@1h --yes
+nhncloud rds-mysql backup restore <backup-id> --name restored --yes --wait
+nhncloud rds-mysql restore info <db-instance-id>                                    # 복원 가능한 시간 범위와 백업
+nhncloud rds-mysql restore point-in-time <db-instance-id> --name restored --time 2026-01-31T09:00:00+09:00 --yes --wait
+nhncloud rds-mysql restore from-object-storage --name restored --db-version MYSQL_V8411 --flavor-id <id> --port 3306 \
+  --parameter-group-id <id> --subnet-id <id> --availability-zone kr-pub-a --storage-type "General SSD" --storage-size 20 \
+  --backup-period 7 --backup-schedule 02:00@1h --tenant-id <32자리> --username <계정> --container <컨테이너> --object-path <경로> --password-file ./obs-pw.txt
+nhncloud rds-mysql certificate export <db-instance-id> --type ca --tenant-id <32자리> --username <계정> --container <컨테이너> --object-path <경로> --password-file ./obs-pw.txt
+nhncloud rds-mysql log-file export <db-instance-id> --file <log-file-name> --tenant-id <32자리> --username <계정> --container <컨테이너> --object-path <경로> --password-file ./obs-pw.txt
+```
+
+- `backup create --method`는 `full`, `snapshot`(`--instance`), `incremental`(`--base-backup`)이다. 맞지 않는 조합은 종료 코드 3이다. 수동 백업은 직접 지울 때까지 남아 비용이 든다.
+- `backup delete`는 복구할 수 없고, 이 백업을 기준으로 한 시점 복원이나 증분 백업이 안 될 수 있다.
+- `backup-info update`는 `--backup-period`(0에서 730까지), `--backup-retry-count`(0에서 10까지), `--ftwrl-wait-timeout`(0에서 21600까지), `--backup-region`, `--backup-lock`·`--no-backup-lock`, `--backup-schedule`(여러 번)만 받고 지정한 항목 중 현재 값과 다른 것만 보낸다. 모두 같으면 요청하지 않는다. 보관 기간을 줄이면 경고한다.
+- 복원 명령 세 가지(`backup restore`, `restore point-in-time`, `restore from-object-storage`)는 원본을 바꾸지 않고 새 DB 인스턴스를 만든다. `--name`만 필수이고 사양(`--flavor-id`), 포트, 파라미터 그룹, 서브넷, 가용성 영역, 스토리지, 백업 설정, 고가용성, 보안 그룹은 지정한 것만 보내며 나머지는 원본 값을 따른다. 오브젝트 스토리지에서 복원은 원본이 없어 이 값들을 모두 지정한다. 스토리지·백업·고가용성 옵션은 `instance create`와 같다.
+- `restore point-in-time --time`은 시간대가 있는 ISO 8601(`2026-01-31T09:00:00+09:00`, `...Z`)이다. `restore info`의 범위 밖이면 종료 코드 3이다. `--time`을 생략하면 복원 가능한 가장 최근 시점이다. 바이너리 로그 복원은 `--backup-id`, `--binlog-file`, `--binlog-position`을 모두 준다.
+- 오브젝트 스토리지 API 비밀번호는 `--password-file`이나 표준 입력으로만 받고 어디에도 출력하지 않는다. `--tenant-id`는 32자리 16진수여야 한다. 같은 경로의 기존 파일을 덮어쓸 수 있으니 `--object-path`를 확인한다.
+- `certificate list`는 CA·인증서·키 파일 목록이다. `certificate export --type`은 `ca`, `cert`, `key`(여러 번)이며 `key`는 경고한다.
+- `log-file get`은 한 번에 65533바이트까지만 받는다. 기본은 표준 출력(제어 문자 치환)이고 `--output-file`은 새 파일에 `0600`으로 쓰며 이미 있으면 종료 코드 3이다. `--json`은 `content`와 `truncated`를 담는다. 한도에 닿으면 `log-file export`를 쓴다.
 - 공공망(`environment: gov`)에서 빠진 명령은 없다. v4.0 경로가 일반망과 같다.
