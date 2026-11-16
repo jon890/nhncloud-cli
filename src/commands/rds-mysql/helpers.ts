@@ -282,6 +282,15 @@ function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
+/** 오류 뒤 반영 여부를 다시 읽는다. 읽기도 실패하면 null(알 수 없음)이다. */
+async function verifyAfterError(verify: () => Promise<boolean>): Promise<boolean | null> {
+  try {
+    return await withRdsMysqlSpinner("반영 여부 확인 중...", verify);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * 미리보기, 요청, 작업 대기를 한 흐름으로 처리한다 (ADR-047).
  * 서버가 봉투로 알린 실패(RdsMysqlApiError)와 결과를 모르는 실패를 다른 문구로 안내한다.
@@ -295,6 +304,7 @@ export async function applyRdsMysqlWrite(
   result: RdsMysqlWriteResultBase,
   request: () => Promise<string | null>,
   listHint: string,
+  verify?: () => Promise<boolean>,
 ): Promise<void> {
   if (!opts.yes) {
     outputRdsMysqlWriteResult(opts, result);
@@ -312,8 +322,21 @@ export async function applyRdsMysqlWrite(
     const knownOutcome =
       err instanceof RdsMysqlApiError && !(err.httpStatus !== undefined && err.httpStatus >= 500);
     if (!knownOutcome) {
+      // 응답 본문 없는 쓰기는 서버 오류로 끝나도 값이 반영된 일이 있다. 다시 읽어 확인한다.
+      const reflected = verify === undefined ? null : await verifyAfterError(verify);
+      if (reflected === true) {
+        result.applied = true;
+        (result as unknown as Record<string, unknown>)["verifiedAfterError"] = true;
+        outputRdsMysqlWriteResult(opts, result);
+        process.stderr.write(
+          `경고: 요청이 오류로 끝났지만(${errorMessage(err)}) 다시 읽어 보니 요청한 값이 모두 반영돼 있습니다. 반영된 것으로 처리합니다.\n`,
+        );
+        return;
+      }
       process.stderr.write(
-        `주의: 요청이 접수됐는지 알 수 없습니다. 다시 실행하기 전에 ${listHint}로 반영 여부를 확인하세요.\n`,
+        reflected === false
+          ? `주의: 요청이 오류로 끝났고 다시 읽어 보니 요청한 값이 반영되지 않았습니다. ${listHint}로 확인한 뒤 다시 실행하세요.\n`
+          : `주의: 요청이 접수됐는지 알 수 없습니다. 다시 실행하기 전에 ${listHint}로 반영 여부를 확인하세요.\n`,
       );
     }
     throw err;
