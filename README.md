@@ -158,6 +158,9 @@ nhncloud rds-mysql user list <db-instance-id>                  # RDS for MySQL D
 nhncloud rds-mysql binlog list <db-instance-id> --deletable   # 삭제할 수 있는 바이너리 로그
 nhncloud rds-mysql binlog purge <db-instance-id> --before mysql-bin.000010   # 지울 파일 수와 크기만 미리보기
 nhncloud rds-mysql storage expand <db-instance-id> --size 300 --yes --wait    # 스토리지를 300GB 로 늘리고 완료까지 대기
+nhncloud rds-mysql backup create --name nightly --method full --instance <db-instance-id>   # 수동 백업 미리보기
+nhncloud rds-mysql restore point-in-time <db-instance-id> --name restored --time 2026-01-31T09:00:00+09:00   # 시점 복원 미리보기. 새 DB 인스턴스를 만든다
+nhncloud rds-mysql log-file get <db-instance-id> error.log --type error   # 로그 파일 내용 (최대 65533 바이트)
 nhncloud rds-mysql flavor list                                # RDS for MySQL DB 인스턴스 사양 (create 에 넣을 ID)
 nhncloud rds-mysql instance restart <db-instance-id> --online-failover   # 고가용성 DB 인스턴스를 장애 조치로 재시작 (미리보기)
 nhncloud rds-mysql instance delete <db-instance-id>           # 삭제 미리보기. 삭제 보호가 켜져 있으면 막는다

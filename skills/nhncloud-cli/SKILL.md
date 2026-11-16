@@ -38,6 +38,6 @@ description: >-
 | Container Service | [ncs.md](references/ncs.md) |
 | API Gateway 조회·변경·배포·Swagger export | [apigateway.md](references/apigateway.md) |
 | Secure Key Manager 키·키 저장소·인증 정보 관리, 기밀 데이터·암복호화·서명 검증 | [skm.md](references/skm.md) |
-| RDS for MySQL DB 인스턴스 생성·복제·수정·시작·정지·재시작·승격·삭제, 스키마·사용자 조회·생성·변경·삭제, 파라미터 그룹·바이너리 로그·스토리지·백업·고가용성·사양·서브넷 조회와 변경 | [rds-mysql.md](references/rds-mysql.md) |
+| RDS for MySQL DB 인스턴스 생성·복제·수정·시작·정지·재시작·승격·삭제, 스키마·사용자 조회·생성·변경·삭제, 파라미터 그룹·바이너리 로그·스토리지·고가용성·사양·서브넷 조회와 변경, 백업 생성·삭제·내보내기·설정 변경, 백업·시점·오브젝트 스토리지 복원, 인증서·로그 파일 조회와 내보내기 | [rds-mysql.md](references/rds-mysql.md) |
 | DNS Plus 존 조회, 레코드 세트(A·CNAME·TXT) 조회·생성·삭제 | [dnsplus.md](references/dnsplus.md) |
 | 인증·profile·region·출력·검색 제한 문제 해결 | [troubleshooting.md](references/troubleshooting.md) |

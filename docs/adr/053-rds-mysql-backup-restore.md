@@ -1,0 +1,26 @@
+# ADR-053: RDS for MySQL 백업·복원 명령은 새 DB 인스턴스를 만드는 쓰기로 다루고, 오브젝트 스토리지 비밀번호는 파일·표준 입력으로만 받는다
+
+- **status**: `accepted`. [[adr-051]], [[adr-052]] 의 쓰기 안전 규칙을 백업·복원·인증서·로그 파일에 넓힌다.
+- **결정**:
+  - `backup` 그룹에 `get`, `create`, `delete`, `export`, `restore` 를 더하고, `backup-info` 그룹에 `update` 를 더한다. 복원 조회와 시점 복원, 오브젝트 스토리지에서 복원은 `restore` 그룹(`info`, `point-in-time`, `from-object-storage`)에 둔다. `certificate`(`list`, `export`)와 `log-file`(`list`, `get`, `export`)을 새 그룹으로 둔다. 쓰기는 [[adr-047]] 의 미리보기와 `--wait` 규칙을 따른다.
+  - 복원(`backup restore`, `restore point-in-time`, `restore from-object-storage`)은 원본을 바꾸지 않고 새 DB 인스턴스를 만든다. 요청 본문에는 사용자가 지정한 항목만 싣고, 나머지는 서버가 원본 값으로 채운다. 미리보기는 지정하지 않은 항목을 「원본과 같음」 으로 보인다. 오브젝트 스토리지에서 복원은 원본이 없어 사양, 포트, 파라미터 그룹, 서브넷, 가용성 영역, 스토리지, 백업 설정을 모두 필수로 받는다.
+  - 시점 복원 `--time` 은 시간대가 있는 ISO 8601 만 받고, 요청 전에 `restoration-info` 의 복원 가능 범위와 비교해 밖이면 종료 코드 3 이다. `--time` 이 없으면 서버가 복원 가능한 가장 최근 시점을 쓴다. 바이너리 로그 복원은 `--backup-id`, `--binlog-file`, `--binlog-position` 을 모두 받아야 한다. 백업 ID 만으로 하는 복원(`BACKUP`)은 `backup restore` 가 맡는다.
+  - 오브젝트 스토리지로 내보내거나 거기서 복원할 때의 API 비밀번호는 `--password-file` 이나 표준 입력으로만 받고(`--password` 인수 없음), 미리보기·결과·오류에 싣지 않는다. 테넌트 ID 는 32자리 16진수만 받는다.
+  - `backup create` 는 방식(`full`, `snapshot`, `incremental`)에 따라 `--instance` 와 `--base-backup` 중 하나만 받는다. 맞지 않는 조합은 요청 전에 종료 코드 3 이다.
+  - `backup-info update` 는 지정한 항목 중 현재 값과 다른 것만 보내고, 모두 같으면 요청하지 않는다. 스케줄은 현재 값의 형식을 알 수 없어 지정하면 그대로 보낸다. 보관 기간을 줄이면 경고한다.
+  - `log-file get` 은 한 번에 65533 바이트까지만 받는다. 표준 출력에는 제어 문자를 치환해 내고, `--output-file` 은 새 파일에 `0600` 으로만 쓰며 이미 있으면 종료 코드 3 이다. 한도에 닿으면 잘렸을 수 있다고 안내하고 `log-file export` 를 권한다.
+  - 인증서 내보내기의 API 경로는 `/certificates/upload` 다. 개인키(`key`) 유형을 내보내면 경고한다.
+- **맥락**:
+  - 백업 생성·삭제·내보내기·복원, 복원 정보, 인증서, 로그 파일은 일반망과 공공망 v4.0 문서에 모두 있다. 공공망에서 빠진 기능은 없다.
+  - 복원 요청 본문(`network`, `storage`, `backup`, 고가용성)은 DB 인스턴스 생성과 같은 모양이라 [[adr-052]] 의 생성 옵션을 재사용한다.
+  - 이 변경은 실호출 검증 없이 문서 기준이다. 목록 조회 쿼리 `logFileTypes`(배열)를 쉼표로 이어 보내는 방식도 문서에 형식이 없어 확인하지 못했다.
+  - 공식 문서: [API v4.0 가이드](https://docs.nhncloud.com/ko/Database/RDS%20for%20MySQL/ko/api-guide-v4.0/), [공공기관용 API v4.0 가이드](https://docs.gov-nhncloud.com/ko/Database/RDS%20for%20MySQL/ko/api-guide-v4.0-gov/).
+- **대안 기각**:
+  - 비밀번호를 `--password` 로 받기: 셸 이력과 프로세스 목록에 남는다. DB 사용자 비밀번호([[adr-047]])와 같은 규칙을 쓴다.
+  - 복원에 원본 DB 인스턴스 사양을 CLI 가 읽어 채우기: 서버가 원본 값을 채운다. 중복 구현이고 읽은 값과 서버 값이 어긋날 수 있다.
+  - 로그 파일을 여러 번 나눠 받아 이어 붙이기: API 에 오프셋이 없어 전체를 받을 수 없다. 큰 로그는 오브젝트 스토리지 내보내기를 쓴다.
+  - 범위 확인 없이 `--time` 을 서버에 맡기기: 범위 밖 시각을 만든 뒤에야 작업이 실패하고 새 DB 인스턴스 생성 시간이 낭비된다.
+- **결과**:
+  - 얻는 것: 백업 수명주기, 시점 복원, 로그 확인을 콘솔 없이 같은 쓰기 안전 규칙으로 한다.
+  - 감당할 것: 쓰기 요청 본문과 응답, 로그 목록의 유형 쿼리 형식은 문서 기준이고 실호출로 확인하지 않았다. 다르면 클라이언트 한 곳만 고친다. 로그 내용 보기는 65533 바이트 한도 때문에 큰 로그에는 맞지 않는다.
+- **적용 범위**: `rds-mysql` 의 `backup`, `backup-info update`, `restore`, `certificate`, `log-file` 명령. 엔드포인트와 인증은 [[adr-051]] 을 따른다.
