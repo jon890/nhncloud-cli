@@ -1,0 +1,29 @@
+# ADR-052: RDS for MySQL DB 인스턴스 수명주기 명령은 상태를 먼저 확인하고, 응답 본문 없는 쓰기는 오류 뒤 반영을 다시 읽어 확인한다
+
+- **status**: `accepted`. [[adr-051]] 이 후속 변경으로 미룬 유지 관리 중 목록 조회만 더한다.
+- **결정**:
+  - `instance` 아래에 `create`, `replicate`, `modify`, `start`, `stop`, `restart`, `promote`, `delete`, `enable-deletion-protection`, `disable-deletion-protection`, `network`, `enable-public-access`, `disable-public-access`, `maintenances` 를 둔다. 조회 명령 `flavor list`, `db-version list`, `storage types`, `subnet list`, `availability-zone list`, `project regions`, `project members` 는 생성·수정에 넣을 값을 찾는 데 쓴다. 쓰기는 [[adr-047]] 과 [[adr-051]] 의 미리보기, `--wait` 규칙을 따른다.
+  - 요청 전에 종료 코드 3 으로 막는 경우: 삭제 보호가 켜진 DB 인스턴스 삭제(끄는 명령을 안내), 고가용성 DB 인스턴스의 `restart --force`, 고가용성이 아닌 DB 인스턴스의 `--online-failover`, 읽기 복제본(`READ_ONLY_SLAVE`)이 아닌 `promote`, Primary(`MASTER`)가 아닌 `replicate`, 목록에 없는 사양·서브넷·엔진 버전·스토리지 유형과 엔진 버전이 다른 파라미터 그룹으로 `create`.
+  - 이미 원하는 상태면 요청하지 않고 `unchanged` 로 끝난다: 이미 사용 가능한 DB 인스턴스의 `start`, 이미 중지된 DB 인스턴스의 `stop`, 같은 값의 삭제 보호 변경, 현재 값과 같은 `modify`. 외부 접속 허용 여부는 응답에 없어 비교하지 않고 서버에 맡긴다.
+  - `restart --force` 는 응답 본문이 없고 다른 재시작 옵션과 `--wait` 를 함께 쓸 수 없다. 삭제 보호 변경도 응답 본문이 없어 `--wait` 가 없다.
+  - `modify` 는 이름, 설명, 포트, 사양, 보안 그룹, 슬로우 쿼리 분석만 받는다. 파라미터 그룹은 `set-parameter-group`, 엔진 버전 업그레이드는 받지 않는다. 요청 본문에는 현재 값과 달라지는 항목만 싣는다. `--security-group-id` 는 현재 목록을 대체한다.
+  - `create` 의 DB 사용자 비밀번호는 `user create` 와 같은 규칙(`--password-file` 이나 표준 입력)으로 받고 미리보기에도 싣지 않는다.
+  - 유지 관리는 `instance maintenances` 목록 조회만 한다. 즉시 실행·예약·삭제는 두지 않는다.
+  - 응답 본문 없는 쓰기(`parameter-group set-parameters`·`reset`, 삭제 보호 변경)가 HTTP 5xx 나 본문 없는 오류로 끝나면 대상을 다시 읽어 요청한 값이 모두 반영됐는지 본다. 반영됐으면 종료 코드 0 으로 알리고(`--json` 의 `verifiedAfterError: true`), 반영되지 않았거나 다시 읽기도 실패하면 오류로 끝난다.
+  - 파라미터 그룹을 비교할 때(`instance set-parameter-group` 미리보기) 키는 `parameterId` 다. 두 그룹이 `parameterId` 를 하나도 공유하지 않을 때만 `parameterFileGroup` 과 `fileParameterName` 으로 비교한다.
+- **맥락**:
+  - 파일 전용 파라미터(`user`, `replicate-ignore-db` 등)는 `parameterName` 이 빈 문자열이고 `fileParameterName` 만 있다. 이름으로 비교하면 여러 파라미터가 한 키로 뭉쳐 없는 차이와 재시작 필요를 냈다. 공공망 실호출에서 DB 인스턴스에 연결된 그룹과 값이 같은 그룹 두 개의 비교 결과가 차이 0 개로 나왔고, 값이 다른 그룹은 차이만 보였다. `parameterId` 는 그룹 사이에서 같은 값이다.
+  - `parameter-group set-parameters --yes` 가 API 오류 80500(5xx)으로 끝났지만 값은 반영된 일이 있었다. 응답 본문이 없는 요청은 오류만으로 반영 여부를 알 수 없다.
+  - 유지 관리 즉시 실행·예약 API 는 `configId` 와 문자열 `payload` 를 요구하는데, 목록 응답의 항목에는 `configId` 가 없고 `payload` 는 객체다. `configId` 의 출처와 `payload` 의 형식이 문서에 없고, 공공망 DB 인스턴스의 유지 관리 목록이 비어 있어 실호출로도 확인하지 못했다.
+  - 콘솔 가이드: 강제 재시작은 고가용성 DB 인스턴스에서 할 수 없고 10분간 정상 종료를 기다린 뒤 가상 머신을 다시 켠다. Primary 를 삭제하면 같은 복제 그룹의 Standby 와 읽기 복제본도 삭제된다. 승격은 읽기 복제본에만 하고 되돌릴 수 없다.
+  - 공식 문서: [API v4.0 가이드](https://docs.nhncloud.com/ko/Database/RDS%20for%20MySQL/ko/api-guide-v4.0/), [DB 인스턴스 콘솔 가이드](https://docs.nhncloud.com/ko/Database/RDS%20for%20MySQL/ko/db-instance/).
+- **대안 기각**:
+  - 유지 관리 실행·예약을 추측으로 구현: 잘못된 `configId` 나 `payload` 가 파라미터 그룹 적용 같은 재시작 작업을 잘못 일으킬 수 있다. 입력 형식이 확인되면 따로 더한다.
+  - `parameterName` 으로 비교하되 빈 이름만 `fileParameterName` 으로 대체: 같은 `fileParameterName` 이 다른 파일 그룹에 있으면 다시 뭉친다. `parameterId` 가 그룹 요청에도 쓰이는 정식 키다.
+  - 5xx 뒤 무조건 오류로 끝내기: 반영된 변경을 실패로 알려 사용자가 같은 요청을 되풀이한다. 값 변경은 같은 값을 다시 보내도 같은 결과지만 알림이 틀린다.
+  - 작업을 받는 쓰기(`jobId` 응답)에도 오류 뒤 다시 읽기: 어떤 값이 반영돼야 하는지 명령마다 달라, 작업 조회와 목록 확인 안내([[adr-047]])를 유지한다.
+  - `start` 와 `stop` 의 상태 불일치를 종료 코드 3 으로 막기: 문서에 허용 상태가 없다. 이미 원하는 상태일 때만 요청을 생략하고 나머지는 경고 뒤 서버에 맡긴다.
+- **결과**:
+  - 얻는 것: DB 인스턴스를 만들고 지우고 재시작하는 일을 콘솔 없이 같은 쓰기 안전 규칙으로 한다. 삭제 보호, 고가용성, 읽기 복제본 같은 상태 조건을 요청 전에 막는다.
+  - 감당할 것: 쓰기 요청 본문과 응답은 문서 기준이고 반영 요청은 실호출하지 않았다(조회와 미리보기만 확인). 유지 관리 적용은 콘솔에서 한다. 오류 뒤 반영 확인은 값이 비교되는 응답 본문 없는 쓰기에만 있다.
+- **적용 범위**: `rds-mysql` `instance` 수명주기·조회 명령과 `parameter-group set-parameters`·`reset`. 엔드포인트와 인증은 [[adr-051]] 을 따른다.
