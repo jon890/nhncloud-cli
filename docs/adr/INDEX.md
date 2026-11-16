@@ -53,8 +53,9 @@ ADR-NNN 내용은 `docs/adr/NNN-*.md` 로 찾는다(번호 glob: slug 몰라도 
 - [ADR-043](043-codex-skill-path-shared-repository.md): 공개 스킬을 Claude Code 와 Codex 경로에 함께 연결하고 두 경로를 한 단위로 바꾼다
 - [ADR-044](044-http-proxy-global-dispatcher.md): HTTP 프록시는 undici `EnvHttpProxyAgent` 를 전역 dispatcher 로 설치해 모든 요청에 적용한다
 - [ADR-045](045-skm-secret-field-patch.md): SKM 기밀 데이터의 필드 하나만 바꾸는 patch 는 미리보기가 기본이고 반영 뒤 다시 조회해 대조한다
-- [ADR-046](046-rds-mysql-v3-static-auth.md): RDS for MySQL 은 API v3 와 UAK 정적 헤더로 호출하고 region 은 명령 옵션으로 받는다
+- [ADR-046](046-rds-mysql-v3-static-auth.md): RDS for MySQL 의 region 은 명령 옵션으로 받고 응답은 봉투로 판정한다. v3 와 정적 헤더 결정은 ADR-051 로 대체
 - [ADR-047](047-rds-mysql-write-preview-and-job-wait.md): RDS for MySQL 쓰기는 미리보기가 기본이고, `--wait` 는 작업 상태를 성공·실패·불확정으로 나눈다
 - [ADR-048](048-loadbalancer-listener-write-and-certificate.md): Load Balancer 리스너·L7·풀·헬스 모니터 쓰기는 `--yes` 나 `--dry-run` 을 요구하고, 인증서 업로드는 실패하면 만든 시크릿을 지운다
 - [ADR-049](049-dnsplus-appkey-path-and-write-safety.md): DNS Plus 는 앱키를 요청 경로에 넣어 호출하고, 레코드 세트 쓰기는 `--yes` 나 `--dry-run` 을 요구하며 같은 이름이 있으면 멈춘다
 - [ADR-050](050-deploy-result-and-history-query.md): Deploy 서버별 결과는 배포 실행 응답으로만 보이고(실패하면 종료 코드 1), 배포 이력은 공개 쿼리와 CLI 필터로 좁힌다
+- [ADR-051](051-rds-mysql-v4-uak-token.md): RDS for MySQL 은 API v4.0 과 UAK 토큰으로 호출하고, 응답 본문 없는 쓰기와 파괴적 쓰기를 따로 다룬다
