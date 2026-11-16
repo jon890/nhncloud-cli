@@ -493,3 +493,219 @@ export function isRdsMysqlLogFile(value: unknown): value is RdsMysqlLogFile {
     isOptionalNumber(value["logFileSize"])
   );
 }
+
+// ---------------------------------------------------------------------------
+// 보안 그룹, 사용자 그룹, 알림 그룹, 모니터링, 이벤트 (ADR-054)
+// ---------------------------------------------------------------------------
+
+export interface RdsMysqlDbSecurityGroup {
+  dbSecurityGroupId: string;
+  dbSecurityGroupName: string;
+  description?: string | null;
+  progressStatus?: string | null;
+  createdYmdt?: string | null;
+  updatedYmdt?: string | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlSecurityGroupRule {
+  ruleId: string;
+  direction: string;
+  etherType: string;
+  cidr: string;
+  port?: { portType?: string | null; minPort?: number | null; maxPort?: number | null } | null;
+  description?: string | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlDbSecurityGroupDetail extends RdsMysqlDbSecurityGroup {
+  rules: RdsMysqlSecurityGroupRule[];
+}
+
+/** 규칙 생성·수정 요청 본문이다. */
+export interface RdsMysqlSecurityGroupRuleInput {
+  direction: string;
+  etherType: string;
+  port: { portType: string; minPort?: number; maxPort?: number };
+  cidr: string;
+  description?: string;
+}
+
+export interface RdsMysqlUserGroup {
+  userGroupId: string;
+  userGroupName: string;
+  createdYmdt?: string | null;
+  updatedYmdt?: string | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlUserGroupDetail extends RdsMysqlUserGroup {
+  userGroupTypeCode?: string | null;
+  members: { memberId: string; [key: string]: unknown }[];
+}
+
+export interface RdsMysqlNotificationGroup {
+  notificationGroupId: string;
+  notificationGroupName: string;
+  notifyEmail: boolean;
+  notifySms: boolean;
+  isEnabled: boolean;
+  createdYmdt?: string | null;
+  updatedYmdt?: string | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlNotificationGroupDetail extends RdsMysqlNotificationGroup {
+  dbInstances: { dbInstanceId: string; dbInstanceName?: string | null; [key: string]: unknown }[];
+  userGroups: { userGroupId: string; userGroupName?: string | null; [key: string]: unknown }[];
+}
+
+export interface RdsMysqlMetric {
+  measureName: string;
+  unit?: string | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlMetricStatistic {
+  measureName: string;
+  unit?: string | null;
+  /** [초 단위 timestamp, 값 문자열] 쌍의 목록이다. */
+  values: [number, string][];
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlEventCode {
+  eventCode: string;
+  eventCategoryType?: string | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlEvent {
+  eventCategoryType?: string | null;
+  eventCode: string;
+  sourceId?: string | null;
+  sourceName?: string | null;
+  messages?: { langCode?: string | null; message?: string | null }[] | null;
+  eventYmdt?: string | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlEventSource {
+  sourceId: string;
+  eventCategoryType: string;
+}
+
+export interface RdsMysqlEventSubscription {
+  eventSubscriptionId: string;
+  eventSubscriptionName: string;
+  eventCategoryType: string;
+  enabled: boolean;
+  notifyEmail: boolean;
+  notifySms: boolean;
+  eventCodes: string[];
+  sources: RdsMysqlEventSource[];
+  userGroupIds: string[];
+  createdYmdt?: string | null;
+  [key: string]: unknown;
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((v) => typeof v === "string");
+}
+
+function isObjectArray(value: unknown, requiredKey: string): boolean {
+  return Array.isArray(value) && value.every((v) => isRecord(v) && typeof v[requiredKey] === "string");
+}
+
+export function isRdsMysqlDbSecurityGroup(value: unknown): value is RdsMysqlDbSecurityGroup {
+  if (!isRecord(value)) return false;
+  return (
+    hasStrings(value, ["dbSecurityGroupId", "dbSecurityGroupName"]) &&
+    hasOptionalStrings(value, ["description", "progressStatus"])
+  );
+}
+
+export function isRdsMysqlSecurityGroupRule(value: unknown): value is RdsMysqlSecurityGroupRule {
+  if (!isRecord(value)) return false;
+  const port = value["port"];
+  return (
+    hasStrings(value, ["ruleId", "direction", "etherType", "cidr"]) &&
+    hasOptionalStrings(value, ["description"]) &&
+    (port === undefined || port === null || isRecord(port))
+  );
+}
+
+export function isRdsMysqlDbSecurityGroupDetail(value: unknown): value is RdsMysqlDbSecurityGroupDetail {
+  if (!isRdsMysqlDbSecurityGroup(value)) return false;
+  const rules = (value as Record<string, unknown>)["rules"];
+  return Array.isArray(rules) && rules.every(isRdsMysqlSecurityGroupRule);
+}
+
+export function isRdsMysqlUserGroup(value: unknown): value is RdsMysqlUserGroup {
+  return isRecord(value) && hasStrings(value, ["userGroupId", "userGroupName"]);
+}
+
+export function isRdsMysqlUserGroupDetail(value: unknown): value is RdsMysqlUserGroupDetail {
+  if (!isRdsMysqlUserGroup(value)) return false;
+  const record = value as Record<string, unknown>;
+  return hasOptionalStrings(record, ["userGroupTypeCode"]) && isObjectArray(record["members"], "memberId");
+}
+
+export function isRdsMysqlNotificationGroup(value: unknown): value is RdsMysqlNotificationGroup {
+  if (!isRecord(value)) return false;
+  return (
+    hasStrings(value, ["notificationGroupId", "notificationGroupName"]) &&
+    typeof value["notifyEmail"] === "boolean" &&
+    typeof value["notifySms"] === "boolean" &&
+    typeof value["isEnabled"] === "boolean"
+  );
+}
+
+export function isRdsMysqlNotificationGroupDetail(value: unknown): value is RdsMysqlNotificationGroupDetail {
+  if (!isRdsMysqlNotificationGroup(value)) return false;
+  const record = value as Record<string, unknown>;
+  return isObjectArray(record["dbInstances"], "dbInstanceId") && isObjectArray(record["userGroups"], "userGroupId");
+}
+
+export function isRdsMysqlMetric(value: unknown): value is RdsMysqlMetric {
+  return isRecord(value) && hasStrings(value, ["measureName"]) && hasOptionalStrings(value, ["unit"]);
+}
+
+export function isRdsMysqlMetricStatistic(value: unknown): value is RdsMysqlMetricStatistic {
+  if (!isRecord(value)) return false;
+  const values = value["values"];
+  return (
+    hasStrings(value, ["measureName"]) &&
+    hasOptionalStrings(value, ["unit"]) &&
+    Array.isArray(values) &&
+    values.every((v) => Array.isArray(v) && v.length === 2 && typeof v[0] === "number" && typeof v[1] === "string")
+  );
+}
+
+export function isRdsMysqlEventCode(value: unknown): value is RdsMysqlEventCode {
+  return isRecord(value) && hasStrings(value, ["eventCode"]) && hasOptionalStrings(value, ["eventCategoryType"]);
+}
+
+export function isRdsMysqlEvent(value: unknown): value is RdsMysqlEvent {
+  if (!isRecord(value)) return false;
+  const messages = value["messages"];
+  return (
+    hasStrings(value, ["eventCode"]) &&
+    hasOptionalStrings(value, ["eventCategoryType", "sourceId", "sourceName", "eventYmdt"]) &&
+    (messages === undefined || messages === null || (Array.isArray(messages) && messages.every(isRecord)))
+  );
+}
+
+export function isRdsMysqlEventSubscription(value: unknown): value is RdsMysqlEventSubscription {
+  if (!isRecord(value)) return false;
+  return (
+    hasStrings(value, ["eventSubscriptionId", "eventSubscriptionName", "eventCategoryType"]) &&
+    typeof value["enabled"] === "boolean" &&
+    typeof value["notifyEmail"] === "boolean" &&
+    typeof value["notifySms"] === "boolean" &&
+    isStringArray(value["eventCodes"]) &&
+    isStringArray(value["userGroupIds"]) &&
+    Array.isArray(value["sources"]) &&
+    value["sources"].every((s) => isRecord(s) && hasStrings(s, ["sourceId", "eventCategoryType"]))
+  );
+}
