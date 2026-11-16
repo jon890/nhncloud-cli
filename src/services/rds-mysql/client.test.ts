@@ -15,8 +15,8 @@ vi.mock("ky", async (importOriginal) => {
 
 const INSTANCE_ID = "instance-test-1";
 const USER_ID = "user-test-1";
-const realBase = "https://kr1-rds-mysql.api.nhncloudservice.com/v3.0";
-const govBase = "https://kr1-rds-mysql.api.gov-nhncloudservice.com/v3.0";
+const realBase = "https://kr1-rds-mysql.api.nhncloudservice.com/v4.0";
+const govBase = "https://kr1-rds-mysql.api.gov-nhncloudservice.com/v4.0";
 const successfulHeader = { resultCode: 0, resultMessage: "SUCCESS", isSuccessful: true };
 
 const dbUser = {
@@ -79,13 +79,13 @@ function httpErrorResponse(status: number, body: string) {
 }
 
 function client(environment: "real" | "gov" = "real") {
-  return new RdsMysqlClient("test-appkey", "test-uak-id", "test-uak-secret", "kr1", environment);
+  return new RdsMysqlClient("test-appkey", "test-token", "kr1", environment);
 }
 
 describe("RdsMysqlClient 요청 구성", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("listDbUsers 는 일반망 host 로 세 인증 헤더를 보내고 dbUsers 를 돌려준다", async () => {
+  it("listDbUsers 는 일반망 host 로 appkey 와 UAK 토큰 헤더를 보내고 dbUsers 를 돌려준다", async () => {
     vi.mocked(ky.get).mockReturnValue(success({ dbUsers: [dbUser] }));
 
     await expect(client().listDbUsers(INSTANCE_ID)).resolves.toStrictEqual([dbUser]);
@@ -95,8 +95,7 @@ describe("RdsMysqlClient 요청 구성", () => {
     expect(options).toMatchObject({
       headers: {
         "X-TC-APP-KEY": "test-appkey",
-        "X-TC-AUTHENTICATION-ID": "test-uak-id",
-        "X-TC-AUTHENTICATION-SECRET": "test-uak-secret",
+        "X-NHN-AUTHORIZATION": "Bearer test-token",
       },
       retry: 0,
     });

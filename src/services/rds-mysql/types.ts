@@ -158,3 +158,154 @@ export function isRdsMysqlJob(value: unknown): value is RdsMysqlJob {
       (Array.isArray(relations) && relations.every(isRdsMysqlResourceRelation)))
   );
 }
+
+/** 파라미터 그룹 목록 항목이다. 상세와 달리 파라미터 목록이 없다. */
+export interface RdsMysqlParameterGroup {
+  parameterGroupId: string;
+  parameterGroupName: string;
+  /** 엔진 버전 계열(dbEngineVersionFamily)로 만든 그룹은 null 이다 (실호출 확인). */
+  dbVersion?: string | null;
+  dbEngineVersionFamily?: string | null;
+  parameterGroupType?: string | null;
+  parameterGroupStatus?: string | null;
+  description?: string | null;
+  createdYmdt?: string | null;
+  updatedYmdt?: string | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlParameter {
+  parameterId: string;
+  parameterName: string;
+  value?: string | null;
+  defaultValue?: string | null;
+  allowedValue?: string | null;
+  parameterFileGroup?: string | null;
+  fileParameterName?: string | null;
+  updateType?: string | null;
+  applyType?: string | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlParameterGroupDetail extends RdsMysqlParameterGroup {
+  parameters: RdsMysqlParameter[];
+}
+
+export interface RdsMysqlList<T> {
+  items: T[];
+  /** 서버가 알려 준 전체 개수다. 없으면 null 이다. */
+  totalCounts: number | null;
+}
+
+export interface RdsMysqlBinLog {
+  binLogFileName: string;
+  binLogFileSize: number;
+  createdYmdt?: string | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlStorageAutoscale {
+  useStorageAutoscale?: boolean | null;
+  threshold?: number | null;
+  maxStorageSize?: number | null;
+  cooldownTime?: number | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlStorageInfo {
+  storageType?: string | null;
+  storageSize: number;
+  storageStatus?: string | null;
+  storageAutoscale?: RdsMysqlStorageAutoscale | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlBackupInfo {
+  backupPeriod?: number | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlBackup {
+  backupId: string;
+  backupName: string;
+  backupStatus: string;
+  dbInstanceId?: string | null;
+  dbVersion?: string | null;
+  backupType?: string | null;
+  backupSize?: number | null;
+  createdYmdt?: string | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlHaInfo {
+  useHighAvailability: boolean;
+  haStatus?: string | null;
+  pingInterval?: number | null;
+  pingType?: string | null;
+  [key: string]: unknown;
+}
+
+function isOptionalNumber(value: unknown): boolean {
+  return value === undefined || value === null || typeof value === "number";
+}
+
+export function isRdsMysqlParameterGroup(value: unknown): value is RdsMysqlParameterGroup {
+  if (!isRecord(value)) return false;
+  return (
+    hasStrings(value, ["parameterGroupId", "parameterGroupName"]) &&
+    hasOptionalStrings(value, [
+      "dbVersion",
+      "dbEngineVersionFamily",
+      "parameterGroupType",
+      "parameterGroupStatus",
+      "description",
+    ])
+  );
+}
+
+export function isRdsMysqlParameter(value: unknown): value is RdsMysqlParameter {
+  if (!isRecord(value)) return false;
+  return (
+    hasStrings(value, ["parameterId", "parameterName"]) &&
+    hasOptionalStrings(value, ["value", "defaultValue", "allowedValue", "updateType", "applyType"])
+  );
+}
+
+export function isRdsMysqlParameterGroupDetail(value: unknown): value is RdsMysqlParameterGroupDetail {
+  if (!isRdsMysqlParameterGroup(value)) return false;
+  const parameters = (value as Record<string, unknown>)["parameters"];
+  return Array.isArray(parameters) && parameters.every(isRdsMysqlParameter);
+}
+
+export function isRdsMysqlBinLog(value: unknown): value is RdsMysqlBinLog {
+  if (!isRecord(value)) return false;
+  return typeof value["binLogFileName"] === "string" && typeof value["binLogFileSize"] === "number";
+}
+
+export function isRdsMysqlStorageInfo(value: unknown): value is RdsMysqlStorageInfo {
+  if (!isRecord(value)) return false;
+  const autoscale = value["storageAutoscale"];
+  return (
+    typeof value["storageSize"] === "number" &&
+    hasOptionalStrings(value, ["storageType", "storageStatus"]) &&
+    (autoscale === undefined || autoscale === null || isRecord(autoscale))
+  );
+}
+
+export function isRdsMysqlBackupInfo(value: unknown): value is RdsMysqlBackupInfo {
+  return isRecord(value) && isOptionalNumber(value["backupPeriod"]);
+}
+
+export function isRdsMysqlBackup(value: unknown): value is RdsMysqlBackup {
+  if (!isRecord(value)) return false;
+  return (
+    hasStrings(value, ["backupId", "backupName", "backupStatus"]) &&
+    hasOptionalStrings(value, ["dbInstanceId", "dbVersion", "backupType"]) &&
+    isOptionalNumber(value["backupSize"])
+  );
+}
+
+export function isRdsMysqlHaInfo(value: unknown): value is RdsMysqlHaInfo {
+  if (!isRecord(value)) return false;
+  return typeof value["useHighAvailability"] === "boolean" && hasOptionalStrings(value, ["haStatus", "pingType"]);
+}

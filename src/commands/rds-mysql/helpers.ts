@@ -1,4 +1,5 @@
 import type { Command } from "commander";
+import { getAccessToken } from "../../api/oauth.js";
 import { getProfileEnvironment, getUserAccessKey, resolveProfileName } from "../../config/credentials.js";
 import { type OutputOptions, output } from "../../formatters/table.js";
 import { RdsMysqlClient, type RdsMysqlJobWaitResult } from "../../services/rds-mysql/client.js";
@@ -46,8 +47,8 @@ export function parseUuidArgument(value: string, label: string): string {
 }
 
 /**
- * profile → rds-mysql appkey → 공통 UAK → environment → RdsMysqlClient.
- * 요청마다 정적 헤더로 인증하므로 토큰 발급 단계가 없다 (ADR-046).
+ * profile → rds-mysql appkey → 공통 UAK → environment → UAK 토큰 → RdsMysqlClient.
+ * 토큰은 다른 OAuth 서비스와 같은 캐시를 쓴다 (ADR-051).
  */
 export async function resolveRdsMysqlClient(opts: {
   profile?: string;
@@ -61,7 +62,8 @@ export async function resolveRdsMysqlClient(opts: {
   );
   const uak = await getUserAccessKey(profileName);
   const environment = await getProfileEnvironment(profileName);
-  return { client: new RdsMysqlClient(appKey, uak.id, uak.secret, opts.region ?? "kr1", environment), profileName };
+  const accessToken = await getAccessToken(profileName, uak.id, uak.secret, false, environment);
+  return { client: new RdsMysqlClient(appKey, accessToken, opts.region ?? "kr1", environment), profileName };
 }
 
 function stringifyValue(value: unknown): string {
@@ -105,6 +107,11 @@ export function withRdsMysqlWriteOptions(command: Command): Command {
     .option("--timeout <sec>", "--wait 대기 상한 (초, 기본 300)");
 }
 
+/** 응답에 작업이 없어 --wait 가 뜻 없는 쓰기 명령에 --region, --profile 과 --yes 를 붙인다. */
+export function withRdsMysqlConfirmOptions(command: Command): Command {
+  return withRdsMysqlOptions(command).option("--yes", "요청을 보낸다. 없으면 미리보기만 한다");
+}
+
 const DEFAULT_WAIT_TIMEOUT_SEC = 300;
 
 /** --timeout 은 --wait 와 함께만 받는다. 요청 전에 파싱 단계에서 부른다. */
@@ -118,6 +125,17 @@ export function parseWaitOptions(opts: { wait?: boolean; timeout?: string }): { 
       ? DEFAULT_WAIT_TIMEOUT_SEC
       : parseIntegerOption(opts.timeout, "--timeout", { min: 1, max: 3600 });
   return { wait, timeoutMs: timeoutSec * 1000 };
+}
+
+/** 모든 쓰기 결과가 가진 필드다. 반영과 작업 대기 흐름은 이것만 본다. */
+export interface RdsMysqlWriteResultBase {
+  operation: string;
+  /** DB 인스턴스에 속한 쓰기만 값이 있다. */
+  dbInstanceId?: string | null;
+  target: string;
+  applied: boolean;
+  jobId: string | null;
+  jobStatus: string | null;
 }
 
 /** 쓰기 명령의 출력 객체다. 비밀번호 필드는 두지 않는다 (ADR-047). */
@@ -162,13 +180,73 @@ export function rdsMysqlWriteResult(fields: RdsMysqlWriteResultFields): RdsMysql
   };
 }
 
-/** --json 은 객체 그대로, --quiet 은 jobId 가 있을 때만 그 한 줄, table 은 키 순서대로 field/value 다. */
-export function outputRdsMysqlWriteResult(opts: OutputOptions, result: RdsMysqlWriteResult): void {
+/** 쓰기 미리보기에 보일 값이다. 키 순서가 곧 table 출력 순서다. */
+export type RdsMysqlDetails = Record<string, string | number | boolean | string[] | null>;
+
+export interface RdsMysqlOperationResult extends RdsMysqlWriteResultBase {
+  action: string;
+  [detail: string]: unknown;
+}
+
+/**
+ * DB 인스턴스나 파라미터 그룹에 거는 쓰기의 결과 객체다. 요청 전에는 applied 가 false 이고 jobId 가 null 이다.
+ * details 는 action 다음에 오며, 같은 이름의 고정 필드는 덮지 못한다.
+ */
+export function rdsMysqlOperationResult(fields: {
+  operation: string;
+  dbInstanceId?: string;
+  target: string;
+  action: string;
+  details?: RdsMysqlDetails;
+}): RdsMysqlOperationResult {
+  const result: RdsMysqlOperationResult = {
+    operation: fields.operation,
+    ...(fields.dbInstanceId === undefined ? {} : { dbInstanceId: fields.dbInstanceId }),
+    target: fields.target,
+    action: fields.action,
+  } as RdsMysqlOperationResult;
+  for (const [key, value] of Object.entries(fields.details ?? {})) {
+    if (!(key in result)) result[key] = value;
+  }
+  result.applied = false;
+  result.jobId = null;
+  result.jobStatus = null;
+  return result;
+}
+
+/** 객체 배열 값의 한 줄 표시다. summary 문자열이 있으면 그것을, 없으면 JSON 을 쓴다. */
+function summarizeElement(element: unknown): string {
+  if (typeof element === "object" && element !== null) {
+    const summary = (element as Record<string, unknown>)["summary"];
+    if (typeof summary === "string") return sanitizeForTerminal(summary);
+  }
+  return formatCell(element);
+}
+
+function writeResultRows(result: RdsMysqlWriteResultBase): string[][] {
+  const rows: string[][] = [];
+  for (const [key, value] of Object.entries(result)) {
+    const isObjectList = Array.isArray(value) && value.length > 0 && value.every((e) => typeof e === "object" && e !== null);
+    if (isObjectList) {
+      value.forEach((element, index) => rows.push([`${key}.${index + 1}`, summarizeElement(element)]));
+    } else {
+      rows.push([key, formatCell(value)]);
+    }
+  }
+  return rows;
+}
+
+/**
+ * --json 은 객체 그대로, --quiet 은 jobId 가 있으면 그 한 줄(없으면 createdId)이고, table 은 키 순서대로 field/value 다.
+ * 객체 배열 값은 table 에서 원소마다 한 줄로 펼친다.
+ */
+export function outputRdsMysqlWriteResult(opts: OutputOptions, result: RdsMysqlWriteResultBase): void {
+  const createdId = (result as unknown as Record<string, unknown>)["createdId"];
   output(opts, {
     headers: ["field", "value"],
-    rows: Object.entries(result).map(([key, value]) => [key, formatCell(value)]),
+    rows: writeResultRows(result),
     raw: result,
-    ids: result.jobId === null ? [] : [result.jobId],
+    ids: result.jobId !== null ? [result.jobId] : typeof createdId === "string" ? [createdId] : [],
   });
 }
 
@@ -214,8 +292,8 @@ export async function applyRdsMysqlWrite(
   opts: RdsMysqlWriteOptions,
   wait: { wait: boolean; timeoutMs: number },
   client: RdsMysqlClient,
-  result: RdsMysqlWriteResult,
-  request: () => Promise<string>,
+  result: RdsMysqlWriteResultBase,
+  request: () => Promise<string | null>,
   listHint: string,
 ): Promise<void> {
   if (!opts.yes) {
@@ -224,9 +302,12 @@ export async function applyRdsMysqlWrite(
     return;
   }
 
-  let jobId: string;
+  let jobId: string | null;
   try {
-    jobId = await withRdsMysqlSpinner(`RDS for MySQL ${result.operation} 요청 중 (${result.dbInstanceId})...`, request);
+    jobId = await withRdsMysqlSpinner(
+      `RDS for MySQL ${result.operation} 요청 중 (${result.dbInstanceId ?? result.target})...`,
+      request,
+    );
   } catch (err) {
     const knownOutcome =
       err instanceof RdsMysqlApiError && !(err.httpStatus !== undefined && err.httpStatus >= 500);
@@ -239,6 +320,12 @@ export async function applyRdsMysqlWrite(
   }
 
   result.applied = true;
+  if (jobId === null) {
+    // 응답에 작업이 없는 요청이다. 서버가 접수하면 바로 반영된 것으로 보고 작업 대기를 하지 않는다.
+    outputRdsMysqlWriteResult(opts, result);
+    process.stderr.write(`안내: 요청을 반영했습니다. 이 요청은 작업이 없어 결과를 ${listHint}로 확인합니다.\n`);
+    return;
+  }
   result.jobId = jobId;
   const safeJobId = sanitizeForTerminal(jobId);
 
