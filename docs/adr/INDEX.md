@@ -59,3 +59,4 @@ ADR-NNN 내용은 `docs/adr/NNN-*.md` 로 찾는다(번호 glob: slug 몰라도 
 - [ADR-049](049-dnsplus-appkey-path-and-write-safety.md): DNS Plus 는 앱키를 요청 경로에 넣어 호출하고, 레코드 세트 쓰기는 `--yes` 나 `--dry-run` 을 요구하며 같은 이름이 있으면 멈춘다
 - [ADR-050](050-deploy-result-and-history-query.md): Deploy 서버별 결과는 배포 실행 응답으로만 보이고(실패하면 종료 코드 1), 배포 이력은 공개 쿼리와 CLI 필터로 좁힌다
 - [ADR-051](051-rds-mysql-v4-uak-token.md): RDS for MySQL 은 API v4.0 과 UAK 토큰으로 호출하고, 응답 본문 없는 쓰기와 파괴적 쓰기를 따로 다룬다
+- [ADR-052](052-rds-mysql-instance-lifecycle.md): RDS for MySQL DB 인스턴스 수명주기 명령은 상태를 먼저 확인하고, 응답 본문 없는 쓰기는 오류 뒤 반영을 다시 읽어 확인한다

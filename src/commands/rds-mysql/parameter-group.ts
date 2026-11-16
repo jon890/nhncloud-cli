@@ -36,6 +36,43 @@ export function requiresRestart(applyType: string | null | undefined): boolean {
   return applyType === "FILE";
 }
 
+/** 이름이 빈 파일 전용 파라미터(fileParameterName 만 있음)도 알아볼 수 있는 표시 이름이다. */
+export function displayParameterName(p: RdsMysqlParameter): string {
+  if (p.parameterName !== "") return p.parameterName;
+  return typeof p.fileParameterName === "string" && p.fileParameterName !== "" ? p.fileParameterName : p.parameterId;
+}
+
+/** parameterId 가 두 그룹에 하나도 겹치지 않을 때만 쓰는 대체 키다. */
+function fallbackKey(p: RdsMysqlParameter): string {
+  return `${p.parameterFileGroup ?? ""}\u0000${p.fileParameterName ?? p.parameterName}`;
+}
+
+/**
+ * 현재 그룹과 대상 그룹에서 값이 다른 파라미터를 대상 그룹 기준으로 찾는다.
+ * 비교 키는 parameterId 다. parameterName 은 파일 전용 파라미터에서 비어 있어 여러 개가 한 키로 뭉친다.
+ * 두 그룹이 parameterId 를 하나도 공유하지 않으면 그룹마다 id 가 따로 매겨진 것이라 보고
+ * 파일 그룹과 파일 파라미터 이름으로 비교한다.
+ */
+export function diffParameterGroups(
+  current: RdsMysqlParameterGroupDetail,
+  target: RdsMysqlParameterGroupDetail,
+): { changed: RdsMysqlParameter[]; before: Map<RdsMysqlParameter, string | null> } {
+  const currentIds = new Set(current.parameters.map((p) => p.parameterId));
+  const sharesIds = target.parameters.some((p) => currentIds.has(p.parameterId));
+  const keyOf = sharesIds ? (p: RdsMysqlParameter) => p.parameterId : fallbackKey;
+  const currentValues = new Map(current.parameters.map((p) => [keyOf(p), p.value ?? null]));
+  const changed: RdsMysqlParameter[] = [];
+  const before = new Map<RdsMysqlParameter, string | null>();
+  for (const p of target.parameters) {
+    const key = keyOf(p);
+    if (currentValues.has(key) && currentValues.get(key) !== (p.value ?? null)) {
+      changed.push(p);
+      before.set(p, currentValues.get(key) ?? null);
+    }
+  }
+  return { changed, before };
+}
+
 const GROUP_HINT_PREFIX = "nhncloud rds-mysql parameter-group";
 
 function getGroup(client: RdsMysqlClient, id: string): Promise<RdsMysqlParameterGroupDetail> {
@@ -198,14 +235,15 @@ interface Change {
 function describeChange(p: RdsMysqlParameter, after: string): Change {
   const before = p.value ?? null;
   const applyType = p.applyType ?? null;
+  const name = displayParameterName(p);
   return {
-    parameterName: p.parameterName,
+    parameterName: name,
     parameterId: p.parameterId,
     before,
     after,
     applyType,
     restartRequired: requiresRestart(applyType),
-    summary: `${p.parameterName}: ${before ?? "-"} -> ${after} [${describeApplyType(applyType)}]`,
+    summary: `${name}: ${before ?? "-"} -> ${after} [${describeApplyType(applyType)}]`,
   };
 }
 
@@ -321,6 +359,10 @@ const setCommand = withRdsMysqlConfirmOptions(
       return null;
     },
     `${GROUP_HINT_PREFIX} get ${id}`,
+    async () => {
+      const after = new Map((await client.getParameterGroup(id)).parameters.map((p) => [p.parameterId, p.value ?? null]));
+      return changes.every((c) => after.get(c.parameterId) === c.after);
+    },
   );
 });
 
@@ -375,6 +417,10 @@ const resetCommand = withRdsMysqlConfirmOptions(
       return null;
     },
     `${GROUP_HINT_PREFIX} get ${id}`,
+    async () => {
+      const after = new Map((await client.getParameterGroup(id)).parameters.map((p) => [p.parameterId, p.value ?? null]));
+      return changes.every((c) => after.get(c.parameterId) === c.after);
+    },
   );
 });
 

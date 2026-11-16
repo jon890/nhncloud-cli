@@ -18,6 +18,7 @@ import {
   withRdsMysqlSpinner,
   withRdsMysqlWriteOptions,
 } from "./helpers.js";
+import { storageTypesCommand } from "./lookup.js";
 
 /** 자동 확장을 쓰지 않을 때 요청이 받는 스토리지 크기 상한(GB)이다. */
 const MAX_STORAGE_SIZE_GB = 2048;
@@ -110,6 +111,7 @@ const expandCommand = withRdsMysqlWriteOptions(
 });
 
 export const storageCommand = new Command("storage")
-  .description("데이터 스토리지 조회와 확장 명령")
+  .description("데이터 스토리지 조회, 유형 조회, 확장 명령")
   .addCommand(getCommand)
+  .addCommand(storageTypesCommand)
   .addCommand(expandCommand);

@@ -81,6 +81,7 @@ import { backupCommand as rdsMysqlBackupCommand, backupInfoCommand as rdsMysqlBa
 import { binlogCommand as rdsMysqlBinlogCommand } from "./commands/rds-mysql/binlog.js";
 import { haCommandGroup as rdsMysqlHaCommand } from "./commands/rds-mysql/ha.js";
 import { parameterGroupCommand as rdsMysqlParameterGroupCommand } from "./commands/rds-mysql/parameter-group.js";
+import { availabilityZoneCommand as rdsMysqlAvailabilityZoneCommand, dbVersionCommand as rdsMysqlDbVersionCommand, flavorCommand as rdsMysqlFlavorCommand, projectCommand as rdsMysqlProjectCommand, subnetCommand as rdsMysqlSubnetCommand } from "./commands/rds-mysql/lookup.js";
 import { storageCommand as rdsMysqlStorageCommand } from "./commands/rds-mysql/storage.js";
 import { zoneCommand as dnsplusZoneCommand } from "./commands/dnsplus/zone.js";
 import { recordsetCommand as dnsplusRecordsetCommand } from "./commands/dnsplus/recordset.js";
@@ -397,7 +398,7 @@ program.addCommand(skmCommand);
 
 // RDS for MySQL 커맨드 그룹
 const rdsMysqlCommand = new Command("rds-mysql")
-  .description("NHN Cloud RDS for MySQL DB 인스턴스·스키마·사용자·파라미터 그룹·바이너리 로그·스토리지·백업·고가용성 명령");
+  .description("NHN Cloud RDS for MySQL DB 인스턴스·스키마·사용자·파라미터 그룹·바이너리 로그·스토리지·백업·고가용성 조회와 변경, 사양·서브넷 조회 명령");
 rdsMysqlCommand.addCommand(rdsMysqlInstanceCommand);
 rdsMysqlCommand.addCommand(rdsMysqlSchemaCommand);
 rdsMysqlCommand.addCommand(rdsMysqlUserCommand);
@@ -408,6 +409,11 @@ rdsMysqlCommand.addCommand(rdsMysqlStorageCommand);
 rdsMysqlCommand.addCommand(rdsMysqlBackupInfoCommand);
 rdsMysqlCommand.addCommand(rdsMysqlBackupCommand);
 rdsMysqlCommand.addCommand(rdsMysqlHaCommand);
+rdsMysqlCommand.addCommand(rdsMysqlFlavorCommand);
+rdsMysqlCommand.addCommand(rdsMysqlDbVersionCommand);
+rdsMysqlCommand.addCommand(rdsMysqlSubnetCommand);
+rdsMysqlCommand.addCommand(rdsMysqlAvailabilityZoneCommand);
+rdsMysqlCommand.addCommand(rdsMysqlProjectCommand);
 
 program.addCommand(rdsMysqlCommand);
 

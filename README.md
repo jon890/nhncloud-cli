@@ -158,6 +158,9 @@ nhncloud rds-mysql user list <db-instance-id>                  # RDS for MySQL D
 nhncloud rds-mysql binlog list <db-instance-id> --deletable   # 삭제할 수 있는 바이너리 로그
 nhncloud rds-mysql binlog purge <db-instance-id> --before mysql-bin.000010   # 지울 파일 수와 크기만 미리보기
 nhncloud rds-mysql storage expand <db-instance-id> --size 300 --yes --wait    # 스토리지를 300GB 로 늘리고 완료까지 대기
+nhncloud rds-mysql flavor list                                # RDS for MySQL DB 인스턴스 사양 (create 에 넣을 ID)
+nhncloud rds-mysql instance restart <db-instance-id> --online-failover   # 고가용성 DB 인스턴스를 장애 조치로 재시작 (미리보기)
+nhncloud rds-mysql instance delete <db-instance-id>           # 삭제 미리보기. 삭제 보호가 켜져 있으면 막는다
 nhncloud rds-mysql user create <db-instance-id> --name app --host '10.0.0.%' --authority crud --password-file ./pw.txt   # 미리보기
 nhncloud rds-mysql user create <db-instance-id> --name app --host '10.0.0.%' --authority crud --password-file ./pw.txt --yes --wait   # 반영하고 완료까지 대기
 nhncloud dnsplus zone list                                    # DNS Plus 존 목록

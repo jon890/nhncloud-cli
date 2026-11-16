@@ -9,32 +9,48 @@ import { RdsMysqlApiError } from "./errors.js";
 import {
   classifyJobStatus,
   isRdsMysqlBackup,
+  isRdsMysqlAvailabilityZone,
   isRdsMysqlBackupInfo,
   isRdsMysqlBinLog,
+  isRdsMysqlDbFlavor,
   isRdsMysqlDbInstance,
   isRdsMysqlDbInstanceDetail,
   isRdsMysqlDbSchema,
   isRdsMysqlDbUser,
+  isRdsMysqlDbVersion,
   isRdsMysqlHaInfo,
   isRdsMysqlJob,
+  isRdsMysqlMaintenance,
+  isRdsMysqlNetworkInfo,
   isRdsMysqlParameterGroup,
   isRdsMysqlParameterGroupDetail,
+  isRdsMysqlProjectMember,
+  isRdsMysqlRegion,
   isRdsMysqlStorageInfo,
+  isRdsMysqlSubnet,
+  type RdsMysqlAvailabilityZone,
   type RdsMysqlBackup,
   type RdsMysqlBackupInfo,
   type RdsMysqlBinLog,
+  type RdsMysqlDbFlavor,
   type RdsMysqlDbInstance,
   type RdsMysqlDbInstanceDetail,
   type RdsMysqlDbSchema,
   type RdsMysqlDbUser,
   type RdsMysqlDbUserCreateInput,
   type RdsMysqlDbUserUpdateInput,
+  type RdsMysqlDbVersion,
   type RdsMysqlHaInfo,
   type RdsMysqlJob,
   type RdsMysqlList,
+  type RdsMysqlMaintenance,
+  type RdsMysqlNetworkInfo,
   type RdsMysqlParameterGroup,
   type RdsMysqlParameterGroupDetail,
+  type RdsMysqlProjectMember,
+  type RdsMysqlRegion,
   type RdsMysqlStorageInfo,
+  type RdsMysqlSubnet,
 } from "./types.js";
 
 /** 작업 상태 조회 간격 기본값 (ADR-047). */
@@ -326,6 +342,97 @@ export class RdsMysqlClient {
 
   rebuildDbInstance(dbInstanceId: string): Promise<string> {
     return this.field("post", `${this.instancePath(dbInstanceId)}/rebuild`, "jobId", isString);
+  }
+
+  /** 본문 필드는 호출하는 쪽이 만든다. 생성과 복제는 응답에 작업만 있다. */
+  createDbInstance(body: Record<string, unknown>): Promise<string> {
+    return this.field("post", "/db-instances", "jobId", isString, body);
+  }
+
+  replicateDbInstance(dbInstanceId: string, body: Record<string, unknown>): Promise<string> {
+    return this.field("post", `${this.instancePath(dbInstanceId)}/replicate`, "jobId", isString, body);
+  }
+
+  /** 삭제 요청은 본문에 자동 백업 삭제 여부를 싣는다. */
+  deleteDbInstance(dbInstanceId: string, deleteAutoBackup: boolean): Promise<string> {
+    return this.field("delete", this.instancePath(dbInstanceId), "jobId", isString, { deleteAutoBackup });
+  }
+
+  startDbInstance(dbInstanceId: string): Promise<string> {
+    return this.field("post", `${this.instancePath(dbInstanceId)}/start`, "jobId", isString);
+  }
+
+  stopDbInstance(dbInstanceId: string): Promise<string> {
+    return this.field("post", `${this.instancePath(dbInstanceId)}/stop`, "jobId", isString);
+  }
+
+  restartDbInstance(dbInstanceId: string, body: Record<string, boolean>): Promise<string> {
+    return this.field("post", `${this.instancePath(dbInstanceId)}/restart`, "jobId", isString, body);
+  }
+
+  /** 응답 본문이 없는 요청이다. 작업 대기 대상이 아니다. */
+  async forceRestartDbInstance(dbInstanceId: string): Promise<void> {
+    await this.send("post", `${this.instancePath(dbInstanceId)}/force-restart`, { allowEmptyBody: true });
+  }
+
+  promoteDbInstance(dbInstanceId: string): Promise<string> {
+    return this.field("post", `${this.instancePath(dbInstanceId)}/promote`, "jobId", isString);
+  }
+
+  /** 수정할 필드만 본문에 담는다. parameterGroupId 는 setInstanceParameterGroup 이 맡는다. */
+  modifyDbInstance(dbInstanceId: string, body: Record<string, unknown>): Promise<string> {
+    return this.field("put", this.instancePath(dbInstanceId), "jobId", isString, body);
+  }
+
+  /** 응답 본문이 없는 요청이다. */
+  async setDeletionProtection(dbInstanceId: string, useDeletionProtection: boolean): Promise<void> {
+    await this.send("put", `${this.instancePath(dbInstanceId)}/deletion-protection`, {
+      json: { useDeletionProtection },
+      allowEmptyBody: true,
+    });
+  }
+
+  getNetworkInfo(dbInstanceId: string): Promise<RdsMysqlNetworkInfo> {
+    return this.topLevel(`${this.instancePath(dbInstanceId)}/network-info`, "networkInfo", isRdsMysqlNetworkInfo);
+  }
+
+  updateNetworkInfo(dbInstanceId: string, usePublicAccess: boolean): Promise<string> {
+    return this.field("put", `${this.instancePath(dbInstanceId)}/network-info`, "jobId", isString, { usePublicAccess });
+  }
+
+  async listMaintenances(
+    dbInstanceId: string,
+    query: { type?: string; statuses?: string; category?: string },
+  ): Promise<RdsMysqlList<RdsMysqlMaintenance>> {
+    return this.listField(`${this.instancePath(dbInstanceId)}/maintenances`, "maintenances", isRdsMysqlMaintenance, query);
+  }
+
+  listDbFlavors(): Promise<RdsMysqlDbFlavor[]> {
+    return this.field("get", "/db-flavors", "dbFlavors", arrayOf(isRdsMysqlDbFlavor));
+  }
+
+  listDbVersions(): Promise<RdsMysqlDbVersion[]> {
+    return this.field("get", "/db-versions", "dbVersions", arrayOf(isRdsMysqlDbVersion));
+  }
+
+  listStorageTypes(): Promise<string[]> {
+    return this.field("get", "/storage-types", "storageTypes", arrayOf(isString));
+  }
+
+  listSubnets(): Promise<RdsMysqlSubnet[]> {
+    return this.field("get", "/network/subnets", "subnets", arrayOf(isRdsMysqlSubnet));
+  }
+
+  listAvailabilityZones(): Promise<RdsMysqlAvailabilityZone[]> {
+    return this.field("get", "/availability-zones", "availabilityZones", arrayOf(isRdsMysqlAvailabilityZone));
+  }
+
+  listRegions(): Promise<RdsMysqlRegion[]> {
+    return this.field("get", "/project/regions", "regions", arrayOf(isRdsMysqlRegion));
+  }
+
+  listProjectMembers(): Promise<RdsMysqlProjectMember[]> {
+    return this.field("get", "/project/members", "members", arrayOf(isRdsMysqlProjectMember));
   }
 
   getJob(jobId: string): Promise<RdsMysqlJob> {

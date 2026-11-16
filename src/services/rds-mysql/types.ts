@@ -309,3 +309,133 @@ export function isRdsMysqlHaInfo(value: unknown): value is RdsMysqlHaInfo {
   if (!isRecord(value)) return false;
   return typeof value["useHighAvailability"] === "boolean" && hasOptionalStrings(value, ["haStatus", "pingType"]);
 }
+
+/** DB 인스턴스 사양(flavor)이다. ram 은 MB 다. */
+export interface RdsMysqlDbFlavor {
+  dbFlavorId: string;
+  dbFlavorName: string;
+  ram?: number | null;
+  vcpus?: number | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlDbVersion {
+  dbVersion: string;
+  dbVersionName?: string | null;
+  restorableFromObs?: boolean | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlSubnet {
+  subnetId: string;
+  subnetName?: string | null;
+  subnetCidr?: string | null;
+  usingGateway?: boolean | null;
+  availableIpCount?: number | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlAvailabilityZone {
+  availabilityZoneName: string;
+  zoneState?: { available?: boolean | null; [key: string]: unknown } | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlRegion {
+  regionCode: string;
+  isEnabled?: boolean | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlProjectMember {
+  memberId: string;
+  memberName?: string | null;
+  emailAddress?: string | null;
+  phoneNumber?: string | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlNetworkInfo {
+  availabilityZone?: string | null;
+  subnet?: Record<string, unknown> | null;
+  endPoints?: Record<string, unknown>[] | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlMaintenance {
+  maintenanceId: string;
+  type: string;
+  status: string;
+  category?: string | null;
+  description?: string | null;
+  required?: boolean | null;
+  deadlineYmdt?: string | null;
+  executionType?: string | null;
+  addedYmdt?: string | null;
+  [key: string]: unknown;
+}
+
+function isOptionalBoolean(value: unknown): boolean {
+  return value === undefined || value === null || typeof value === "boolean";
+}
+
+export function isRdsMysqlDbFlavor(value: unknown): value is RdsMysqlDbFlavor {
+  return (
+    isRecord(value) &&
+    hasStrings(value, ["dbFlavorId", "dbFlavorName"]) &&
+    isOptionalNumber(value["ram"]) &&
+    isOptionalNumber(value["vcpus"])
+  );
+}
+
+export function isRdsMysqlDbVersion(value: unknown): value is RdsMysqlDbVersion {
+  return (
+    isRecord(value) &&
+    hasStrings(value, ["dbVersion"]) &&
+    hasOptionalStrings(value, ["dbVersionName"]) &&
+    isOptionalBoolean(value["restorableFromObs"])
+  );
+}
+
+export function isRdsMysqlSubnet(value: unknown): value is RdsMysqlSubnet {
+  return (
+    isRecord(value) &&
+    hasStrings(value, ["subnetId"]) &&
+    hasOptionalStrings(value, ["subnetName", "subnetCidr"]) &&
+    isOptionalBoolean(value["usingGateway"]) &&
+    isOptionalNumber(value["availableIpCount"])
+  );
+}
+
+export function isRdsMysqlAvailabilityZone(value: unknown): value is RdsMysqlAvailabilityZone {
+  if (!isRecord(value) || !hasStrings(value, ["availabilityZoneName"])) return false;
+  const state = value["zoneState"];
+  return state === undefined || state === null || (isRecord(state) && isOptionalBoolean(state["available"]));
+}
+
+export function isRdsMysqlRegion(value: unknown): value is RdsMysqlRegion {
+  return isRecord(value) && hasStrings(value, ["regionCode"]) && isOptionalBoolean(value["isEnabled"]);
+}
+
+export function isRdsMysqlProjectMember(value: unknown): value is RdsMysqlProjectMember {
+  return isRecord(value) && hasStrings(value, ["memberId"]) && hasOptionalStrings(value, ["memberName", "emailAddress", "phoneNumber"]);
+}
+
+export function isRdsMysqlNetworkInfo(value: unknown): value is RdsMysqlNetworkInfo {
+  if (!isRecord(value) || !hasOptionalStrings(value, ["availabilityZone"])) return false;
+  const subnet = value["subnet"];
+  const endPoints = value["endPoints"];
+  return (
+    (subnet === undefined || subnet === null || isRecord(subnet)) &&
+    (endPoints === undefined || endPoints === null || (Array.isArray(endPoints) && endPoints.every(isRecord)))
+  );
+}
+
+export function isRdsMysqlMaintenance(value: unknown): value is RdsMysqlMaintenance {
+  return (
+    isRecord(value) &&
+    hasStrings(value, ["maintenanceId", "type", "status"]) &&
+    hasOptionalStrings(value, ["category", "description", "deadlineYmdt", "executionType", "addedYmdt"]) &&
+    isOptionalBoolean(value["required"])
+  );
+}

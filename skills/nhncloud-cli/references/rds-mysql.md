@@ -1,6 +1,6 @@
 # RDS for MySQL 명령 안내
 
-`rds-mysql` 명령군은 RDS for MySQL의 DB 인스턴스, DB 스키마, DB 사용자, 파라미터 그룹, 바이너리 로그, 스토리지, 백업, 고가용성을 다룬다.
+`rds-mysql` 명령군은 RDS for MySQL의 DB 인스턴스(생성, 수정, 재시작, 삭제 등 수명주기), DB 스키마, DB 사용자, 파라미터 그룹, 바이너리 로그, 스토리지, 백업, 고가용성을 다룬다.
 쓰기는 모두 `--yes`가 없으면 미리보기다. 대부분 비동기 작업이라 `--wait`로 완료까지 기다릴 수 있다.
 
 ## 인증과 설정
@@ -33,6 +33,15 @@ nhncloud rds-mysql storage get <db-instance-id>
 nhncloud rds-mysql backup-info get <db-instance-id>
 nhncloud rds-mysql backup list [--instance <db-instance-id>] [--type auto|manual] [--db-version <version>] [--page <n>] [--size <n>]
 nhncloud rds-mysql ha get <db-instance-id>
+nhncloud rds-mysql instance network <db-instance-id>
+nhncloud rds-mysql instance maintenances <db-instance-id> [--type <type>] [--status <statuses>] [--category <category>]
+nhncloud rds-mysql flavor list
+nhncloud rds-mysql db-version list
+nhncloud rds-mysql storage types
+nhncloud rds-mysql subnet list
+nhncloud rds-mysql availability-zone list
+nhncloud rds-mysql project regions
+nhncloud rds-mysql project members
 ```
 
 인스턴스·스키마·사용자 목록 API에는 페이지가 없어 한 번의 응답을 그대로 출력한다. `parameter-group list`와 `backup list`는 `--page`, `--size`(1~100, 기본 20)를 받고, 전체 개수가 더 많으면 stderr에 안내한다. 빈 목록도 성공이다.
@@ -45,8 +54,9 @@ nhncloud rds-mysql ha get <db-instance-id>
 - `job get`: `jobStatus`
 - `parameter-group list`: `parameterGroupId`, `parameter-group get`: `parameterName`
 - `binlog list`: `binLogFileName`, `backup list`: `backupId`, `ha get`: `haStatus`, `backup-info get`: `backupPeriod`, `storage get`: `storageSize`
+- `flavor list`: `dbFlavorId`, `db-version list`: `dbVersion`, `storage types`: 유형 이름, `subnet list`: `subnetId`, `availability-zone list`: 이름, `project regions`: `regionCode`, `project members`: `memberId`, `instance maintenances`: `maintenanceId`, `instance network`: 접속 도메인
 - `parameter-group copy`: 요청했을 때만 새 `parameterGroupId`
-- 작업을 요청하는 쓰기(`schema create`, `user create`·`update`·`delete`, `instance set-parameter-group`, `instance rebuild`, `storage expand`, `ha pause`·`resume`·`repair`·`split`): 요청했을 때만 `jobId`. 미리보기와 변경 없음은 아무것도 출력하지 않는다.
+- 작업을 요청하는 쓰기(`schema create`, `user create`·`update`·`delete`, `instance set-parameter-group`, `instance rebuild`, `instance create`·`replicate`·`modify`·`start`·`stop`·`restart`·`promote`·`delete`·`enable-public-access`·`disable-public-access`, `storage expand`, `ha pause`·`resume`·`repair`·`split`): 요청했을 때만 `jobId`. 미리보기와 변경 없음은 아무것도 출력하지 않는다.
 
 ## 쓰기 명령
 
@@ -142,3 +152,35 @@ nhncloud rds-mysql instance rebuild <db-instance-id> --yes --wait
 - `ha pause`는 자동 장애 조치를 멈추므로 끝나면 `ha resume`으로 되돌린다. `ha repair`는 장애 조치된 Primary를 복구하고, 실패하면 `instance rebuild`로 재구축한다. `ha split`은 되돌리기 어렵다.
 - `instance rebuild`는 `FAILED_MASTER`, `CANDIDATE_MASTER`, `READ_ONLY_SLAVE`에만 한다. 대상의 모든 데이터베이스를 지우고 Primary에서 다시 만든다. 정상 Primary는 종료 코드 3이다.
 - 목록과 상세 조회로 바뀐 값을 확인한다. 다른 작업이 진행 중이면(`progressStatus`가 `NONE`이 아니면) stderr에 경고한다.
+
+## DB 인스턴스 수명주기
+
+모두 `--yes`가 없으면 미리보기이고, 작업을 받는 명령은 `--wait`로 기다린다. 미리보기도 DB 인스턴스 상태를 읽어 사전 검사를 한다.
+
+```bash
+nhncloud rds-mysql flavor list                      # --flavor-id 에 넣을 사양
+nhncloud rds-mysql subnet list                      # --subnet-id
+nhncloud rds-mysql availability-zone list           # --availability-zone
+nhncloud rds-mysql storage types                    # --storage-type
+nhncloud rds-mysql instance create --name <name> --flavor-id <id> --db-version MYSQL_V8411 --port 3306 \
+  --user-name <db-admin> --password-file ./pw.txt --parameter-group-id <id> --subnet-id <id> --availability-zone kr-pub-a \
+  --storage-type "General SSD" --storage-size 20 --backup-period 7 --backup-schedule 02:00@1h        # 미리보기
+nhncloud rds-mysql instance replicate <primary-id> --name <replica> --availability-zone kr-pub-b --yes --wait
+nhncloud rds-mysql instance modify <db-instance-id> --description <text> --slow-query-analysis --yes
+nhncloud rds-mysql instance restart <db-instance-id> --online-failover --backup --yes --wait
+nhncloud rds-mysql instance disable-deletion-protection <db-instance-id> --yes
+nhncloud rds-mysql instance delete <db-instance-id> --yes --wait
+```
+
+- 명령: `create`, `replicate`, `modify`, `start`, `stop`, `restart`, `promote`, `delete`, `enable-deletion-protection`, `disable-deletion-protection`, `enable-public-access`, `disable-public-access`. 조회는 `network`, `maintenances`다.
+- `create`: 필수는 `--name`, `--flavor-id`, `--db-version`, `--port`, `--user-name`, `--parameter-group-id`, `--subnet-id`, `--availability-zone`, `--storage-type`, `--storage-size`, `--backup-period`, `--backup-schedule`(하나 이상)이다. DB 사용자 비밀번호는 `user create`처럼 `--password-file`이나 표준 입력으로만 받고 어디에도 출력하지 않는다. 고가용성은 `--high-availability`와 `--candidate-name`(필수), `--ping-interval`이다. 스토리지 자동 확장은 `--autoscale`에 `--autoscale-threshold`(50~95), `--autoscale-max-size`(4096 이하), `--autoscale-cooldown`(10~1440)을 모두 준다. 백업 스케줄은 `HH:MM[:SS]@window`(window: `30m`, `1h`, `1h30m`, `2h`, `2h30m`, `3h`)다. 사양, 서브넷, 엔진 버전, 스토리지 유형이 목록에 없거나 파라미터 그룹의 엔진 버전이 다르면 종료 코드 3이다.
+- `replicate`: Primary(`MASTER`)에서만 한다. `--name`과 `--availability-zone`만 필수이고 나머지는 서버 기본값을 따른다. 스토리지·백업 옵션은 `create`와 같다.
+- `modify`: 이름(`--name`), Standby 이름(`--candidate-name`), `--description`, `--port`, `--flavor-id`, `--slow-query-analysis`·`--no-slow-query-analysis`, `--security-group-id`(여러 번, 현재 목록을 대체)만 받는다. 파라미터 그룹은 `instance set-parameter-group`으로 바꾼다. 현재 값과 같은 항목은 보내지 않고 모두 같으면 요청하지 않는다. 포트와 사양을 바꾸면 재시작이 따를 수 있다. `--backup`, `--online-failover`, `--wait-replication-delay`, `--read-only`는 재시작이 따를 때의 동작이다.
+- `restart`: `--online-failover`(고가용성만), `--backup`, `--wait-replication-delay`, `--read-only`, `--os-restart`를 받는다. `--force`는 MySQL이 정상 동작하지 않을 때 쓰는 강제 재시작이다. 10분 안에 종료하지 않으면 가상 머신을 강제로 재부팅해 일부 트랜잭션이 유실되고 데이터 볼륨이 손상될 수 있다. 고가용성 DB 인스턴스는 `--force`를 쓸 수 없고(종료 코드 3), 다른 재시작 옵션과 `--wait`를 함께 쓸 수 없다. 응답에 작업이 없어 `instance get`으로 상태를 본다.
+- `start`는 중지된 DB 인스턴스를, `stop`은 사용 가능한 DB 인스턴스를 대상으로 한다. 이미 원하는 상태면 요청하지 않는다. 정지하면 접속할 수 없고 고가용성은 일시 중지된다.
+- `promote`: 읽기 복제본(`READ_ONLY_SLAVE`)만 한다. Primary 와의 복제가 끊기고 되돌릴 수 없다. 복제 지연이 있으면 해소될 때까지 승격되지 않을 수 있다.
+- `delete`: 복구할 수 없다. 삭제 보호가 켜져 있으면 요청 전에 종료 코드 3이고 `disable-deletion-protection`을 안내한다. Primary 를 지우면 Standby 와 읽기 복제본도 함께 지워진다. 자동 백업은 기본으로 남기고 `--delete-auto-backup`이면 함께 지운다.
+- `enable-deletion-protection`·`disable-deletion-protection`: 같은 값이면 요청하지 않는다. 응답에 작업이 없어 `--wait`가 없다. 서버 오류로 끝나면 다시 읽어 반영됐는지 확인하고, 반영됐으면 종료 코드 0과 경고로 알린다(`--json`의 `verifiedAfterError`).
+- `enable-public-access`·`disable-public-access`: 외부 접속 허용 여부를 응답에서 읽을 수 없어 현재 값과 비교하지 않고 서버에 맡긴다. `instance network`로 접속 정보를 본다.
+- `maintenances`는 목록 조회만 한다. 유지 관리 실행과 예약, 파라미터 그룹 변경 적용은 콘솔에서 한다.
+- 공공망(`environment: gov`)에서 빠진 명령은 없다. v4.0 경로가 일반망과 같다.
