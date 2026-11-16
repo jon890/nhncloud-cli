@@ -124,6 +124,10 @@ const setParameterGroupCommand = withRdsMysqlWriteOptions(
     process.stderr.write(
       "경고: 값이 바뀌는 파라미터 중 재시작이 필요한 것(applyType=FILE, 추정)이 있습니다. 반영하는 과정에서 DB 인스턴스가 재시작될 수 있습니다.\n",
     );
+  } else if (restartRequired === null) {
+    process.stderr.write(
+      "안내: 현재 파라미터 그룹 정보를 확인하지 못해 값을 비교하지 않았습니다. 파라미터 그룹을 바꾸는 수정 요청은 재시작이 따를 수 있으며 서버가 판정합니다.\n",
+    );
   } else {
     process.stderr.write(
       "안내: 파라미터 그룹을 바꾸는 수정 요청은 재시작이 따를 수 있습니다. 값 비교로는 재시작이 필요한 항목을 찾지 못했지만 서버가 판정합니다.\n",

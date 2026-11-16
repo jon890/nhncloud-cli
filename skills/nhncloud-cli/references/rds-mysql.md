@@ -31,7 +31,7 @@ nhncloud rds-mysql parameter-group get <parameter-group-id> [--parameter <text>]
 nhncloud rds-mysql binlog list <db-instance-id> [--deletable]
 nhncloud rds-mysql storage get <db-instance-id>
 nhncloud rds-mysql backup-info get <db-instance-id>
-nhncloud rds-mysql backup list [--instance <db-instance-id>] [--type auto|manual] [--page <n>] [--size <n>]
+nhncloud rds-mysql backup list [--instance <db-instance-id>] [--type auto|manual] [--db-version <version>] [--page <n>] [--size <n>]
 nhncloud rds-mysql ha get <db-instance-id>
 ```
 

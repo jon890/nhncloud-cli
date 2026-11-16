@@ -32,7 +32,7 @@ const getCommand = withRdsMysqlOptions(
     headers: ["field", "value"],
     rows: Object.entries(info).map(([key, value]) => [formatCell(key), formatCell(value)]),
     raw: info,
-    ids: [info.haStatus ?? ""],
+    ids: info.haStatus === null || info.haStatus === undefined ? [] : [info.haStatus],
   });
 });
 

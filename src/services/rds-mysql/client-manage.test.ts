@@ -55,6 +55,12 @@ describe("RdsMysqlClient v4.0 관리 API", () => {
     expect((options as { searchParams: Record<string, unknown> }).searchParams).not.toHaveProperty("dbVersion");
   });
 
+  it("totalCounts 가 숫자 문자열로 와도 숫자로 받는다", async () => {
+    vi.mocked(ky.get).mockReturnValue(body({ totalCounts: "5", backups: [] }));
+
+    await expect(client().listBackups({})).resolves.toStrictEqual({ items: [], totalCounts: 5 });
+  });
+
   it("파라미터 그룹 상세는 parameters 배열을 가드로 검사한다", async () => {
     vi.mocked(ky.get).mockReturnValue(body({ parameterGroupId: GROUP_ID, parameterGroupName: "pg", parameters: [parameter] }));
     await expect(client().getParameterGroup(GROUP_ID)).resolves.toMatchObject({ parameters: [parameter] });

@@ -26,7 +26,7 @@ const infoGetCommand = withRdsMysqlOptions(
     headers: ["field", "value"],
     rows: Object.entries(info).map(([key, value]) => [formatCell(key), formatCell(value)]),
     raw: info,
-    ids: [String(info.backupPeriod ?? "")],
+    ids: info.backupPeriod === null || info.backupPeriod === undefined ? [] : [String(info.backupPeriod)],
   });
 });
 

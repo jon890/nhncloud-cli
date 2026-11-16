@@ -232,7 +232,10 @@ export class RdsMysqlClient {
     const items = response[field];
     if (!arrayOf(guard)(items)) throw formatError(field);
     const total = response["totalCounts"];
-    return { items, totalCounts: typeof total === "number" ? total : null };
+    // 숫자가 문자열로 올 수 있어(Deploy 응답과 같은 패턴) 숫자 문자열은 바꿔 받는다.
+    const totalCounts =
+      typeof total === "number" ? total : typeof total === "string" && /^\d+$/.test(total) ? Number(total) : null;
+    return { items, totalCounts };
   }
 
   listParameterGroups(query: {
