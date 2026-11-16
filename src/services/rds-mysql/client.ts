@@ -21,7 +21,18 @@ import {
   isRdsMysqlDbInstanceDetail,
   isRdsMysqlDbSchema,
   isRdsMysqlDbUser,
+  isRdsMysqlDbSecurityGroup,
+  isRdsMysqlDbSecurityGroupDetail,
   isRdsMysqlDbVersion,
+  isRdsMysqlEvent,
+  isRdsMysqlEventCode,
+  isRdsMysqlEventSubscription,
+  isRdsMysqlMetric,
+  isRdsMysqlMetricStatistic,
+  isRdsMysqlNotificationGroup,
+  isRdsMysqlNotificationGroupDetail,
+  isRdsMysqlUserGroup,
+  isRdsMysqlUserGroupDetail,
   isRdsMysqlHaInfo,
   isRdsMysqlJob,
   isRdsMysqlMaintenance,
@@ -46,7 +57,19 @@ import {
   type RdsMysqlDbUser,
   type RdsMysqlDbUserCreateInput,
   type RdsMysqlDbUserUpdateInput,
+  type RdsMysqlDbSecurityGroup,
+  type RdsMysqlDbSecurityGroupDetail,
   type RdsMysqlDbVersion,
+  type RdsMysqlEvent,
+  type RdsMysqlEventCode,
+  type RdsMysqlEventSubscription,
+  type RdsMysqlMetric,
+  type RdsMysqlMetricStatistic,
+  type RdsMysqlNotificationGroup,
+  type RdsMysqlNotificationGroupDetail,
+  type RdsMysqlSecurityGroupRuleInput,
+  type RdsMysqlUserGroup,
+  type RdsMysqlUserGroupDetail,
   type RdsMysqlHaInfo,
   type RdsMysqlJob,
   type RdsMysqlList,
@@ -508,6 +531,178 @@ export class RdsMysqlClient {
 
   listProjectMembers(): Promise<RdsMysqlProjectMember[]> {
     return this.field("get", "/project/members", "members", arrayOf(isRdsMysqlProjectMember));
+  }
+
+  /** 파라미터 그룹을 새로 만든다. 작업(jobId)이 아니라 바로 만들어진다. */
+  createParameterGroup(body: { parameterGroupName: string; dbVersion: string; description?: string }): Promise<string> {
+    return this.field("post", "/parameter-groups", "parameterGroupId", isString, body);
+  }
+
+  /** 응답 본문이 없는 요청이다. */
+  async deleteParameterGroup(parameterGroupId: string): Promise<void> {
+    await this.send("delete", `/parameter-groups/${encodeURIComponent(parameterGroupId)}`, { allowEmptyBody: true });
+  }
+
+  private securityGroupPath(dbSecurityGroupId: string): string {
+    return `/db-security-groups/${encodeURIComponent(dbSecurityGroupId)}`;
+  }
+
+  listDbSecurityGroups(query: { page?: number; size?: number }): Promise<RdsMysqlList<RdsMysqlDbSecurityGroup>> {
+    return this.listField("/db-security-groups", "dbSecurityGroups", isRdsMysqlDbSecurityGroup, query);
+  }
+
+  getDbSecurityGroup(dbSecurityGroupId: string): Promise<RdsMysqlDbSecurityGroupDetail> {
+    return this.topLevel(this.securityGroupPath(dbSecurityGroupId), "dbSecurityGroup", isRdsMysqlDbSecurityGroupDetail);
+  }
+
+  /** 규칙을 함께 보내 만든다. 만들어진 그룹의 ID 를 바로 돌려준다. */
+  createDbSecurityGroup(body: {
+    dbSecurityGroupName: string;
+    description?: string;
+    rules: RdsMysqlSecurityGroupRuleInput[];
+  }): Promise<string> {
+    return this.field("post", "/db-security-groups", "dbSecurityGroupId", isString, body);
+  }
+
+  /** 응답 본문이 없는 요청이다. */
+  async updateDbSecurityGroup(dbSecurityGroupId: string, body: { dbSecurityGroupName?: string; description?: string }): Promise<void> {
+    await this.send("put", this.securityGroupPath(dbSecurityGroupId), { json: body, allowEmptyBody: true });
+  }
+
+  /** 응답 본문이 없는 요청이다. */
+  async deleteDbSecurityGroup(dbSecurityGroupId: string): Promise<void> {
+    await this.send("delete", this.securityGroupPath(dbSecurityGroupId), { allowEmptyBody: true });
+  }
+
+  createDbSecurityGroupRule(dbSecurityGroupId: string, body: RdsMysqlSecurityGroupRuleInput): Promise<string> {
+    return this.field("post", `${this.securityGroupPath(dbSecurityGroupId)}/rules`, "jobId", isString, body);
+  }
+
+  updateDbSecurityGroupRule(dbSecurityGroupId: string, ruleId: string, body: RdsMysqlSecurityGroupRuleInput): Promise<string> {
+    return this.field("put", `${this.securityGroupPath(dbSecurityGroupId)}/rules/${encodeURIComponent(ruleId)}`, "jobId", isString, body);
+  }
+
+  /** 규칙 ID 는 쉼표로 이어 쿼리로 보낸다. */
+  deleteDbSecurityGroupRules(dbSecurityGroupId: string, ruleIds: string[]): Promise<string> {
+    return this.field(
+      "delete",
+      `${this.securityGroupPath(dbSecurityGroupId)}/rules`,
+      "jobId",
+      isString,
+      undefined,
+      { ruleIds: ruleIds.join(",") },
+    );
+  }
+
+  listUserGroups(query: { page?: number; size?: number }): Promise<RdsMysqlList<RdsMysqlUserGroup>> {
+    return this.listField("/user-groups", "userGroups", isRdsMysqlUserGroup, query);
+  }
+
+  getUserGroup(userGroupId: string): Promise<RdsMysqlUserGroupDetail> {
+    return this.topLevel(`/user-groups/${encodeURIComponent(userGroupId)}`, "userGroup", isRdsMysqlUserGroupDetail);
+  }
+
+  createUserGroup(body: { userGroupName: string; memberIds: string[]; selectAll?: boolean }): Promise<string> {
+    return this.field("post", "/user-groups", "userGroupId", isString, body);
+  }
+
+  /** 응답 본문이 없는 요청이다. */
+  async updateUserGroup(userGroupId: string, body: { userGroupName: string; memberIds?: string[]; selectAll?: boolean }): Promise<void> {
+    await this.send("put", `/user-groups/${encodeURIComponent(userGroupId)}`, { json: body, allowEmptyBody: true });
+  }
+
+  /** 응답 본문이 없는 요청이다. */
+  async deleteUserGroup(userGroupId: string): Promise<void> {
+    await this.send("delete", `/user-groups/${encodeURIComponent(userGroupId)}`, { allowEmptyBody: true });
+  }
+
+  /** 알림 그룹 목록은 페이지 없이 전체가 온다. */
+  async listNotificationGroups(): Promise<RdsMysqlNotificationGroup[]> {
+    return this.field("get", "/notification-groups", "notificationGroups", arrayOf(isRdsMysqlNotificationGroup));
+  }
+
+  getNotificationGroup(notificationGroupId: string): Promise<RdsMysqlNotificationGroupDetail> {
+    return this.topLevel(
+      `/notification-groups/${encodeURIComponent(notificationGroupId)}`,
+      "notificationGroup",
+      isRdsMysqlNotificationGroupDetail,
+    );
+  }
+
+  createNotificationGroup(body: Record<string, unknown>): Promise<string> {
+    return this.field("post", "/notification-groups", "notificationGroupId", isString, body);
+  }
+
+  /** 응답 본문이 없는 요청이다. 생략한 필드는 기본값(false, 빈 목록)으로 바뀔 수 있어 호출하는 쪽이 모든 필드를 채운다. */
+  async updateNotificationGroup(notificationGroupId: string, body: Record<string, unknown>): Promise<void> {
+    await this.send("put", `/notification-groups/${encodeURIComponent(notificationGroupId)}`, { json: body, allowEmptyBody: true });
+  }
+
+  /** 응답 본문이 없는 요청이다. */
+  async deleteNotificationGroup(notificationGroupId: string): Promise<void> {
+    await this.send("delete", `/notification-groups/${encodeURIComponent(notificationGroupId)}`, { allowEmptyBody: true });
+  }
+
+  listMetrics(): Promise<RdsMysqlMetric[]> {
+    return this.field("get", "/metrics", "metrics", arrayOf(isRdsMysqlMetric));
+  }
+
+  /** from, to 는 콜론이 있는 시간대(+09:00)로 보낸다. 호출하는 쪽이 정규화한다. */
+  getMetricStatistics(query: {
+    dbInstanceId: string;
+    measureNames: string[];
+    from: string;
+    to: string;
+    interval?: number;
+  }): Promise<RdsMysqlMetricStatistic[]> {
+    return this.field("get", "/metric-statistics", "metricStatistics", arrayOf(isRdsMysqlMetricStatistic), undefined, {
+      dbInstanceId: query.dbInstanceId,
+      measureNames: query.measureNames.join(","),
+      from: query.from,
+      to: query.to,
+      interval: query.interval,
+    });
+  }
+
+  listEventCodes(): Promise<RdsMysqlEventCode[]> {
+    return this.field("get", "/event-codes", "eventCodes", arrayOf(isRdsMysqlEventCode));
+  }
+
+  listEvents(query: {
+    from: string;
+    to: string;
+    eventCategoryType: string;
+    sourceId?: string;
+    keyword?: string;
+    ascendingOrder?: string;
+    page?: number;
+    size?: number;
+  }): Promise<RdsMysqlList<RdsMysqlEvent>> {
+    return this.listField("/events", "events", isRdsMysqlEvent, query);
+  }
+
+  listEventSubscriptions(query: {
+    eventSubscriptionId?: string;
+    eventSubscriptionName?: string;
+    userGroupId?: string;
+    page?: number;
+    size?: number;
+  }): Promise<RdsMysqlList<RdsMysqlEventSubscription>> {
+    return this.listField("/event-subscriptions", "eventSubscriptions", isRdsMysqlEventSubscription, query);
+  }
+
+  createEventSubscription(body: Record<string, unknown>): Promise<string> {
+    return this.field("post", "/event-subscriptions", "eventSubscriptionId", isString, body);
+  }
+
+  /** 응답 본문이 없는 요청이다. 생략한 필드의 처리가 문서에 없어 호출하는 쪽이 모든 필드를 채운다. */
+  async updateEventSubscription(eventSubscriptionId: string, body: Record<string, unknown>): Promise<void> {
+    await this.send("put", `/event-subscriptions/${encodeURIComponent(eventSubscriptionId)}`, { json: body, allowEmptyBody: true });
+  }
+
+  /** 응답 본문이 없는 요청이다. */
+  async deleteEventSubscription(eventSubscriptionId: string): Promise<void> {
+    await this.send("delete", `/event-subscriptions/${encodeURIComponent(eventSubscriptionId)}`, { allowEmptyBody: true });
   }
 
   getJob(jobId: string): Promise<RdsMysqlJob> {

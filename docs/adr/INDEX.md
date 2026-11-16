@@ -61,3 +61,4 @@ ADR-NNN 내용은 `docs/adr/NNN-*.md` 로 찾는다(번호 glob: slug 몰라도 
 - [ADR-051](051-rds-mysql-v4-uak-token.md): RDS for MySQL 은 API v4.0 과 UAK 토큰으로 호출하고, 응답 본문 없는 쓰기와 파괴적 쓰기를 따로 다룬다
 - [ADR-052](052-rds-mysql-instance-lifecycle.md): RDS for MySQL DB 인스턴스 수명주기 명령은 상태를 먼저 확인하고, 응답 본문 없는 쓰기는 오류 뒤 반영을 다시 읽어 확인한다
 - [ADR-053](053-rds-mysql-backup-restore.md): RDS for MySQL 백업·복원 명령은 새 DB 인스턴스를 만드는 쓰기로 다루고, 오브젝트 스토리지 비밀번호는 파일·표준 입력으로만 받는다
+- [ADR-054](054-rds-mysql-groups-monitoring.md): RDS for MySQL 알림 그룹·사용자 그룹·이벤트 구독의 수정은 현재 값을 읽어 전체를 보내고, 알림이 가지 않는 설정은 경고한다

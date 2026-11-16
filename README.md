@@ -161,6 +161,10 @@ nhncloud rds-mysql storage expand <db-instance-id> --size 300 --yes --wait    # 
 nhncloud rds-mysql backup create --name nightly --method full --instance <db-instance-id>   # 수동 백업 미리보기
 nhncloud rds-mysql restore point-in-time <db-instance-id> --name restored --time 2026-01-31T09:00:00+09:00   # 시점 복원 미리보기. 새 DB 인스턴스를 만든다
 nhncloud rds-mysql log-file get <db-instance-id> error.log --type error   # 로그 파일 내용 (최대 65533 바이트)
+nhncloud rds-mysql notification-group get <notification-group-id>   # 알림 그룹이 감시하는 DB 인스턴스와 사용자 그룹
+nhncloud rds-mysql notification-group update <notification-group-id> --add-instance <db-instance-id>   # 감시 대상 추가 미리보기
+nhncloud rds-mysql metric statistics <db-instance-id> --metric CPU_USAGE --last 1h   # 최근 1시간 성능 지표
+nhncloud rds-mysql db-security-group rule create <db-security-group-id> --direction ingress --cidr 10.0.0.0/24 --port db   # 규칙 추가 미리보기
 nhncloud rds-mysql flavor list                                # RDS for MySQL DB 인스턴스 사양 (create 에 넣을 ID)
 nhncloud rds-mysql instance restart <db-instance-id> --online-failover   # 고가용성 DB 인스턴스를 장애 조치로 재시작 (미리보기)
 nhncloud rds-mysql instance delete <db-instance-id>           # 삭제 미리보기. 삭제 보호가 켜져 있으면 막는다

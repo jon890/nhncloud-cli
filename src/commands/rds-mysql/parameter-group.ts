@@ -6,6 +6,7 @@ import { NhnCloudCliError } from "../../utils/errors.js";
 import { EXIT_PARAM_ERROR } from "../../utils/exit-codes.js";
 import { sanitizeForTerminal } from "../../utils/terminal.js";
 import { collectOption, parseIntegerOption } from "../parse-options.js";
+import { fetchAllPages } from "./group-helpers.js";
 import {
   applyRdsMysqlWrite,
   formatCell,
@@ -77,6 +78,28 @@ const GROUP_HINT_PREFIX = "nhncloud rds-mysql parameter-group";
 
 function getGroup(client: RdsMysqlClient, id: string): Promise<RdsMysqlParameterGroupDetail> {
   return withRdsMysqlSpinner(`파라미터 그룹 조회 중 (${id})...`, () => client.getParameterGroup(id));
+}
+
+function checkGroupText(name: string, description: string | undefined): void {
+  const nameLength = [...name].length;
+  if (nameLength < 1 || nameLength > 100) {
+    throw new NhnCloudCliError(`--name은 1자 이상 100자 이하여야 합니다 (입력 길이: ${nameLength}).`, EXIT_PARAM_ERROR);
+  }
+  if (description !== undefined && [...description].length > 100) {
+    throw new NhnCloudCliError("--description은 100자 이하여야 합니다.", EXIT_PARAM_ERROR);
+  }
+}
+
+async function assertGroupNameFree(client: RdsMysqlClient, name: string): Promise<void> {
+  const sameName = await withRdsMysqlSpinner("같은 이름의 파라미터 그룹 확인 중...", () =>
+    client.listParameterGroups({ parameterGroupName: name, size: 100 }),
+  );
+  if (sameName.items.some((g) => g.parameterGroupName === name)) {
+    throw new NhnCloudCliError(
+      `같은 이름의 파라미터 그룹이 이미 있습니다: ${JSON.stringify(name)}. ${GROUP_HINT_PREFIX} list로 확인하세요.`,
+      EXIT_PARAM_ERROR,
+    );
+  }
 }
 
 interface ListOptions extends RdsMysqlCommandOptions {
@@ -172,25 +195,11 @@ const copyCommand = withRdsMysqlConfirmOptions(
 ).action(async (parameterGroupId: string, _opts: unknown, command: Command) => {
   const opts = command.optsWithGlobals<CopyOptions>();
   const id = parseUuidArgument(parameterGroupId, "<parameter-group-id>");
-  const nameLength = [...opts.name].length;
-  if (nameLength < 1 || nameLength > 100) {
-    throw new NhnCloudCliError(`--name은 1자 이상 100자 이하여야 합니다 (입력 길이: ${nameLength}).`, EXIT_PARAM_ERROR);
-  }
-  if (opts.description !== undefined && [...opts.description].length > 100) {
-    throw new NhnCloudCliError("--description은 100자 이하여야 합니다.", EXIT_PARAM_ERROR);
-  }
+  checkGroupText(opts.name, opts.description);
   const { client } = await resolveRdsMysqlClient(opts);
 
   const source = await getGroup(client, id);
-  const sameName = await withRdsMysqlSpinner("같은 이름의 파라미터 그룹 확인 중...", () =>
-    client.listParameterGroups({ parameterGroupName: opts.name, size: 100 }),
-  );
-  if (sameName.items.some((g) => g.parameterGroupName === opts.name)) {
-    throw new NhnCloudCliError(
-      `같은 이름의 파라미터 그룹이 이미 있습니다: ${JSON.stringify(opts.name)}. ${GROUP_HINT_PREFIX} list로 확인하세요.`,
-      EXIT_PARAM_ERROR,
-    );
-  }
+  await assertGroupNameFree(client, opts.name);
 
   const result = rdsMysqlOperationResult({
     operation: "parameter-group-copy",
@@ -424,10 +433,100 @@ const resetCommand = withRdsMysqlConfirmOptions(
   );
 });
 
+interface CreateOptions extends RdsMysqlWriteOptions {
+  name: string;
+  dbVersion: string;
+  description?: string;
+}
+
+const createCommand = withRdsMysqlConfirmOptions(
+  new Command("create")
+    .description("DB 엔진 버전의 기본값으로 새 파라미터 그룹을 만든다. 기존 그룹을 본뜨려면 copy 를 쓴다. --yes가 없으면 미리보기만 한다")
+    .requiredOption("--name <name>", "새 파라미터 그룹 이름 (1~100자)")
+    .requiredOption("--db-version <version>", "DB 엔진 버전 (db-version list 의 dbVersion, 예: MYSQL_V8411)")
+    .option("--description <text>", "파라미터 그룹 설명 (100자 이하)"),
+).action(async (_opts: unknown, command: Command) => {
+  const opts = command.optsWithGlobals<CreateOptions>();
+  checkGroupText(opts.name, opts.description);
+  const { client } = await resolveRdsMysqlClient(opts);
+
+  const versions = await withRdsMysqlSpinner("DB 엔진 버전 확인 중...", () => client.listDbVersions());
+  if (!versions.some((v) => v.dbVersion === opts.dbVersion)) {
+    throw new NhnCloudCliError(
+      `지원하지 않는 DB 엔진 버전입니다: ${JSON.stringify(opts.dbVersion)}. nhncloud rds-mysql db-version list로 확인하세요.`,
+      EXIT_PARAM_ERROR,
+    );
+  }
+  await assertGroupNameFree(client, opts.name);
+  const result = rdsMysqlOperationResult({
+    operation: "parameter-group-create",
+    target: opts.name,
+    action: "create",
+    details: { dbVersion: opts.dbVersion, description: opts.description ?? null },
+  });
+  await applyRdsMysqlWrite(
+    opts,
+    { wait: false, timeoutMs: 0 },
+    client,
+    result,
+    async () => {
+      result["createdId"] = await client.createParameterGroup({
+        parameterGroupName: opts.name,
+        dbVersion: opts.dbVersion,
+        ...(opts.description === undefined ? {} : { description: opts.description }),
+      });
+      return null;
+    },
+    `${GROUP_HINT_PREFIX} list --name <이름>`,
+  );
+});
+
+const deleteCommand = withRdsMysqlConfirmOptions(
+  new Command("delete")
+    .description("파라미터 그룹을 지운다. DB 인스턴스에 연결된 그룹은 서버가 거절한다. --yes가 없으면 미리보기만 한다")
+    .argument("<parameter-group-id>", "파라미터 그룹 ID (UUID)"),
+).action(async (parameterGroupId: string, _opts: unknown, command: Command) => {
+  const opts = command.optsWithGlobals<RdsMysqlWriteOptions>();
+  const id = parseUuidArgument(parameterGroupId, "<parameter-group-id>");
+  const { client } = await resolveRdsMysqlClient(opts);
+
+  const group = await getGroup(client, id);
+  warnGroupNotApplied(group);
+  process.stderr.write("경고: 지운 파라미터 그룹은 되돌릴 수 없습니다. 값을 남기려면 먼저 parameter-group copy 로 복사본을 만드세요.\n");
+  const result = rdsMysqlOperationResult({
+    operation: "parameter-group-delete",
+    target: group.parameterGroupName,
+    action: "delete",
+    details: {
+      parameterGroupId: id,
+      dbVersion: group.dbVersion ?? group.dbEngineVersionFamily ?? null,
+      parameterGroupType: group.parameterGroupType ?? null,
+      parameterGroupStatus: group.parameterGroupStatus ?? null,
+    },
+  });
+  await applyRdsMysqlWrite(
+    opts,
+    { wait: false, timeoutMs: 0 },
+    client,
+    result,
+    async () => {
+      await client.deleteParameterGroup(id);
+      return null;
+    },
+    `${GROUP_HINT_PREFIX} list`,
+    async () => {
+      const all = await fetchAllPages((page) => client.listParameterGroups({ page, size: 100 }));
+      return all.every((g) => g.parameterGroupId !== id);
+    },
+  );
+});
+
 export const parameterGroupCommand = new Command("parameter-group")
-  .description("파라미터 그룹 조회, 복사, 값 변경, 초기화 명령")
+  .description("파라미터 그룹 조회, 생성, 복사, 값 변경, 초기화, 삭제 명령")
   .addCommand(listCommand)
   .addCommand(getCommand)
+  .addCommand(createCommand)
   .addCommand(copyCommand)
   .addCommand(setCommand)
-  .addCommand(resetCommand);
+  .addCommand(resetCommand)
+  .addCommand(deleteCommand);
