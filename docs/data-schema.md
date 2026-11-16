@@ -125,7 +125,7 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, 서비�
 - `ncs`: appkey(path)만. 인증 토큰은 `userAccessKey` OAuth 를 재사용한다(secret 불요, [[adr-020]])
 - `apigateway`: appkey(path)만. 인증 토큰은 `userAccessKey` OAuth 를 재사용하며 헤더 이름이 `X-NHN-Authorization` 이다(secret 불요, [[adr-027]])
 - `skm`: appkey(path)만. 인증 토큰은 `userAccessKey` OAuth 를 재사용하며 헤더 이름이 `X-NHN-Authorization` 이다. 키 저장소의 MAC 인증 값은 저장하지 않고 명령 옵션으로 받는다([[adr-039]])
-- `rds-mysql`: RDS for MySQL appkey(프로젝트 통합 appkey 도 된다)만. `X-TC-APP-KEY` 헤더로 보내고, 인증은 `userAccessKey` 의 id 와 secret 을 정적 헤더로 보낸다. OAuth 토큰으로 교환하지 않는다. region 은 저장하지 않고 명령 `--region` 으로 받는다. DB 사용자 비밀번호는 저장하지 않는다([[adr-046]], [[adr-047]])
+- `rds-mysql`: RDS for MySQL appkey(프로젝트 통합 appkey 도 된다)만. `X-TC-APP-KEY` 헤더로 보내고, 인증 토큰은 `userAccessKey` OAuth 를 재사용하며 헤더 이름이 `X-NHN-AUTHORIZATION` 이다. region 은 저장하지 않고 명령 `--region` 으로 받는다. DB 사용자 비밀번호는 저장하지 않는다([[adr-046]], [[adr-047]], [[adr-051]])
 - `dnsplus`: DNS Plus appkey(요청 경로에 들어간다)만. 인증 헤더와 UAK 는 쓰지 않는다. region 은 없다([[adr-049]])
 - `iaas`: OpenStack Keystone 자격증명. instance 등 IaaS 서비스가 공유 ([[adr-010]])
   - `password` 는 NHN 콘솔 IAM 에서 별도 발급하는 API 비밀번호 (로그인 비밀번호가 아님)
@@ -154,8 +154,8 @@ UAK 는 개인/계정 단위라 OAuth 쓰는 서비스가 공유하고, 서비�
 ```
 
 - user-access-token: OAuth `access_token` 을 만료시각과 함께 저장한다 ([[adr-007]]).
-  deploy·ncs·logncrash 검색·apigateway·skm이 같은 계정 토큰이라 이 캐시를 공유한다
-  ([[adr-020]], [[adr-024]], [[adr-027]], [[adr-039]]). 공유 서비스 목록은 이 절이 소유한다.
+  deploy·ncs·logncrash 검색·apigateway·skm·rds-mysql이 같은 계정 토큰이라 이 캐시를 공유한다
+  ([[adr-020]], [[adr-024]], [[adr-027]], [[adr-039]], [[adr-051]]). 공유 서비스 목록은 이 절이 소유한다.
   OAuth host는 망별로 `src/api/oauth.ts`가 소유한다.
 - iaas: Keystone token 과 region 별 정적 host 맵으로 구성한 compute·image·network·blockStorage·nks endpoint 캐시 ([[adr-005]], [[adr-010]], [[adr-013]], [[adr-019]])
 - `credentialHash`: 발급 자격 배열을 `JSON.stringify`한 값의 SHA-256 지문이다. OAuth는 `[environment, uakId, uakSecret]`, IaaS는 `[environment, tenantId, username, password]`를 사용한다. 현재 자격이나 망 선택이 다르면 캐시를 무효화하고 다시 발급한다([[adr-021]], [[adr-037]]).
@@ -177,7 +177,7 @@ NCR, NCS, API Gateway, Secure Key Manager, RDS for MySQL, Deploy와 Log & Crash�
 
 ## 캐시 범위
 
-- logncrash search·export, deploy, ncs, apigateway와 skm: 공통 OAuth access_token만 캐시한다. SKM 비밀값과 키 원문은 파일에 쓰지 않는다. 검색 결과와 서비스 응답은 캐시하지 않는다.
-- ncr과 rds-mysql: 정적 헤더 인증이라 토큰을 캐시하지 않는다. 서비스 응답과 DB 사용자 비밀번호도 파일에 쓰지 않는다.
+- logncrash search·export, deploy, ncs, apigateway, skm과 rds-mysql: 공통 OAuth access_token만 캐시한다. SKM 비밀값과 키 원문은 파일에 쓰지 않는다. 검색 결과와 서비스 응답은 캐시하지 않는다.
+- ncr: 정적 헤더 인증이라 토큰을 캐시하지 않는다. 서비스 응답과 DB 사용자 비밀번호도 파일에 쓰지 않는다.
 - instance, network, volume, floatingip, loadbalancer와 nks: Keystone token과 compute·image·network·blockStorage·nks endpoint를 region별로 캐시한다. loadbalancer 인증서가 쓰는 key-manager 주소와 시크릿 내용은 캐시하지 않는다.
 - 목록성 데이터 캐시는 필요 시 후속 도입

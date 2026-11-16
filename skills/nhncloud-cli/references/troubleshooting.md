@@ -29,7 +29,7 @@
 | NCS | UAK id 와 secret, NCS appkey |
 | API Gateway | UAK id 와 secret, API Gateway appkey |
 | Secure Key Manager | UAK id 와 secret, SKM appkey, 키 저장소 IPv4·MAC 인증 |
-| RDS for MySQL | UAK id 와 secret(정적 헤더), RDS for MySQL appkey |
+| RDS for MySQL | UAK id 와 secret(UAK 토큰으로 교환), RDS for MySQL appkey |
 | DNS Plus | DNS Plus appkey (UAK 불필요) |
 
 ## Exit code

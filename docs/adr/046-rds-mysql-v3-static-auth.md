@@ -1,6 +1,6 @@
 # ADR-046: RDS for MySQL 은 API v3 와 UAK 정적 헤더로 호출하고 region 은 명령 옵션으로 받는다
 
-- **status**: `accepted`
+- **status**: `accepted`. API 버전과 인증 방식은 [[adr-051]] 이 v4.0 과 UAK 토큰으로 대체했다. region, 응답 봉투, 오류 코드 결정은 그대로다.
 - **결정**: `nhncloud rds-mysql` 명령은 RDS for MySQL API v3(`/v3.0`)를 호출한다.
   - 인증은 요청마다 `X-TC-APP-KEY`(profile `rds-mysql.appkey`), `X-TC-AUTHENTICATION-ID`, `X-TC-AUTHENTICATION-SECRET`(profile 공통 UAK)를 보낸다. OAuth 토큰으로 교환하지 않고 토큰 캐시를 쓰지 않는다.
   - host 는 `{region}-rds-mysql.api.nhncloudservice.com` 이고, region 은 `--region`(기본 `kr1`)으로 받는다. 일반망은 `kr1`, `kr2`, `jp1`, 공공망(profile `environment: gov`)은 `kr1` 만 받고 `kr1-rds-mysql.api.gov-nhncloudservice.com` 을 쓴다. 그 밖의 region 은 API 호출 전에 종료 코드 3으로 끝난다.

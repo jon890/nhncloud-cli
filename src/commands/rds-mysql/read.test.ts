@@ -18,7 +18,7 @@ vi.mock("../../utils/spinner.js", () => ({ startSpinner: vi.fn(), stopSpinner: v
 const INSTANCE_ID = "11111111-2222-3333-4444-555555555555";
 const JOB_ID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
 
-const client = new RdsMysqlClient("appkey", "uak-id", "uak-secret", "kr1", "real");
+const client = new RdsMysqlClient("appkey", "token", "kr1", "real");
 const listDbUsers = vi.spyOn(client, "listDbUsers");
 const listDbSchemas = vi.spyOn(client, "listDbSchemas");
 const getDbInstance = vi.spyOn(client, "getDbInstance");

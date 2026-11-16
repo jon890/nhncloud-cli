@@ -77,6 +77,11 @@ import { instanceCommand as rdsMysqlInstanceCommand } from "./commands/rds-mysql
 import { schemaCommand as rdsMysqlSchemaCommand } from "./commands/rds-mysql/schema.js";
 import { userCommand as rdsMysqlUserCommand } from "./commands/rds-mysql/user.js";
 import { jobCommand as rdsMysqlJobCommand } from "./commands/rds-mysql/job.js";
+import { backupCommand as rdsMysqlBackupCommand, backupInfoCommand as rdsMysqlBackupInfoCommand } from "./commands/rds-mysql/backup.js";
+import { binlogCommand as rdsMysqlBinlogCommand } from "./commands/rds-mysql/binlog.js";
+import { haCommandGroup as rdsMysqlHaCommand } from "./commands/rds-mysql/ha.js";
+import { parameterGroupCommand as rdsMysqlParameterGroupCommand } from "./commands/rds-mysql/parameter-group.js";
+import { storageCommand as rdsMysqlStorageCommand } from "./commands/rds-mysql/storage.js";
 import { zoneCommand as dnsplusZoneCommand } from "./commands/dnsplus/zone.js";
 import { recordsetCommand as dnsplusRecordsetCommand } from "./commands/dnsplus/recordset.js";
 import { listCommand as loadBalancerListCommand } from "./commands/loadbalancer/list.js";
@@ -392,11 +397,17 @@ program.addCommand(skmCommand);
 
 // RDS for MySQL 커맨드 그룹
 const rdsMysqlCommand = new Command("rds-mysql")
-  .description("NHN Cloud RDS for MySQL DB 인스턴스·스키마·사용자 명령");
+  .description("NHN Cloud RDS for MySQL DB 인스턴스·스키마·사용자·파라미터 그룹·바이너리 로그·스토리지·백업·고가용성 명령");
 rdsMysqlCommand.addCommand(rdsMysqlInstanceCommand);
 rdsMysqlCommand.addCommand(rdsMysqlSchemaCommand);
 rdsMysqlCommand.addCommand(rdsMysqlUserCommand);
 rdsMysqlCommand.addCommand(rdsMysqlJobCommand);
+rdsMysqlCommand.addCommand(rdsMysqlParameterGroupCommand);
+rdsMysqlCommand.addCommand(rdsMysqlBinlogCommand);
+rdsMysqlCommand.addCommand(rdsMysqlStorageCommand);
+rdsMysqlCommand.addCommand(rdsMysqlBackupInfoCommand);
+rdsMysqlCommand.addCommand(rdsMysqlBackupCommand);
+rdsMysqlCommand.addCommand(rdsMysqlHaCommand);
 
 program.addCommand(rdsMysqlCommand);
 

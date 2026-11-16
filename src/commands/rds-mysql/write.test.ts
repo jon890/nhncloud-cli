@@ -24,7 +24,7 @@ const USER_ID = "66666666-7777-8888-9999-000000000000";
 const JOB_ID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
 const PASSWORD = "s3cret-pass";
 
-const client = new RdsMysqlClient("appkey", "uak-id", "uak-secret", "kr1", "real");
+const client = new RdsMysqlClient("appkey", "token", "kr1", "real");
 const getDbInstance = vi.spyOn(client, "getDbInstance");
 const listDbUsers = vi.spyOn(client, "listDbUsers");
 const listDbSchemas = vi.spyOn(client, "listDbSchemas");

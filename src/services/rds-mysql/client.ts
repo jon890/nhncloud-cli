@@ -8,18 +8,33 @@ import { EXIT_API_ERROR } from "../../utils/exit-codes.js";
 import { RdsMysqlApiError } from "./errors.js";
 import {
   classifyJobStatus,
+  isRdsMysqlBackup,
+  isRdsMysqlBackupInfo,
+  isRdsMysqlBinLog,
   isRdsMysqlDbInstance,
   isRdsMysqlDbInstanceDetail,
   isRdsMysqlDbSchema,
   isRdsMysqlDbUser,
+  isRdsMysqlHaInfo,
   isRdsMysqlJob,
+  isRdsMysqlParameterGroup,
+  isRdsMysqlParameterGroupDetail,
+  isRdsMysqlStorageInfo,
+  type RdsMysqlBackup,
+  type RdsMysqlBackupInfo,
+  type RdsMysqlBinLog,
   type RdsMysqlDbInstance,
   type RdsMysqlDbInstanceDetail,
   type RdsMysqlDbSchema,
   type RdsMysqlDbUser,
   type RdsMysqlDbUserCreateInput,
   type RdsMysqlDbUserUpdateInput,
+  type RdsMysqlHaInfo,
   type RdsMysqlJob,
+  type RdsMysqlList,
+  type RdsMysqlParameterGroup,
+  type RdsMysqlParameterGroupDetail,
+  type RdsMysqlStorageInfo,
 } from "./types.js";
 
 /** 작업 상태 조회 간격 기본값 (ADR-047). */
@@ -91,36 +106,49 @@ function withoutHeader(response: Envelope): Record<string, unknown> {
 }
 
 /**
- * RDS for MySQL API v3 클라이언트 (ADR-046).
- * 요청마다 appkey 와 공통 UAK 를 정적 헤더로 보낸다. OAuth 토큰으로 교환하지 않는다.
+ * RDS for MySQL API v4.0 클라이언트 (ADR-051).
+ * 요청마다 appkey 와 공통 UAK 로 교환한 토큰을 `X-NHN-AUTHORIZATION: Bearer` 로 보낸다.
  * 결과는 body 가 아니라 header 옆의 이름 있는 필드로 온다.
  */
 export class RdsMysqlClient {
   private readonly baseUrl: string;
   private readonly headers: Record<string, string>;
 
-  constructor(appKey: string, uakId: string, uakSecret: string, region: string, environment: CloudEnvironment) {
-    this.baseUrl = `https://${rdsMysqlHost(region, environment)}/v3.0`;
+  constructor(appKey: string, accessToken: string, region: string, environment: CloudEnvironment) {
+    this.baseUrl = `https://${rdsMysqlHost(region, environment)}/v4.0`;
     this.headers = {
       "X-TC-APP-KEY": appKey,
-      "X-TC-AUTHENTICATION-ID": uakId,
-      "X-TC-AUTHENTICATION-SECRET": uakSecret,
+      "X-NHN-AUTHORIZATION": `Bearer ${accessToken}`,
     };
   }
 
   /**
    * 요청을 보내고 성공 봉투를 반환한다.
    * 쓰기 요청이 중복 실행되지 않게 재시도하지 않는다.
+   * 문서가 응답 본문이 없다고 한 요청은 빈 본문도 성공으로 본다(allowEmptyBody).
    */
-  private async send(method: HttpMethod, path: string, json?: unknown): Promise<Envelope> {
+  private async send(
+    method: HttpMethod,
+    path: string,
+    opts: { json?: unknown; query?: Record<string, string | number | boolean | undefined>; allowEmptyBody?: boolean } = {},
+  ): Promise<Envelope> {
+    const searchParams = Object.fromEntries(Object.entries(opts.query ?? {}).filter(([, value]) => value !== undefined));
     let response: unknown;
     try {
-      response = await ky[method](`${this.baseUrl}${path}`, {
+      const request = ky[method](`${this.baseUrl}${path}`, {
         headers: this.headers,
-        ...(json === undefined ? {} : { json }),
+        ...(opts.json === undefined ? {} : { json: opts.json }),
+        ...(Object.keys(searchParams).length === 0 ? {} : { searchParams: searchParams as Record<string, string> }),
         retry: 0,
         timeout: DEFAULT_TIMEOUT_MS,
-      }).json<unknown>();
+      });
+      if (opts.allowEmptyBody === true) {
+        const text = await request.text();
+        if (text.trim() === "") return { header: { isSuccessful: true } };
+        response = JSON.parse(text) as unknown;
+      } else {
+        response = await request.json<unknown>();
+      }
     } catch (err) {
       throw await toRdsMysqlError(err);
     }
@@ -131,8 +159,15 @@ export class RdsMysqlClient {
   }
 
   /** 이름 있는 필드 하나를 가드로 검사해 반환한다. 목록이 배열이 아니면 빈 배열로 숨기지 않고 형식 오류로 끝낸다. */
-  private async field<T>(method: HttpMethod, path: string, field: string, guard: Guard<T>, json?: unknown): Promise<T> {
-    const value = (await this.send(method, path, json))[field];
+  private async field<T>(
+    method: HttpMethod,
+    path: string,
+    field: string,
+    guard: Guard<T>,
+    json?: unknown,
+    query?: Record<string, string | number | boolean | undefined>,
+  ): Promise<T> {
+    const value = (await this.send(method, path, { json, query }))[field];
     if (!guard(value)) throw formatError(field);
     return value;
   }
@@ -184,6 +219,113 @@ export class RdsMysqlClient {
 
   deleteDbUser(dbInstanceId: string, dbUserId: string): Promise<string> {
     return this.field("delete", this.userPath(dbInstanceId, dbUserId), "jobId", isString);
+  }
+
+  /** 목록 필드와 totalCounts 를 함께 돌려준다. totalCounts 가 없거나 숫자가 아니면 null 이다. */
+  private async listField<T>(
+    path: string,
+    field: string,
+    guard: Guard<T>,
+    query?: Record<string, string | number | boolean | undefined>,
+  ): Promise<RdsMysqlList<T>> {
+    const response = await this.send("get", path, { query });
+    const items = response[field];
+    if (!arrayOf(guard)(items)) throw formatError(field);
+    const total = response["totalCounts"];
+    // 숫자가 문자열로 올 수 있어(Deploy 응답과 같은 패턴) 숫자 문자열은 바꿔 받는다.
+    const totalCounts =
+      typeof total === "number" ? total : typeof total === "string" && /^\d+$/.test(total) ? Number(total) : null;
+    return { items, totalCounts };
+  }
+
+  listParameterGroups(query: {
+    parameterGroupName?: string;
+    dbVersion?: string;
+    page?: number;
+    size?: number;
+  }): Promise<RdsMysqlList<RdsMysqlParameterGroup>> {
+    return this.listField("/parameter-groups", "parameterGroups", isRdsMysqlParameterGroup, query);
+  }
+
+  getParameterGroup(parameterGroupId: string): Promise<RdsMysqlParameterGroupDetail> {
+    return this.topLevel(
+      `/parameter-groups/${encodeURIComponent(parameterGroupId)}`,
+      "parameterGroup",
+      isRdsMysqlParameterGroupDetail,
+    );
+  }
+
+  /** 복사본의 parameterGroupId 를 돌려준다. 작업(jobId)이 아니라 바로 만들어진다. */
+  copyParameterGroup(
+    parameterGroupId: string,
+    input: { parameterGroupName: string; description?: string },
+  ): Promise<string> {
+    return this.field("post", `/parameter-groups/${encodeURIComponent(parameterGroupId)}/copy`, "parameterGroupId", isString, input);
+  }
+
+  /** 응답 본문이 없는 요청이다. 값만 바꾸고 DB 인스턴스에는 적용하지 않는다. */
+  async updateParameters(parameterGroupId: string, modifiedParameters: { parameterId: string; value: string }[]): Promise<void> {
+    await this.send("put", `/parameter-groups/${encodeURIComponent(parameterGroupId)}/parameters`, {
+      json: { modifiedParameters },
+      allowEmptyBody: true,
+    });
+  }
+
+  async resetParameterGroup(parameterGroupId: string): Promise<void> {
+    await this.send("put", `/parameter-groups/${encodeURIComponent(parameterGroupId)}/reset`, { allowEmptyBody: true });
+  }
+
+  /** DB 인스턴스에 연결할 파라미터 그룹만 바꾼다. 다른 수정 항목은 본문에 넣지 않는다. */
+  setInstanceParameterGroup(dbInstanceId: string, parameterGroupId: string): Promise<string> {
+    return this.field("put", this.instancePath(dbInstanceId), "jobId", isString, { parameterGroupId });
+  }
+
+  async listBinLogs(dbInstanceId: string, deletable: boolean): Promise<RdsMysqlBinLog[]> {
+    return (
+      await this.listField(`${this.instancePath(dbInstanceId)}/binlogs`, "binLogs", isRdsMysqlBinLog, { deletable })
+    ).items;
+  }
+
+  /** `lastBinLogFileName` 직전 파일까지 지운다. 응답 본문이 없어 작업 대기 대상이 아니다. */
+  async purgeBinLogs(dbInstanceId: string, lastBinLogFileName: string): Promise<void> {
+    await this.send("post", `${this.instancePath(dbInstanceId)}/binlogs/purge`, {
+      json: { lastBinLogFileName },
+      allowEmptyBody: true,
+    });
+  }
+
+  getStorageInfo(dbInstanceId: string): Promise<RdsMysqlStorageInfo> {
+    return this.topLevel(`${this.instancePath(dbInstanceId)}/storage-info`, "storageInfo", isRdsMysqlStorageInfo);
+  }
+
+  updateStorageInfo(dbInstanceId: string, body: { storageSize: number; storageAutoscale?: Record<string, unknown> }): Promise<string> {
+    return this.field("put", `${this.instancePath(dbInstanceId)}/storage-info`, "jobId", isString, body);
+  }
+
+  getBackupInfo(dbInstanceId: string): Promise<RdsMysqlBackupInfo> {
+    return this.topLevel(`${this.instancePath(dbInstanceId)}/backup-info`, "backupInfo", isRdsMysqlBackupInfo);
+  }
+
+  listBackups(query: {
+    backupType?: string;
+    dbInstanceId?: string;
+    dbVersion?: string;
+    page?: number;
+    size?: number;
+  }): Promise<RdsMysqlList<RdsMysqlBackup>> {
+    return this.listField("/backups", "backups", isRdsMysqlBackup, query);
+  }
+
+  getHaInfo(dbInstanceId: string): Promise<RdsMysqlHaInfo> {
+    return this.topLevel(`${this.instancePath(dbInstanceId)}/high-availability`, "highAvailability", isRdsMysqlHaInfo);
+  }
+
+  haAction(dbInstanceId: string, action: "pause" | "resume" | "repair" | "split"): Promise<string> {
+    return this.field("post", `${this.instancePath(dbInstanceId)}/high-availability/${action}`, "jobId", isString);
+  }
+
+  rebuildDbInstance(dbInstanceId: string): Promise<string> {
+    return this.field("post", `${this.instancePath(dbInstanceId)}/rebuild`, "jobId", isString);
   }
 
   getJob(jobId: string): Promise<RdsMysqlJob> {

@@ -9,7 +9,7 @@
   - `user update` 는 권한(`authorityType`)만 바꾼다. 요청에는 목록 조회로 읽은 현재 `tlsOption` 을 함께 넣고, `authenticationPlugin` 과 비밀번호는 넣지 않는다. 인스턴스 상세의 `supportAuthenticationPlugin` 이 `false` 면 `tlsOption` 도 넣지 않는다.
   - 인증 플러그인 변경은 비밀번호 변경과 함께 콘솔에서 한다. CLI 에는 비밀번호 변경 기능을 두지 않는다.
   - 권한 유형은 `read`, `crud`, `ddl`, `all` 만 받는다. `CUSTOM` 은 받지 않는다.
-  - 쓰기 응답은 `jobId` 뿐이다. `--wait` 는 `GET /v3.0/jobs/{jobId}` 를 3초 간격으로 조회한다(기본 상한 300초, `--timeout <sec>`).
+  - 쓰기 응답은 `jobId` 뿐이다. `--wait` 는 `GET /v4.0/jobs/{jobId}` 를 3초 간격으로 조회한다(기본 상한 300초, `--timeout <sec>`).
     - `COMPLETED` 는 성공(종료 코드 0)이다.
     - `FAILED`, `ERROR`, `CANCELED`, `INTERRUPTED`, `CANNOT_PROGRESS`, `FAIL_TO_READY`, `FAIL_TO_REGISTER` 는 서버가 알린 실패(종료 코드 1)다. 원인을 고쳐 다시 실행하라고 안내한다.
     - `COMPLETED_WITH_ERROR`, `DELETED`, 대기 상한 초과, 상태 조회 실패는 결과 불확정(종료 코드 1)이다. 다시 실행하지 말고 `job get` 과 목록으로 확인하라고 안내한다.
@@ -22,7 +22,7 @@
   - 사용자 수정 API 는 네 필드(`dbPassword`, `authorityType`, `authenticationPlugin`, `tlsOption`)가 모두 선택이고, 생략한 필드를 유지하는지 문서에 없다. `host` 와 사용자 이름은 바꿀 수 없다.
   - 콘솔 가이드는 인증 플러그인 변경에 비밀번호 변경을 요구한다. 「사용자 인증에 적용할 플러그인을 변경하려면 반드시 Password를 변경해야 합니다.」, 「Password를 입력하지 않으면 변경되지 않습니다.」 서버가 `authenticationPlugin` 필드가 있는 것만으로 플러그인 변경 경로를 타면, 비밀번호 없는 요청은 거절되거나 인증 문자열 없이 `ALTER USER ... IDENTIFIED WITH <plugin>` 을 실행할 수 있다. TLS 옵션에는 이런 조건이 문서에 없다.
   - 권한 유형은 인스턴스 전체(`*.*`)에 적용된다. 콘솔 가이드의 GRANT 문이 모두 `ON *.*` 이고, 생성·수정 요청에 스키마를 고르는 필드가 없다. `CUSTOM` 은 외부 백업 복원으로 생긴 사용자의 권한을 나타내고, `CUSTOM` 에서 다른 권한으로 바꾸면 되돌릴 수 없다.
-  - 공식 문서: [API v3.0 가이드](https://docs.nhncloud.com/ko/Database/RDS%20for%20MySQL/ko/api-guide-v3.0/), [DB 인스턴스 콘솔 가이드](https://docs.nhncloud.com/ko/Database/RDS%20for%20MySQL/ko/db-instance/)의 「DB 스키마 & 사용자」 절.
+  - 공식 문서: [API v4.0 가이드](https://docs.nhncloud.com/ko/Database/RDS%20for%20MySQL/ko/api-guide-v4.0/), [DB 인스턴스 콘솔 가이드](https://docs.nhncloud.com/ko/Database/RDS%20for%20MySQL/ko/db-instance/)의 「DB 스키마 & 사용자」 절.
 - **대안 기각**:
   - `--yes` 가 없으면 종료 코드 3([[adr-040]] 의 삭제 방식): 무엇이 바뀔지 보려면 명령을 실패시켜야 한다. 미리보기는 같은 검사를 하면서 쓰지 않는다([[adr-045]] 와 같은 선택).
   - `--password` 인수: 프로세스 목록과 셸 이력에 남는다.

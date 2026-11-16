@@ -146,7 +146,7 @@ nhncloud instance create --help
 | NCS | template을 기준으로 workload를 만들고 관찰 | [ncs.md](../skills/nhncloud-cli/references/ncs.md) |
 | API Gateway | service·stage·resource 탐색 뒤 설정·배포 | [apigateway.md](../skills/nhncloud-cli/references/apigateway.md) |
 | Secure Key Manager | 키 저장소와 키 탐색 뒤 기밀 데이터 조회, 암복호화, 서명과 검증 | [skm.md](../skills/nhncloud-cli/references/skm.md) |
-| RDS for MySQL | DB 인스턴스 탐색 뒤 DB 스키마와 DB 사용자 조회·변경 | [rds-mysql.md](../skills/nhncloud-cli/references/rds-mysql.md) |
+| RDS for MySQL | DB 인스턴스 탐색 뒤 스키마·사용자·파라미터 그룹·바이너리 로그·스토리지·백업·고가용성 조회와 변경 | [rds-mysql.md](../skills/nhncloud-cli/references/rds-mysql.md) |
 | DNS Plus | 존 탐색 뒤 레코드 세트 조회·생성·삭제 | [dnsplus.md](../skills/nhncloud-cli/references/dnsplus.md) |
 
 ## 조회와 페이지 이동
@@ -293,15 +293,17 @@ flowchart TD
 
 ### RDS for MySQL
 
-profile 공통 UAK를 정적 헤더로, `rds-mysql.appkey`를 `X-TC-APP-KEY` 헤더로 보낸다. 망은 profile `environment`로, region은 `--region`(기본 `kr1`)으로 고른다([[adr-046]]).
+profile 공통 UAK 토큰을 `X-NHN-AUTHORIZATION: Bearer` 헤더로, `rds-mysql.appkey`를 `X-TC-APP-KEY` 헤더로 보낸다. 망은 profile `environment`로, region은 `--region`(기본 `kr1`)으로 고른다([[adr-046]], [[adr-051]]).
 일반망은 `kr1`, `kr2`, `jp1`, 공공망은 `kr1`만 받는다. 다른 region은 자격증명을 읽은 뒤, API 호출 전에 종료 코드 3으로 끝난다.
 `rds-mysql instance list`로 DB 인스턴스 ID를 찾고, `schema list`와 `user list`에 넘긴다. `user list`의 `dbUserId`를 `user update`와 `user delete`에 넘긴다.
 ID 인수(`<db-instance-id>`, `<db-user-id>`, `<job-id>`)는 UUID만 받고 이름은 해석하지 않는다. 같은 이름의 사용자가 host마다 있을 수 있기 때문이다. 형식이 틀리면 자격증명을 읽기 전에 종료 코드 3으로 끝난다.
-목록 API에는 페이지가 없어 한 번의 응답을 그대로 출력한다. 빈 목록도 성공이다.
+DB 인스턴스 목록과 스키마·사용자 목록에는 페이지가 없어 한 번의 응답을 그대로 출력한다. `parameter-group list`와 `backup list`는 `--page`, `--size`를 받고, 전체 개수가 더 많으면 stderr에 안내한다. 빈 목록도 성공이다.
+
+관리 명령은 대상별 그룹이다. 파라미터 그룹은 `parameter-group list`, `get`, `copy`, `set-parameters`, `reset`이다. DB 인스턴스는 `instance set-parameter-group`, `rebuild`이다. 그 밖에 `binlog list`, `binlog purge`, `storage get`, `storage expand`, `backup-info get`, `backup list`, `ha get`, `ha pause`, `ha resume`, `ha repair`, `ha split`이 있다. 정확한 이름과 옵션은 `nhncloud commands --json`이 소유한다.
 
 #### RDS for MySQL 쓰기
 
-`schema create`, `user create`, `user update`, `user delete`는 같은 흐름을 따른다([[adr-047]]).
+모든 쓰기 명령(`schema create`, `user create`·`update`·`delete`, `parameter-group copy`·`set-parameters`·`reset`, `instance set-parameter-group`·`rebuild`, `binlog purge`, `storage expand`, `ha pause`·`resume`·`repair`·`split`)은 같은 흐름을 따른다([[adr-047]], [[adr-051]]).
 
 ```mermaid
 flowchart TD
@@ -339,6 +341,12 @@ flowchart TD
 - 권한(`read`, `crud`, `ddl`, `all`)은 인스턴스의 모든 스키마에 적용된다. 스키마 하나로 좁히려면 DB에 접속해 `GRANT ... ON <schema>.*`를 직접 실행해야 하고, 그 권한은 콘솔에 `CUSTOM`으로 보일 수 있다.
 - `--quiet`은 요청했을 때 `jobId`만 출력한다. 미리보기와 `unchanged`는 stdout에 아무것도 내지 않는다.
 - `--wait` 없이 요청한 작업은 `rds-mysql job get <job-id>`로 상태를 확인한다. `--timeout`은 `--wait`와 함께만 쓴다.
+- `parameter-group copy`·`set-parameters`·`reset`과 `binlog purge`는 응답에 작업이 없다. `--wait`와 `--timeout`이 없고, 요청이 접수되면 반영된 것으로 보고 `parameter-group get`이나 `binlog list`로 확인하라고 안내한다. `copy`의 `--quiet`은 새 `parameterGroupId`를 출력한다.
+- `parameter-group set-parameters`는 파라미터 그룹의 값만 바꾼다. 미리보기는 바뀌는 항목만 전후 값과 적용 유형을 보이고, 값이 이미 같으면 요청하지 않는다. 연결된 DB 인스턴스에는 적용되지 않으며 재시작이 필요한 파라미터(`applyType` `FILE`, 추정)는 경고한다. `reset`은 기본값과 다른 항목만 되돌린다.
+- `instance set-parameter-group`은 `parameterGroupId`만 보낸다. 엔진 버전이 다르면 종료 코드 3이고, 현재 그룹과 값이 다른 파라미터에 재시작이 필요한 것이 있으면 미리보기에 적는다.
+- `binlog purge --before <파일>`은 그 파일을 남기고 직전까지 지운다. 파일이 없으면 종료 코드 3이고, 가장 오래된 파일이면 요청하지 않는다. 미리보기에 지울 파일 수와 크기 합을 보이고 특정 시점 복원이 안 될 수 있다고 경고한다.
+- `storage expand --size <GB>`는 현재보다 작으면 종료 코드 3이고 2048 GB 를 넘으면 요청 전에 막는다. 같은 크기는 `unchanged`다. 자동 확장을 쓰고 있으면 현재 설정을 함께 보낸다.
+- `instance rebuild`는 정상 Primary(`MASTER`)를 종료 코드 3으로 막는다. `ha repair`·`split`은 장애 조치된 Primary가 아니면 경고만 한다.
 
 ### DNS Plus
 
