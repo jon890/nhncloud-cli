@@ -155,6 +155,9 @@ nhncloud skm secret get <key-id> --quiet                      # 기밀 데이터
 nhncloud skm secret get <key-id> --field <name> --quiet       # JSON 기밀 데이터의 필드 하나
 printf '%s' "$VALUE" | nhncloud skm secret patch <key-id> <field> --replace --yes   # JSON 기밀 데이터의 필드 하나만 바꾸기
 nhncloud rds-mysql user list <db-instance-id>                  # RDS for MySQL DB 사용자 목록
+nhncloud rds-mysql binlog list <db-instance-id> --deletable   # 삭제할 수 있는 바이너리 로그
+nhncloud rds-mysql binlog purge <db-instance-id> --before mysql-bin.000010   # 지울 파일 수와 크기만 미리보기
+nhncloud rds-mysql storage expand <db-instance-id> --size 300 --yes --wait    # 스토리지를 300GB 로 늘리고 완료까지 대기
 nhncloud rds-mysql user create <db-instance-id> --name app --host '10.0.0.%' --authority crud --password-file ./pw.txt   # 미리보기
 nhncloud rds-mysql user create <db-instance-id> --name app --host '10.0.0.%' --authority crud --password-file ./pw.txt --yes --wait   # 반영하고 완료까지 대기
 nhncloud dnsplus zone list                                    # DNS Plus 존 목록

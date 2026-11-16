@@ -1,14 +1,14 @@
 # RDS for MySQL 명령 안내
 
-`rds-mysql` 명령군은 RDS for MySQL의 DB 인스턴스, DB 스키마, DB 사용자를 다룬다.
-DB 인스턴스는 조회만 하고, 스키마 생성과 사용자 생성·권한 변경·삭제는 비동기 작업으로 요청한다.
+`rds-mysql` 명령군은 RDS for MySQL의 DB 인스턴스, DB 스키마, DB 사용자, 파라미터 그룹, 바이너리 로그, 스토리지, 백업, 고가용성을 다룬다.
+쓰기는 모두 `--yes`가 없으면 미리보기다. 대부분 비동기 작업이라 `--wait`로 완료까지 기다릴 수 있다.
 
 ## 인증과 설정
 
 공통 UAK와 RDS for MySQL `appKey`가 필요하다. 프로젝트 통합 appkey도 쓸 수 있다.
 `nhncloud configure --rds-mysql-appkey <appkey>`로 profile의 `rds-mysql.appkey`를 설정한다.
 
-- 요청마다 UAK를 정적 헤더로 보내므로 토큰 발급 단계가 없다.
+- UAK로 OAuth 토큰을 받아 `X-NHN-AUTHORIZATION`으로 보낸다. 토큰은 다른 OAuth 서비스와 같은 캐시를 쓴다. API는 v4.0이다.
 - 일반망의 `--region`은 `kr1`(기본), `kr2`, `jp1`이다.
 - 공공망은 profile의 `"environment": "gov"`로 고르고 `kr1`만 받는다. 다른 region은 API를 호출하기 전에 종료 코드 3이다.
 - 프로젝트 권한 `RDS for MySQL VIEWER`는 조회 명령만 쓸 수 있다.
@@ -26,9 +26,16 @@ nhncloud rds-mysql user list <db-instance-id>
 nhncloud rds-mysql user update <db-instance-id> <db-user-id> --authority crud          # 미리보기
 nhncloud rds-mysql user delete <db-instance-id> <db-user-id>                           # 미리보기
 nhncloud rds-mysql job get <job-id>
+nhncloud rds-mysql parameter-group list [--name <text>] [--db-version <version>] [--page <n>] [--size <n>]
+nhncloud rds-mysql parameter-group get <parameter-group-id> [--parameter <text>]
+nhncloud rds-mysql binlog list <db-instance-id> [--deletable]
+nhncloud rds-mysql storage get <db-instance-id>
+nhncloud rds-mysql backup-info get <db-instance-id>
+nhncloud rds-mysql backup list [--instance <db-instance-id>] [--type auto|manual] [--page <n>] [--size <n>]
+nhncloud rds-mysql ha get <db-instance-id>
 ```
 
-목록 API에는 페이지가 없어 한 번의 응답을 그대로 출력한다. 빈 목록도 성공이다.
+인스턴스·스키마·사용자 목록 API에는 페이지가 없어 한 번의 응답을 그대로 출력한다. `parameter-group list`와 `backup list`는 `--page`, `--size`(1~100, 기본 20)를 받고, 전체 개수가 더 많으면 stderr에 안내한다. 빈 목록도 성공이다.
 
 `--quiet`가 출력하는 값은 다음과 같다.
 
@@ -36,7 +43,10 @@ nhncloud rds-mysql job get <job-id>
 - `schema list`: `dbSchemaName`
 - `user list`: `dbUserId`
 - `job get`: `jobStatus`
-- `schema create`·`user create`·`user update`·`user delete`: 요청했을 때만 `jobId`. 미리보기와 변경 없음은 아무것도 출력하지 않는다.
+- `parameter-group list`: `parameterGroupId`, `parameter-group get`: `parameterName`
+- `binlog list`: `binLogFileName`, `backup list`: `backupId`, `ha get`: `haStatus`, `backup-info get`: `backupPeriod`, `storage get`: `storageSize`
+- `parameter-group copy`: 요청했을 때만 새 `parameterGroupId`
+- 작업을 요청하는 쓰기(`schema create`, `user create`·`update`·`delete`, `instance set-parameter-group`, `instance rebuild`, `storage expand`, `ha pause`·`resume`·`repair`·`split`): 요청했을 때만 `jobId`. 미리보기와 변경 없음은 아무것도 출력하지 않는다.
 
 ## 쓰기 명령
 
@@ -105,3 +115,30 @@ CLI가 DB에 접속해 권한을 관리하지는 않는다.
 결과를 모르는 실패 뒤에 같은 생성 명령을 다시 실행하면 사전 검사가 이미 있는 대상을 종료 코드 3으로 막아 중복 생성을 피한다.
 `--wait`가 실패해도 `jobId`가 담긴 결과는 먼저 출력한다.
 작업 상태 값의 해석은 공식 문서가 불완전하다. 성공은 `COMPLETED` 하나뿐이고, 모르는 상태는 진행 중으로 보고 상한까지 기다린다.
+
+## 파라미터 그룹, 바이너리 로그, 스토리지, 고가용성
+
+콘솔에서만 하던 용량 정리와 파라미터 변경을 같은 쓰기 규칙으로 한다. 쓰기는 모두 `--yes`가 없으면 미리보기다.
+
+```bash
+nhncloud rds-mysql binlog list <db-instance-id>                                     # 번호순 목록과 합계
+nhncloud rds-mysql binlog purge <db-instance-id> --before mysql-bin.000010          # 미리보기: 지울 파일 수·크기 합
+nhncloud rds-mysql binlog purge <db-instance-id> --before mysql-bin.000010 --yes
+nhncloud rds-mysql parameter-group copy <parameter-group-id> --name <new-name> --yes
+nhncloud rds-mysql parameter-group set-parameters <parameter-group-id> --set binlog_expire_logs_seconds=86400 --yes
+nhncloud rds-mysql instance set-parameter-group <db-instance-id> --parameter-group-id <id> --yes --wait
+nhncloud rds-mysql storage expand <db-instance-id> --size 300 --yes --wait
+nhncloud rds-mysql ha repair <db-instance-id> --yes --wait
+nhncloud rds-mysql instance rebuild <db-instance-id> --yes --wait
+```
+
+- `parameter-group copy`, `set-parameters`, `reset`과 `binlog purge`는 응답에 작업이 없어 `--wait`가 없다. 요청이 접수되면 반영된 것으로 보고 `parameter-group get`이나 `binlog list`로 확인한다.
+- `set-parameters`는 파라미터 그룹의 값만 바꾼다. 연결된 DB 인스턴스에는 자동으로 적용되지 않고 그룹이 `NEED_TO_APPLY`가 된다. 콘솔의 「파라미터 그룹 변경 사항 적용」(유지 관리)으로 적용하며, 재시작이 필요한 파라미터는 적용할 때 DB 인스턴스가 재시작된다. 미리보기는 바뀌는 항목만 전후 값과 적용 유형을 보인다. `applyType`의 `FILE`은 재시작 필요, `BOTH`는 동적, `SESSION`은 세션 단위로 풀어 쓰며 API가 뜻을 밝히지 않아 「추정」이라고 표시한다.
+- `set-parameters --set`은 `이름=값`이고 여러 번 쓸 수 있다. 없는 파라미터, 수정할 수 없는 파라미터(`updateType` `CONSTANT`), 형식 오류는 종료 코드 3이다. 값이 이미 같으면 요청하지 않는다.
+- `parameter-group reset`은 기본값과 다른 항목만 되돌린다. 이전 값을 복구하는 API가 없으므로 필요하면 먼저 `copy`로 복사본을 만든다.
+- `instance set-parameter-group`은 파라미터 그룹만 바꾸며 재시작이 따를 수 있다. 엔진 버전이 다르면 종료 코드 3이다.
+- `binlog purge --before <파일>`은 그 파일을 남기고 직전까지 지운다. 지운 파일은 되돌릴 수 없고 특정 시점 복원이 안 될 수 있으며, 복제본이 읽지 않은 파일을 지우면 복제가 중단될 수 있다. 파일이 없으면 종료 코드 3이다.
+- `storage expand --size <GB>`는 늘리기만 한다. 현재보다 작으면 종료 코드 3이고 2048GB를 넘기면 요청 전에 막는다. 스토리지 자동 확장을 쓰고 있으면 현재 설정을 함께 보낸다.
+- `ha pause`는 자동 장애 조치를 멈추므로 끝나면 `ha resume`으로 되돌린다. `ha repair`는 장애 조치된 Primary를 복구하고, 실패하면 `instance rebuild`로 재구축한다. `ha split`은 되돌리기 어렵다.
+- `instance rebuild`는 `FAILED_MASTER`, `CANDIDATE_MASTER`, `READ_ONLY_SLAVE`에만 한다. 대상의 모든 데이터베이스를 지우고 Primary에서 다시 만든다. 정상 Primary는 종료 코드 3이다.
+- 목록과 상세 조회로 바뀐 값을 확인한다. 다른 작업이 진행 중이면(`progressStatus`가 `NONE`이 아니면) stderr에 경고한다.
