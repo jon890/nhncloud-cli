@@ -246,6 +246,14 @@ describe("rds-mysql DB 인스턴스 수명주기 명령", () => {
       expect(spies.modifyDbInstance).not.toHaveBeenCalled();
     });
 
+    it("같은 보안 그룹을 두 번 지정해도 현재 목록과 다르면 다르다고 본다", async () => {
+      spies.getDbInstance.mockResolvedValue({ ...INSTANCE, dbSecurityGroupIds: [SG, FLAVOR] });
+
+      await run("--json", "instance", "modify", ID, "--security-group-id", SG, "--security-group-id", SG, "--yes");
+
+      expect(spies.modifyDbInstance).toHaveBeenCalledWith(ID, expect.objectContaining({ dbSecurityGroupIds: [SG, SG] }));
+    });
+
     it("달라지는 항목과 제어 옵션만 보내고 재시작 경고를 낸다", async () => {
       await run("--json", "instance", "modify", ID, "--description", "old", "--port", "13306", "--no-slow-query-analysis", "--backup", "--yes");
 

@@ -398,7 +398,7 @@ program.addCommand(skmCommand);
 
 // RDS for MySQL 커맨드 그룹
 const rdsMysqlCommand = new Command("rds-mysql")
-  .description("NHN Cloud RDS for MySQL DB 인스턴스·스키마·사용자·파라미터 그룹·바이너리 로그·스토리지·백업·고가용성·사양·서브넷 조회 명령");
+  .description("NHN Cloud RDS for MySQL DB 인스턴스·스키마·사용자·파라미터 그룹·바이너리 로그·스토리지·백업·고가용성 조회와 변경, 사양·서브넷 조회 명령");
 rdsMysqlCommand.addCommand(rdsMysqlInstanceCommand);
 rdsMysqlCommand.addCommand(rdsMysqlSchemaCommand);
 rdsMysqlCommand.addCommand(rdsMysqlUserCommand);

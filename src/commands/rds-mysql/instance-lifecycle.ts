@@ -507,7 +507,11 @@ const modifyCommand = withRdsMysqlWriteOptions(
   const sameAsCurrent = (key: string, value: unknown): boolean => {
     const current = instance[key];
     if (Array.isArray(value)) {
-      return Array.isArray(current) && current.length === value.length && value.every((v) => current.includes(v));
+      // 중복 입력이 있어도 집합으로 비교한다.
+      if (!Array.isArray(current)) return false;
+      const wanted = new Set(value);
+      const existing = new Set(current);
+      return wanted.size === existing.size && [...wanted].every((v) => existing.has(v));
     }
     return current === value;
   };
