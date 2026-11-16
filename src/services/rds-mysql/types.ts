@@ -439,3 +439,57 @@ export function isRdsMysqlMaintenance(value: unknown): value is RdsMysqlMaintena
     isOptionalBoolean(value["required"])
   );
 }
+
+export interface RdsMysqlRestorationInfo {
+  oldestRestorableYmdt?: string | null;
+  latestRestorableYmdt?: string | null;
+  restorableBackups?: Record<string, unknown>[] | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlCertificate {
+  fileName: string;
+  certificateType: string;
+  fileSize?: number | null;
+  createdYmdt?: string | null;
+  [key: string]: unknown;
+}
+
+export interface RdsMysqlLogFile {
+  logFileName: string;
+  logFileType: string;
+  logFileSize?: number | null;
+  createdYmdt?: string | null;
+  [key: string]: unknown;
+}
+
+export function isRdsMysqlBackupDetail(value: unknown): value is Record<string, unknown> {
+  return isRecord(value) && hasOptionalStrings(value, ["backupStatus", "backupMethodType"]);
+}
+
+export function isRdsMysqlRestorationInfo(value: unknown): value is RdsMysqlRestorationInfo {
+  if (!isRecord(value)) return false;
+  const backups = value["restorableBackups"];
+  return (
+    hasOptionalStrings(value, ["oldestRestorableYmdt", "latestRestorableYmdt"]) &&
+    (backups === undefined || backups === null || (Array.isArray(backups) && backups.every(isRecord)))
+  );
+}
+
+export function isRdsMysqlCertificate(value: unknown): value is RdsMysqlCertificate {
+  if (!isRecord(value)) return false;
+  return (
+    hasStrings(value, ["fileName", "certificateType"]) &&
+    hasOptionalStrings(value, ["createdYmdt"]) &&
+    isOptionalNumber(value["fileSize"])
+  );
+}
+
+export function isRdsMysqlLogFile(value: unknown): value is RdsMysqlLogFile {
+  if (!isRecord(value)) return false;
+  return (
+    hasStrings(value, ["logFileName", "logFileType"]) &&
+    hasOptionalStrings(value, ["createdYmdt"]) &&
+    isOptionalNumber(value["logFileSize"])
+  );
+}
