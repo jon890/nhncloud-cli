@@ -18,6 +18,7 @@ import {
   withRdsMysqlSpinner,
   withRdsMysqlWriteOptions,
 } from "./helpers.js";
+import { lifecycleCommands } from "./instance-lifecycle.js";
 import { describeApplyType, displayParameterName, diffParameterGroups, requiresRestart } from "./parameter-group.js";
 
 const listCommand = withRdsMysqlOptions(new Command("list").description("DB 인스턴스 목록을 조회한다")).action(
@@ -187,8 +188,9 @@ const rebuildCommand = withRdsMysqlWriteOptions(
 });
 
 export const instanceCommand = new Command("instance")
-  .description("DB 인스턴스 조회, 파라미터 그룹 변경, 재구축 명령")
+  .description("DB 인스턴스 조회, 생성, 수정, 시작·정지·재시작, 승격, 복제, 삭제, 파라미터 그룹 변경, 재구축 명령")
   .addCommand(listCommand)
   .addCommand(getCommand)
   .addCommand(setParameterGroupCommand)
   .addCommand(rebuildCommand);
+for (const command of lifecycleCommands()) instanceCommand.addCommand(command);
