@@ -37,6 +37,17 @@ nhncloud rds-mysql restore info <db-instance-id>
 nhncloud rds-mysql certificate list <db-instance-id>
 nhncloud rds-mysql log-file list <db-instance-id> [--type error|binlog|general|slow-query|audit|backup]
 nhncloud rds-mysql log-file get <db-instance-id> <log-file-name> --type error [--output-file <path>]
+nhncloud rds-mysql db-security-group list [--page <n>] [--size <n>]
+nhncloud rds-mysql db-security-group get <db-security-group-id>
+nhncloud rds-mysql user-group list [--page <n>] [--size <n>]
+nhncloud rds-mysql user-group get <user-group-id>
+nhncloud rds-mysql notification-group list
+nhncloud rds-mysql notification-group get <notification-group-id>
+nhncloud rds-mysql metric list
+nhncloud rds-mysql metric statistics <db-instance-id> --metric <measure-name> (--last 1h | --from <iso> [--to <iso>]) [--interval <minutes>]
+nhncloud rds-mysql event list (--last 1d | --from <iso> [--to <iso>]) [--category ALL|INSTANCE|DB_SECURITY_GROUP|MONITORING|JOB|BACKUP|TENANT] [--source <id>] [--keyword <text>] [--asc]
+nhncloud rds-mysql event codes
+nhncloud rds-mysql event-subscription list [--name <text>] [--user-group <id>]
 nhncloud rds-mysql ha get <db-instance-id>
 nhncloud rds-mysql instance network <db-instance-id>
 nhncloud rds-mysql instance maintenances <db-instance-id> [--type <type>] [--status <statuses>] [--category <category>]
@@ -60,7 +71,8 @@ nhncloud rds-mysql project members
 - `parameter-group list`: `parameterGroupId`, `parameter-group get`: `parameterName`
 - `binlog list`: `binLogFileName`, `backup list`: `backupId`, `ha get`: `haStatus`, `backup-info get`: `backupPeriod`, `storage get`: `storageSize`, `backup get`: `backupId`, `restore info`: 복원 가능한 `backupId`, `certificate list`·`log-file list`: 파일 이름
 - `flavor list`: `dbFlavorId`, `db-version list`: `dbVersion`, `storage types`: 유형 이름, `subnet list`: `subnetId`, `availability-zone list`: 이름, `project regions`: `regionCode`, `project members`: `memberId`, `instance maintenances`: `maintenanceId`, `instance network`: 접속 도메인
-- `parameter-group copy`: 요청했을 때만 새 `parameterGroupId`
+- `parameter-group create`·`copy`, `db-security-group create`, `user-group create`, `notification-group create`, `event-subscription create`: 요청했을 때만 새 ID
+- `db-security-group list`·`get`: 보안 그룹 ID(`get`은 규칙 ID), `user-group list`: `userGroupId`, `user-group get`: `memberId`, `notification-group list`: `notificationGroupId`, `notification-group get`: 감시 대상 DB 인스턴스와 사용자 그룹 ID, `metric list`·`statistics`: `measureName`, `event list`·`codes`: `eventCode`, `event-subscription list`: `eventSubscriptionId`
 - 작업을 요청하는 쓰기(`schema create`, `user create`·`update`·`delete`, `instance set-parameter-group`, `instance rebuild`, `instance create`·`replicate`·`modify`·`start`·`stop`·`restart`·`promote`·`delete`·`enable-public-access`·`disable-public-access`, `storage expand`, `ha pause`·`resume`·`repair`·`split`, `backup create`·`delete`·`export`·`restore`, `backup-info update`, `restore point-in-time`·`from-object-storage`, `certificate export`, `log-file export`): 요청했을 때만 `jobId`. 미리보기와 변경 없음은 아무것도 출력하지 않는다.
 
 ## 쓰기 명령
@@ -139,7 +151,9 @@ CLI가 DB에 접속해 권한을 관리하지는 않는다.
 nhncloud rds-mysql binlog list <db-instance-id>                                     # 번호순 목록과 합계
 nhncloud rds-mysql binlog purge <db-instance-id> --before mysql-bin.000010          # 미리보기: 지울 파일 수·크기 합
 nhncloud rds-mysql binlog purge <db-instance-id> --before mysql-bin.000010 --yes
+nhncloud rds-mysql parameter-group create --name <new-name> --db-version MYSQL_V8411 --yes   # 엔진 기본값으로 새 그룹
 nhncloud rds-mysql parameter-group copy <parameter-group-id> --name <new-name> --yes
+nhncloud rds-mysql parameter-group delete <parameter-group-id> --yes
 nhncloud rds-mysql parameter-group set-parameters <parameter-group-id> --set binlog_expire_logs_seconds=86400 --yes
 nhncloud rds-mysql instance set-parameter-group <db-instance-id> --parameter-group-id <id> --yes --wait
 nhncloud rds-mysql storage expand <db-instance-id> --size 300 --yes --wait
@@ -147,9 +161,10 @@ nhncloud rds-mysql ha repair <db-instance-id> --yes --wait
 nhncloud rds-mysql instance rebuild <db-instance-id> --yes --wait
 ```
 
-- `parameter-group copy`, `set-parameters`, `reset`과 `binlog purge`는 응답에 작업이 없어 `--wait`가 없다. 요청이 접수되면 반영된 것으로 보고 `parameter-group get`이나 `binlog list`로 확인한다.
+- `parameter-group create`, `copy`, `set-parameters`, `reset`, `delete`와 `binlog purge`는 응답에 작업이 없어 `--wait`가 없다. 요청이 접수되면 반영된 것으로 보고 `parameter-group get`이나 `binlog list`로 확인한다.
 - `set-parameters`는 파라미터 그룹의 값만 바꾼다. 연결된 DB 인스턴스에는 자동으로 적용되지 않고 그룹이 `NEED_TO_APPLY`가 된다. 콘솔의 「파라미터 그룹 변경 사항 적용」(유지 관리)으로 적용하며, 재시작이 필요한 파라미터는 적용할 때 DB 인스턴스가 재시작된다. 미리보기는 바뀌는 항목만 전후 값과 적용 유형을 보인다. `applyType`의 `FILE`은 재시작 필요, `BOTH`는 동적, `SESSION`은 세션 단위로 풀어 쓰며 API가 뜻을 밝히지 않아 「추정」이라고 표시한다.
 - `set-parameters --set`은 `이름=값`이고 여러 번 쓸 수 있다. 없는 파라미터, 수정할 수 없는 파라미터(`updateType` `CONSTANT`), 형식 오류는 종료 코드 3이다. 값이 이미 같으면 요청하지 않는다.
+- `parameter-group create`는 엔진 버전(`db-version list`)과 이름을 확인하고 같은 이름이 있으면 종료 코드 3이다. `delete`는 DB 인스턴스에 연결된 그룹을 서버가 거절하고, 지운 그룹은 되돌릴 수 없다.
 - `parameter-group reset`은 기본값과 다른 항목만 되돌린다. 이전 값을 복구하는 API가 없으므로 필요하면 먼저 `copy`로 복사본을 만든다.
 - `instance set-parameter-group`은 파라미터 그룹만 바꾸며 재시작이 따를 수 있다. 엔진 버전이 다르면 종료 코드 3이다.
 - `binlog purge --before <파일>`은 그 파일을 남기고 직전까지 지운다. 지운 파일은 되돌릴 수 없고 특정 시점 복원이 안 될 수 있으며, 복제본이 읽지 않은 파일을 지우면 복제가 중단될 수 있다. 파일이 없으면 종료 코드 3이다.
@@ -219,3 +234,39 @@ nhncloud rds-mysql log-file export <db-instance-id> --file <log-file-name> --ten
 - `certificate list`는 CA·인증서·키 파일 목록이다. `certificate export --type`은 `ca`, `cert`, `key`(여러 번)이며 `key`는 경고한다.
 - `log-file get`은 한 번에 65533바이트까지만 받는다. 기본은 표준 출력(제어 문자 치환)이고 `--output-file`은 새 파일에 `0600`으로 쓰며 이미 있으면 종료 코드 3이다. `--json`은 `content`와 `truncated`를 담는다. 한도에 닿으면 `log-file export`를 쓴다.
 - 공공망(`environment: gov`)에서 빠진 명령은 없다. v4.0 경로가 일반망과 같다.
+
+## 보안 그룹, 알림, 모니터링, 이벤트
+
+DB 보안 그룹은 DB 인스턴스로 들어오고 나가는 접속을, 알림 그룹은 어떤 DB 인스턴스를 감시해 누구에게 알릴지를 정한다. 쓰기는 모두 `--yes`가 없으면 미리보기다. 이 절의 요청 본문은 실호출로 확인하지 않았고 공식 문서 기준이다.
+
+```bash
+nhncloud rds-mysql db-security-group create --name app-sg --rule ingress,10.0.0.0/24,db --rule egress,0.0.0.0/0,all --yes
+nhncloud rds-mysql db-security-group update <db-security-group-id> --name app-sg2 --description "앱 서버" --yes
+nhncloud rds-mysql db-security-group rule create <db-security-group-id> --direction ingress --cidr 10.1.0.0/16 --port 3306-3310 --yes --wait
+nhncloud rds-mysql db-security-group rule update <db-security-group-id> <rule-id> --cidr 10.2.0.0/16 --yes --wait
+nhncloud rds-mysql db-security-group rule delete <db-security-group-id> <rule-id> [<rule-id>...] --yes --wait
+nhncloud rds-mysql db-security-group delete <db-security-group-id> --yes
+nhncloud rds-mysql user-group create --name ops --member <member-id> --yes        # --all-members 로 프로젝트 멤버 전체
+nhncloud rds-mysql user-group update <user-group-id> --add-member <member-id> --remove-member <member-id> --yes
+nhncloud rds-mysql user-group delete <user-group-id> --yes
+nhncloud rds-mysql notification-group create --name db-alert --instance <db-instance-id> --user-group <user-group-id> --yes
+nhncloud rds-mysql notification-group update <notification-group-id> --add-instance <db-instance-id> --remove-user-group <user-group-id> --no-sms --enable --yes
+nhncloud rds-mysql notification-group delete <notification-group-id> --yes
+nhncloud rds-mysql event-subscription create --name inst-events --category instance --event-code <event-code> --source <db-instance-id> --user-group <user-group-id> --yes
+nhncloud rds-mysql event-subscription update <event-subscription-id> --add-event-code <event-code> --disable --yes
+nhncloud rds-mysql event-subscription delete <event-subscription-id> --yes
+nhncloud rds-mysql metric statistics <db-instance-id> --metric CPU_USAGE --metric MEMORY_USAGE --last 6h --interval 5
+nhncloud rds-mysql event list --last 1d --category instance --keyword failover
+```
+
+- 보안 그룹 규칙은 `--direction`(`ingress`, `egress`), `--cidr`, `--port`로 정한다. `--port`는 번호(`3306`), 범위(`3306-3310`), `db`(DB 수신 포트), `all`(전체)이고 문서의 한도인 3306 이상 65535 이하만 받는다. `--ether-type`을 생략하면 CIDR 로 정하고 둘이 어긋나면 종료 코드 3이다. 그룹 생성의 `--rule`은 `방향,CIDR,포트` 한 덩어리다.
+- 모든 주소(`0.0.0.0/0`, `::/0`)에서 들어오는 규칙을 만들거나 바꾸면 DB 가 외부에 노출될 수 있다고 경고한다. 규칙 생성·수정·삭제는 작업(`jobId`)을 돌려주고, 그룹 생성·수정·삭제는 작업이 없어 `--wait`가 없다.
+- DB 인스턴스에 적용된 보안 그룹과 파라미터 그룹의 삭제는 서버가 거절한다. 삭제는 되돌릴 수 없다.
+- 알림 그룹, 사용자 그룹, 이벤트 구독의 `update`는 현재 값을 읽어 지정한 항목만 바꾼다. 목록(`--add-instance`, `--add-user-group`, `--add-member`, `--add-event-code`, `--add-source`와 `--remove-*`)은 현재 목록에 더하고 뺀다. 문서상 생략한 필드는 기본값(꺼짐, 빈 목록)으로 바뀔 수 있어 현재 값을 포함한 전체를 보낸다. 같은 값을 더하면서 빼거나 없는 값을 빼면 종료 코드 3이고, 바뀌는 값이 없으면 요청하지 않는다.
+- 이메일, SMS, 활성 여부는 `--email`·`--no-email`, `--sms`·`--no-sms`, `--enable`·`--disable`이다. `create`의 기본은 모두 켬이다.
+- 알림이 가지 않는 설정(비활성, 이메일과 SMS 모두 끔, 감시 대상 DB 인스턴스나 사용자 그룹 없음)은 `notification-group get`과 쓰기 미리보기에서 경고한다. 알림 그룹이 있어도 감시 대상이 비어 있으면 저장 공간 가득 참 같은 알림이 가지 않는다.
+- `user-group delete`는 그 그룹을 쓰는 알림 그룹과 이벤트 구독을 먼저 찾아 경고한다. 지우면 그 알림을 받는 사람이 사라진다. 멤버 ID 는 `project members`에서 찾고, 프로젝트 멤버가 아니면 종료 코드 3이다. 멤버 정보에는 이메일 주소가 포함될 수 있다.
+- 알림 그룹의 감시 대상 DB 인스턴스와 사용자 그룹은 요청 전에 있는지 확인하고, 없으면 종료 코드 3이다. 이벤트 구독의 코드는 `event codes`로 확인한다.
+- `metric statistics`와 `event list`의 시각은 시간대가 있는 ISO 8601이다. 요청에는 항상 `+09:00`(콜론 있음)으로 바꿔 보낸다. 서버는 콜론 없는 `+0900`을 받지 못한다. `--last 30m|6h|1d`는 지금까지의 기간이고 `--from`과 함께 쓰지 않는다. 지표 이름은 `metric list`의 `measureName`이고 여러 번 지정할 수 있다.
+- `event-subscription`의 `--source`는 소스 ID 이고 소스의 카테고리는 `--category`를 따른다.
+- 공공망(`environment: gov`)에서 빠진 명령은 없다. v4.0 경로가 일반망과 같고 region 만 `kr1`로 제한된다.
