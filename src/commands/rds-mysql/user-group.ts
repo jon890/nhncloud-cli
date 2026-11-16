@@ -182,7 +182,8 @@ const updateCommand = withRdsMysqlConfirmOptions(
   }
   const currentIds = group.members.map((m) => m.memberId);
   const memberIds = mergeList(currentIds, add, remove);
-  const members = await checkMembers(client, memberIds);
+  // 이미 속한 멤버가 프로젝트를 떠났어도 수정은 막지 않는다. 새로 더하는 멤버만 확인한다.
+  const members = await checkMembers(client, add);
   const missingRemoved = remove.filter((value) => !currentIds.includes(value));
   if (missingRemoved.length > 0 && !(wasAll && opts.allMembers === false)) {
     fail(`이 사용자 그룹에 없는 멤버입니다: ${missingRemoved.join(", ")}. ${HINT} get ${id}로 확인하세요.`);
