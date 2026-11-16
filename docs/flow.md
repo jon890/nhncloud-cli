@@ -346,8 +346,8 @@ flowchart TD
 - `instance set-parameter-group`은 `parameterGroupId`만 보낸다. 엔진 버전이 다르면 종료 코드 3이고, 현재 그룹과 값이 다른 파라미터에 재시작이 필요한 것이 있으면 미리보기에 적는다.
 - `binlog purge --before <파일>`은 그 파일을 남기고 직전까지 지운다. 파일이 없으면 종료 코드 3이고, 가장 오래된 파일이면 요청하지 않는다. 미리보기에 지울 파일 수와 크기 합을 보이고 특정 시점 복원이 안 될 수 있다고 경고한다.
 - `storage expand --size <GB>`는 현재보다 작으면 종료 코드 3이고 2048 GB 를 넘으면 요청 전에 막는다. 같은 크기는 `unchanged`다. 자동 확장을 쓰고 있으면 현재 설정을 함께 보낸다.
-- 복원 명령(`backup restore`, `restore point-in-time`, `restore from-object-storage`)은 새 DB 인스턴스를 만든다([[adr-053]]). 지정한 항목만 본문에 싣고 나머지는 서버가 원본 값으로 채운다. 시점 복원의 `--time`은 시간대가 있는 ISO 8601이어야 하고 `restoration-info`의 범위 밖이면 종료 코드 3이다. 오브젝트 스토리지에서 복원은 원본이 없어 사양·포트·파라미터 그룹·서브넷·가용성 영역·스토리지·백업 설정을 모두 받는다.
-- 오브젝트 스토리지 API 비밀번호(`backup export`, `restore from-object-storage`, `certificate export`, `log-file export`)는 `--password-file`이나 표준 입력으로만 받고 어떤 출력에도 싣지 않는다. 테넌트 ID는 32자리 16진수가 아니면 종료 코드 3이다.
+- 복원 명령(`backup restore`, `restore point-in-time`, `restore from-object-storage`)은 새 DB 인스턴스를 만든다([[adr-053]]). 지정한 항목만 본문에 담고 나머지는 서버가 원본 값으로 채운다. 시점 복원의 `--time`은 시간대가 있는 ISO 8601이어야 하고 `restoration-info`의 범위 밖이면 종료 코드 3이다. 오브젝트 스토리지에서 복원은 원본이 없어 사양·포트·파라미터 그룹·서브넷·가용성 영역·스토리지·백업 설정을 모두 받는다.
+- 오브젝트 스토리지 API 비밀번호(`backup export`, `restore from-object-storage`, `certificate export`, `log-file export`)는 `--password-file`이나 표준 입력으로만 받고 어떤 출력에도 담지 않는다. 테넌트 ID는 32자리 16진수가 아니면 종료 코드 3이다.
 - `log-file get`은 한 번에 65533바이트까지만 받는다. 표준 출력은 제어 문자를 치환하고, `--output-file`은 새 파일에 `0600`으로 쓰며 이미 있으면 종료 코드 3이다.
 - DB 인스턴스 수명주기 명령은 요청 전에 상태를 확인한다([[adr-052]]). 삭제 보호가 켜진 DB 인스턴스의 `delete`, 고가용성 DB 인스턴스의 `restart --force`, 고가용성이 아닌 DB 인스턴스의 `restart --online-failover`, 읽기 복제본이 아닌 `promote`, Primary가 아닌 `replicate`는 종료 코드 3이다. `create`는 사양·서브넷·엔진 버전·스토리지 유형이 목록에 있는지와 파라미터 그룹의 엔진 버전을 본 뒤 미리보기를 낸다. 이미 사용 가능한 `start`, 이미 중지된 `stop`, 같은 값의 삭제 보호 변경과 `modify`는 `unchanged`로 요청하지 않는다.
 - `restart --force`와 삭제 보호 변경은 응답에 작업이 없어 `--wait`가 없다. 응답 본문 없는 쓰기(`parameter-group set-parameters`·`reset`, 삭제 보호 변경)가 HTTP 5xx로 끝나면 대상을 다시 읽어 값이 모두 반영됐는지 보고, 반영됐으면 종료 코드 0과 stderr 경고로, 아니면 오류로 끝낸다.

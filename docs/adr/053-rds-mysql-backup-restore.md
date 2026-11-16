@@ -3,9 +3,9 @@
 - **status**: `accepted`. [[adr-051]], [[adr-052]] 의 쓰기 안전 규칙을 백업·복원·인증서·로그 파일에 넓힌다.
 - **결정**:
   - `backup` 그룹에 `get`, `create`, `delete`, `export`, `restore` 를 더하고, `backup-info` 그룹에 `update` 를 더한다. 복원 조회와 시점 복원, 오브젝트 스토리지에서 복원은 `restore` 그룹(`info`, `point-in-time`, `from-object-storage`)에 둔다. `certificate`(`list`, `export`)와 `log-file`(`list`, `get`, `export`)을 새 그룹으로 둔다. 쓰기는 [[adr-047]] 의 미리보기와 `--wait` 규칙을 따른다.
-  - 복원(`backup restore`, `restore point-in-time`, `restore from-object-storage`)은 원본을 바꾸지 않고 새 DB 인스턴스를 만든다. 요청 본문에는 사용자가 지정한 항목만 싣고, 나머지는 서버가 원본 값으로 채운다. 미리보기는 지정하지 않은 항목을 「원본과 같음」 으로 보인다. 오브젝트 스토리지에서 복원은 원본이 없어 사양, 포트, 파라미터 그룹, 서브넷, 가용성 영역, 스토리지, 백업 설정을 모두 필수로 받는다.
+  - 복원(`backup restore`, `restore point-in-time`, `restore from-object-storage`)은 원본을 바꾸지 않고 새 DB 인스턴스를 만든다. 요청 본문에는 사용자가 지정한 항목만 담고, 나머지는 서버가 원본 값으로 채운다. 미리보기는 지정하지 않은 항목을 「원본과 같음」 으로 보인다. 오브젝트 스토리지에서 복원은 원본이 없어 사양, 포트, 파라미터 그룹, 서브넷, 가용성 영역, 스토리지, 백업 설정을 모두 필수로 받는다.
   - 시점 복원 `--time` 은 시간대가 있는 ISO 8601 만 받고, 요청 전에 `restoration-info` 의 복원 가능 범위와 비교해 밖이면 종료 코드 3 이다. `--time` 이 없으면 서버가 복원 가능한 가장 최근 시점을 쓴다. 바이너리 로그 복원은 `--backup-id`, `--binlog-file`, `--binlog-position` 을 모두 받아야 한다. 백업 ID 만으로 하는 복원(`BACKUP`)은 `backup restore` 가 맡는다.
-  - 오브젝트 스토리지로 내보내거나 거기서 복원할 때의 API 비밀번호는 `--password-file` 이나 표준 입력으로만 받고(`--password` 인수 없음), 미리보기·결과·오류에 싣지 않는다. 테넌트 ID 는 32자리 16진수만 받는다.
+  - 오브젝트 스토리지로 내보내거나 거기서 복원할 때의 API 비밀번호는 `--password-file` 이나 표준 입력으로만 받고(`--password` 인수 없음), 미리보기·결과·오류에 담지 않는다. 테넌트 ID 는 32자리 16진수만 받는다.
   - `backup create` 는 방식(`full`, `snapshot`, `incremental`)에 따라 `--instance` 와 `--base-backup` 중 하나만 받는다. 맞지 않는 조합은 요청 전에 종료 코드 3 이다.
   - `backup-info update` 는 지정한 항목 중 현재 값과 다른 것만 보내고, 모두 같으면 요청하지 않는다. 스케줄은 현재 값의 형식을 알 수 없어 지정하면 그대로 보낸다. 보관 기간을 줄이면 경고한다.
   - `log-file get` 은 한 번에 65533 바이트까지만 받는다. 표준 출력에는 제어 문자를 치환해 내고, `--output-file` 은 새 파일에 `0600` 으로만 쓰며 이미 있으면 종료 코드 3 이다. 한도에 닿으면 잘렸을 수 있다고 안내하고 `log-file export` 를 권한다.

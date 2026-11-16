@@ -212,7 +212,7 @@ nhncloud rds-mysql log-file export <db-instance-id> --file <log-file-name> --ten
 
 - `backup create --method`는 `full`, `snapshot`(`--instance`), `incremental`(`--base-backup`)이다. 맞지 않는 조합은 종료 코드 3이다. 수동 백업은 직접 지울 때까지 남아 비용이 든다.
 - `backup delete`는 복구할 수 없고, 이 백업을 기준으로 한 시점 복원이나 증분 백업이 안 될 수 있다.
-- `backup-info update`는 `--backup-period`(0~730), `--backup-retry-count`(0~10), `--ftwrl-wait-timeout`(0~21600), `--backup-region`, `--backup-lock`·`--no-backup-lock`, `--backup-schedule`(여러 번)만 받고 지정한 항목 중 현재 값과 다른 것만 보낸다. 모두 같으면 요청하지 않는다. 보관 기간을 줄이면 경고한다.
+- `backup-info update`는 `--backup-period`(0에서 730까지), `--backup-retry-count`(0에서 10까지), `--ftwrl-wait-timeout`(0에서 21600까지), `--backup-region`, `--backup-lock`·`--no-backup-lock`, `--backup-schedule`(여러 번)만 받고 지정한 항목 중 현재 값과 다른 것만 보낸다. 모두 같으면 요청하지 않는다. 보관 기간을 줄이면 경고한다.
 - 복원 명령 세 가지(`backup restore`, `restore point-in-time`, `restore from-object-storage`)는 원본을 바꾸지 않고 새 DB 인스턴스를 만든다. `--name`만 필수이고 사양(`--flavor-id`), 포트, 파라미터 그룹, 서브넷, 가용성 영역, 스토리지, 백업 설정, 고가용성, 보안 그룹은 지정한 것만 보내며 나머지는 원본 값을 따른다. 오브젝트 스토리지에서 복원은 원본이 없어 이 값들을 모두 지정한다. 스토리지·백업·고가용성 옵션은 `instance create`와 같다.
 - `restore point-in-time --time`은 시간대가 있는 ISO 8601(`2026-01-31T09:00:00+09:00`, `...Z`)이다. `restore info`의 범위 밖이면 종료 코드 3이다. `--time`을 생략하면 복원 가능한 가장 최근 시점이다. 바이너리 로그 복원은 `--backup-id`, `--binlog-file`, `--binlog-position`을 모두 준다.
 - 오브젝트 스토리지 API 비밀번호는 `--password-file`이나 표준 입력으로만 받고 어디에도 출력하지 않는다. `--tenant-id`는 32자리 16진수여야 한다. 같은 경로의 기존 파일을 덮어쓸 수 있으니 `--object-path`를 확인한다.
