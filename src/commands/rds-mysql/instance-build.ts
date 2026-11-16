@@ -41,16 +41,9 @@ function fail(message: string): never {
   throw new NhnCloudCliError(message, EXIT_PARAM_ERROR);
 }
 
-/** 스토리지, 네트워크, 백업 옵션을 붙인다. */
-export function addBuildOptions(command: Command): Command {
+/** 백업 설정 옵션만 붙인다. 백업 설정 변경과 생성·복원이 함께 쓴다. */
+export function addBackupOptions(command: Command): Command {
   return command
-    .option("--public-access", "외부 접속을 허용한다 (기본 허용 안 함)")
-    .option("--storage-type <type>", "데이터 스토리지 유형 (storage types 로 조회, 예: General SSD)")
-    .option("--storage-size <gb>", "데이터 스토리지 크기 (GB, 20 이상)")
-    .option("--autoscale", "스토리지 자동 확장을 쓴다")
-    .option("--autoscale-threshold <percent>", "자동 확장 조건 (50~95, --autoscale 와 함께)")
-    .option("--autoscale-max-size <gb>", "자동 확장 최대 크기 (GB, 4096 이하, --autoscale 와 함께)")
-    .option("--autoscale-cooldown <min>", "자동 확장 쿨다운 (분, 10~1440, --autoscale 와 함께)")
     .option("--backup-period <days>", "백업 보관 기간 (일, 0~730)")
     .option("--backup-retry-count <n>", "백업 재시도 횟수 (0~10)")
     .option("--ftwrl-wait-timeout <sec>", "백업 쿼리 지연 대기 시간 (초, 0~21600)")
@@ -62,6 +55,20 @@ export function addBuildOptions(command: Command): Command {
       collectOption,
       [] as string[],
     );
+}
+
+/** 스토리지, 네트워크, 백업 옵션을 붙인다. */
+export function addBuildOptions(command: Command): Command {
+  return addBackupOptions(
+    command
+      .option("--public-access", "외부 접속을 허용한다 (기본 허용 안 함)")
+      .option("--storage-type <type>", "데이터 스토리지 유형 (storage types 로 조회, 예: General SSD)")
+      .option("--storage-size <gb>", "데이터 스토리지 크기 (GB, 20 이상)")
+      .option("--autoscale", "스토리지 자동 확장을 쓴다")
+      .option("--autoscale-threshold <percent>", "자동 확장 조건 (50~95, --autoscale 와 함께)")
+      .option("--autoscale-max-size <gb>", "자동 확장 최대 크기 (GB, 4096 이하, --autoscale 와 함께)")
+      .option("--autoscale-cooldown <min>", "자동 확장 쿨다운 (분, 10~1440, --autoscale 와 함께)"),
+  );
 }
 
 function parseSchedule(value: string): { backupWndBgnTime: string; backupWndDuration: string } {
